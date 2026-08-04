@@ -103,8 +103,16 @@ function sortFrameCallbacksIfDirty(root: RootState): void {
 // spent by the time the callback runs.
 let runningFrameCallbacks = false;
 
+// SPEC.md's "clock delta capping" promise: a backgrounded tab freezes the
+// clock for arbitrarily long, and the raw getDelta() on resume would hand
+// every animation a multi-second delta and teleport it. Anything past 100ms
+// is a stall, not a frame — clamp it. Only the getDelta() path is capped;
+// "never" mode derives delta from a caller-supplied timestamp below, and
+// manual stepping owns its own dt.
+const MAX_DELTA = 0.1;
+
 function updateRoot(root: RootState, timestamp: number): number {
-  let delta = root.clock.getDelta();
+  let delta = Math.min(root.clock.getDelta(), MAX_DELTA);
 
   // In frameloop="never" mode the clock isn't running — delta is derived
   // from the caller-supplied timestamp instead.
@@ -143,15 +151,30 @@ export function loop(timestamp: number): void {
   flushGlobalEffects("before", timestamp);
 
   runningFrameCallbacks = true;
-  for (const root of roots) {
-    if (
-      root.internal.active &&
-      (root.frameloop === "always" || root.internal.frames > 0)
-    ) {
-      repeat += updateRoot(root, timestamp);
+  try {
+    for (const root of roots) {
+      if (
+        root.internal.active &&
+        (root.frameloop === "always" || root.internal.frames > 0)
+      ) {
+        // Deviation from r3f parity: upstream lets a throwing frame callback
+        // abort the whole tick, which wedges runningFrameCallbacks true and
+        // kills every later root in the Set for good. One bad root must not
+        // take the shared loop down with it — log and keep rendering the
+        // rest (same philosophy as reconciler.ts's disposeOnIdle).
+        try {
+          repeat += updateRoot(root, timestamp);
+        } catch (error) {
+          console.error(
+            "[@domphy/three] uncaught error in frame callback:",
+            error,
+          );
+        }
+      }
     }
+  } finally {
+    runningFrameCallbacks = false;
   }
-  runningFrameCallbacks = false;
 
   flushGlobalEffects("after", timestamp);
 
@@ -193,7 +216,16 @@ export function advance(
   root?: RootState,
 ): void {
   if (runGlobalCallbacks) flushGlobalEffects("before", timestamp);
-  if (root) updateRoot(root, timestamp);
-  else for (const each of roots) updateRoot(each, timestamp);
+  // Same runningFrameCallbacks contract as loop(): an invalidate() issued
+  // from inside a frame callback while manually stepping must also request
+  // the extra frame — this advance() call is already spent by the time the
+  // callback runs. try/finally so a throwing callback can't wedge the flag.
+  runningFrameCallbacks = true;
+  try {
+    if (root) updateRoot(root, timestamp);
+    else for (const each of roots) updateRoot(each, timestamp);
+  } finally {
+    runningFrameCallbacks = false;
+  }
   if (runGlobalCallbacks) flushGlobalEffects("after", timestamp);
 }

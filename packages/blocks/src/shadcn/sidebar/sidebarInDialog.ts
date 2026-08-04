@@ -8,11 +8,11 @@
 
 import type {
   DomphyElement,
-  ElementNode,
   Listener,
+  State,
   ValueOrState,
 } from "@domphy/core";
-import { rawHtml, toState } from "@domphy/core";
+import { behavior, rawHtml, toState } from "@domphy/core";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import {
   breadcrumb,
@@ -178,7 +178,10 @@ function categoryRow(
           "&[aria-current=true]": {
             backgroundColor: (l: Listener) =>
               themeColor(l, "shift-3", "neutral"),
-            color: (l: Listener) => themeColor(l, "shift-11", "neutral"),
+            // Text must sit at distance 9 from the shift-3 active fill (the
+            // K=9 contrast span) — shift-11 measured below WCAG AA here (axe
+            // color-contrast), so the active label rests at shift-12.
+            color: (l: Listener) => themeColor(l, "shift-12", "neutral"),
           },
         },
       } as unknown as DomphyElement,
@@ -372,21 +375,39 @@ function sidebarInDialog(
     // opacity toggle so both properties animate together. This adds a purely
     // decorative style effect; the dialog patch itself owns all open/close
     // mechanics (single source of truth for focus trap/scroll lock/escape).
-    _onMount: (node: ElementNode) => {
-      const element = node.domElement as HTMLDialogElement;
-      const update = (isOpen: boolean) => {
-        if (isOpen) {
-          requestAnimationFrame(() => {
-            element.style.transform = "scale(1)";
-          });
-        } else {
-          element.style.transform = "scale(0.95)";
-        }
-      };
-      update(open.get());
-      const release = open.addListener(update);
-      node.addHook("Remove", () => release());
-    },
+    // Declared as a behavior() so a reactive ancestor re-render re-subscribes
+    // the CURRENT generation's `open` state instead of leaving the transform
+    // synced to generation 1's disconnected one.
+    ...behavior<{ open: State<boolean> }>(
+      "sidebar-dialog-scale",
+      (node, initialProps) => {
+        const element = node.domElement as HTMLDialogElement | null;
+        if (!element) return undefined;
+        let openState = initialProps.open;
+        const applyScale = (isOpen: boolean) => {
+          if (isOpen) {
+            requestAnimationFrame(() => {
+              element.style.transform = "scale(1)";
+            });
+          } else {
+            element.style.transform = "scale(0.95)";
+          }
+        };
+        applyScale(openState.get());
+        let release = openState.addListener(applyScale);
+        return {
+          update: (next) => {
+            if (next.open === openState) return;
+            release();
+            openState = next.open;
+            applyScale(openState.get());
+            release = openState.addListener(applyScale);
+          },
+          destroy: () => release(),
+        };
+      },
+      { open },
+    ),
     style: {
       display: "flex",
       // The base `dialog()` patch relies on the native

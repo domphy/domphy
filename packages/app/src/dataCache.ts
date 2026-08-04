@@ -45,10 +45,18 @@ export class DataCache {
   invalidate(prefix?: string): void {
     if (prefix === undefined) {
       this.entries.clear();
+      this.pending.clear();
       return;
     }
     for (const key of this.entries.keys()) {
       if (key.startsWith(prefix)) this.entries.delete(key);
+    }
+    // Drop queued background revalidations for the invalidated keys too: a
+    // queued thunk captured the pre-invalidation loader/context and would
+    // otherwise refetch once into the just-cleared key (one redundant fetch
+    // plus a spurious onRevalidated render).
+    for (const key of this.pending.keys()) {
+      if (key.startsWith(prefix)) this.pending.delete(key);
     }
   }
 

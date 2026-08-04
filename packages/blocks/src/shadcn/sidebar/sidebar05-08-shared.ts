@@ -8,6 +8,7 @@ import type {
   Listener,
   RawHTML,
   ReadableState,
+  State,
 } from "@domphy/core";
 import { rawHtml, toState } from "@domphy/core";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
@@ -238,8 +239,16 @@ function sidebarMainContent(
           ],
           style: {
             display: "grid",
-            gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+            gridTemplateColumns: "1fr",
             gap: (l: Listener) => themeSpacing(themeDensity(l) * 4),
+            // Stack the placeholder cards on narrow screens; 2-up from `sm`,
+            // 3-up from `md`.
+            "@media (min-width: 40em)": {
+              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+            },
+            "@media (min-width: 48em)": {
+              gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+            },
           },
         } as DomphyElement<"div">,
         placeholderPanel(),
@@ -319,6 +328,25 @@ function verticalDivider(): DomphyElement<"div"> {
   } as DomphyElement<"div">;
 }
 
+/** Toggle fn shared by the header trigger and the Ctrl/Cmd+B hotkey: flips
+ * the mobile drawer under the mobile breakpoint, otherwise the icon-rail
+ * collapse — matching upstream `useSidebar().toggleSidebar`, which is
+ * viewport-aware. Toggling BOTH states unconditionally rendered the open
+ * mobile drawer in icon-rail mode (labels and groups hidden). */
+function makeSidebarToggle(
+  collapsed: State<boolean>,
+  mobileOpen: State<boolean>,
+) {
+  return () => {
+    const isMobile =
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(max-width: 768px)").matches;
+    if (isMobile) mobileOpen.set(!mobileOpen.get());
+    else collapsed.set(!collapsed.get());
+  };
+}
+
 /** Sticky content header: toggle button + vertical divider + breadcrumb trail. */
 function sidebarStickyHeader(props: {
   onToggle: () => void;
@@ -393,6 +421,7 @@ export {
   sidebarMainContent,
   sidebarBreadcrumb,
   verticalDivider,
+  makeSidebarToggle,
   sidebarStickyHeader,
   sidebarBackdrop,
 };

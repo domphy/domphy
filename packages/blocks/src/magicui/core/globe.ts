@@ -16,7 +16,7 @@
 
 import type { DomphyElement, ElementNode } from "@domphy/core";
 import { type ThemeColor, themeColorToken, themeSpacing } from "@domphy/theme";
-import createGlobe, { type COBEOptions, type Marker } from "cobe";
+import createGlobe, { type COBEOptions, type Globe, type Marker } from "cobe";
 
 export interface GlobeMarker {
   latitude: number;
@@ -142,8 +142,9 @@ function globe(props: GlobeProps = {}): DomphyElement<"div"> {
       let pointerStartX: number | null = null;
       let lastFrameTime = 0;
       let width = container.clientWidth || 1;
-      let globeInstance: ReturnType<typeof createGlobe> | null = null;
+      let globeInstance: Globe | null = null;
       let resizeObserver: ResizeObserver | null = null;
+      let animationFrameId: number | null = null;
 
       const resolveColor = (
         override: [number, number, number] | undefined,
@@ -173,62 +174,33 @@ function globe(props: GlobeProps = {}): DomphyElement<"div"> {
       const glowColor = resolveColor(props.glowColor, "shift-1", "neutral");
 
       // Upstream hardcodes `devicePixelRatio: 2` (always supersamples, even on
-      // DPR-1 screens). cobe delegates to `phenomenon`, which sizes the
-      // canvas's REAL backing store as `canvas.clientWidth * devicePixelRatio`
-      // (see phenomenon's own `resize()`) — completely independent of the
-      // `width`/`height` numbers we pass here, which only feed the fragment
-      // shader's own "logical resolution" uniform. Those two must describe the
-      // same pixel count, or the shader's aspect/projection math disagrees
-      // with the actual viewport and the sphere renders wildly mis-scaled
-      // (cropped into a corner) — so `width`/`height` MUST be multiplied by
-      // that same factor of 2.
-      const buildOptions = (): COBEOptions => {
-        const devicePixelRatio = 2;
-        return {
-          devicePixelRatio,
-          width: width * devicePixelRatio,
-          height: width * devicePixelRatio,
-          phi,
-          theta: initialTheta,
-          dark: dark ? 1 : 0,
-          diffuse: 0.4,
-          mapSamples,
-          mapBrightness,
-          baseColor,
-          markerColor,
-          glowColor,
-          markers: markerList,
-          onRender: (state) => {
-            // Advance the auto-rotation only while at rest; upstream freezes
-            // it during a drag (`if (!pointerInteracting.current) phi += …`).
-            if (pointerStartX === null) phi += rotationSpeed;
+      // DPR-1 screens). cobe v2 sizes the canvas's REAL backing store itself
+      // as `opts.width * devicePixelRatio` (see its `createGlobe` — the 0.6
+      // `phenomenon` delegate that used to do this from `clientWidth` was
+      // removed), so `width`/`height` here are LOGICAL pixels and must NOT be
+      // pre-multiplied by the ratio, or the shader's resolution uniform and
+      // the actual viewport disagree and the sphere renders mis-scaled.
+      const buildOptions = (): COBEOptions => ({
+        devicePixelRatio: 2,
+        width,
+        height: width,
+        phi,
+        theta: initialTheta,
+        dark: dark ? 1 : 0,
+        diffuse: 0.4,
+        mapSamples,
+        mapBrightness,
+        baseColor,
+        markerColor,
+        glowColor,
+        markers: markerList,
+      });
 
-            // Ease the drag spring toward its target (semi-implicit Euler).
-            // dt is clamped so a backgrounded tab can't destabilize it.
-            const now =
-              typeof performance !== "undefined"
-                ? performance.now()
-                : Date.now();
-            let dt = lastFrameTime ? (now - lastFrameTime) / 1000 : 1 / 60;
-            lastFrameTime = now;
-            if (dt > 1 / 30) dt = 1 / 30;
-            const springForce =
-              -SPRING_STIFFNESS * (dragSpring - dragTarget) -
-              SPRING_DAMPING * dragSpringVelocity;
-            dragSpringVelocity += (springForce / SPRING_MASS) * dt;
-            dragSpring += dragSpringVelocity * dt;
-
-            // Final rotation = auto-rotate accumulator + spring-eased drag
-            // offset (upstream: `state.phi = phiRef.current + rs.get()`).
-            state.phi = phi + dragSpring;
-          },
-        };
-      };
-
-      // cobe requires a real WebGL context; in environments without one
-      // (older browsers, headless/test runtimes) initialization throws
-      // synchronously — fail closed to a static empty canvas rather than
-      // crashing the whole tree.
+      // cobe requires a real WebGL context; v2 fails soft (returns a no-op
+      // instance) in environments without one (older browsers, headless/test
+      // runtimes), and the try/catch stays as a defensive guard for runtimes
+      // that throw instead — either way the block degrades to a static empty
+      // canvas rather than crashing the whole tree.
       try {
         globeInstance = createGlobe(canvas, buildOptions());
       } catch {
@@ -237,6 +209,36 @@ function globe(props: GlobeProps = {}): DomphyElement<"div"> {
       setTimeout(() => {
         canvas.style.opacity = "1";
       }, 0);
+
+      // cobe v2 renders exactly one frame per `update()` call and has no
+      // built-in animation loop or `onRender` callback (0.6's Phenomenon
+      // loop was removed), so the block drives its own requestAnimationFrame
+      // loop. Each frame advances the auto-rotation (only while at rest —
+      // upstream freezes it during a drag), eases the drag spring toward its
+      // target (semi-implicit Euler; dt is clamped so a backgrounded tab
+      // can't destabilize it), and uploads the final rotation.
+      const tick = () => {
+        if (pointerStartX === null) phi += rotationSpeed;
+
+        const now =
+          typeof performance !== "undefined" ? performance.now() : Date.now();
+        let dt = lastFrameTime ? (now - lastFrameTime) / 1000 : 1 / 60;
+        lastFrameTime = now;
+        if (dt > 1 / 30) dt = 1 / 30;
+        const springForce =
+          -SPRING_STIFFNESS * (dragSpring - dragTarget) -
+          SPRING_DAMPING * dragSpringVelocity;
+        dragSpringVelocity += (springForce / SPRING_MASS) * dt;
+        dragSpring += dragSpringVelocity * dt;
+
+        // Final rotation = auto-rotate accumulator + spring-eased drag
+        // offset (upstream: `state.phi = phiRef.current + rs.get()`).
+        globeInstance?.update({ phi: phi + dragSpring });
+        animationFrameId = requestAnimationFrame(tick);
+      };
+      if (globeInstance && typeof requestAnimationFrame === "function") {
+        animationFrameId = requestAnimationFrame(tick);
+      }
 
       // Upstream divides the pointer delta by MOVEMENT_DAMPING (1400) before
       // adding it to the spring target `r`.
@@ -281,26 +283,26 @@ function globe(props: GlobeProps = {}): DomphyElement<"div"> {
         canvas.addEventListener("touchmove", handleTouchMove);
       }
 
-      // cobe bakes width/height into its initial options rather than reading
-      // them reactively every frame, so a meaningful container resize
-      // recreates the instance (preserving the current `phi`/`dragTarget`/
-      // `dragSpring` closures) instead of trying to mutate it in place.
+      // cobe v2 accepts `width`/`height` through `update()` and re-sizes the
+      // backing store itself, so a meaningful container resize pushes the new
+      // logical size into the live instance instead of recreating it.
       if (typeof ResizeObserver !== "undefined") {
         resizeObserver = new ResizeObserver(() => {
           const nextWidth = container.clientWidth;
           if (Math.abs(nextWidth - width) < 4 || nextWidth === 0) return;
           width = nextWidth;
-          globeInstance?.destroy();
-          try {
-            globeInstance = createGlobe(canvas, buildOptions());
-          } catch {
-            globeInstance = null;
-          }
+          globeInstance?.update({ width, height: width });
         });
         resizeObserver.observe(container);
       }
 
       node.addHook("Remove", () => {
+        if (
+          animationFrameId !== null &&
+          typeof cancelAnimationFrame === "function"
+        ) {
+          cancelAnimationFrame(animationFrameId);
+        }
         globeInstance?.destroy();
         resizeObserver?.disconnect();
         if (draggable) {

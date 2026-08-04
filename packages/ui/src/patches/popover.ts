@@ -54,6 +54,10 @@ function popover(props: {
     dataTone: "shift-14",
     style: {
       backgroundColor: (l: Listener) => themeColor(l, "inherit"),
+      // Surface contract (dataTone-surface-contract): a tone-anchored panel
+      // must declare BOTH background and text color — on the dark shift-14
+      // surface, inherited portal context colors can fall below contrast.
+      color: (l: Listener) => themeColor(l, "text"),
       borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 2),
       outline: (l: Listener) => `1px solid ${themeColor(l, "border-strong")}`,
       outlineOffset: "-1px",

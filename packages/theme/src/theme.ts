@@ -29,6 +29,10 @@ export const TONE_STEPS = light.colors.neutral.length;
 // would leak literal "undefined" into the generated CSS.
 const FONT_SIZE_STEPS = 8;
 
+// Number of entries in the densities scale (themeDensity spans
+// increase/decrease 0–4 — see ElementDensities in density.ts).
+const DENSITY_STEPS = 5;
+
 // Memo caches. themeVars() depends only on the theme STRUCTURE (color names,
 // tone steps, custom keys) — it emits `var(--…)` references, never resolved
 // values — so its result is stable until setTheme() changes that structure.
@@ -81,6 +85,34 @@ function validateTheme(partial: PartialThemeInput): void {
       partial.densities.some((v) => typeof v !== "number")
     ) {
       throw new Error(`densities must be array of number`);
+    }
+    // Structural check, same class as fontSizes/colors above: themeDensity()
+    // indexes densities[0..DENSITY_STEPS-1] directly, so a short array returns
+    // undefined and leaks "calc(NaNem)" into control padding. Non-positive
+    // factors would zero/negate padding outright.
+    if (partial.densities.length !== DENSITY_STEPS) {
+      throw new Error(
+        `densities must have exactly ${DENSITY_STEPS} entries (the density scale has ${DENSITY_STEPS} steps: 0–${DENSITY_STEPS - 1}), got ${partial.densities.length}`,
+      );
+    }
+    if (partial.densities.some((v) => !Number.isFinite(v) || v! <= 0)) {
+      throw new Error(`densities entries must be positive finite numbers`);
+    }
+  }
+  if (partial.darkBias !== undefined) {
+    // darkBias feeds biasContext() as a tone offset — a non-integer/out-of-range
+    // value (e.g. from a JSON-loaded custom theme) yields NaN tone indices and
+    // undefined colors instead of an actionable error.
+    const v = partial.darkBias;
+    if (
+      typeof v !== "number" ||
+      !Number.isInteger(v) ||
+      v < 0 ||
+      v > TONE_STEPS - 1
+    ) {
+      throw new Error(
+        `darkBias must be an integer between 0 and ${TONE_STEPS - 1} (the tone ramp has ${TONE_STEPS} steps)`,
+      );
     }
   }
   if ("custom" in partial) {

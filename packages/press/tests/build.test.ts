@@ -254,3 +254,120 @@ describe("buildSite incremental staleness", () => {
     expect(sitemap).not.toContain("/drafted/");
   }, 60_000);
 });
+
+describe("buildSite base prefixing (non-root deployment)", () => {
+  let srcDir: string;
+  let outDir: string;
+
+  afterEach(() => {
+    rmSync(srcDir, { recursive: true, force: true });
+    rmSync(outDir, { recursive: true, force: true });
+  });
+
+  it("prefixes internal hrefs, canonical, og:url and sitemap with base — and keeps SSR aria-current", async () => {
+    srcDir = mkdtempSync(join(tmpdir(), "press-basefx-src-"));
+    outDir = mkdtempSync(join(tmpdir(), "press-basefx-out-"));
+    writeFileSync(join(srcDir, "index.md"), "# Home\n");
+    mkdirSync(join(srcDir, "guide"));
+    writeFileSync(join(srcDir, "guide", "index.md"), "# Guide\n");
+    writeFileSync(join(srcDir, "guide", "intro.md"), "# Intro\n");
+
+    const config = defineConfig({
+      title: "Test Site",
+      description: "",
+      hostname: "https://example.com",
+      base: "/docs/",
+      srcDir,
+      outDir,
+      themeConfig: {
+        nav: [{ text: "Guide", link: "/guide/intro" }],
+        sidebar: { "/guide/": [{ text: "Intro", link: "/guide/intro" }] },
+      },
+    });
+    await buildSite({ config, srcDir, outDir });
+
+    const html = readFileSync(
+      join(outDir, "guide", "intro", "index.html"),
+      "utf8",
+    );
+    // Nav + sidebar hrefs are base-prefixed…
+    expect(html).toContain('href="/docs/guide/intro"');
+    // …but the SSR active-state matching stayed base-less, so the current
+    // sidebar link still gets aria-current="page".
+    expect(html).toContain('aria-current="page"');
+    // SEO URLs include the base.
+    expect(html).toContain(
+      '<link rel="canonical" href="https://example.com/docs/guide/intro/"',
+    );
+    expect(html).toContain("/docs/guide/intro/");
+    const sitemap = readFileSync(join(outDir, "sitemap.xml"), "utf8");
+    expect(sitemap).toContain("https://example.com/docs/guide/intro/");
+    expect(sitemap).toContain("https://example.com/docs/");
+    // Index routes already end in "/" — canonical/sitemap must not gain a
+    // double slash (regression: "https://…/docs//").
+    const homeHtml = readFileSync(join(outDir, "index.html"), "utf8");
+    expect(homeHtml).toContain(
+      '<link rel="canonical" href="https://example.com/docs/"',
+    );
+    const guideHtml = readFileSync(join(outDir, "guide", "index.html"), "utf8");
+    expect(guideHtml).toContain(
+      '<link rel="canonical" href="https://example.com/docs/guide/"',
+    );
+    expect(guideHtml).not.toContain("/docs//");
+    expect(sitemap).not.toContain("/docs//");
+  }, 60_000);
+});
+
+describe("buildSite cspNonce", () => {
+  let srcDir: string;
+  let outDir: string;
+
+  afterEach(() => {
+    rmSync(srcDir, { recursive: true, force: true });
+    rmSync(outDir, { recursive: true, force: true });
+  });
+
+  it("stamps the nonce on every inline script/style and the islands bundle tag", async () => {
+    srcDir = mkdtempSync(join(tmpdir(), "press-nonce-src-"));
+    outDir = mkdtempSync(join(tmpdir(), "press-nonce-out-"));
+    writeFileSync(join(srcDir, "index.md"), "# Home\n");
+    const config = defineConfig({
+      title: "Test Site",
+      description: "",
+      hostname: "https://example.com",
+      srcDir,
+      outDir,
+      cspNonce: "auditnonce123",
+    });
+    await buildSite({ config, srcDir, outDir });
+
+    const html = readFileSync(join(outDir, "index.html"), "utf8");
+    expect(html).toContain('<script nonce="auditnonce123">');
+    expect(html).toContain('<style nonce="auditnonce123">');
+    expect(html).toContain('<style id="domphy-style" nonce="auditnonce123">');
+    const assets = readdirSync(join(outDir, "assets"));
+    const bundle = assets.find((file) => file.startsWith("press-islands-"))!;
+    expect(html).toContain(`src="/assets/${bundle}" nonce="auditnonce123"`);
+
+    // A follow-up build WITHOUT a nonce must not inherit the previous one
+    // (configure() is global state).
+    const outDir2 = mkdtempSync(join(tmpdir(), "press-nonce-out2-"));
+    try {
+      await buildSite({
+        config: defineConfig({
+          title: "Test Site",
+          description: "",
+          hostname: "https://example.com",
+          srcDir,
+          outDir: outDir2,
+        }),
+        srcDir,
+        outDir: outDir2,
+      });
+      const clean = readFileSync(join(outDir2, "index.html"), "utf8");
+      expect(clean).not.toContain("auditnonce123");
+    } finally {
+      rmSync(outDir2, { recursive: true, force: true });
+    }
+  }, 60_000);
+});

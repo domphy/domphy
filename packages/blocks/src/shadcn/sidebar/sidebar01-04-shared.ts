@@ -40,6 +40,7 @@ import {
   toolbarSpacer,
 } from "@domphy/ui";
 import { fixed } from "../../shared/typography.js";
+import { sidebarHotkey } from "./sidebarHotkey.js";
 
 // ---------------------------------------------------------------------------
 // Data shapes
@@ -314,12 +315,11 @@ export function navBadge(count: string | number): DomphyElement<"span"> {
 
 /** Hairline vertical separator (toggle button | breadcrumb). */
 export function verticalDivider(): DomphyElement<"div"> {
-  // `_doctorDisable` is a doctor-only annotation not present in core's strict
-  // `PartialElement` type — build through an untyped literal, then assert, so
-  // the excess-property check doesn't fire on a directly-typed literal.
   // Drawn as a border (like every other hairline in this file) rather than a
   // backgroundColor fill, since tone-background-inherit only allows a fixed
   // shifted tone on border-family properties, not on backgroundColor.
+  // Themed border + no `color` + null content is fine: missing-color exempts
+  // decorative null-content hosts (no text whose color must follow the tone).
   const element = {
     div: null,
     ariaHidden: "true",
@@ -331,8 +331,6 @@ export function verticalDivider(): DomphyElement<"div"> {
       borderInlineStart: (listener: Listener) =>
         `1px solid ${themeColor(listener, "shift-3")}`,
     },
-    // Decorative separator bar — no text content of its own.
-    _doctorDisable: "missing-color",
   };
   return element as DomphyElement<"div">;
 }
@@ -993,21 +991,9 @@ export function sidebarToggleButton(
     ariaLabel: "Toggle sidebar",
     onClick: toggle,
     $: [buttonGhost()],
-    _onMount: (node) => {
-      const handleKeydown = (event: KeyboardEvent) => {
-        if (
-          (event.ctrlKey || event.metaKey) &&
-          event.key.toLowerCase() === "b"
-        ) {
-          event.preventDefault();
-          toggle();
-        }
-      };
-      document.addEventListener("keydown", handleKeydown);
-      node.addHook("Remove", () =>
-        document.removeEventListener("keydown", handleKeydown),
-      );
-    },
+    // Ctrl/Cmd+B hotkey via behavior() — a `_onMount` listener would keep
+    // calling generation 1's `toggle` after any ancestor re-render.
+    ...sidebarHotkey(toggle),
   };
 }
 
@@ -1115,8 +1101,15 @@ export function contentTileGrid(): DomphyElement<"div"> {
         div: tiles,
         style: {
           display: "grid",
-          gridTemplateColumns: "repeat(3, 1fr)",
+          gridTemplateColumns: "1fr",
           gap: (listener: Listener) => themeSpacing(themeDensity(listener) * 4),
+          // Stack the tiles on narrow screens; 2-up from `sm`, 3-up from `md`.
+          "@media (min-width: 40em)": {
+            gridTemplateColumns: "repeat(2, 1fr)",
+          },
+          "@media (min-width: 48em)": {
+            gridTemplateColumns: "repeat(3, 1fr)",
+          },
         },
       },
       {

@@ -52,6 +52,62 @@ describe("DataCache.invalidate", () => {
     await cache.load("post|/c", loader, context("/c"), 60);
     expect(calls).toBe(4);
   });
+
+  it("drops queued revalidation thunks for the invalidated keys", async () => {
+    vi.useFakeTimers();
+    try {
+      const cache = new DataCache();
+      let calls = 0;
+      const loader = () => ++calls;
+
+      // Cache two keys under two prefixes with a 0.01s lifetime.
+      await cache.load("user|/a", loader, context("/a"), 0.01);
+      await cache.load("post|/b", loader, context("/b"), 0.01);
+      expect(calls).toBe(2);
+
+      // Age both entries past their lifetime; the next loads serve stale and
+      // queue background revalidation thunks.
+      vi.advanceTimersByTime(50);
+      await cache.load("user|/a", loader, context("/a"), 0.01);
+      await cache.load("post|/b", loader, context("/b"), 0.01);
+      expect(calls).toBe(2);
+
+      // Invalidating "user|" must drop its queued thunk; "post|" survives.
+      cache.invalidate("user|");
+      cache.flushRevalidations();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(calls).toBe(3); // only "post|/b" refetched
+
+      // The invalidated key refetches on the next load, not from a stale thunk.
+      await cache.load("user|/a", loader, context("/a"), 0.01);
+      expect(calls).toBe(4);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("drops every queued revalidation thunk when no prefix is given", async () => {
+    vi.useFakeTimers();
+    try {
+      const cache = new DataCache();
+      let calls = 0;
+      const loader = () => ++calls;
+
+      await cache.load("user|/a", loader, context("/a"), 0.01);
+      vi.advanceTimersByTime(50);
+      await cache.load("user|/a", loader, context("/a"), 0.01);
+      expect(calls).toBe(1);
+
+      // router.refresh() shape: invalidate() then flush — the queued thunk
+      // captured a pre-invalidation loader/context and must not fire.
+      cache.invalidate();
+      cache.flushRevalidations();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(calls).toBe(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
 
 describe("DataCache stale-while-revalidate failure", () => {

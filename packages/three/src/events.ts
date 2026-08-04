@@ -118,7 +118,32 @@ function releaseCapture(root: RootState, pointerId: number, object: any): void {
   if (details!.size === 0) {
     detailsByPointer.delete(pointerId);
     root.internal.captured.delete(pointerId);
-    record.target.releasePointerCapture(pointerId);
+    releasePointerCaptureGuarded(record.target, pointerId);
+  }
+}
+
+// Guards a DOM `releasePointerCapture` call against the browser having
+// already implicitly released the capture (pointerup) while this package's
+// bookkeeping is still catching up (the lostpointercapture cleanup is
+// rAF-deferred): an unguarded call throws NotFoundError, which escapes
+// through disposeSceneNode mid-disposal (node.disposed already set, children
+// not yet recursed — and the idempotency flag turns a retry into a no-op,
+// leaking the subtree). `hasPointerCapture` is the authoritative check;
+// targets that don't implement it (jsdom, minimal test doubles) fall back to
+// try/catch.
+function releasePointerCaptureGuarded(
+  target: EventCaptureTarget,
+  pointerId: number,
+): void {
+  if (typeof target.hasPointerCapture === "function") {
+    if (target.hasPointerCapture(pointerId))
+      target.releasePointerCapture(pointerId);
+    return;
+  }
+  try {
+    target.releasePointerCapture(pointerId);
+  } catch {
+    // Already released by the browser — nothing left to do.
   }
 }
 
@@ -133,11 +158,16 @@ export function swapInteractivity(
 ): void {
   const { internal } = root;
 
-  const interactiveIndex = internal.interactive.indexOf(object);
-  if (interactiveIndex > -1) internal.interactive[interactiveIndex] = newObject;
-
-  const initialHitIndex = internal.initialHits.indexOf(object);
-  if (initialHitIndex > -1) internal.initialHits[initialHitIndex] = newObject;
+  // `interactive`/`initialHits` can list the same object more than once
+  // (e.g. several faces of one mesh in initialHits) — replace EVERY
+  // occurrence, not just the first indexOf hit (reference parity: r3f
+  // filters the whole array rather than splicing one index).
+  internal.interactive = internal.interactive.map((candidate) =>
+    candidate === object ? newObject : candidate,
+  );
+  internal.initialHits = internal.initialHits.map((candidate) =>
+    candidate === object ? newObject : candidate,
+  );
 
   for (const [id, value] of internal.hovered) {
     if (value.eventObject === object || value.object === object) {
@@ -162,7 +192,23 @@ export function swapInteractivity(
     const record = details?.get(object);
     if (record) {
       details!.delete(object);
-      details!.set(newObject, record);
+      // The stashed Intersection still references the disposed instance —
+      // rewrite it exactly like the hovered records above, otherwise a
+      // captured hit delivered after the swap reports the dead instance as
+      // event.eventObject/object (and retains it until release).
+      const { intersection } = record;
+      details!.set(newObject, {
+        ...record,
+        intersection: {
+          ...intersection,
+          eventObject:
+            intersection.eventObject === object
+              ? newObject
+              : intersection.eventObject,
+          object:
+            intersection.object === object ? newObject : intersection.object,
+        },
+      });
     }
   }
 }
@@ -173,11 +219,15 @@ export function swapInteractivity(
 export function removeInteractivity(root: RootState, object: any): void {
   const { internal } = root;
 
-  const interactiveIndex = internal.interactive.indexOf(object);
-  if (interactiveIndex > -1) internal.interactive.splice(interactiveIndex, 1);
-
-  const initialHitIndex = internal.initialHits.indexOf(object);
-  if (initialHitIndex > -1) internal.initialHits.splice(initialHitIndex, 1);
+  // Same duplicate-occurrence concern as swapInteractivity — remove EVERY
+  // occurrence, not just the first (reference parity:
+  // `.filter((o) => o !== object)`).
+  internal.interactive = internal.interactive.filter(
+    (candidate) => candidate !== object,
+  );
+  internal.initialHits = internal.initialHits.filter(
+    (candidate) => candidate !== object,
+  );
 
   for (const [id, value] of internal.hovered) {
     if (value.eventObject === object || value.object === object)
@@ -199,7 +249,7 @@ export function removeInteractivity(root: RootState, object: any): void {
     if (record) {
       details!.delete(object);
       if (details!.size === 0) detailsByPointer!.delete(pointerId);
-      record.target.releasePointerCapture(pointerId);
+      releasePointerCaptureGuarded(record.target, pointerId);
     }
   }
 }
@@ -264,6 +314,18 @@ export function intersect(
     : root.internal.interactive;
 
   let hits: THREE.Intersection[] = eventObjects
+    // Grammar's `raycast: null` opt-out (SPEC.md): the object keeps its
+    // `interactive` membership ("excluded from raycasting", not "has no
+    // handlers") but must never reach the raycaster — three calls
+    // object.raycast() unconditionally inside intersectObject, so a null
+    // raycast TypeErrors and kills the whole event layer. props.ts's
+    // pointer-event rule enforces this only on its own assignment path;
+    // membership and the null assignment can still diverge (a single
+    // `{ onClick, raycast: null }` bag applies the handler — and the
+    // membership — BEFORE the static raycast assignment, and later reactive/
+    // pierced writes never re-sync `interactive`). Filtering at this single
+    // choke point covers every assignment path.
+    .filter((object: any) => object.raycast !== null)
     .flatMap((object: any) => root.raycaster.intersectObject(object, true))
     .sort(
       (a: THREE.Intersection, b: THREE.Intersection) => a.distance - b.distance,

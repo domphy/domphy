@@ -11,7 +11,11 @@ afterEach(() => {
 // loader would. Each call to this factory returns a fresh class so tests
 // never share the module-level asset cache with each other.
 function createFakeLoaderClass(
-  options: { onLoadValue?: (url: string) => any; shouldFail?: boolean } = {},
+  options: {
+    onLoadValue?: (url: string) => any;
+    shouldFail?: boolean;
+    failWith?: unknown;
+  } = {},
 ) {
   const loadCalls: string[] = [];
   const instances: FakeLoader[] = [];
@@ -29,7 +33,11 @@ function createFakeLoaderClass(
       loadCalls.push(url);
       queueMicrotask(() => {
         if (options.shouldFail) {
-          onError(new Error("network error"));
+          onError(
+            options.failWith !== undefined
+              ? options.failWith
+              : new Error("network error"),
+          );
         } else {
           onLoad(options.onLoadValue ? options.onLoadValue(url) : { url });
         }
@@ -110,6 +118,69 @@ describe("loadAsset", () => {
     });
 
     expect(receivedLoader).toBe(instances[0]);
+  });
+
+  it("configure runs ONCE per loader instance, not once per cache miss", async () => {
+    const { FakeLoader } = createFakeLoaderClass();
+    let configureCalls = 0;
+    const configure = () => {
+      configureCalls++;
+    };
+
+    // Different inputs are separate cache misses but share the one loader
+    // instance — a non-idempotent configure (plugin registration) must not
+    // be re-applied on the same instance.
+    const first = loadAsset(FakeLoader, "one.glb", configure);
+    const second = loadAsset(FakeLoader, "two.glb", configure);
+
+    expect(configureCalls).toBe(1);
+    await Promise.all([first.promise, second.promise]);
+  });
+
+  it("configure runs again when the reload uses a NEW loader instance", async () => {
+    // A fresh LoaderClass gets a fresh instance, so its configure must run —
+    // the guard is per-instance, not per-class-name or global.
+    const { FakeLoader: FirstClass } = createFakeLoaderClass();
+    const { FakeLoader: SecondClass } = createFakeLoaderClass();
+    let configureCalls = 0;
+    const configure = () => {
+      configureCalls++;
+    };
+
+    const first = loadAsset(FirstClass, "same.glb", configure);
+    const second = loadAsset(SecondClass, "same.glb", configure);
+
+    expect(configureCalls).toBe(2);
+    await Promise.all([first.promise, second.promise]);
+  });
+
+  it("wraps load failures with the original error chained as `cause`", async () => {
+    const original = new Error("network error");
+    const { FakeLoader } = createFakeLoaderClass({
+      shouldFail: true,
+      failWith: original,
+    });
+    const result = loadAsset(FakeLoader, "missing.glb");
+
+    const wrapped = await result.promise.catch((loadError: Error) => loadError);
+    expect(wrapped.message).toContain("Could not load missing.glb");
+    expect((wrapped as Error & { cause?: unknown }).cause).toBe(original);
+  });
+
+  it("falls back to String() when the load failure is not an Error (XHR ProgressEvent)", async () => {
+    // XHR-based loaders reject with a ProgressEvent — `.message` is
+    // undefined, so the wrapped message must come from String() and the
+    // original event must still be reachable via `cause`.
+    const progressEvent = { type: "error", toString: () => "xhr failed" };
+    const { FakeLoader } = createFakeLoaderClass({
+      shouldFail: true,
+      failWith: progressEvent,
+    });
+    const result = loadAsset(FakeLoader, "missing.glb");
+
+    const wrapped = await result.promise.catch((loadError: Error) => loadError);
+    expect(wrapped.message).toBe("Could not load missing.glb: xhr failed");
+    expect((wrapped as Error & { cause?: unknown }).cause).toBe(progressEvent);
   });
 
   it("gltf-style .scene results get nodes/materials/meshes assigned onto the result", async () => {
@@ -303,6 +374,45 @@ describe("clearAsset dispose option", () => {
 
     clearAsset(FakeLoader, "tex.png", { dispose: true });
 
+    expect(texture.dispose).toHaveBeenCalledTimes(1);
+  });
+
+  it("with { dispose: true } and no input disposes a resource shared BETWEEN entries exactly once", async () => {
+    // Two cached inputs whose graphs reference the same material — the
+    // guard sets must be shared across the whole clear, not rebuilt per
+    // entry, or the shared material would be disposed twice.
+    const sharedMaterial = { isMaterial: true, dispose: vi.fn() };
+    const { FakeLoader } = createFakeLoaderClass({
+      onLoadValue: (url) => ({ materials: { [url]: sharedMaterial } }),
+    });
+
+    const resultA = loadAsset(FakeLoader, "a.glb");
+    const resultB = loadAsset(FakeLoader, "b.glb");
+    await Promise.all([resultA.promise, resultB.promise]);
+    flushSync();
+
+    clearAsset(FakeLoader, undefined, { dispose: true });
+
+    expect(sharedMaterial.dispose).toHaveBeenCalledTimes(1);
+  });
+
+  it("with { dispose: true } scans texture props of materials on the plain-wrapper path", async () => {
+    // A material reachable through a plain wrapper (gltf's `materials`
+    // record, not an Object3D traversal) owns textures whose GPU memory its
+    // own dispose() does not free.
+    const texture = { isTexture: true, dispose: vi.fn() };
+    const material = { isMaterial: true, map: texture, dispose: vi.fn() };
+    const { FakeLoader } = createFakeLoaderClass({
+      onLoadValue: () => ({ materials: { Mat: material } }),
+    });
+
+    const result = loadAsset(FakeLoader, "wrapped.glb");
+    await result.promise;
+    flushSync();
+
+    clearAsset(FakeLoader, "wrapped.glb", { dispose: true });
+
+    expect(material.dispose).toHaveBeenCalledTimes(1);
     expect(texture.dispose).toHaveBeenCalledTimes(1);
   });
 });

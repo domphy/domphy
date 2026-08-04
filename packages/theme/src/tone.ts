@@ -15,8 +15,12 @@ import {
 //   hover          -> shift-2  hover/active background (e.g. button, menu, list)
 //   border         -> shift-3  subtle hairline divider (e.g. card footer separator)
 //   border-strong  -> shift-4  control outline (e.g. button, input, card boundary)
-//   muted          -> shift-8  secondary/disabled text
-//   text           -> shift-9  default/primary text
+//   muted          -> shift-8  secondary/disabled text (de-emphasis ONLY:
+//                               ~4.1-4.2:1 on an edge surface — below WCAG AA
+//                               4.5:1 for normal text by design; essential text
+//                               must use "text", never "muted")
+//   text           -> shift-9  default/primary text (>= 4.5:1 on any edge
+//                               surface, every built-in role — the K=9 span)
 //
 // Exported as a value (like ElementTones below) so tooling — @domphy/doctor,
 // the MCP server — can validate/resolve alias names without hand-duplicating
@@ -154,7 +158,17 @@ export function themeColor(
   }
   const colors = themeVars()[themeColor];
   if (!colors) {
-    throw Error(`color "${themeColor}" not found on theme "${name}"`);
+    // themeVars() is keyed on the "light" theme STRUCTURE — it emits the
+    // shared var(--…) baseline every theme's CSS block must provide. A role
+    // registered only on another theme (setTheme("mytheme", { colors: … }))
+    // is invisible here, so name the baseline as the failure point, not the
+    // node's theme.
+    if (name === "light") {
+      throw Error(`color "${themeColor}" not found on theme "light"`);
+    }
+    throw Error(
+      `color "${themeColor}" not found on the "light" theme (required by node theme "${name}") — themeColor() var references are keyed on the "light" theme structure; register the role on "light" as well (e.g. setTheme("light", { colors: { ${themeColor}: … } })) so the shared CSS-var baseline includes it`,
+    );
   }
   const resultColor = colors[resultTone];
 

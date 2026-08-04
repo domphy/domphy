@@ -158,6 +158,44 @@ describe("makeMermaidClient", () => {
     expect(host.innerHTML).not.toContain("javascript:");
   });
 
+  it("skips the render entirely when a queued mount is removed before its turn", async () => {
+    // Mount A holds the shared render queue with a slow render. Mount B queues
+    // behind it and is removed while waiting — when the queue drains, B's
+    // mermaid.render must not run at all (the result would be discarded).
+    let resolveFirstRender: (value: { svg: string }) => void = () => {};
+    const renderA = vi.fn(
+      () =>
+        new Promise<{ svg: string }>((resolve) => {
+          resolveFirstRender = resolve;
+        }),
+    );
+    const renderB = vi.fn(async () => ({ svg: "<svg>B</svg>" }));
+    const moduleA = fakeMermaid(renderA).module;
+    const moduleB = fakeMermaid(renderB).module;
+    const loadB = vi.fn(() => moduleB);
+
+    const hostA = makeHost("graph TD; A-->B;");
+    const hostB = makeHost("graph TD; C-->D;");
+    makeMermaidClient(() => moduleA, {})._onMount?.(nodeFor(hostA));
+    const patchB = makeMermaidClient(loadB, {});
+    patchB._onMount?.(nodeFor(hostB));
+
+    // Wait until A's render is actually in flight (queue occupied), then tear
+    // B down before its queued task runs.
+    await vi.waitFor(() => expect(renderA).toHaveBeenCalled());
+    patchB._onRemove?.(nodeFor(hostB));
+
+    resolveFirstRender({ svg: "<svg>A</svg>" });
+    await vi.waitFor(() => expect(hostA.innerHTML).toBe("<svg>A</svg>"));
+    // Give B's queued task a chance to run (and skip itself).
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(renderB).not.toHaveBeenCalled();
+    expect(loadB).not.toHaveBeenCalled();
+    expect(hostB.innerHTML).toBe("");
+  });
+
   it("does NOT write the SVG when the node is removed before the render resolves", async () => {
     // Render resolves on the next microtask; the disposed guard must stop the
     // late `.then` from writing into a torn-down host.

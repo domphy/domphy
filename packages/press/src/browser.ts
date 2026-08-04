@@ -9,6 +9,7 @@ export {
   flattenSidebar,
   prevNextForRoute,
   sidebarForRoute,
+  withBase,
 } from "./routes-browser.js";
 export { mountSearch, queryIndex, searchWidget } from "./search.js";
 export { pressCSS } from "./theme.js";

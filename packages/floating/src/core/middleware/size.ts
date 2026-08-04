@@ -10,18 +10,31 @@ import {
 import type {DetectOverflowOptions} from '../detectOverflow';
 import type {Derivable, Middleware, MiddlewareState} from '../types';
 
+// Method syntax keeps callback parameters bivariant, but expressing the
+// explicit `| undefined` required by `exactOptionalPropertyTypes` needs
+// property syntax, which is contravariant under `strictFunctionTypes`.
+// Extracting the function from a method position restores that bivariance so
+// consumers can still assign callbacks with narrower parameter types.
+type BivariantCallback<T extends (...args: any[]) => any> = {
+  bivariance(...args: Parameters<T>): ReturnType<T>;
+}['bivariance'];
+
 export interface SizeOptions extends DetectOverflowOptions {
   /**
    * Function that is called to perform style mutations to the floating element
    * to change its size.
    * @default undefined
    */
-  apply?(
-    args: MiddlewareState & {
-      availableWidth: number;
-      availableHeight: number;
-    },
-  ): void | Promise<void>;
+  apply?:
+    | BivariantCallback<
+        (
+          args: MiddlewareState & {
+            availableWidth: number;
+            availableHeight: number;
+          },
+        ) => void | Promise<void>
+      >
+    | undefined;
 }
 
 /**
@@ -79,38 +92,24 @@ export const size = (
       maximumClippingWidth,
     );
 
-    const noShift = !state.middlewareData.shift;
+    const shiftData = state.middlewareData.shift;
+    const noShift = !shiftData;
 
     let availableHeight = overflowAvailableHeight;
     let availableWidth = overflowAvailableWidth;
 
-    if (state.middlewareData.shift?.enabled.x) {
+    if (shiftData?.enabled.x) {
       availableWidth = maximumClippingWidth;
     }
-    if (state.middlewareData.shift?.enabled.y) {
+    if (shiftData?.enabled.y) {
       availableHeight = maximumClippingHeight;
     }
 
     if (noShift && !alignment) {
-      const xMin = max(overflow.left, 0);
-      const xMax = max(overflow.right, 0);
-      const yMin = max(overflow.top, 0);
-      const yMax = max(overflow.bottom, 0);
-
       if (isYAxis) {
-        availableWidth =
-          width -
-          2 *
-            (xMin !== 0 || xMax !== 0
-              ? xMin + xMax
-              : max(overflow.left, overflow.right));
+        availableWidth = width - 2 * max(overflow.left, overflow.right);
       } else {
-        availableHeight =
-          height -
-          2 *
-            (yMin !== 0 || yMax !== 0
-              ? yMin + yMax
-              : max(overflow.top, overflow.bottom));
+        availableHeight = height - 2 * max(overflow.top, overflow.bottom);
       }
     }
 

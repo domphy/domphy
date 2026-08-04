@@ -149,14 +149,22 @@ export function makeMermaidClient(
 
       // Serialized: initialize() mutates global mermaid config, so the
       // initialize+render pair must not interleave with another mount's (see
-      // enqueueRender above).
-      enqueueRender(() =>
-        Promise.resolve(load()).then((mermaid) => {
-          mermaid.initialize(
-            resolveMermaidConfig(theme, options.mermaidConfig),
-          );
-          return mermaid.render(id, source);
-        }),
+      // enqueueRender above). The disposed check runs BEFORE the render starts
+      // (queue drain), not only after it resolves: a node removed while
+      // waiting in the queue must not run mermaid.render at all — the result
+      // would be discarded anyway. The sentinel keeps the render-result shape
+      // so the shared .then below just no-ops via its own disposed guard.
+      type RenderResult = Awaited<ReturnType<MermaidBrowserModule["render"]>>;
+      enqueueRender(
+        (): Promise<RenderResult> =>
+          disposed
+            ? Promise.resolve({ svg: "" })
+            : Promise.resolve(load()).then((mermaid) => {
+                mermaid.initialize(
+                  resolveMermaidConfig(theme, options.mermaidConfig),
+                );
+                return mermaid.render(id, source);
+              }),
       )
         .then(({ svg, bindFunctions }) => {
           // The node may have been removed while the render was in flight; do

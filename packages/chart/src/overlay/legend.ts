@@ -18,7 +18,7 @@ export function renderLegend(
   const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
   group.setAttribute("class", "dc-legend");
   group.setAttribute("pointer-events", "all");
-  group.style.cursor = "pointer";
+  group.style.cursor = legend.selectedMode === false ? "default" : "pointer";
 
   const itemGap = legend.itemGap ?? 16;
   const itemWidth = legend.itemWidth ?? 14;
@@ -67,8 +67,17 @@ export function renderLegend(
     const isHidden = hiddenSeries.has(name);
     const color = isHidden ? disabledColor : seriesColor(seriesIndex);
 
+    // ECharts legend.formatter: function receives the name; a string is a
+    // template where "{name}" is replaced with the series name.
+    const label =
+      typeof legend.formatter === "function"
+        ? String(legend.formatter(name))
+        : typeof legend.formatter === "string"
+          ? legend.formatter.replace(/\{name\}/g, name)
+          : name;
+
     // Invisible hit area for click
-    const textW = name.length * 7;
+    const textW = label.length * 7;
     const hitArea = document.createElementNS(
       "http://www.w3.org/2000/svg",
       "rect",
@@ -94,7 +103,7 @@ export function renderLegend(
 
     // Label
     const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    text.textContent = name;
+    text.textContent = label;
     text.setAttribute("x", String(offsetX + itemWidth + 5));
     text.setAttribute("y", String(offsetY + fontSize));
     text.setAttribute("fill", isHidden ? disabledColor : textColor);
@@ -103,7 +112,7 @@ export function renderLegend(
     group.appendChild(text);
 
     if (orient === "horizontal") {
-      offsetX += itemWidth + 5 + name.length * 7 + itemGap;
+      offsetX += itemWidth + 5 + label.length * 7 + itemGap;
     } else {
       offsetY += fontSize + itemGap;
     }

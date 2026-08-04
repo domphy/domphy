@@ -229,7 +229,7 @@ export interface FormValidators<
   onDynamicAsyncDebounceMs?: number
 }
 
-interface FormListenersPropsGroup<
+export interface FormListenersPropsGroup<
   TFormData,
   TOnMount extends undefined | FormValidateOrFn<TFormData>,
   TOnChange extends undefined | FormValidateOrFn<TFormData>,
@@ -260,7 +260,7 @@ interface FormListenersPropsGroup<
   groupApi: AnyFormGroupApi
 }
 
-interface FormListenersPropsField<
+export interface FormListenersPropsField<
   TFormData,
   TOnMount extends undefined | FormValidateOrFn<TFormData>,
   TOnChange extends undefined | FormValidateOrFn<TFormData>,
@@ -1143,6 +1143,7 @@ export class FormApi<
             isBlurred: false,
             isDirty: false,
             _arrayVersion: 0,
+            _pendingValidationsCount: 0,
             ...(existingFieldMeta ?? {}),
             errorSourceMap: {
               ...(existingFieldMeta?.['errorSourceMap'] ?? {}),
@@ -2237,6 +2238,13 @@ export class FormApi<
           } catch (e: unknown) {
             rawError = e as ValidationError
           }
+          // NOTE(deviation from upstream): same post-resolution abort guard
+          // FieldApi.validateAsync has. Upstream aborts the superseded
+          // controller above but never re-checks the signal after the
+          // validator promise resolves, so with out-of-order completion a
+          // cancelled run can write its stale result last and stick it in
+          // the form errorMap even though the current value is valid.
+          if (controller.signal.aborted) return resolve(undefined)
           const { formError, fieldErrors: fieldErrorsFromNormalizeError } =
             normalizeError<TFormData>(rawError)
 
@@ -2250,20 +2258,26 @@ export class FormApi<
           }
           const errorMapKey = getErrorMapKey(validateObj.cause)
 
-          let fields: DeepKeys<TFormData>[] = Object.keys(this.state.fieldMeta)
+          const allFieldsToProcess = new Set([
+            ...Object.keys(this.state.fieldMeta),
+            ...Object.keys(fieldErrorsFromFormValidators || {}),
+          ] as DeepKeys<TFormData>[])
+
+          let fields: DeepKeys<TFormData>[] = Array.from(allFieldsToProcess)
 
           if (validateOpts?.filterFieldNames) {
             fields = fields.filter(validateOpts.filterFieldNames)
           }
 
           for (const field of fields) {
-            if (this.baseStore.state.fieldMetaBase[field] === undefined) {
+            if (
+              this.baseStore.state.fieldMetaBase[field] === undefined &&
+              !fieldErrorsFromFormValidators?.[field]
+            ) {
               continue
             }
 
-            const fieldMeta = this.getFieldMeta(field)
-            if (!fieldMeta) continue
-
+            const fieldMeta = this.getFieldMeta(field) ?? defaultFieldMeta
             const {
               errorMap: currentErrorMap,
               errorSourceMap: currentErrorMapSource,
@@ -2283,7 +2297,7 @@ export class FormApi<
 
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             if (currentErrorMap?.[errorMapKey] !== newErrorValue) {
-              this.setFieldMeta(field, (prev) => ({
+              this.setFieldMeta(field, (prev = defaultFieldMeta) => ({
                 ...prev,
                 errorMap: {
                   ...prev.errorMap,
@@ -2443,12 +2457,19 @@ export class FormApi<
       submitMeta ?? (this.options.onSubmitMeta as TSubmitMeta)
 
     if (!this.state.canSubmit && !this._devtoolsSubmissionOverride) {
-      this.options.onSubmitInvalid?.({
-        value: this.state.values,
-        formApi: this,
-        meta: submitMetaArg,
-      })
-      return
+      // On re-submission (submissionAttempts > 1), skip the early return so
+      // validateAllFields can re-run and clear stale field errors (e.g. from a
+      // previous onBlur validation that is no longer relevant). The
+      // isFieldsValid check below will call onSubmitInvalid if the form is
+      // still invalid after re-validation.
+      if (this.baseStore.state.submissionAttempts <= 1) {
+        this.options.onSubmitInvalid?.({
+          value: this.state.values,
+          formApi: this,
+          meta: submitMetaArg,
+        })
+        return
+      }
     }
 
     this.baseStore.setState((d) => ({ ...d, isSubmitting: true }))

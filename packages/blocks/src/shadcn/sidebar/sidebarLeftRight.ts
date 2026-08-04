@@ -12,7 +12,6 @@
 
 import type {
   DomphyElement,
-  ElementNode,
   Listener,
   ReadableState,
   State,
@@ -45,12 +44,14 @@ import {
   ICON_PANEL_TOGGLE,
   ICON_PLUS,
   ICON_SEARCH,
+  makeSidebarToggle,
   type SidebarTeam,
   sidebarBackdrop,
   sidebarIcon,
   sidebarMainContent,
   verticalDivider,
 } from "./sidebar05-08-shared.js";
+import { sidebarHotkey } from "./sidebarHotkey.js";
 
 // ---------------------------------------------------------------------------
 // Hand-authored generic line icons (24x24, stroke=currentColor) — simple
@@ -1241,7 +1242,8 @@ function calendarSeparator(key: string): DomphyElement<"div"> {
       borderTop: (l: Listener) =>
         `1px solid ${themeColor(l, "shift-3", "neutral")}`,
     },
-    _doctorDisable: "missing-color",
+    // Themed border + no `color` + null content: missing-color exempts
+    // decorative null-content hosts, so no suppression is needed here.
   } as unknown as DomphyElement<"div">;
 }
 
@@ -1274,6 +1276,8 @@ function sidebarLeftRight(
 
   const leftSidebarOpen = toState(true);
   const leftCollapsed = toState(defaultLeftCollapsed);
+  // Viewport-aware trigger/hotkey: mobile flips the drawer, desktop the rail.
+  const toggleLeftSidebar = makeSidebarToggle(leftCollapsed, leftSidebarOpen);
 
   const selectedDateState = toState(selectedDate);
   const viewMonthState = toState(startOfMonth(selectedDate));
@@ -1410,21 +1414,10 @@ function sidebarLeftRight(
     // landmarks (axe-core `landmark-unique`).
     ariaLabel: "Primary sidebar",
     dataTone: "shift-1",
-    _onMount: (node: ElementNode) => {
-      const onKeyDown = (event: KeyboardEvent) => {
-        if (
-          (event.metaKey || event.ctrlKey) &&
-          event.key.toLowerCase() === "b"
-        ) {
-          event.preventDefault();
-          leftCollapsed.set(!leftCollapsed.get());
-        }
-      };
-      window.addEventListener("keydown", onKeyDown);
-      node.addHook("Remove", () =>
-        window.removeEventListener("keydown", onKeyDown),
-      );
-    },
+    // Ctrl/Cmd+B hotkey via behavior() — a `_onMount` listener would keep
+    // calling generation 1's `leftCollapsed` state after any ancestor
+    // re-render.
+    ...sidebarHotkey(toggleLeftSidebar),
     style: {
       position: "relative",
       display: "flex",
@@ -1461,10 +1454,7 @@ function sidebarLeftRight(
             button: sidebarIcon(ICON_PANEL_TOGGLE),
             type: "button",
             ariaLabel: "Toggle sidebar",
-            onClick: () => {
-              leftSidebarOpen.set(!leftSidebarOpen.get());
-              leftCollapsed.set(!leftCollapsed.get());
-            },
+            onClick: toggleLeftSidebar,
             $: [buttonGhost({ color: "neutral" })],
           } as unknown as DomphyElement,
           verticalDivider(),

@@ -138,9 +138,10 @@ function sparklesText(props: SparklesTextProps = {}): DomphyElement<"div"> {
         style: { position: "relative", display: "inline-block" },
       },
     ],
-    // Upstream root carries `text-6xl font-bold`.
+    // Upstream root carries `text-6xl font-bold`. The size scales down with
+    // the viewport (9vw) so the demo phrase never overflows a 375px screen.
     style: {
-      fontSize: fixed("3.75rem"),
+      fontSize: fixed("clamp(2.25rem, 9vw, 3.75rem)"),
       lineHeight: fixed("1"),
       fontWeight: fixed(700),
       [`@keyframes ${animationName}`]: keyframes,
@@ -158,7 +159,9 @@ function sparklesText(props: SparklesTextProps = {}): DomphyElement<"div"> {
         const entry: SparkleEntry = {
           key,
           topPercent: Math.round(Math.random() * 100),
-          leftPercent: Math.round(Math.random() * 100),
+          // Cap at 92% so a max-size sparkle near the right edge stays inside
+          // the text box instead of poking past it (mobile overflow).
+          leftPercent: Math.round(Math.random() * 92),
           sizeUnits: minSize + Math.random() * (maxSize - minSize),
           color: Math.random() < 0.5 ? colors[0] : colors[1],
         };

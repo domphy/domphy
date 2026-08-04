@@ -1,13 +1,8 @@
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-} from "@modelcontextprotocol/sdk/types.js";
+import { Client } from "@modelcontextprotocol/client";
+import { InMemoryTransport, Server } from "@modelcontextprotocol/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { handleToolCall, TOOLS } from "../src/handler";
 import {
@@ -206,10 +201,10 @@ function buildTestServer(): Server {
     { name: "domphy-test", version: "0.0.0" },
     { capabilities: { tools: {} } },
   );
-  server.setRequestHandler(ListToolsRequestSchema, async () => ({
+  server.setRequestHandler("tools/list", async () => ({
     tools: TOOLS,
   }));
-  server.setRequestHandler(CallToolRequestSchema, async (request) =>
+  server.setRequestHandler("tools/call", async (request) =>
     handleToolCall(
       request.params.name,
       request.params.arguments as Record<string, unknown> | undefined,

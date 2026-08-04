@@ -32,6 +32,13 @@ export interface AssetResult<T = any> {
 // One loader instance per LoaderClass, reused across every input it loads.
 const loaderInstances = new WeakMap<Constructable, any>();
 
+// Loader instances on which `configure` already ran. Instances are shared
+// per LoaderClass (getLoaderInstance above), so a per-cache-miss call would
+// re-apply a non-idempotent configure (e.g. draco/plugin registration) on
+// the same instance — the r3f semantics are once per instance, right before
+// that instance's first `.load()`.
+const configuredInstances = new WeakSet<object>();
+
 // A cached load plus the configure it ran with, so a cache HIT that passes a
 // different configure can warn instead of silently ignoring it.
 interface CacheEntry {
@@ -96,9 +103,16 @@ function loadFromUrl(loader: any, url: string): Promise<any> {
       },
       undefined,
       (loadError: unknown) => {
+        // XHR-based loaders reject with a ProgressEvent, not an Error — its
+        // `.message` is undefined, so fall back to String(). The original
+        // failure is chained as `cause` so callers don't lose it.
         const message =
           (loadError as { message?: string })?.message ?? String(loadError);
-        reject(new Error(`Could not load ${url}: ${message}`));
+        reject(
+          new Error(`Could not load ${url}: ${message}`, {
+            cause: loadError,
+          }),
+        );
       },
     );
   });
@@ -140,7 +154,13 @@ export function loadAsset<T = any>(
   }
 
   const loader = getLoaderInstance(LoaderClass);
-  if (configure) configure(loader);
+  // Marked before the call so a throwing configure is not retried on the
+  // next cache miss — partial configuration is the caller's bug to fix, not
+  // something a second apply would heal.
+  if (configure && !configuredInstances.has(loader)) {
+    configuredInstances.add(loader);
+    configure(loader);
+  }
 
   const data = new State<T | null>(null, "asset-data");
   const error = new State<Error | null>(null, "asset-error");
@@ -184,15 +204,30 @@ export interface ClearAssetOptions {
 // deep), and Object3D graphs (each child's geometry, materials, and the
 // materials' texture properties). The seen-sets guard against shared/cyclic
 // references (a material used by two meshes must not be disposed twice, and
-// `nodes` records point back into the same graph).
-function disposeLoadedAsset(data: any): void {
+// `nodes` records point back into the same graph). The sets are passed IN by
+// the caller so a multi-entry clearAsset shares them across entries — a
+// resource shared between two cached inputs must not be disposed twice
+// either.
+function disposeLoadedAsset(
+  data: any,
+  disposed: Set<any> = new Set(),
+  visited: Set<any> = new Set(),
+): void {
   if (data == null || typeof data !== "object") return;
-  const disposed = new Set<any>();
-  const visited = new Set<any>();
   const disposeOnce = (value: any) => {
     if (!value || typeof value !== "object" || disposed.has(value)) return;
     disposed.add(value);
     if (typeof value.dispose === "function") value.dispose();
+  };
+  // A material's own dispose() does not free the GPU memory of the textures
+  // it references, so both the Object3D-traverse path and the plain-wrapper
+  // path scan material props for `isTexture` values.
+  const disposeMaterial = (material: any) => {
+    for (const key in material) {
+      const prop = material[key];
+      if (prop?.isTexture) disposeOnce(prop);
+    }
+    disposeOnce(material);
   };
   const visit = (value: any, depth: number) => {
     if (value == null || typeof value !== "object" || visited.has(value)) {
@@ -213,26 +248,33 @@ function disposeLoadedAsset(data: any): void {
           : [child.material];
         for (const material of materials) {
           if (!material || typeof material !== "object") continue;
-          for (const key in material) {
-            const prop = material[key];
-            if (prop?.isTexture) disposeOnce(prop);
-          }
-          disposeOnce(material);
+          disposeMaterial(material);
         }
       });
-    } else if (depth < 2) {
-      // Plain wrapper: look one/two levels down for the actual graph or
-      // dispose-capable members.
-      for (const key in value) visit(value[key], depth + 1);
+    } else {
+      if (value.isMaterial) {
+        // Material reached outside an Object3D traversal (a plain wrapper's
+        // `materials` record): scan its texture props too — see above.
+        disposeMaterial(value);
+      }
+      if (depth < 2) {
+        // Plain wrapper: look one/two levels down for the actual graph or
+        // dispose-capable members.
+        for (const key in value) visit(value[key], depth + 1);
+      }
     }
     disposeOnce(value);
   };
   visit(data, 0);
 }
 
-function disposeEntry(entry: CacheEntry): void {
+function disposeEntry(
+  entry: CacheEntry,
+  disposed: Set<any>,
+  visited: Set<any>,
+): void {
   try {
-    disposeLoadedAsset(entry.result.data.get());
+    disposeLoadedAsset(entry.result.data.get(), disposed, visited);
   } catch (error) {
     console.warn("[@domphy/three] clearAsset: dispose failed.", error);
   }
@@ -258,13 +300,20 @@ export function clearAsset(
 ): void {
   if (input === undefined) {
     const byInput = assetCache.get(LoaderClass);
-    if (options.dispose) byInput?.forEach(disposeEntry);
+    if (options.dispose && byInput) {
+      // One shared pair of guard sets for the whole clear — resources shared
+      // BETWEEN cached entries (e.g. two inputs whose graphs reference the
+      // same material) must not be disposed twice either.
+      const disposed = new Set<any>();
+      const visited = new Set<any>();
+      byInput.forEach((entry) => disposeEntry(entry, disposed, visited));
+    }
     assetCache.delete(LoaderClass);
     return;
   }
   const byInput = assetCache.get(LoaderClass);
   const key = cacheKey(input);
   const entry = byInput?.get(key);
-  if (options.dispose && entry) disposeEntry(entry);
+  if (options.dispose && entry) disposeEntry(entry, new Set(), new Set());
   byInput?.delete(key);
 }

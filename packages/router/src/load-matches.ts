@@ -44,6 +44,52 @@ const triggerOnReady = (inner: InnerLoadContext): void | Promise<void> => {
   }
 }
 
+/**
+ * DEVIATION from upstream (see UPSTREAM.md): a newer navigation supersedes an
+ * in-flight load by deleting its pending match stores in `setPending()`, so a
+ * stale continuation's `getMatch(matchId)` returns `undefined`. Upstream
+ * relies on the implicit `TypeError` from the non-null-asserted dereference
+ * (`getMatch(matchId)!`) to abort the stale load. That throw is load-bearing:
+ * it unwinds `loadMatches` before head execution and `triggerOnReady`, and a
+ * naive null-guard would let the stale load proceed to a premature commit of
+ * the newer navigation. This sentinel makes the abort explicit while
+ * preserving the exact semantics: it is thrown at the same points and flows
+ * through the same rejection handling (rethrown by `loadMatches`, absorbed by
+ * the stale `RouterCore.load()` catch, which skips router-level state writes
+ * for stale loads).
+ */
+export class MatchSupersededError extends Error {
+  constructor(matchId: string) {
+    super(
+      `Match "${matchId}" is no longer tracked by the router; the load was superseded by a newer navigation.`,
+    )
+    this.name = 'MatchSupersededError'
+  }
+}
+
+export function isMatchSupersededError(
+  value: unknown,
+): value is MatchSupersededError {
+  return value instanceof MatchSupersededError
+}
+
+/**
+ * `getMatch` for the load pipeline: throws `MatchSupersededError` instead of
+ * dereferencing `undefined` when the match store is gone (see the class
+ * docstring). Use only where an `undefined` match must abort the load — never
+ * at sites that legitimately tolerate a missing match.
+ */
+const getMatchOrThrow = (
+  inner: InnerLoadContext,
+  matchId: string,
+): AnyRouteMatch => {
+  const match = inner.router.getMatch(matchId)
+  if (!match) {
+    throw new MatchSupersededError(matchId)
+  }
+  return match
+}
+
 const hasForcePendingActiveMatch = (router: AnyRouter): boolean => {
   return router.stores.matchesId.get().some((matchId) => {
     return router.stores.matchStores.get(matchId)?.get()._forcePending
@@ -254,7 +300,7 @@ const isBeforeLoadSsr = (
   index: number,
   route: AnyRoute,
 ): void | Promise<void> => {
-  const existingMatch = inner.router.getMatch(matchId)!
+  const existingMatch = getMatchOrThrow(inner, matchId)
   const parentMatchId = inner.matches[index - 1]?.id
   const parentMatch = parentMatchId
     ? inner.router.getMatch(parentMatchId)!
@@ -357,7 +403,7 @@ const preBeforeLoadSetup = (
   matchId: string,
   route: AnyRoute,
 ): void | Promise<void> => {
-  const existingMatch = inner.router.getMatch(matchId)!
+  const existingMatch = getMatchOrThrow(inner, matchId)
 
   // If we are in the middle of a load, either of these will be present
   // (not to be confused with `loadPromise`, which is always defined)
@@ -370,7 +416,7 @@ const preBeforeLoadSetup = (
   setupPendingTimeout(inner, matchId, route, existingMatch)
 
   const then = () => {
-    const match = inner.router.getMatch(matchId)!
+    const match = getMatchOrThrow(inner, matchId)
     if (
       match.preload &&
       (match.status === 'redirected' || match.status === 'notFound')
@@ -391,7 +437,7 @@ const executeBeforeLoad = (
   index: number,
   route: AnyRoute,
 ): void | Promise<void> => {
-  const match = inner.router.getMatch(matchId)!
+  const match = getMatchOrThrow(inner, matchId)
 
   // explicitly capture the previous loadPromise
   let prevLoadPromise = match._nonReactive.loadPromise
@@ -612,8 +658,10 @@ const getLoaderContext = (
   route: AnyRoute,
 ): LoaderFnContext => {
   const parentMatchPromise = matchPromises[index - 1] as any
-  const { params, loaderDeps, abortController, cause } =
-    inner.router.getMatch(matchId)!
+  const { params, loaderDeps, abortController, cause } = getMatchOrThrow(
+    inner,
+    matchId,
+  )
 
   const context = buildMatchContext(inner, index)
 
@@ -652,7 +700,7 @@ const runLoader = async (
     // before committing to the match and resolving
     // the loadPromise
 
-    const match = inner.router.getMatch(matchId)!
+    const match = getMatchOrThrow(inner, matchId)
 
     // Actually run the loader and handle the result
     try {
@@ -835,7 +883,7 @@ const loadRouteMatch = async (
       ;(async () => {
         try {
           await runLoader(inner, matchPromises, matchId, index, route)
-          const match = inner.router.getMatch(matchId)!
+          const match = getMatchOrThrow(inner, matchId)
           match._nonReactive.loaderPromise?.resolve()
           match._nonReactive.loadPromise?.resolve()
           match._nonReactive.loaderPromise = undefined
@@ -876,7 +924,7 @@ const loadRouteMatch = async (
       return inner.router.getMatch(matchId)!
     }
   } else {
-    const prevMatch = inner.router.getMatch(matchId)! // This is where all of the stale-while-revalidate magic happens
+    const prevMatch = getMatchOrThrow(inner, matchId) // This is where all of the stale-while-revalidate magic happens
     const activeIdAtIndex = inner.router.stores.matchesId.get()[index]
     const activeAtIndex =
       (activeIdAtIndex &&
@@ -903,7 +951,7 @@ const loadRouteMatch = async (
         return prevMatch
       }
       await prevMatch._nonReactive.loaderPromise
-      const match = inner.router.getMatch(matchId)!
+      const match = getMatchOrThrow(inner, matchId)
       const error = match._nonReactive.error || match.error
       if (error) {
         handleRedirectAndNotFound(inner, match, error)
@@ -921,7 +969,7 @@ const loadRouteMatch = async (
     } else {
       const nextPreload =
         preload && !inner.router.stores.matchStores.has(matchId)
-      const match = inner.router.getMatch(matchId)!
+      const match = getMatchOrThrow(inner, matchId)
       match._nonReactive.loaderPromise = createControlledPromise<void>()
       if (nextPreload !== match.preload) {
         inner.updateMatch(matchId, (prev) => ({
@@ -933,7 +981,7 @@ const loadRouteMatch = async (
       await handleLoader(preload, prevMatch, previousRouteMatchId, match, route)
     }
   }
-  const match = inner.router.getMatch(matchId)!
+  const match = getMatchOrThrow(inner, matchId)
   if (!loaderIsRunningAsync) {
     match._nonReactive.loaderPromise?.resolve()
     match._nonReactive.loadPromise?.resolve()

@@ -13,6 +13,7 @@ export {
   prevNextForRoute,
   routeForFile,
   sidebarForRoute,
+  withBase,
 } from "./routes.js";
 export type { SearchResult, SearchWidgetOptions } from "./search.js";
 export {

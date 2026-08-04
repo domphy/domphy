@@ -25,8 +25,11 @@ describe("android", () => {
     expect(frame).toBeTruthy();
     expect(frame.getAttribute("aria-label")).toContain("Android phone mockup");
     const css = node.generateCSS();
-    expect(css).toContain("width: 433px");
-    expect(css).toContain("height: 882px");
+    // Wrapper-sized frame: fills the container up to the 433px cap, keeping
+    // the 433:882 ratio (never overflows a narrow viewport).
+    expect(css).toContain("width: 100%");
+    expect(css).toContain("max-width: 433px");
+    expect(css).toContain("aspect-ratio: 433 / 882");
     // Punch-hole camera (outer ring + inner lens circle) + 2 side-button glyphs
     // (tall volume rocker, short power button), matching upstream's 2 authored
     // button paths.
@@ -42,8 +45,8 @@ describe("android", () => {
   it("resizes via explicit width/height props", () => {
     const { node } = render(android({ width: 300, height: 620 }));
     const css = node.generateCSS();
-    expect(css).toContain("width: 300px");
-    expect(css).toContain("height: 620px");
+    expect(css).toContain("max-width: 300px");
+    expect(css).toContain("aspect-ratio: 300 / 620");
   });
 
   it("renders an image inside the screen area", () => {

@@ -1,4 +1,9 @@
-import type { DomphyElement, ElementNode, PartialElement } from "@domphy/core";
+import type {
+  DomphyElement,
+  ElementNode,
+  PartialElement,
+  State,
+} from "@domphy/core";
 import { toState } from "@domphy/core";
 import {
   type ThemeColor,
@@ -17,6 +22,27 @@ type ToastPosition =
   | "bottom-center"
   | "bottom-right";
 
+// The open state must live on the NODE, not in the factory closure: a toast
+// inside a reactive parent gets a fresh toast() closure per ancestor
+// re-render (fresh `toState(false)`), while `_onMount` (which flips the state
+// to visible via rAF) runs ONCE for the first generation. The reused node's
+// re-patched style bindings would read the new generation's still-false
+// state and snap the visible toast back to opacity 0 / translated out.
+// Resolving through node metadata gives every generation the SAME state.
+function resolveOpenState(node: ElementNode): State<boolean> {
+  let state = node.getMetadata("toastOpen") as State<boolean> | undefined;
+  if (!state) {
+    state = toState(false);
+    node.setMetadata("toastOpen", state);
+  }
+  return state;
+}
+
+const readOpen = (listener: any): boolean => {
+  const node = listener?.elementNode as ElementNode | undefined;
+  return node ? resolveOpenState(node).get(listener) : false;
+};
+
 /**
  * Renders a transient notification surface as a fixed-position overlay (portaled
  * into a corner stack), animating in on mount and out before removal. No host
@@ -30,7 +56,6 @@ function toast(
   props: { position?: ToastPosition; color?: ThemeColor } = {},
 ): PartialElement {
   const { position = "top-center", color = "neutral" } = props;
-  const state = toState(false);
 
   const isTop = position.startsWith("top");
   const isCenter = position.endsWith("center");
@@ -79,16 +104,17 @@ function toast(
       color: (listener) => themeColor(listener, "text", color),
       backgroundColor: (listener) => themeColor(listener, "inherit", color),
       boxShadow: elevation("medium"),
-      opacity: (listener) => Number(state.get(listener)),
+      opacity: (listener) => Number(readOpen(listener)),
       transform: (listener) =>
-        state.get(listener)
+        readOpen(listener)
           ? "translateY(0)"
           : isTop
             ? "translateY(-100%)"
             : "translateY(100%)",
       transition: "opacity 300ms ease, transform 300ms ease",
     },
-    _onMount: () => requestAnimationFrame(() => state.set(true)),
+    _onMount: (node) =>
+      requestAnimationFrame(() => resolveOpenState(node).set(true)),
     _onBeforeRemove: (node, done) => {
       let finished = false;
       let timer: ReturnType<typeof setTimeout> | null = null;
@@ -144,7 +170,7 @@ function toast(
         node.domElement?.removeEventListener("transitionend", onEnd);
         removeOverlayIfEmpty();
       });
-      state.set(false);
+      resolveOpenState(node).set(false);
     },
   };
 }

@@ -273,8 +273,13 @@ function signup03(props: Signup03Props = {}): DomphyElement<"div"> {
     ],
     style: {
       display: "grid",
-      gridTemplateColumns: "1fr 1fr",
+      gridTemplateColumns: "1fr",
       gap: (listener: Listener) => themeSpacing(themeDensity(listener) * 3),
+      // Stack the password fields on narrow screens; split into 2 columns
+      // from the `sm` breakpoint up (same idiom as signup05's provider row).
+      "@media (min-width: 40em)": {
+        gridTemplateColumns: "1fr 1fr",
+      },
     },
   };
 

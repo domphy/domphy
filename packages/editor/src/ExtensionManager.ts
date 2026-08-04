@@ -160,10 +160,11 @@ export class ExtensionManager implements ExtensionManagerLike {
     return rules;
   }
 
-  /** Run a lifecycle hook (`onCreate`, `onUpdate`, …) on every extension. */
+  /** Run a lifecycle hook (`onCreate`, `onMount`, `onUpdate`, …) on every extension. */
   emit(
     hook:
       | "onCreate"
+      | "onMount"
       | "onUpdate"
       | "onSelectionUpdate"
       | "onFocus"

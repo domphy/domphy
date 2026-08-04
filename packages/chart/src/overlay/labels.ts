@@ -1,5 +1,5 @@
 import { themeColor } from "@domphy/theme";
-import { cssColor, seriesColor } from "../gl/color.js";
+import { cssColor } from "../gl/color.js";
 import type { AnyScale } from "../scale/index.js";
 import type {
   BarSeriesOption,

@@ -68,6 +68,7 @@ function attachFloating(
 ): FloatingInstance {
   let { openState, placement, content, keepOpenOnContentHover } = initialProps;
   const { kind } = initialProps;
+  const behaviorKey = `floating:${kind}`;
 
   let timer: ReturnType<typeof setTimeout> | null = null;
   let cleanup: (() => void) | null = null;
@@ -147,6 +148,15 @@ function attachFloating(
     if (mounted) return;
     mounted = true;
     floatingNode = rootNode.children!.insert(content) as ElementNode;
+    // Expose THIS instance on the panel node too: the panel is portaled as a
+    // child of the ROOT (not of the anchor), so getBehavior's ancestor walk
+    // from a panel descendant (a selectBox/combobox option, a datePicker day
+    // cell) never reaches the anchor's registration. Registering the same
+    // instance on the panel lets panel-originated events resolve it via
+    // `node.getBehavior(behaviorKey)` — the documented walk-up pattern. No
+    // teardown wiring here: the instance's lifetime is owned by the anchor
+    // (destroy there), the registration simply dies with the panel node.
+    floatingNode._behaviorInstances.set(behaviorKey, instance);
   };
 
   const instantShow = () => {
@@ -156,6 +166,13 @@ function attachFloating(
       cleanup = autoUpdate(reference, floating, () => {
         computePosition(reference as HTMLElement, floating as HTMLElement, {
           placement: placement.get() as Placement,
+          // rootBoundary deliberately stays at the upstream default
+          // ('viewport', i.e. the VISUAL viewport): with strategy "fixed" the
+          // 1.8.0 'layoutViewport' option would stop clamping flip/shift to
+          // the visible area, letting a panel land (partly) outside the
+          // visible viewport during mobile pinch-zoom — a worse failure than
+          // the jumpiness it fixes. Pinch-zoom/keyboard drift is already
+          // handled by autoUpdate's post-1.8.0 observeMove re-anchoring.
           middleware: [offset(12), flip(), shift()],
           strategy: "fixed",
         }).then(({ x, y, placement: resolved }) => {
@@ -203,7 +220,23 @@ function attachFloating(
   };
   rootNode.domElement?.addEventListener("click", handleOutside);
 
-  return {
+  // Escape must dismiss an open panel from ANYWHERE, not just from the
+  // trigger or inside the panel (peer parity: Radix DismissableLayer closes
+  // on a document-level Escape) — a hover-opened tooltip with focus sitting
+  // on <body> otherwise ignores Escape entirely. Keyboard events target the
+  // FOCUSED element and bubble UP, so unlike the outside-click listener this
+  // one must live on the document (keydown is composed, so panels inside a
+  // shadow root still reach it). Idempotent alongside the trigger/panel-level
+  // Escape handlers: hide() is debounced and re-arming it on an
+  // already-closed panel is a no-op.
+  const handleEscape = (event: Event) => {
+    if ((event as KeyboardEvent).key === "Escape" && openState.get()) hide();
+  };
+  const escapeTarget: EventTarget | null =
+    rootNode.domElement?.ownerDocument ?? rootNode.domElement ?? null;
+  escapeTarget?.addEventListener("keydown", handleEscape);
+
+  const instance: FloatingInstance = {
     show,
     hide,
     update(props) {
@@ -223,8 +256,10 @@ function attachFloating(
       cleanup?.();
       floatingNode?.remove();
       rootNode.domElement?.removeEventListener("click", handleOutside);
+      escapeTarget?.removeEventListener("keydown", handleEscape);
     },
   };
+  return instance;
 }
 
 function createFloating(props: {

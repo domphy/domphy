@@ -69,4 +69,39 @@ describe("generateRamp", () => {
     const ramp = new Ramp(generateRamp("#4a7ff4", 18), "brand");
     expect(ramp.wcag[45].span).toBeLessThanOrEqual(10);
   });
+
+  it("keeps relative luminance strictly non-increasing along the ramp (the tone-system guarantee)", () => {
+    // The shift-N tone contract assumes index distance maps to contrast
+    // distance: a later step is never lighter than an earlier one. Verified
+    // across the hue circle because gamut clamping at the extremes is where
+    // a regression would show up first.
+    const hslToHex = (hue: number): string => {
+      const chroma = 0.5; // s=1, l=0.5 — maximally saturated, the hardest case
+      const x = chroma * (1 - Math.abs(((hue / 60) % 2) - 1));
+      const sector = Math.floor(hue / 60) % 6;
+      const [r, g, b] = [
+        [chroma, x, 0],
+        [x, chroma, 0],
+        [0, chroma, x],
+        [0, x, chroma],
+        [x, 0, chroma],
+        [chroma, 0, x],
+      ][sector];
+      return `#${[r, g, b]
+        .map((v) =>
+          Math.round(v * 255)
+            .toString(16)
+            .padStart(2, "0"),
+        )
+        .join("")}`;
+    };
+    for (let hue = 0; hue < 360; hue += 15) {
+      const anchor = hslToHex(hue);
+      const ramp = new Ramp(generateRamp(anchor, 18), anchor);
+      const luminances = ramp.swatches.map((swatch) => swatch.luminance);
+      for (let i = 1; i < luminances.length; i++) {
+        expect(luminances[i]).toBeLessThanOrEqual(luminances[i - 1] + 1e-12);
+      }
+    }
+  });
 });

@@ -215,6 +215,10 @@ describe("linkButton", () => {
     const css = node.generateCSS();
     expect(css).toContain("background: none");
     expect(css).toContain("border: none");
+    // WCAG regression, same as buttonGhost: resting text at the "text" alias
+    // (shift-9), never the sub-AA shift-6.
+    expect(css).toMatch(/color:\s*var\(--neutral-9\)/);
+    expect(css).not.toMatch(/color:\s*var\(--neutral-6\)/);
   });
 
   it("warns when applied to a non-anchor tag", () => {
@@ -232,6 +236,21 @@ describe("linkButton", () => {
 // ---------------------------------------------------------------------------
 
 describe("buttonGhost", () => {
+  // WCAG regression: resting text must sit at the "text" alias (shift-9,
+  // >=4.5:1 on every built-in role ramp). The previous resting tone shift-6
+  // measured ~2.4:1 on an edge surface and failed axe color-contrast for
+  // text-labeled ghost buttons (button label = essential content, unlike
+  // decorative muted metadata).
+  it("resting text resolves at the text alias (shift-9), not shift-6", () => {
+    const { node } = render({
+      button: "Save",
+      $: [buttonGhost()],
+    } as DomphyElement);
+    const css = node.generateCSS();
+    expect(css).toMatch(/color:\s*var\(--neutral-9\)/);
+    expect(css).not.toMatch(/color:\s*var\(--neutral-6\)/);
+  });
+
   it("generates CSS with background:none and border:none", () => {
     const { node } = render({
       button: "×",

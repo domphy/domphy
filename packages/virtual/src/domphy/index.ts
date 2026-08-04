@@ -7,3 +7,5 @@ export type {
   CreateVirtualizerOptions,
   VirtualizerHandle,
 } from "./createVirtualizer.js"
+export { createWindowVirtualizer } from "./createWindowVirtualizer.js"
+export type { CreateWindowVirtualizerOptions } from "./createWindowVirtualizer.js"

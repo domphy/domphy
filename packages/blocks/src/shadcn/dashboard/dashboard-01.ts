@@ -36,8 +36,8 @@
 // upstream shadcn/ui source was viewed or copied. Sample data, copy, and
 // numbers are original inventions for this port.
 
-import type { DomphyElement, ElementNode, Listener } from "@domphy/core";
-import { rawHtml, toState } from "@domphy/core";
+import type { DomphyElement, Listener, State } from "@domphy/core";
+import { behavior, rawHtml, toState } from "@domphy/core";
 import type { Column, Row } from "@domphy/table";
 import {
   createColumnHelper,
@@ -889,11 +889,28 @@ function tableRegion(initialRows: DashboardTableRow[]): DomphyElement<"div"> {
             ariaLabel: "Select all rows",
             checked: domphyTable.table.getIsAllPageRowsSelected(),
             onChange: () => domphyTable.table.toggleAllPageRowsSelected(),
-            _onMount: (node: ElementNode) => {
-              (node.domElement as HTMLInputElement).indeterminate =
-                domphyTable.table.getIsSomePageRowsSelected() &&
-                !domphyTable.table.getIsAllPageRowsSelected();
-            },
+            // `indeterminate` is an imperative DOM prop, not an attribute —
+            // re-apply it on EVERY generation via behavior() update(). The
+            // previous `_onMount` ran once, so the header checkbox never
+            // showed the partial-selection dash after the first re-render.
+            ...behavior<{ indeterminate: boolean }>(
+              "dashboard-select-all-indeterminate",
+              (node, initialProps) => {
+                const input = node.domElement as HTMLInputElement | null;
+                if (!input) return undefined;
+                input.indeterminate = initialProps.indeterminate;
+                return {
+                  update: (next) => {
+                    input.indeterminate = next.indeterminate;
+                  },
+                };
+              },
+              {
+                indeterminate:
+                  domphyTable.table.getIsSomePageRowsSelected() &&
+                  !domphyTable.table.getIsAllPageRowsSelected(),
+              },
+            ),
             _doctorDisable: "missing-color",
             $: [inputCheckbox({ accentColor: "neutral" })],
           } as unknown as DomphyElement,
@@ -1286,14 +1303,40 @@ function tableRegion(initialRows: DashboardTableRow[]): DomphyElement<"div"> {
       gap: themeSpacing(3),
       flexWrap: "wrap",
     },
-    _onMount: (node: ElementNode) => {
-      const release = activeStatusFilter.addListener((status) => {
-        domphyTable.table
-          .getColumn("status")
-          ?.setFilterValue(status === "all" ? undefined : status);
-      });
-      node.addHook("Remove", release);
-    },
+    // activeStatusFilter → table column-filter bridge via behavior(): the
+    // subscription is re-pointed at the CURRENT generation's state + table on
+    // every re-render. The previous `_onMount` subscribed generation 1's
+    // state only, so the status select silently stopped filtering after any
+    // ancestor re-render.
+    ...behavior<{
+      filterState: State<string>;
+      table: typeof domphyTable.table;
+    }>(
+      "dashboard-status-filter-bridge",
+      (_node, initialProps) => {
+        let filterState = initialProps.filterState;
+        let table = initialProps.table;
+        const applyFilter = (status: string) =>
+          table
+            .getColumn("status")
+            ?.setFilterValue(status === "all" ? undefined : status);
+        let release = filterState.addListener(applyFilter);
+        return {
+          update: (next) => {
+            if (next.filterState === filterState && next.table === table) {
+              return;
+            }
+            release();
+            filterState = next.filterState;
+            table = next.table;
+            applyFilter(filterState.get());
+            release = filterState.addListener(applyFilter);
+          },
+          destroy: () => release(),
+        };
+      },
+      { filterState: activeStatusFilter, table: domphyTable.table },
+    ),
   } as unknown as DomphyElement<"div">;
 
   // ── Pagination footer ──

@@ -6,6 +6,8 @@ const en = {
   hello: "Hello",
   greeting: "Hello, {{name}}!",
   nested: { key: "Nested value" },
+  item_one: "{{count}} item",
+  item_other: "{{count}} items",
 };
 const viMessages = {
   hello: "Xin chào",
@@ -53,6 +55,18 @@ describe("t()", () => {
     const i18n = makeI18n();
     await i18n.initI18n("en");
     expect(i18n.t("nested.key" as any)).toBe("Nested value");
+  });
+});
+
+describe("pluralization", () => {
+  it("resolves plural forms via the base key and count (i18next v4 suffixes)", async () => {
+    const i18n = makeI18n();
+    await i18n.initI18n("en");
+    // The base key "item" is not a leaf in the messages object — i18next
+    // resolves it to item_one/item_other from count. The FlattenKeys typing
+    // must admit the base key too (see WithPluralBase in src/index.ts).
+    expect(i18n.t("item", { count: 1 })).toBe("1 item");
+    expect(i18n.t("item", { count: 2 })).toBe("2 items");
   });
 });
 
@@ -264,6 +278,31 @@ describe("globalKey reuse with different options", () => {
       namespace: "app",
       locales: { en, fr: en },
       defaultLocale: "en",
+    });
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]?.[0])).toContain("globalKey");
+
+    warn.mockRestore();
+  });
+
+  it("warns in dev when a second createI18n reuses the key with different interpolation", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const key = `__test_mismatch_interp_${Date.now()}__`;
+
+    createI18n<"en" | "vi", typeof en>({
+      globalKey: key,
+      namespace: "app",
+      locales: { en, vi: viMessages },
+      defaultLocale: "en",
+    });
+    // Same structural options, opposite XSS-escaping posture — must warn too.
+    createI18n<"en" | "vi", typeof en>({
+      globalKey: key,
+      namespace: "app",
+      locales: { en, vi: viMessages },
+      defaultLocale: "en",
+      interpolation: { escapeValue: false },
     });
 
     expect(warn).toHaveBeenCalledTimes(1);

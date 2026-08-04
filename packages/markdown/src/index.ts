@@ -32,13 +32,63 @@ export type {
 } from "./types.js";
 
 function buildProcessor(options: ParseOptions) {
+  // remark-gfm is ESM-only. In the CJS build Node's require(esm) returns the
+  // module namespace and esbuild's __toESM wraps it again, so the default
+  // import lands on `.default` of the namespace — take it when present.
+  // (Without this the published CJS build throws unified's "empty preset"
+  // error on every parse — verified against pristine HEAD.)
+  const gfm = ((remarkGfm as { default?: unknown }).default ??
+    remarkGfm) as typeof remarkGfm;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let proc = remark().use(remarkGfm as any);
+  let proc = remark().use(gfm as any);
   for (const plugin of options.plugins ?? []) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     proc = proc.use(plugin as any);
   }
   return proc;
+}
+
+// Lazily-created require for optional peer plugins (remark-math). Instantiated
+// only on the math:true path so the default entry never touches it.
+//
+// Pure-ESM Node has no `require` — the previous bare `require("remark-math")`
+// went through tsup's ESM require shim, which throws "Dynamic require of … is
+// not supported", and the catch then rethrew a misleading "requires
+// remark-math" hint even when the package was installed. The fix anchors a
+// real require via createRequire(import.meta.url).
+//
+// `node:module` must NOT be a static import here: this package is bundled
+// into browser builds (apps/web's editor island imports it into the esbuild
+// browser islands bundle) and esbuild rejects node builtins for the browser
+// platform on every version. Instead the builtin is fetched lazily through
+// process.getBuiltinModule() (Node ≥ 20.16 / ≥ 22.3), so the module graph
+// stays free of node:* specifiers and browser bundles build with no externals
+// shim. Outside Node (or on older Node) this throws, and createMarkdown's
+// catch rethrows the honest "requires remark-math" hint — in a browser the
+// correct path is passing the plugin explicitly via `plugins`.
+// In the CJS build esbuild empties `import.meta` (createRequire could not
+// anchor there), but CJS has a native require — so each build uses its own
+// working mechanism.
+let optionalPeerRequire: ((id: string) => unknown) | undefined;
+function requireOptionalPeer(name: string): unknown {
+  if (import.meta.url) {
+    if (!optionalPeerRequire) {
+      if (
+        typeof process === "undefined" ||
+        typeof process.getBuiltinModule !== "function"
+      ) {
+        throw new Error("node:module is unavailable in this environment");
+      }
+      const nodeModule = process.getBuiltinModule(
+        "node:module",
+      ) as typeof import("node:module");
+      optionalPeerRequire = nodeModule.createRequire(import.meta.url);
+    }
+    return optionalPeerRequire(name);
+  }
+  // CJS build (import.meta emptied by esbuild) — native require.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  return require(name);
 }
 
 /**
@@ -108,8 +158,9 @@ export function createMarkdown(
 
   if (options.math) {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const remarkMath = require("remark-math");
+      const remarkMath = requireOptionalPeer("remark-math") as {
+        default?: RemarkPlugin;
+      } & RemarkPlugin;
       const mathPlugin = (remarkMath.default ?? remarkMath) as RemarkPlugin;
       opts = { ...opts, plugins: [mathPlugin, ...(opts.plugins ?? [])] };
     } catch {

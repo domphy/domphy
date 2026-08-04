@@ -221,14 +221,22 @@ function rowBaseStyle(color: ThemeColor): StyleObject {
   } as StyleObject;
 }
 
-// Neutral muted fill for the selected row (upstream `bg-muted`) — background
-// only, text colour left untouched. Gated by `selectable` so a non-selectable
-// row never highlights, matching upstream's `isSelected && isSelectable`.
+// Neutral muted fill for the selected row (upstream `bg-muted`). Gated by
+// `selectable` so a non-selectable row never highlights, matching upstream's
+// `isSelected && isSelectable`. The resting row text is shift-9 — only
+// distance 6 from the shift-3 fill, below the K=9 contrast span (axe
+// color-contrast flagged the pre-selected demo row) — so the selected row
+// also lifts its text to shift-12 (distance 9). Upstream leaves the text
+// unchanged, but upstream's muted fill is not WCAG-checked. Note the
+// distance-9 guarantee assumes accentColor === color (the default); a caller
+// passing a distinct accentColor owns that contrast pairing.
 function selectedFillStyle(context: FileTreeContext): StyleObject {
   return {
     "&[aria-selected=true]": {
       backgroundColor: (listener: Listener) =>
         themeColor(listener, "shift-3", context.accentColor),
+      color: (listener: Listener) =>
+        themeColor(listener, "shift-12", context.color),
     },
   } as StyleObject;
 }

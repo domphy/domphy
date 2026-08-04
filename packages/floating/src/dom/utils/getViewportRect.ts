@@ -1,4 +1,4 @@
-import type {Rect, Strategy} from '@floating-ui/core';
+import type {Rect, RootBoundary, Strategy} from '@floating-ui/core';
 import {getWindow, isWebKit} from '@floating-ui/utils/dom';
 
 import {getDocumentElement} from '../platform/getDocumentElement';
@@ -9,7 +9,17 @@ import {getWindowScrollBarX} from './getWindowScrollBarX';
 // Most scrollbars leave 15-18px of space.
 const SCROLLBAR_MAX = 25;
 
-export function getViewportRect(element: Element, strategy: Strategy): Rect {
+type ViewportRootBoundary = Extract<
+  RootBoundary,
+  'viewport' | 'layoutViewport'
+>;
+
+export function getViewportRect(
+  element: Element,
+  strategy: Strategy,
+  rootBoundary: ViewportRootBoundary = 'viewport',
+): Rect {
+  const isLayoutViewport = rootBoundary === 'layoutViewport';
   const win = getWindow(element);
   const html = getDocumentElement(element);
   const visualViewport = win.visualViewport;
@@ -20,21 +30,35 @@ export function getViewportRect(element: Element, strategy: Strategy): Rect {
   let y = 0;
 
   if (visualViewport) {
-    width = visualViewport.width;
-    height = visualViewport.height;
+    // Client coordinates are relative to the layout viewport, except in
+    // WebKit with an `absolute` strategy, where they are relative to the
+    // visual viewport.
+    const layoutRelativeClientCoords = !isWebKit() || strategy === 'fixed';
 
-    const visualViewportBased = isWebKit();
+    if (isLayoutViewport) {
+      if (!layoutRelativeClientCoords) {
+        x = -visualViewport.offsetLeft;
+        y = -visualViewport.offsetTop;
+      }
+    } else {
+      width = visualViewport.width;
+      height = visualViewport.height;
 
-    if (!visualViewportBased || (visualViewportBased && strategy === 'fixed')) {
-      x = visualViewport.offsetLeft;
-      y = visualViewport.offsetTop;
+      if (layoutRelativeClientCoords) {
+        x = visualViewport.offsetLeft;
+        y = visualViewport.offsetTop;
+      }
     }
   }
 
   const windowScrollbarX = getWindowScrollBarX(html);
-  // <html> `overflow: hidden` + `scrollbar-gutter: stable` reduces the
-  // visual width of the <html> but this is not considered in the size
-  // of `html.clientWidth`.
+  // `scrollbar-gutter: stable` on the <html> reserves gutter space that shrinks
+  // the visual width but isn't reflected in `html.clientWidth`, so subtract it.
+  // Only the inline-end (right) gutter can hold the scrollbar; `both-edges` also
+  // reserves an empty inline-start gutter that clips nothing, so exclude just
+  // the one scrollbar-side gutter — halve the measured (two-gutter) total. A
+  // left-side scrollbar (`windowScrollbarX > 0`) is already handled by
+  // `getHTMLOffset`/`visualViewport.width`; skip it here.
   if (windowScrollbarX <= 0) {
     const doc = html.ownerDocument;
     const body = doc.body;
@@ -44,17 +68,17 @@ export function getViewportRect(element: Element, strategy: Strategy): Rect {
         ? parseFloat(bodyStyles.marginLeft) +
             parseFloat(bodyStyles.marginRight) || 0
         : 0;
-    const clippingStableScrollbarWidth = Math.abs(
+    const reservedWidth = Math.abs(
       html.clientWidth - body.clientWidth - bodyMarginInline,
     );
+    const gutter =
+      getComputedStyle(html).scrollbarGutter === 'stable both-edges'
+        ? reservedWidth / 2
+        : reservedWidth;
 
-    if (clippingStableScrollbarWidth <= SCROLLBAR_MAX) {
-      width -= clippingStableScrollbarWidth;
+    if (gutter <= SCROLLBAR_MAX) {
+      width -= gutter;
     }
-  } else if (windowScrollbarX <= SCROLLBAR_MAX) {
-    // If the <body> scrollbar is on the left, the width needs to be extended
-    // by the scrollbar amount so there isn't extra space on the right.
-    width += windowScrollbarX;
   }
 
   return {

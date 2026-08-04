@@ -70,6 +70,7 @@ const PrevButton = {
 | `version(l?)` | Reactive change counter — bumps on any state change |
 | `state(l?)` | Full `TableState`, reactive with listener |
 | `setState(updater)` | Direct state update |
+| `setOptions(updater)` | Feed new options (`data`, `columns`, …) — bumps `version` so reactive reads re-render |
 | `destroy()` | Releases reactive state |
 | `getRowModel(l?)` | Reactive row model |
 | `getHeaderGroups(l?)` | Reactive header groups |
@@ -84,6 +85,16 @@ const PrevButton = {
 | `getCanNextPage(l?)` | Reactive |
 | `getCanPreviousPage(l?)` | Reactive |
 | `getPageCount(l?)` | Reactive |
+
+## Updating data
+
+`createDomphyTable` takes `options` once — feed a new dataset (or new columns) through `setOptions`, which re-derives the row models and bumps `version` so subscribed subtrees re-render:
+
+```ts
+dTable.setOptions((prev) => ({ ...prev, data: freshPeople }))
+```
+
+Row models re-derive on `data` identity change, and the page index clamps automatically when the dataset shrinks (`autoResetPageIndex`, default on unless `manualPagination`). Use `setState` for table state (sorting, filters, …) — not `setOptions`.
 
 ## Cell editing (opt-in)
 

@@ -8,11 +8,12 @@ export interface FrontmatterSplit {
 }
 
 // A frontmatter block is a fenced YAML region delimited by `---` lines at the
-// very top of the document. The opening fence must be the first line; the
+// very top of the document. The opening fence must be the first line (an
+// optional UTF-8 BOM may precede it — common in Windows-authored files); the
 // closing fence is the next line that is exactly `---` (allowing trailing
 // whitespace). `...` is also accepted as a YAML document end marker.
 const FRONTMATTER_PATTERN =
-  /^---\r?\n([\s\S]*?)\r?\n(?:---|\.\.\.)[ \t]*(?:\r?\n|$)/;
+  /^\uFEFF?---\r?\n([\s\S]*?)\r?\n(?:---|\.\.\.)[ \t]*(?:\r?\n|$)/;
 
 /**
  * Splits an optional leading YAML frontmatter block from a markdown string.

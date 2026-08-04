@@ -1,4 +1,8 @@
-import { type DomphyElement, ElementNode } from "@domphy/core";
+import {
+  type DomphyElement,
+  ElementNode,
+  sanitizeHTMLString,
+} from "@domphy/core";
 import {
   computePosition,
   flip,
@@ -98,13 +102,26 @@ export function createTooltip(
     return params
       .map((p) => {
         // p.color is a var(--…) reference (or a concrete user color) — either
-        // is valid as a CSS background here.
-        const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${p.color};margin-right:6px;"></span>`;
+        // is valid as a CSS background here. It is author-provided, but it is
+        // interpolated into a double-quoted style attribute, so escape it like
+        // the other params: a stray quote must not be able to terminate the
+        // attribute (defense in depth, mirroring the sanitizeHTMLString pass
+        // the string-formatter path gets below).
+        const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${escapeHtml(String(p.color))};margin-right:6px;"></span>`;
         // p.seriesName/p.name/p.value come from caller-controlled ChartOption data — must escape before innerHTML.
         const val = option.valueFormatter
           ? option.valueFormatter(p.value, p.dataIndex)
           : String(p.value ?? "");
-        const label = escapeHtml(String(p.seriesName ?? p.name ?? ""));
+        // ECharts label preference: an item-trigger tooltip names the row
+        // after the item itself (a pie slice reads "Books: 300", not the
+        // series name); an axis-trigger tooltip names each row after its
+        // series (the category is the shared x value). Both fields are
+        // truthful — only the preference differs.
+        const rawLabel =
+          (option.trigger ?? "axis") === "item"
+            ? (p.name ?? p.seriesName)
+            : (p.seriesName ?? p.name);
+        const label = escapeHtml(String(rawLabel ?? ""));
         return `${dot}<strong>${label}</strong>: ${escapeHtml(val)}`;
       })
       .join("<br>");
@@ -127,7 +144,10 @@ export function createTooltip(
       contentNode.render(el);
     } else {
       clearContentNode();
-      el.innerHTML = String(result);
+      // ECharts semantics: a string formatter result is HTML. Params often
+      // embed caller data, so strip script/on*/javascript: vectors first —
+      // same defense-in-depth pass core's rawHtml() applies.
+      el.innerHTML = sanitizeHTMLString(String(result));
     }
   }
 

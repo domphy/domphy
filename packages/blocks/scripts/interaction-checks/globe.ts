@@ -7,14 +7,18 @@
 // (SwiftShader) renders the dot-sphere as a flat solid-color disc here — the
 // baked map texture never visibly samples, so the rendered pixels are
 // identical at any rotation angle in THIS environment. That's an
-// environment/library limitation, not a bug in this component (see the fix
-// note in src/magicui/core/globe.ts's buildOptions — a real, separate scale
-// bug WAS found and fixed there: width/height must scale by the same
-// devicePixelRatio passed to cobe, not a hardcoded `*2`). Instead this
-// instruments the actual WebGL `z` (phi/rotation) uniform cobe uploads every
-// frame — proof, at the graphics-API level, that dragging changes the
-// globe's rotation state, independent of whether this GPU can visibly
-// render the result.
+// environment/library limitation, not a bug in this component. Instead this
+// instruments the WebGL rotation uniform cobe uploads every frame — proof,
+// at the graphics-API level, that dragging changes the globe's rotation
+// state, independent of whether this GPU can visibly render the result.
+//
+// Uniform-name note: cobe ships a glslx-minified shader, so uniforms have
+// single-letter names that can shift between upstream builds. In 0.6 phi was
+// the scalar uniform "z" uploaded via `uniform1f`; in 2.0.1 phi/theta are
+// the vec2 uniform "s" (the globe program's `rotation`, verified against the
+// installed dist) uploaded via `uniform2f` — so this instruments name "s"
+// and records the first (phi) component. No other program in 2.0.1 uploads a
+// uniform named "s" through `uniform2f`, so the capture is unambiguous.
 import {
   boot,
   locate,
@@ -42,21 +46,22 @@ async function main(): Promise<void> {
           name,
         ) {
           const location = origGetUniformLocation1.call(this, program, name);
-          if (location && name === "z") locationNames.set(location, name);
+          if (location && name === "s") locationNames.set(location, name);
           return location;
         };
-        const origUniform1f1 = WebGLRenderingContext.prototype.uniform1f;
-        WebGLRenderingContext.prototype.uniform1f = function (
+        const origUniform2f1 = WebGLRenderingContext.prototype.uniform2f;
+        WebGLRenderingContext.prototype.uniform2f = function (
           this: WebGLRenderingContext,
           location,
-          value,
+          x,
+          _y,
         ) {
-          if (location && locationNames.get(location) === "z") {
+          if (location && locationNames.get(location) === "s") {
             (window as unknown as { __phiValues: number[] }).__phiValues.push(
-              value,
+              x,
             );
           }
-          return origUniform1f1.call(this, location, value);
+          return origUniform2f1.call(this, location, x, _y);
         };
 
         const webgl2Proto = (
@@ -72,21 +77,22 @@ async function main(): Promise<void> {
             name,
           ) {
             const location = origGetUniformLocation2.call(this, program, name);
-            if (location && name === "z") locationNames.set(location, name);
+            if (location && name === "s") locationNames.set(location, name);
             return location;
           };
-          const origUniform1f2 = webgl2Proto.uniform1f;
-          webgl2Proto.uniform1f = function (
+          const origUniform2f2 = webgl2Proto.uniform2f;
+          webgl2Proto.uniform2f = function (
             this: WebGL2RenderingContext,
             location,
-            value,
+            x,
+            _y,
           ) {
-            if (location && locationNames.get(location) === "z") {
+            if (location && locationNames.get(location) === "s") {
               (window as unknown as { __phiValues: number[] }).__phiValues.push(
-                value,
+                x,
               );
             }
-            return origUniform1f2.call(this, location, value);
+            return origUniform2f2.call(this, location, x, _y);
           };
         }
       });
@@ -145,12 +151,15 @@ async function main(): Promise<void> {
       phiBeforeDrag !== null && phiAfterDrag !== null
         ? Math.abs(phiAfterDrag - phiBeforeDrag)
         : null;
-    // A 380px drag maps to `delta/100` radians (~3.8) in the component's own
-    // pointermove handler — idle auto-rotate alone (`rotationSpeed` 0.0035/frame)
-    // could not plausibly produce a delta anywhere near this large.
+    // A 380px sweep feeds the component's MOVEMENT_DAMPING (1400) mapping:
+    // cumulative intermediate deltas (40+90+150+220+300+380 px) target
+    // ~0.84 rad, and the overdamped spring has eased roughly a third of the
+    // way there by the post-release wait — idle auto-rotate alone
+    // (`rotationSpeed` 0.005/frame, frozen during the drag) could only add
+    // ~0.05 rad in the same window.
     report(
       `${NAME}: dragging actually rotates the globe (WebGL "phi" uniform changed)`,
-      phiDelta !== null && phiDelta > 1,
+      phiDelta !== null && phiDelta > 0.2,
       `phi before=${phiBeforeDrag}, after=${phiAfterDrag}, delta=${phiDelta}`,
     );
 

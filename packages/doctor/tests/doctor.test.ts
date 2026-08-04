@@ -9,8 +9,12 @@ describe("diagnose", () => {
     expect(rules({ p: "hi", style: { fontSize: "20px" } })).toContain(
       "inline-typography",
     );
-    // reactive (function) typography is allowed — theme drives it
-    expect(rules({ p: "hi", style: { fontSize: () => "20px" } })).not.toContain(
+    // reactive theme-driven typography (var(--fontSize-N)) is fine
+    expect(
+      rules({ p: "hi", style: { fontSize: () => "var(--fontSize-2)" } }),
+    ).not.toContain("inline-typography");
+    // but a reactive function resolving to a literal metric is flagged
+    expect(rules({ p: "hi", style: { fontSize: () => "20px" } })).toContain(
       "inline-typography",
     );
     // non-typography style props are fine
@@ -281,10 +285,14 @@ describe("diagnose", () => {
     expect(rules({ div: "x", style: { marginBlock: "0.5em" } })).toContain(
       "raw-spacing-value",
     );
-    // reactive is fine
+    // reactive theme-driven output (calc/var) is fine
     expect(
-      rules({ div: "x", style: { paddingBlock: () => "8px" } }),
+      rules({ div: "x", style: { paddingBlock: () => "calc(2em)" } }),
     ).not.toContain("raw-spacing-value");
+    // but a reactive function resolving to a literal is flagged
+    expect(rules({ div: "x", style: { paddingBlock: () => "8px" } })).toContain(
+      "raw-spacing-value",
+    );
   });
 
   it("flags literal colors (raw-theme-value), not tokens or keywords", () => {
@@ -298,7 +306,11 @@ describe("diagnose", () => {
       "raw-theme-value",
     );
     // reactive (theme token) color is fine
-    expect(rules({ div: "x", style: { color: () => "#fff" } })).not.toContain(
+    expect(
+      rules({ div: "x", style: { color: () => "var(--neutral-9)" } }),
+    ).not.toContain("raw-theme-value");
+    // but a reactive function resolving to a literal color is flagged
+    expect(rules({ div: "x", style: { color: () => "#fff" } })).toContain(
       "raw-theme-value",
     );
     // colorless keywords carry no theme meaning -> fine
@@ -369,8 +381,12 @@ describe("diagnose", () => {
     expect(rules({ div: "x", style: { margin: "auto" } })).not.toContain(
       "raw-spacing-value",
     );
-    // reactive spacing is fine
-    expect(rules({ div: "x", style: { padding: () => "1rem" } })).not.toContain(
+    // reactive theme-driven spacing (calc/var) is fine
+    expect(
+      rules({ div: "x", style: { padding: () => "calc(0.25em)" } }),
+    ).not.toContain("raw-spacing-value");
+    // but a reactive function resolving to a literal is flagged
+    expect(rules({ div: "x", style: { padding: () => "1rem" } })).toContain(
       "raw-spacing-value",
     );
     // hint suggests themeSpacing(n)
@@ -520,5 +536,17 @@ describe("missing-color rule", () => {
       style: { border: (_l: unknown) => `1px solid ${themeColorFn(_l)}` },
     };
     expect(rules(element)).toContain("missing-color");
+  });
+
+  it("does not fire on void/decorative hosts with null content (legend swatches)", () => {
+    // Same exemption low-contrast applies: a null-content host (chart legend
+    // chip, icon glyph) carries color tokens but has no declared text whose
+    // color must follow the tone context.
+    const themeColorFn = (_l: unknown) => "var(--test-neutral-5)";
+    const element = {
+      span: null,
+      style: { backgroundColor: themeColorFn },
+    };
+    expect(rules(element)).not.toContain("missing-color");
   });
 });

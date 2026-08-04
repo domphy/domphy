@@ -40,7 +40,7 @@ export interface SSRResult {
   css: string;
   /** Serialized `<title>`, `<meta>` and `<link>` tags for the document head. */
   head: string;
-  /** 200, 404, or the redirect status. */
+  /** 200, 404, 500, or the redirect status. */
   status: number;
   /** Set when a loader or middleware redirected. */
   redirect?: string;
@@ -154,7 +154,9 @@ export class DomphyApp {
           : 307
         : status === "notfound"
           ? 404
-          : 200,
+          : status === "error"
+            ? 500
+            : 200,
       redirect: redirect?.to,
       data,
       bootstrapScript: `<script${nonceAttr()}>window.${HYDRATION_GLOBAL} = ${serializeData(data)};</script>`,
@@ -258,9 +260,16 @@ export class DomphyApp {
   }
 }
 
-/** JSON with `</script>`-safe escaping so the payload can be inlined. */
+/**
+ * JSON with script-embedding-safe escaping: `<` (kills `</script>` breakouts)
+ * and the U+2028/U+2029 line separators (line terminators inside an inline
+ * script's string literals pre-ES2019, escaped by Next.js for the same reason).
+ */
 function serializeData(data: Record<string, unknown>): string {
-  return JSON.stringify(data).replace(/</g, "\\u003c");
+  return JSON.stringify(data)
+    .replace(/</g, "\\u003c")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
 }
 
 export function createApp(

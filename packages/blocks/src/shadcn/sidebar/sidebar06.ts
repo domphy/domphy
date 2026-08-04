@@ -5,8 +5,8 @@
 // at a time, and its placement flips between "below" (mobile) and "beside"
 // (desktop) so it never collides with the sidebar's own edge.
 
-import type { DomphyElement, ElementNode, Listener } from "@domphy/core";
-import { toState } from "@domphy/core";
+import type { DomphyElement, ElementNode, Listener, State } from "@domphy/core";
+import { behavior, toState } from "@domphy/core";
 import { button, inputText, menu, popover, small, strong } from "@domphy/ui";
 
 /** The two placements this sidebar's dropdowns flip between (subset of
@@ -377,18 +377,33 @@ function sidebar06(props: Sidebar06Props = {}): DomphyElement<"div"> {
       } as unknown as DomphyElement,
     ],
     dataTone: "shift-1",
-    _onMount: (node: ElementNode) => {
-      if (typeof window === "undefined" || !window.matchMedia) return;
-      const media = window.matchMedia("(max-width: 768px)");
-      const apply = () =>
-        placement.set(media.matches ? "bottom-end" : "right-start");
-      apply();
-      const listener = () => apply();
-      media.addEventListener("change", listener);
-      node.addHook("Remove", () =>
-        media.removeEventListener("change", listener),
-      );
-    },
+    // matchMedia → placement bridge via behavior(): `attach` runs once for the
+    // real aside node, and every later generation's fresh `placement` state is
+    // routed into `update()` — a `_onMount` listener would keep writing to
+    // generation 1's disconnected state after any ancestor re-render.
+    ...behavior<{ placement: State<DropdownPlacement> }>(
+      "sidebar06-responsive-placement",
+      (_node, initialProps) => {
+        if (typeof window === "undefined" || !window.matchMedia) {
+          return undefined;
+        }
+        let placementState = initialProps.placement;
+        const media = window.matchMedia("(max-width: 768px)");
+        const apply = () =>
+          placementState.set(media.matches ? "bottom-end" : "right-start");
+        apply();
+        const listener = () => apply();
+        media.addEventListener("change", listener);
+        return {
+          update: (next) => {
+            placementState = next.placement;
+            apply();
+          },
+          destroy: () => media.removeEventListener("change", listener),
+        };
+      },
+      { placement },
+    ),
     style: {
       position: "relative",
       display: "flex",

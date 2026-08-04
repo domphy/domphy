@@ -81,6 +81,60 @@ describe("color ramp structural validation (18-step tone model)", () => {
   });
 });
 
+describe("densities structural validation (5-step density scale)", () => {
+  it("rejects an array that is not exactly 5 entries", () => {
+    // A short array makes themeDensity() return undefined → "calc(NaNem)"
+    // in control padding (same failure class the fontSizes check guards).
+    expect(() => setTheme("light", { densities: [1, 1.5] })).toThrow(
+      /densities must have exactly 5 entries/,
+    );
+    expect(() =>
+      setTheme("light", { densities: [0.75, 1, 1.5, 2, 2.5, 3] }),
+    ).toThrow(/densities must have exactly 5 entries/);
+  });
+
+  it("rejects non-positive or non-finite density factors", () => {
+    expect(() =>
+      setTheme("light", { densities: [0.75, 1, 0, 2, 2.5] }),
+    ).toThrow(/densities entries must be positive finite numbers/);
+    expect(() =>
+      setTheme("light", { densities: [0.75, 1, Number.NaN, 2, 2.5] }),
+    ).toThrow(/densities entries must be positive finite numbers/);
+  });
+
+  it("accepts 5 positive numbers", () => {
+    const name = freshName("densities-ok");
+    expect(() =>
+      setTheme(name, { densities: [0.75, 1, 1.5, 2, 2.5] }),
+    ).not.toThrow();
+  });
+});
+
+describe("darkBias validation", () => {
+  it("rejects non-integer, negative, and out-of-range darkBias", () => {
+    // darkBias is a tone offset; a bad value yields NaN tone indices and
+    // undefined colors at resolve time instead of an actionable error.
+    expect(() => setTheme("light", { darkBias: 1.5 })).toThrow(
+      /darkBias must be an integer between 0 and 17/,
+    );
+    expect(() => setTheme("light", { darkBias: -1 })).toThrow(
+      /darkBias must be an integer between 0 and 17/,
+    );
+    expect(() => setTheme("light", { darkBias: 18 })).toThrow(
+      /darkBias must be an integer between 0 and 17/,
+    );
+    expect(() => setTheme("light", { darkBias: "1" } as any)).toThrow(
+      /darkBias must be an integer between 0 and 17/,
+    );
+  });
+
+  it("accepts a valid darkBias", () => {
+    const name = freshName("darkbias-ok");
+    expect(() => setTheme(name, { darkBias: 2 })).not.toThrow();
+    expect(getTheme(name).darkBias).toBe(2);
+  });
+});
+
 describe("baseTones range validation", () => {
   it("rejects out-of-range and non-integer base tones", () => {
     expect(() =>

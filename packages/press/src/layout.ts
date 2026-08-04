@@ -7,7 +7,11 @@ import type { DomphyElement, StyleObject } from "@domphy/core";
 import { rawHtml } from "@domphy/core";
 import { themeColor, themeSpacing } from "@domphy/theme";
 import { linkButton, toolbar, toolbarSpacer } from "@domphy/ui";
-import { prevNextForRoute, sidebarForRoute } from "./routes-browser.js";
+import {
+  prevNextForRoute,
+  sidebarForRoute,
+  withBase,
+} from "./routes-browser.js";
 import type {
   LayoutContext,
   SidebarItem,
@@ -127,20 +131,27 @@ function socialLinkEl(social: SocialLink): DomphyElement {
 
 // --- Page link helper ---------------------------------------------------
 
-function pageLink(text: string, href: string): DomphyElement {
+// The emitted href is base-prefixed (non-root deployments); navLink keeps the
+// base-LESS route href — its SSR aria-current matching compares against the
+// router pathname, which is base-less. The native href wins over the patch's
+// (mergePartial "native win"), so the DOM emits the prefixed one.
+function pageLink(text: string, href: string, base: string): DomphyElement {
   return {
     a: text,
-    href,
+    href: withBase(base, href),
     $: [navLink({ href, exact: true })],
   } as DomphyElement;
 }
 
 // --- Nav dropdown -------------------------------------------------------
 
-function navDropdown(item: {
-  text: string;
-  items: { text: string; link: string }[];
-}): DomphyElement {
+function navDropdown(
+  item: {
+    text: string;
+    items: { text: string; link: string }[];
+  },
+  base: string,
+): DomphyElement {
   const menuStyle = style({
     display: "none",
     position: "absolute",
@@ -196,7 +207,7 @@ function navDropdown(item: {
         },
       },
       {
-        div: item.items.map((child) => pageLink(child.text, child.link)),
+        div: item.items.map((child) => pageLink(child.text, child.link, base)),
         style: menuStyle,
       },
     ],
@@ -285,7 +296,10 @@ function localeSwitcher(ctx: LayoutContext): DomphyElement | null {
 
   const links: DomphyElement[] = entries.map(([key, locale]) => {
     const prefix = key === "/" ? "" : key.replace(/\/$/, "");
-    const href = prefix + (barePath === "/" ? "/" : barePath);
+    const href = withBase(
+      config.base,
+      prefix + (barePath === "/" ? "/" : barePath),
+    );
     const isActive = key === currentKey;
     return {
       a: locale.label,
@@ -442,8 +456,9 @@ function header(ctx: LayoutContext): DomphyElement {
                   text: string;
                   items: { text: string; link: string }[];
                 },
+                config.base,
               )
-            : pageLink(item.text, item.link!),
+            : pageLink(item.text, item.link!, config.base),
         ),
         $: [toolbar({ gap: 4 })],
         ariaLabel: "Primary",
@@ -640,29 +655,26 @@ function badgeEl(badge: NonNullable<SidebarItem["badge"]>): DomphyElement {
 function pageLinkWithBadge(
   text: string,
   href: string,
+  base: string,
   badge?: SidebarItem["badge"],
 ): DomphyElement {
   if (!badge) {
-    return {
-      a: text,
-      href,
-      $: [navLink({ href, exact: true })],
-    } as DomphyElement;
+    return pageLink(text, href, base);
   }
   return {
     a: [{ span: text }, badgeEl(badge)],
-    href,
+    href: withBase(base, href),
     $: [navLink({ href, exact: true })],
     style: { display: "flex", alignItems: "center" },
   } as DomphyElement;
 }
 
-function sidebarGroup(group: SidebarItem): DomphyElement {
+function sidebarGroup(group: SidebarItem, base: string): DomphyElement {
   const children: DomphyElement[] = [];
   const isCollapsible = group.items && group.items.length > 0;
 
   if (group.link) {
-    children.push(pageLinkWithBadge(group.text, group.link, group.badge));
+    children.push(pageLinkWithBadge(group.text, group.link, base, group.badge));
   } else {
     const titleChildren: DomphyElement[] = [
       { span: group.text } as DomphyElement,
@@ -716,10 +728,12 @@ function sidebarGroup(group: SidebarItem): DomphyElement {
         } as DomphyElement);
         for (const leaf of item.items) {
           if (leaf.link)
-            itemsEl.push(pageLinkWithBadge(leaf.text, leaf.link, leaf.badge));
+            itemsEl.push(
+              pageLinkWithBadge(leaf.text, leaf.link, base, leaf.badge),
+            );
         }
       } else if (item.link) {
-        itemsEl.push(pageLinkWithBadge(item.text, item.link, item.badge));
+        itemsEl.push(pageLinkWithBadge(item.text, item.link, base, item.badge));
       }
     }
     // dp-sidebar-items class kept: pressCSS uses it for .dp-sidebar-group.collapsed .dp-sidebar-items
@@ -747,7 +761,7 @@ function sidebarGroup(group: SidebarItem): DomphyElement {
 function sidebar(ctx: LayoutContext): DomphyElement {
   const groups = sidebarForRoute(ctx.route, ctx.config);
   return {
-    nav: groups.map(sidebarGroup),
+    nav: groups.map((group) => sidebarGroup(group, ctx.config.base)),
     ariaLabel: "Documentation", // used as stable selector in pressCSS mobile-open rule
     style: {
       position: "sticky",
@@ -881,6 +895,7 @@ function prevNext(ctx: LayoutContext): DomphyElement | null {
     if (n.text && n.link) next = { text: n.text, link: n.link };
   }
   if (!prev && !next) return null;
+  const base = ctx.config.base;
   const linkStyle = style({
     display: "block",
     padding: `${ts(3)} ${ts(4)}`,
@@ -906,7 +921,7 @@ function prevNext(ctx: LayoutContext): DomphyElement | null {
               },
               { span: prev.text },
             ],
-            href: prev.link,
+            href: withBase(base, prev.link),
             style: linkStyle,
           }
         : { span: "" },
@@ -924,7 +939,7 @@ function prevNext(ctx: LayoutContext): DomphyElement | null {
               },
               { span: next.text },
             ],
-            href: next.link,
+            href: withBase(base, next.link),
             style: { ...linkStyle, textAlign: "right" },
           }
         : { span: "" },
@@ -1245,14 +1260,20 @@ export function pageShell(ctx: LayoutContext): DomphyElement {
             ? showAside
               ? `${sidebarW} minmax(0,1fr) ${asideW}`
               : `${sidebarW} minmax(0,1fr)`
-            : "1fr",
+            : "minmax(0,1fr)",
           alignItems: "start",
           maxWidth: wide ? "none" : "1440px",
           margin: "0 auto",
           "@media (max-width: 1200px)": showSidebar
             ? { gridTemplateColumns: `${sidebarW} minmax(0,1fr)` }
             : {},
-          "@media (max-width: 860px)": { gridTemplateColumns: "1fr" },
+          // minmax(0,1fr), not bare 1fr: a bare 1fr is minmax(auto,1fr),
+          // which floors the single mobile column at the content's
+          // min-content width — any page with a wide unbreakable subtree
+          // (e.g. the playground's CodeMirror scroller, white-space:pre)
+          // blows out the viewport horizontally on ≤860px (found by
+          // visual:responsive playground @ mobile-375).
+          "@media (max-width: 860px)": { gridTemplateColumns: "minmax(0,1fr)" },
         },
       },
       ...(footerContent ? [footerContent] : []),
@@ -1278,7 +1299,7 @@ export interface FeatureConfig {
   link?: string;
 }
 
-function heroSection(hero: HeroConfig): DomphyElement {
+function heroSection(hero: HeroConfig, base: string): DomphyElement {
   const hasImage = Boolean(hero.image);
   const imageSrc =
     typeof hero.image === "string" ? hero.image : hero.image?.src;
@@ -1329,7 +1350,7 @@ function heroSection(hero: HeroConfig): DomphyElement {
         (a) =>
           ({
             a: a.text,
-            href: a.link,
+            href: withBase(base, a.link),
             $: [
               linkButton({
                 color: !a.theme || a.theme === "brand" ? "primary" : "neutral",
@@ -1435,7 +1456,10 @@ function heroSection(hero: HeroConfig): DomphyElement {
   };
 }
 
-function featuresSection(features: FeatureConfig[]): DomphyElement {
+function featuresSection(
+  features: FeatureConfig[],
+  base: string,
+): DomphyElement {
   return {
     div: features.map((f) => {
       const inner: DomphyElement[] = [];
@@ -1489,7 +1513,7 @@ function featuresSection(features: FeatureConfig[]): DomphyElement {
       return f.link
         ? ({
             a: [el],
-            href: f.link,
+            href: withBase(base, f.link),
             style: {
               display: "block",
               color: "inherit",
@@ -1518,8 +1542,9 @@ export function homeShell(ctx: LayoutContext): DomphyElement {
   const fullBleed = ctx.frontmatter.fullBleed === true;
   if (hero || features?.length) {
     const blocks: DomphyElement[] = [];
-    if (hero) blocks.push(heroSection(hero));
-    if (features?.length) blocks.push(featuresSection(features));
+    if (hero) blocks.push(heroSection(hero, ctx.config.base));
+    if (features?.length)
+      blocks.push(featuresSection(features, ctx.config.base));
     if (fullBleed) {
       main.push({
         div: blocks,

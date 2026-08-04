@@ -229,6 +229,111 @@ describe("selectBox keyboard / focus", () => {
   });
 });
 
+describe("selectBox typeahead (Radix Select character-search parity)", () => {
+  beforeEach(() => vi.useFakeTimers());
+
+  const OPTIONS = [
+    { label: "Alpha", value: "alpha" },
+    { label: "Apple", value: "apple" },
+    { label: "Beta", value: "beta" },
+  ];
+
+  function renderClosed(value: any) {
+    const { host } = render({
+      div: null,
+      $: [
+        selectBox({
+          value,
+          options: OPTIONS,
+          content: { div: [], $: [selectList()] },
+        }),
+      ],
+      "aria-label": "Pick",
+    } as DomphyElement);
+    return host.querySelector("div[tabindex='0']") as HTMLElement;
+  }
+
+  it("closed trigger: typing selects the case-insensitive prefix match", () => {
+    const value = toState<string | null>(null);
+    const box = renderClosed(value);
+
+    keydown(box, "B"); // uppercase still matches "Beta"
+    expect(value.get()).toBe("beta");
+  });
+
+  it("buffer accumulates within the timeout and resets after 1s idle", () => {
+    const value = toState<string | null>(null);
+    const box = renderClosed(value);
+
+    keydown(box, "a");
+    keydown(box, "l");
+    keydown(box, "p");
+    expect(value.get()).toBe("alpha"); // buffer "alp" still prefixes "Alpha"
+
+    vi.advanceTimersByTime(1100); // buffer resets
+    keydown(box, "b");
+    expect(value.get()).toBe("beta");
+  });
+
+  it("a repeated character cycles through that character's matches", () => {
+    const value = toState<string | null>(null);
+    const box = renderClosed(value);
+
+    keydown(box, "a");
+    expect(value.get()).toBe("alpha");
+    keydown(box, "a"); // "aa" → cycle to the next a* option
+    expect(value.get()).toBe("apple");
+    keydown(box, "a"); // wraps around
+    expect(value.get()).toBe("alpha");
+  });
+
+  it("open panel: focus moves to the matching option, skipping disabled ones", () => {
+    const open = toState(false);
+    const { host } = render({
+      div: null,
+      $: [
+        selectBox({
+          open,
+          options: OPTIONS,
+          content: {
+            div: [
+              { div: "Alpha", $: [selectItem({ value: "alpha" })] },
+              {
+                div: "Apple",
+                $: [selectItem({ value: "apple" })],
+                "aria-disabled": "true",
+              },
+              { div: "Alps", $: [selectItem({ value: "alps" })] },
+            ],
+            $: [selectList()],
+          },
+        }),
+      ],
+      "aria-label": "Pick",
+    } as DomphyElement);
+
+    const box = host.querySelector("div[tabindex='0']") as HTMLElement;
+    box.focus();
+    keydown(box, "Enter");
+    flushSync();
+    vi.runAllTimers();
+    flushSync();
+    expect(open.get()).toBe(true);
+
+    // "a" focuses the first enabled a* option.
+    keydown(box, "a");
+    expect((document.activeElement as HTMLElement)?.textContent).toBe("Alpha");
+
+    // Repeat cycles — the aria-disabled "Apple" is skipped.
+    keydown(box, "a");
+    expect((document.activeElement as HTMLElement)?.textContent).toBe("Alps");
+
+    // Wraps back to the first match.
+    keydown(box, "a");
+    expect((document.activeElement as HTMLElement)?.textContent).toBe("Alpha");
+  });
+});
+
 describe("combobox keyboard / focus", () => {
   beforeEach(() => vi.useFakeTimers());
 

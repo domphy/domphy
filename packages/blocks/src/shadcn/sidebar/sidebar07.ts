@@ -6,7 +6,7 @@
 // sidebar08 (which adds a secondary nav block and an inset main panel) via
 // sidebar05-08-shared.ts.
 
-import type { DomphyElement, ElementNode, Listener } from "@domphy/core";
+import type { DomphyElement, Listener } from "@domphy/core";
 import { toState } from "@domphy/core";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import { small } from "@domphy/ui";
@@ -15,6 +15,7 @@ import {
   ICON_FOLDER,
   ICON_GRID,
   ICON_INBOX,
+  makeSidebarToggle,
   renderExpandableNavRow,
   renderPlainNavRow,
   renderProjectRow,
@@ -30,6 +31,7 @@ import {
   sidebarMainContent,
   sidebarStickyHeader,
 } from "./sidebar05-08-shared.js";
+import { sidebarHotkey } from "./sidebarHotkey.js";
 
 type Sidebar07Props = {
   teams?: SidebarTeam[];
@@ -116,6 +118,8 @@ function sidebar07(props: Sidebar07Props = {}): DomphyElement<"div"> {
   // content is full-width until the trigger is tapped.
   const sidebarOpen = toState(false);
   const collapsed = toState(false);
+  // Viewport-aware trigger/hotkey: mobile flips the drawer, desktop the rail.
+  const toggleSidebar = makeSidebarToggle(collapsed, sidebarOpen);
 
   const navMainRows = navMain.map((item) =>
     item.items && item.items.length > 0
@@ -209,21 +213,9 @@ function sidebar07(props: Sidebar07Props = {}): DomphyElement<"div"> {
       } as unknown as DomphyElement,
     ],
     dataTone: "shift-1",
-    _onMount: (node: ElementNode) => {
-      const onKeyDown = (event: KeyboardEvent) => {
-        if (
-          (event.metaKey || event.ctrlKey) &&
-          event.key.toLowerCase() === "b"
-        ) {
-          event.preventDefault();
-          collapsed.set(!collapsed.get());
-        }
-      };
-      window.addEventListener("keydown", onKeyDown);
-      node.addHook("Remove", () =>
-        window.removeEventListener("keydown", onKeyDown),
-      );
-    },
+    // Ctrl/Cmd+B hotkey via behavior() — a `_onMount` listener would keep
+    // calling generation 1's `collapsed` state after any ancestor re-render.
+    ...sidebarHotkey(toggleSidebar),
     style: {
       position: "relative",
       display: "flex",
@@ -255,10 +247,7 @@ function sidebar07(props: Sidebar07Props = {}): DomphyElement<"div"> {
   const mainElement: DomphyElement<"main"> = {
     main: [
       sidebarStickyHeader({
-        onToggle: () => {
-          sidebarOpen.set(!sidebarOpen.get());
-          collapsed.set(!collapsed.get());
-        },
+        onToggle: toggleSidebar,
         breadcrumbItems,
       }),
       sidebarMainContent(children),

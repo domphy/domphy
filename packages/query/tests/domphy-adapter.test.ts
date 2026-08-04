@@ -327,3 +327,187 @@ describe("createQuery destroy() tripwires", () => {
     warn.mockRestore();
   });
 });
+
+describe("createMutation destroy() tripwires", () => {
+  it("dev-warns once on field reads after destroy()", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const mutation = createMutation<number, Error, number>(client, {
+      mutationFn: async (input) => input,
+    });
+    await mutation.mutateAsync(1);
+
+    mutation.destroy();
+    mutation.data();
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]?.[0])).toContain("after destroy()");
+
+    // Warn-once: further stale reads stay silent.
+    mutation.data();
+    mutation.status();
+    expect(warn).toHaveBeenCalledTimes(1);
+
+    warn.mockRestore();
+  });
+
+  it("dev-warns on a second destroy() and makes it a no-op", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const mutation = createMutation<number, Error, number>(client, {
+      mutationFn: async (input) => input,
+    });
+    await mutation.mutateAsync(1);
+
+    mutation.destroy();
+    mutation.destroy();
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]?.[0])).toContain("twice");
+
+    warn.mockRestore();
+  });
+});
+
+describe("createInfiniteQuery query-parity accessors", () => {
+  const infiniteOptions = (
+    gate: { resolve?: (value: number[]) => void },
+    extra: Record<string, unknown> = {},
+  ) => ({
+    queryKey: ["infinite-parity", JSON.stringify(extra)],
+    queryFn: ({ pageParam }: { pageParam: number }) =>
+      new Promise<number[]>((resolve) => {
+        gate.resolve = () => resolve([pageParam]);
+      }),
+    initialPageParam: 0,
+    getNextPageParam: (last: number[]) => last[0] + 1,
+    ...extra,
+  });
+
+  it("fetchStatus/isLoading track the initial fetch", async () => {
+    const gate: { resolve?: (value: number[]) => void } = {};
+    const query = createInfiniteQuery<
+      number[],
+      Error,
+      number[],
+      string[],
+      number
+    >(client, infiniteOptions(gate) as any);
+
+    // Pending + fetching while the first page is in flight.
+    expect(query.isPending()).toBe(true);
+    expect(query.isLoading()).toBe(true);
+    expect(query.fetchStatus()).toBe("fetching");
+
+    gate.resolve?.();
+    await sleep(10);
+
+    expect(query.isSuccess()).toBe(true);
+    expect(query.isLoading()).toBe(false);
+    expect(query.fetchStatus()).toBe("idle");
+    query.destroy();
+  });
+
+  it("isRefetching is true only while a refetch is in flight", async () => {
+    const gate: { resolve?: (value: number[]) => void } = {};
+    const query = createInfiniteQuery<
+      number[],
+      Error,
+      number[],
+      string[],
+      number
+    >(
+      client,
+      infiniteOptions(gate, { staleTime: Number.POSITIVE_INFINITY }) as any,
+    );
+    gate.resolve?.();
+    await sleep(10);
+    expect(query.isRefetching()).toBe(false);
+
+    const refetchPromise = query.refetch();
+    await sleep(0);
+    expect(query.isRefetching()).toBe(true);
+    expect(query.isFetching()).toBe(true);
+    // Data stays visible during the refetch: not back to isLoading.
+    expect(query.isLoading()).toBe(false);
+
+    gate.resolve?.();
+    await refetchPromise;
+    await sleep(10);
+    expect(query.isRefetching()).toBe(false);
+    query.destroy();
+  });
+
+  it("isStale follows staleTime", async () => {
+    const gateA: { resolve?: (value: number[]) => void } = {};
+    const staleQuery = createInfiniteQuery<
+      number[],
+      Error,
+      number[],
+      string[],
+      number
+    >(client, infiniteOptions(gateA, { staleTime: 0 }) as any);
+    gateA.resolve?.();
+    await sleep(10);
+    expect(staleQuery.isStale()).toBe(true);
+    staleQuery.destroy();
+
+    const gateB: { resolve?: (value: number[]) => void } = {};
+    const freshQuery = createInfiniteQuery<
+      number[],
+      Error,
+      number[],
+      string[],
+      number
+    >(client, infiniteOptions(gateB, { staleTime: 60_000 }) as any);
+    gateB.resolve?.();
+    await sleep(10);
+    expect(freshQuery.isStale()).toBe(false);
+    freshQuery.destroy();
+  });
+
+  it("isPlaceholderData is true while placeholderData is shown", async () => {
+    const gate: { resolve?: (value: number[]) => void } = {};
+    const query = createInfiniteQuery<
+      number[],
+      Error,
+      number[],
+      string[],
+      number
+    >(
+      client,
+      infiniteOptions(gate, {
+        placeholderData: { pages: [[-1]], pageParams: [-1] },
+      }) as any,
+    );
+
+    expect(query.isPlaceholderData()).toBe(true);
+    expect(query.data()?.pages).toEqual([[-1]]);
+
+    gate.resolve?.();
+    await sleep(10);
+    expect(query.isPlaceholderData()).toBe(false);
+    expect(query.data()?.pages).toEqual([[0]]);
+    query.destroy();
+  });
+
+  it("new accessors notify listeners per-field", async () => {
+    const gate: { resolve?: (value: number[]) => void } = {};
+    const query = createInfiniteQuery<
+      number[],
+      Error,
+      number[],
+      string[],
+      number
+    >(client, infiniteOptions(gate) as any);
+
+    let fetchStatusCalls = 0;
+    let isLoadingCalls = 0;
+    query.fetchStatus(() => fetchStatusCalls++);
+    query.isLoading(() => isLoadingCalls++);
+
+    gate.resolve?.();
+    await sleep(10);
+
+    expect(fetchStatusCalls).toBeGreaterThan(0);
+    expect(isLoadingCalls).toBeGreaterThan(0);
+    query.destroy();
+  });
+});

@@ -204,15 +204,27 @@ function attachDialog(
  * dialog, restores focus to the previously focused element on close, sets
  * `aria-modal`, and closes on outside (backdrop) click. Apply to a `<dialog>`.
  *
+ * Accessible name/description: pass `labelledBy`/`describedBy` the `id` of a
+ * heading/paragraph inside the dialog (Radix Title/Description parity). The
+ * native `ariaLabelledby`/`ariaDescribedby` attributes on the host element
+ * remain an equivalent escape hatch (the native element always wins).
+ *
  * @hostTag dialog
  * @param props.color - Theme color tone for the dialog surface. Defaults to "neutral".
  * @param props.open - Open state (`ValueOrState<boolean>`); set it to true/false to show/hide. Defaults to false.
- * @example { dialog: [...], $: [dialog({ open })] }
+ * @param props.labelledBy - `id` of the element labeling the dialog (wired to `aria-labelledby`). Optional.
+ * @param props.describedBy - `id` of the element describing the dialog (wired to `aria-describedby`). Optional.
+ * @example { dialog: [{ h2: "Confirm", id: "dlg-title" }], $: [dialog({ open, labelledBy: "dlg-title" })] }
  */
 function dialog(
-  props: { color?: ThemeColor; open?: ValueOrState<boolean> } = {},
+  props: {
+    color?: ThemeColor;
+    open?: ValueOrState<boolean>;
+    labelledBy?: string;
+    describedBy?: string;
+  } = {},
 ): PartialElement {
-  const { color = "neutral", open = false } = props;
+  const { color = "neutral", open = false, labelledBy, describedBy } = props;
   const state = toState(open);
 
   return {
@@ -222,6 +234,8 @@ function dialog(
       }
     },
     ...behavior<DialogProps>("dialog", attachDialog, { state }),
+    ariaLabelledby: labelledBy,
+    ariaDescribedby: describedBy,
     onClick: (e: MouseEvent, node) => {
       if (e.target !== node.domElement) return;
       const r = node.domElement!.getBoundingClientRect();

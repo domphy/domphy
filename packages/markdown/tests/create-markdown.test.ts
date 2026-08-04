@@ -119,6 +119,21 @@ describe("createMarkdown task list support (remark-gfm built-in)", () => {
   });
 });
 
+describe("createMarkdown math option", () => {
+  it("throws the honest install hint when remark-math is absent", () => {
+    // remark-math is an optional peer and is NOT installed in this workspace,
+    // so math:true must fail with the install hint. The hint must be the only
+    // error surfaced — never the tsup ESM shim's "Dynamic require of
+    // 'remark-math' is not supported" (the pure-ESM regression this guards).
+    expect(() => createMarkdown({ math: true })).toThrowError(
+      /math:true requires remark-math/,
+    );
+    expect(() => createMarkdown({ math: true })).not.toThrowError(
+      /Dynamic require/,
+    );
+  });
+});
+
 describe("createMarkdown onCustom handler", () => {
   it("receives unrecognised MDAST nodes and can return a Domphy element", () => {
     // Simulate a directive-like node by using a plugin that adds custom nodes

@@ -1,4 +1,4 @@
-﻿# @domphy/mermaid
+# @domphy/mermaid
 
 **[domphy.com](https://domphy.com)** · [Docs](https://domphy.com/docs/mermaid/) · [npm](https://www.npmjs.com/package/@domphy/mermaid)
 
@@ -112,6 +112,11 @@ const App = {
   $: [mermaidClient({ theme: "dark" })],
 };
 ```
+
+> **Browser bundlers:** the main entry statically imports Node built-ins
+> (`node:fs`, `node:crypto`) for the build-time renderer. In a browser bundle
+> (Vite, esbuild, webpack), import from the browser-safe subpath instead:
+> `import { mermaidClient } from "@domphy/mermaid/client"`.
 
 On mount the patch reads the source from the element (preferring an inner
 `<code>`), renders it with the `mermaid` library, and swaps in the SVG. Install

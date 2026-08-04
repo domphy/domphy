@@ -364,7 +364,9 @@ export function deleteRangeInDoc(
   // ponytail: positional test, since we have no NodeSelection to tell "select
   // all" from "select every character". In a single-block document those are
   // the same range, so drag-selecting all of an <h2> and deleting also resets
-  // it to a paragraph — tiptap keeps the heading there.
+  // it to a paragraph — tiptap keeps the heading on the drag-select, but
+  // resets it too on a real select-all (emptying the doc refills it with the
+  // schema default), so the select-all outcome matches tiptap.
   if (from <= startPosition(schema, doc) && to >= endPosition(schema, doc)) {
     return { ...doc, content: [] };
   }

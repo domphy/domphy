@@ -231,14 +231,30 @@ export const Link = Mark.create<LinkOptions>({
   addStorage() {
     return {
       handleClick: null,
+      clickHost: null,
     };
   },
 
-  onCreate() {
+  onMount() {
     const host = this.editor.view?.element;
 
     if (!this.options.openOnClick || !host) {
       return;
+    }
+
+    // Idempotent across re-mounts: detach from the previous host first, so a
+    // moved editor never double-fires or keeps a stale element alive.
+    const previous = this.storage.clickHost as HTMLElement | null;
+
+    if (previous === host && this.storage.handleClick) {
+      return;
+    }
+
+    if (previous && this.storage.handleClick) {
+      previous.removeEventListener(
+        "click",
+        this.storage.handleClick as (event: MouseEvent) => void,
+      );
     }
 
     const handleClick = (event: MouseEvent) => {
@@ -262,11 +278,12 @@ export const Link = Mark.create<LinkOptions>({
     };
 
     this.storage.handleClick = handleClick;
+    this.storage.clickHost = host;
     host.addEventListener("click", handleClick);
   },
 
   onDestroy() {
-    const host = this.editor.view?.element;
+    const host = this.storage.clickHost as HTMLElement | null;
     const handleClick = this.storage.handleClick as
       | ((event: MouseEvent) => void)
       | null;
@@ -276,6 +293,7 @@ export const Link = Mark.create<LinkOptions>({
     }
 
     this.storage.handleClick = null;
+    this.storage.clickHost = null;
   },
 
   addAttributes() {

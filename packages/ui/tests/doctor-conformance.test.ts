@@ -167,7 +167,7 @@ const PATCH_ARGS: Record<string, unknown> = {
   motion: { animate: { opacity: 1 } },
   empty: { title: "Empty" },
   alert: { title: "Note" },
-  image: { src: "x.png", alt: "" },
+  image: {},
   inputOTP: { length: 4 },
   descriptionList: { items: [{ term: "A", description: "B" }] },
   commandItem: { value: "a", label: "A" },
@@ -236,6 +236,12 @@ describe("doctor conformance — all UI patch defaults (merged)", () => {
         $: [patch],
       };
       if (name === "link" || name === "linkButton") el.href = "#";
+      // image()'s contract puts src/alt on the native host element (the patch
+      // only styles) — alt:"" is the valid decorative form.
+      if (name === "image") {
+        el.src = "x.png";
+        el.alt = "";
+      }
       // Do NOT set type= on void inputs here — patches that need type set it
       // themselves; a bare type: "text" without a found tag used to trigger
       // unknown-tag when expand failed to preserve input:null.

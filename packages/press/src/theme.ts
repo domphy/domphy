@@ -22,6 +22,12 @@ const textSoft = tc("shift-6");
 const text = tc("shift-9");
 const textStrong = tc("shift-11");
 const brand = tc("shift-9", "primary");
+// Active code-group tab sits on a shift-2 (bgMute) tinted bar, so the usual
+// shift-9 brand text falls short of WCAG AA (4.12:1 light, 3.85:1 dark on the
+// built-in primary ramp — worse on saturated generated ramps, e.g. the
+// docs site's amber brand measured 4.08:1). shift-10 clears 4.5:1 on both
+// built-in themes (5.19:1 light, 4.77:1 dark — pinned by tests/theme.test.ts).
+const brandOnTint = tc("shift-10", "primary");
 
 const headerH = ts(14);
 
@@ -152,7 +158,7 @@ main a:focus:not(:focus-visible){
 .code-group .blocks>.code-block{display:none;margin:0;border:none;border-radius:0}
 .code-group .blocks>.code-block pre{border-radius:0}
 ${Array.from({ length: 8 }, (_, i) => `.code-group>input:nth-of-type(${i + 1}):checked~.blocks>.code-block:nth-child(${i + 1})`).join(",\n")}{display:block}
-${Array.from({ length: 8 }, (_, i) => `.code-group>input:nth-of-type(${i + 1}):checked~.tabs>label:nth-child(${i + 1})`).join(",\n")}{color:${brand};background:${bgMute}}
+${Array.from({ length: 8 }, (_, i) => `.code-group>input:nth-of-type(${i + 1}):checked~.tabs>label:nth-child(${i + 1})`).join(",\n")}{color:${brandOnTint};background:${bgMute}}
 
 /* ---------------------------------------------------------- card containers */
 .custom-block.card{background:${bgSoft};border:1px solid ${border};border-radius:${ts(3)};padding:${ts(5)} ${ts(6)};margin:${ts(3)} 0}
@@ -190,7 +196,13 @@ details.custom-block summary{cursor:pointer;font-weight:600}
 .task-list-check{position:absolute;left:0;top:.25em;width:14px;height:14px;cursor:default;accent-color:${brand}}
 
 /* ---------------------------------------------------------------- shiki dark */
-html[data-theme="dark"] .shiki span{color:var(--shiki-dark,inherit) !important}
+/* Shiki 4 emits bold/italic tokens as CSS vars on the span
+   (--shiki-light-font-weight:bold;--shiki-dark-font-weight:bold, and the
+   -font-style pair) instead of inline font-weight/font-style declarations.
+   Consume the vars here so bold tokens (e.g. diff @@ hunk headers) render
+   bold in both themes; spans without the vars fall back to inherit. */
+.shiki span{font-weight:var(--shiki-light-font-weight,inherit);font-style:var(--shiki-light-font-style,inherit)}
+html[data-theme="dark"] .shiki span{color:var(--shiki-dark,inherit) !important;font-weight:var(--shiki-dark-font-weight,inherit) !important;font-style:var(--shiki-dark-font-style,inherit) !important}
 html[data-theme="dark"] .shiki{color:var(--shiki-dark,inherit) !important;background-color:transparent !important}
 
 /* ------------------------------------------------------------------ badges */

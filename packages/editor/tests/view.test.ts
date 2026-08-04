@@ -79,6 +79,23 @@ describe("rendering", () => {
     expect(host.innerHTML).toBe("<h2>Title</h2><p>body</p>");
   });
 
+  it("names the textbox unless the host already carries a name", () => {
+    const { host } = mount(docOf(p("a")));
+    expect(host.getAttribute("role")).toBe("textbox");
+    expect(host.getAttribute("aria-label")).toBe("Rich text editor");
+
+    const named = document.createElement("div");
+    named.setAttribute("aria-label", "Notes");
+    document.body.appendChild(named);
+    const editor = new Editor({
+      element: named,
+      extensions: testExtensions,
+      content: docOf(p("a")),
+    });
+    mounted.push(editor);
+    expect(named.getAttribute("aria-label")).toBe("Notes");
+  });
+
   it("gives empty blocks a br so the caret can reach them", () => {
     const { host } = mount(docOf(p()));
     expect(host.innerHTML).toBe("<p><br></p>");

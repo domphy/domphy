@@ -16,14 +16,59 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { elevation } from "../utils/elevation.js";
-import { createFloating } from "../utils/floating.js";
+import { createFloating, floatingPanelId } from "../utils/floating.js";
 import { focusRing } from "../utils/focusRing.js";
 import { tag } from "./tag.js";
+
+// Typeahead (Radix Select character-search parity): printable characters
+// accumulate into a buffer that resets after 1s of idle; the buffer is a
+// case-insensitive prefix match against option labels. CLOSED trigger: the
+// match becomes the selection (native <select> behavior). OPEN panel: focus
+// moves to the matching [role=option] — focus is the keyboard highlight.
+// A buffer of one repeated character ("aaa") cycles through that char's
+// matches instead of pinning the first; disabled options are skipped.
+const TYPEAHEAD_RESET_MS = 1000;
+
+type TypeaheadMeta = {
+  buffer: string;
+  timer: ReturnType<typeof setTimeout> | null;
+};
+
+// The buffer lives on the NODE (not the factory closure): a selectBox inside
+// a reactive parent gets a fresh closure per ancestor re-render, and a
+// closure-local buffer would silently reset mid-typing on the reused node.
+function resolveTypeahead(node: ElementNode): TypeaheadMeta {
+  let meta = node.getMetadata("selectBoxTypeahead") as
+    | TypeaheadMeta
+    | undefined;
+  if (!meta) {
+    meta = { buffer: "", timer: null };
+    node.setMetadata("selectBoxTypeahead", meta);
+  }
+  return meta;
+}
+
+const matchesPrefix = (label: string, needle: string) =>
+  label.trim().toLowerCase().startsWith(needle);
+
+function enabledPanelOptions(panel: Element | null): HTMLElement[] {
+  if (!panel) return [];
+  return Array.from(
+    panel.querySelectorAll<HTMLElement>("[role=option]"),
+  ).filter(
+    (el) =>
+      el.getAttribute("aria-disabled") !== "true" &&
+      !el.hasAttribute("disabled"),
+  );
+}
 
 /**
  * A clickable select trigger box that renders the currently selected option(s) as removable
  * tags and toggles a floating popover (the dropdown content) anchored to itself. Selected
  * labels are derived from `options` matching the bound `value`; removing a tag updates the value.
+ * Keyboard: Enter/Space toggle, ArrowDown opens, Escape closes, and printable characters
+ * typeahead-search options (closed: selects the match; open: focuses the matching
+ * `[role=option]` in the panel; a repeated character cycles matches).
  *
  * @hostTag div
  * @param props.multiple - Whether multiple selection is allowed (renders removable tags and
@@ -76,6 +121,10 @@ function selectBox(props: {
     dataTone: "shift-14",
     style: {
       backgroundColor: (listener) => themeColor(listener, "inherit"),
+      // Surface contract (dataTone-surface-contract): a tone-anchored panel
+      // must declare BOTH background and text color — on the dark shift-14
+      // surface, inherited portal context colors can fall below contrast.
+      color: (listener) => themeColor(listener, "text"),
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
       outline: (listener) =>
         `1px solid ${themeColor(listener, "border-strong")}`,
@@ -114,6 +163,48 @@ function selectBox(props: {
   const toggle = (node?: ElementNode) =>
     openState.get() ? hide(node) : show(node);
 
+  const typeahead = (key: string, node: ElementNode) => {
+    const meta = resolveTypeahead(node);
+    if (meta.timer) clearTimeout(meta.timer);
+    meta.buffer += key.toLowerCase();
+    meta.timer = setTimeout(() => {
+      meta.buffer = "";
+    }, TYPEAHEAD_RESET_MS);
+    // "aaa" cycles through the a* matches rather than matching "aaa" literally.
+    const repeated = meta.buffer.length > 1 && new Set(meta.buffer).size === 1;
+    const needle = repeated ? meta.buffer[0]! : meta.buffer;
+
+    if (openState.get()) {
+      // Panel is portaled under the root (see floating.ts); its id is
+      // deterministic, same lookup pattern as popover's onBlur guard.
+      const root = node.getRoot().domElement as Element | null;
+      const panel =
+        root?.querySelector(`#${floatingPanelId("selectBox", node)}`) ?? null;
+      const matches = enabledPanelOptions(panel).filter((el) =>
+        matchesPrefix(el.textContent ?? "", needle),
+      );
+      if (!matches.length) return;
+      const active = node.domElement?.ownerDocument
+        ?.activeElement as HTMLElement | null;
+      const from = repeated && active ? matches.indexOf(active) : -1;
+      const target = matches[(from + 1) % matches.length]!;
+      target.focus();
+      target.scrollIntoView?.({ block: "nearest" });
+      return;
+    }
+
+    // Closed trigger: selection follows typeahead. Single-select only — a
+    // multi-select tag set has no "current option" to move from.
+    if (multiple) return;
+    const matches = options.filter((opt) => matchesPrefix(opt.label, needle));
+    if (!matches.length) return;
+    const from = repeated
+      ? matches.findIndex((opt) => opt.value === state.get())
+      : -1;
+    const next = matches[(from + 1) % matches.length]!;
+    state.set(next.value as any);
+  };
+
   const partial: PartialElement = {
     _onInsert: (node) => {
       if (node.tagName !== "div") {
@@ -144,6 +235,13 @@ function selectBox(props: {
       if (key === "ArrowDown" && !openState.get()) {
         e.preventDefault();
         show(node);
+        return;
+      }
+      // Character typeahead (Radix Select parity) — modifier chords are
+      // shortcuts, not search input.
+      const kb = e as KeyboardEvent;
+      if (key.length === 1 && !kb.ctrlKey && !kb.metaKey && !kb.altKey) {
+        typeahead(key, node);
       }
     },
     style: {

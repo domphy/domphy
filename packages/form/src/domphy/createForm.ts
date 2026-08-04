@@ -12,13 +12,14 @@ type FieldMeta = ReturnType<AnyFieldApi["getMeta"]>
 // biome-ignore lint: src is byte-identical-port territory, excluded from biome
 type Updater<T> = T | ((previous: T) => T)
 
-// Structural shallow compare for field options. Deep equality is impossible
-// (validators/listeners are closures), so functions compare by identity while
-// plain objects are walked a few levels down — this keeps the common re-render
-// pattern of inline option literals ({ validators: { onChange } }) from
-// reading as a change.
+// Structural shallow compare for field options. Plain objects are walked a
+// few levels down; two functions count as equal because closures cannot be
+// structurally compared — this keeps the common re-render pattern of inline
+// option literals ({ validators: { onChange: () => ... } }) from reading as a
+// change on every re-render (fresh closure identities each time).
 function fieldOptionsEqual(a: unknown, b: unknown, depth: number): boolean {
   if (Object.is(a, b)) return true
+  if (typeof a === "function" && typeof b === "function") return true
   if (depth <= 0) return false
   if (typeof a !== "object" || a === null || typeof b !== "object" || b === null)
     return false

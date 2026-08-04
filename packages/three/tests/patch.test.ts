@@ -362,6 +362,129 @@ describe("three() — reused-node re-render", () => {
   });
 });
 
+describe("three() — loop activation and options-state updates", () => {
+  it("invalidate()s right after activation so the first frame doesn't depend on the ResizeObserver firing", () => {
+    let capturedRoot: RootState | undefined;
+    mount({
+      div: null,
+      $: [
+        three({
+          scene: null,
+          frameloop: "demand",
+          createRenderer: () => createStubRenderer(),
+          onCreated: (root) => {
+            capturedRoot = root;
+          },
+        }),
+      ],
+    } as DomphyElement);
+
+    // In demand mode a pending frame is observable synchronously — before
+    // the fix every mount-time invalidate() was a no-op against the still
+    // inactive root, and this stayed 0 until the ResizeObserver fired.
+    expect(capturedRoot!.internal.frames).toBeGreaterThan(0);
+  });
+
+  it("does not reset the clock when an options update keeps the same frameloop", () => {
+    const stub = createStubRenderer();
+    let capturedRoot: RootState | undefined;
+    const optionsState = toState<ThreeOptions>({
+      scene: null,
+      createRenderer: () => stub,
+      onCreated: (root) => {
+        capturedRoot = root;
+      },
+    });
+    mount({ div: null, $: [three(optionsState)] } as DomphyElement);
+
+    capturedRoot!.clock.elapsedTime = 42;
+    optionsState.set({
+      scene: null,
+      createRenderer: () => stub,
+      frameloop: "always",
+    });
+    flushSync();
+    // setFrameloop zeroes elapsedTime on every call — a same-mode update
+    // must not go through it at all.
+    expect(capturedRoot!.clock.elapsedTime).toBe(42);
+
+    // Control: an actual mode change still goes through setFrameloop's reset.
+    optionsState.set({
+      scene: null,
+      createRenderer: () => stub,
+      frameloop: "demand",
+    });
+    flushSync();
+    expect(capturedRoot!.clock.elapsedTime).toBe(0);
+  });
+
+  it("only re-runs setSize on an options update when dpr is provided", () => {
+    const stub = createStubRenderer();
+    const optionsState = toState<ThreeOptions>({
+      scene: null,
+      createRenderer: () => stub,
+    });
+    mount({ div: null, $: [three(optionsState)] } as DomphyElement);
+
+    const setSizeCallsAfterMount = stub.calls.setSize.length;
+    // No dpr key → "keep the last resolved dpr", no setSize at all.
+    optionsState.set({ scene: null, createRenderer: () => stub });
+    flushSync();
+    expect(stub.calls.setSize).toHaveLength(setSizeCallsAfterMount);
+
+    optionsState.set({ scene: null, createRenderer: () => stub, dpr: 2 });
+    flushSync();
+    expect(stub.calls.setSize).toHaveLength(setSizeCallsAfterMount + 1);
+    expect(stub.calls.setPixelRatio.at(-1)).toEqual([2]);
+  });
+
+  it("still tears down the root when onCreated throws (Remove hook registered before onCreated)", () => {
+    const stub = createStubRenderer();
+    let capturedRoot: RootState | undefined;
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const node = new ElementNode({
+      div: null,
+      $: [
+        three({
+          scene: null,
+          createRenderer: () => stub,
+          onCreated: (root) => {
+            capturedRoot = root;
+            throw new Error("boom");
+          },
+        }),
+      ],
+    } as DomphyElement);
+
+    try {
+      node.render(host);
+    } catch {
+      // onCreated's error may propagate out of render — either way the mount
+      // ran far enough that teardown must still work.
+    }
+
+    node.remove();
+
+    expect(stub.calls.dispose).toBe(1);
+    expect(capturedRoot!.internal.active).toBe(false);
+  });
+});
+
+describe("three() — host size warning", () => {
+  it("warns on a zero-size host (width or height), not just zero height", () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    mount({
+      div: null,
+      $: [three({ scene: null, createRenderer: () => createStubRenderer() })],
+    } as DomphyElement);
+
+    // jsdom's getBoundingClientRect is 0x0 — both dimensions collapse.
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("zero size"));
+    warnSpy.mockRestore();
+  });
+});
+
 describe("three() — events", () => {
   it("events: false skips wiring canvas pointer listeners", () => {
     let capturedRoot: RootState | undefined;

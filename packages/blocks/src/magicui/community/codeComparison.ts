@@ -190,7 +190,10 @@ const DEFAULT_LEFT_CODE = [
 
 const DEFAULT_RIGHT_CODE = [
   "function greet(name: string): void {",
-  "  const message = `Hello ${name}`; // [!code ++]",
+  // Demo content: must render the literal `${name}` placeholder. Built via
+  // concatenation so no string literal contains a `${…}` sequence (biome
+  // noTemplateCurlyInString) — the joined output is byte-identical.
+  "  const message = `Hello $" + "{name}`; // [!code ++]",
   '  console.log("Hello " + name); // [!code --]',
   "  console.log(message);",
   "}",

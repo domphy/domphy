@@ -100,7 +100,13 @@ export function resolvePath(
   const parts = key.split("-");
   for (const part of parts) {
     if (typeof target !== "object" || target === null) {
-      return { root, key, target: undefined };
+      // The walk broke at a MIDDLE segment (e.g. "material-color" on a node
+      // with no material): hand the nullish holder back as `root` so
+      // applyStaticProp's guard fails loudly instead of assigning the value
+      // onto the wrong level of the object graph (r3f fails loudly here too).
+      // A nullish target at the FINAL segment stays assignable — pierced keys
+      // may create new properties one level deep.
+      return { root: target, key: part, target: undefined };
     }
     key = part;
     root = target;
@@ -158,7 +164,10 @@ export function applyStaticProp(
     );
   }
 
-  if (target instanceof THREE.Color && isColorRepresentation(value)) {
+  // Duck-typed (isColor), never instanceof: with a second copy of three in
+  // the app (classes registered via extend()), instanceof fails and the Color
+  // would be REPLACED by the raw string/number instead of mutated via .set.
+  if (target?.isColor === true && isColorRepresentation(value)) {
     target.set(value);
   } else if (
     target !== null &&
@@ -186,7 +195,10 @@ export function applyStaticProp(
     if (typeof target.setScalar === "function") target.setScalar(value);
     else target.set(value);
   } else if (
-    root instanceof THREE.ShaderMaterial &&
+    // Duck-typed (isShaderMaterial) for the same reason as isColor above —
+    // the #27042 merge below must also run for ShaderMaterials coming from
+    // a second three copy, where instanceof would fail.
+    root?.isShaderMaterial === true &&
     resolvedKey === "uniforms" &&
     value !== null &&
     typeof value === "object"
@@ -484,10 +496,29 @@ export function applyProps(node: SceneNode, props: Record<string, any>): void {
       applyEventRecordProp(node, key, value);
       continue;
     }
+    // A rule-3 key (`onX` already a callback property on the instance) whose
+    // value became undefined clears the slot — same outcome as
+    // unsetRemovedProp's `instance[key] = undefined` when the key vanishes
+    // from the props bag entirely. applyStaticProp below would skip it.
+    if (/^on[A-Z]/.test(key) && value === undefined && key in instance) {
+      instance[key] = undefined;
+      continue;
+    }
+    // A rule-5/6 key (`onX` not on the instance, or the `on` record) whose
+    // value no longer qualifies (e.g. re-applied with undefined) must release
+    // the previous pass's addEventListener binding before falling through —
+    // otherwise the old handler stays registered forever.
+    if (/^on[A-Z]/.test(key) || key === "on") {
+      setKeySubscription(node, key, null);
+    }
     if (typeof value === "function") {
       applyReactiveProp(node, key, value);
       continue;
     }
+    // Reactive -> static on the same key: release the old State listener
+    // (a safe no-op when none was ever bound) so it can't keep overwriting
+    // the static value — release-before-rebind, mirroring the rules above.
+    setKeySubscription(node, key, null);
     applyStaticProp(node, key, value);
   }
 

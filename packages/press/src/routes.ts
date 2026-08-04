@@ -6,6 +6,7 @@ export {
   flattenSidebar,
   prevNextForRoute,
   sidebarForRoute,
+  withBase,
 } from "./routes-browser.js";
 
 function listMarkdown(dir: string): string[] {
@@ -19,6 +20,9 @@ function listMarkdown(dir: string): string[] {
         "demos",
         "node_modules",
         ".git",
+        // Playwright's default output dir — its error-context.md artifacts
+        // must never be discovered as doc pages.
+        "test-results",
       ]);
       if (NON_PAGE_DIRS.has(name) || name.startsWith(".")) continue;
       found.push(...listMarkdown(full));

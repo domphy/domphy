@@ -2454,6 +2454,13 @@ export class RouterCore<
     // eslint-disable-next-line prefer-const
     loadPromise = new Promise<void>((resolve) => {
       this.startTransition(async () => {
+        // The location this load operates on, captured right after
+        // beforeLoad(). A newer navigation's beforeLoad() replaces
+        // this.latestLocation with a fresh object, which marks this load as
+        // stale: its error handling below must then not apply router-level
+        // state (statusCode/redirect stores) or follow redirects — the newer
+        // navigation owns those.
+        let loadLocation: ParsedLocation<FullSearchSchema<TRouteTree>> | undefined
         try {
           this.beforeLoad()
           if (historyAction) {
@@ -2462,6 +2469,7 @@ export class RouterCore<
             locationHistoryActions.delete(this.latestLocation)
           }
           const next = this.latestLocation
+          loadLocation = next
           const prevLocation = this.stores.resolvedLocation.get()
           const locationChangeInfo = getLocationChangeInfo(next, prevLocation)
 
@@ -2585,9 +2593,17 @@ export class RouterCore<
             },
           })
         } catch (err) {
+          // A superseded load (a newer navigation ran beforeLoad() and
+          // replaced latestLocation) must not touch router-level state or
+          // navigate: its match writes are already dead-on-arrival via the
+          // id-keyed match stores, and the newer navigation owns statusCode,
+          // redirect and the location.
+          const isStaleLoad =
+            loadLocation !== undefined && this.latestLocation !== loadLocation
+
           if (isRedirect(err)) {
             redirect = err
-            if (!(isServer ?? this.isServer)) {
+            if (!isStaleLoad && !(isServer ?? this.isServer)) {
               this.navigate({
                 ...redirect.options,
                 replace: true,
@@ -2598,18 +2614,20 @@ export class RouterCore<
             notFound = err
           }
 
-          const nextStatusCode = redirect
-            ? redirect.status
-            : notFound
-              ? 404
-              : this.stores.matches.get().some((d) => d.status === 'error')
-                ? 500
-                : 200
+          if (!isStaleLoad) {
+            const nextStatusCode = redirect
+              ? redirect.status
+              : notFound
+                ? 404
+                : this.stores.matches.get().some((d) => d.status === 'error')
+                  ? 500
+                  : 200
 
-          this.batch(() => {
-            this.stores.statusCode.set(nextStatusCode)
-            this.stores.redirect.set(redirect)
-          })
+            this.batch(() => {
+              this.stores.statusCode.set(nextStatusCode)
+              this.stores.redirect.set(redirect)
+            })
+          }
         }
 
         if (this.latestLoadPromise === loadPromise) {

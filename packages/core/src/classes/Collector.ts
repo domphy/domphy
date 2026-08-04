@@ -1,4 +1,5 @@
 import type { Handler } from "../types.js";
+import { _deliveringNotifier, type Notifier } from "./Notifier.js";
 
 // A Collector is the bridge between auto-tracked reads (State.get / RecordState.get
 // called WITHOUT an explicit listener) and the existing Notifier subscription model.
@@ -16,9 +17,30 @@ export class Collector {
   readonly handler: Handler;
   // Release callbacks for the dependencies subscribed during the current run.
   private _releases: Set<() => void> = new Set();
+  // Per-source version stamps this collector has already CONSUMED by reading
+  // during its current run (recorded by `computed.get`). A flush delivering a
+  // version the collector already holds is a redundant wake — the diamond
+  // case, where an effect depends on a state AND a computed derived from it:
+  // the effect's run recomputes the computed via the read, and the computed's
+  // own notifier flush would otherwise schedule a second, identical run.
+  _consumedVersions: Map<Notifier, number> = new Map();
 
   constructor(onDependencyChange: () => void) {
-    const handler = (() => onDependencyChange()) as Handler;
+    const handler = (() => {
+      // Skip a wake from a versioned source (computed) whose delivered version
+      // this collector already consumed via a read in its current run — the
+      // run's output already incorporates that exact value. A version mismatch
+      // (source recomputed again since the read) still fires normally.
+      const source = _deliveringNotifier;
+      if (
+        source &&
+        source._version !== undefined &&
+        this._consumedVersions.get(source) === source._version
+      ) {
+        return;
+      }
+      onDependencyChange();
+    }) as Handler;
     // Notifier.addListener calls onSubscribe(release) right after adding the
     // listener. Record the release so we can drop this exact subscription later.
     handler.onSubscribe = (release: () => void) => {
@@ -29,10 +51,12 @@ export class Collector {
 
   // Release every dependency subscribed since the last reset. Called before a
   // re-run (so stale deps are dropped and only freshly read deps remain) and on
-  // dispose (so nothing is left subscribed).
+  // dispose (so nothing is left subscribed). The consumed-version map resets
+  // with it: the upcoming run re-reads (and re-records) whatever it consumes.
   reset(): void {
     for (const release of this._releases) release();
     this._releases.clear();
+    this._consumedVersions.clear();
   }
 
   get dependencyCount(): number {

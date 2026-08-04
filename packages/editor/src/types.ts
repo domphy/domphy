@@ -273,6 +273,13 @@ export interface ExtensionConfig<Options = Attributes> {
   addInputRules?: (this: ExtensionThis<Options>) => InputRule[];
   addExtensions?: (this: ExtensionThis<Options>) => AnyExtension[];
   onCreate?: (this: ExtensionThis<Options>) => void;
+  /**
+   * Called every time the editor's view is mounted into a host element —
+   * at construction when `element` was passed, and on every later
+   * `editor.mount(host)` (the `createEditor()` + `editorContent()` flow,
+   * where the view does not exist yet at `onCreate` time).
+   */
+  onMount?: (this: ExtensionThis<Options>) => void;
   onUpdate?: (this: ExtensionThis<Options>) => void;
   onSelectionUpdate?: (this: ExtensionThis<Options>) => void;
   onFocus?: (this: ExtensionThis<Options>) => void;

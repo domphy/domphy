@@ -41,11 +41,10 @@ export interface SceneValidationReport {
   summary: SceneValidationSummary;
 }
 
-const POINTUAL_LIGHT_TAGS = new Set([
-  "pointLight",
-  "spotLight",
-  "rectAreaLight",
-]);
+// Only point/spot lights switched to physical units in three r155 —
+// RectAreaLight deliberately did NOT (its intensity stayed a small 0-5-ish
+// value in three's own examples), so flagging it would be a false positive.
+const POINTUAL_LIGHT_TAGS = new Set(["pointLight", "spotLight"]);
 
 // Props on a scene node that are never the tag and never scene children.
 const NON_TAG_KEYS = new Set([
@@ -108,7 +107,7 @@ const legacyLightIntensity: RuleCheck = (description, tag, path) => {
       rule: "legacy-light-intensity",
       severity: "warning",
       path,
-      message: `<${tag}> intensity ${intensity} looks like the legacy 0-1 range — three r155+ uses physical units, so this light is nearly invisible.`,
+      message: `<${tag}> intensity ${intensity} is low enough to look like a legacy pre-r155 value — three r155+ uses physical units for point/spot lights, so this light is nearly invisible.`,
       hint: "Point/spot lights take candela-scale intensity now: typical values are 40-100. Ambient/directional lights keep small values.",
     },
   ];
@@ -118,6 +117,13 @@ const additiveBlowout: RuleCheck = (description, tag, path) => {
   if (tag !== "pointsMaterial") return [];
   const blending = resolveValue(description.blending);
   if (blending !== AdditiveBlending) return [];
+  // three's WebGLState only applies `material.blending` when the material is
+  // transparent — the opaque pass forces NoBlending, so an explicitly opaque
+  // material never blows out. An ABSENT or unresolvable `transparent` keeps
+  // warning: the runtime value may be set imperatively elsewhere, and the
+  // rule exists precisely because that combination shipped broken once.
+  const transparent = resolveValue(description.transparent);
+  if (transparent === false) return [];
   const size = resolveValue(description.size);
   const opacity = resolveValue(description.opacity);
   const numericSize = typeof size === "number" ? size : 1;
@@ -154,10 +160,50 @@ function checkUnknownTag(
   ];
 }
 
+// The reconciler's getSceneTag takes the FIRST own key of a description
+// verbatim as its tag, while nodeTag above skips prop-shaped keys to FIND
+// one. On well-formed input (tag first) the two agree; a props-first
+// description ({ args: [...], mesh: [...] }) would pass the tag-based rules
+// below against "mesh" yet throw at runtime resolving "args" as a THREE
+// class. Flag the mismatch as its own error instead of silently passing —
+// and skip the tag-based checks/children walk, since the node never gets
+// created at runtime.
+function checkTagNotFirst(
+  description: Record<string, unknown>,
+  tag: string | null,
+  path: string,
+): SceneDiagnostic[] {
+  const firstKey = Object.keys(description)[0];
+  if (tag && firstKey === tag) return [];
+  const label = tag ?? firstKey ?? "(empty)";
+  const childPath = path ? `${path} > ${label}` : label;
+  if (!tag) {
+    return [
+      {
+        rule: "tag-not-first",
+        severity: "error",
+        path: childPath,
+        message: `Scene description has no tag key — only prop-shaped keys (${Object.keys(description).join(", ") || "none"}). Every scene node must lead with its THREE class tag.`,
+        hint: "Add the tag as the first key, e.g. { mesh: [...children], ...props }.",
+      },
+    ];
+  }
+  return [
+    {
+      rule: "tag-not-first",
+      severity: "error",
+      path: childPath,
+      message: `Scene description leads with "${firstKey}" but the tag is "${tag}" — the reconciler reads the first own key as the tag, so this node tries to construct "${firstKey}" from the THREE namespace and throws at runtime.`,
+      hint: `Put the tag key first: { ${tag}: ..., ${firstKey}: ... }.`,
+    },
+  ];
+}
+
 function walkChildren(
   children: SceneChildren,
   path: string,
   out: SceneDiagnostic[],
+  seen: Set<Record<string, unknown>> = new Set(),
 ): void {
   const resolved = resolveValue(children);
   if (!resolved) return;
@@ -165,20 +211,40 @@ function walkChildren(
   for (const child of list) {
     if (!child || typeof child !== "object") continue;
     const description = child as Record<string, unknown>;
+    // Cycle guard: a self-referencing description (a node listed inside its
+    // own children) would otherwise recurse forever. Aliased (reused but
+    // acyclic) nodes are skipped too — their diagnostics were already
+    // reported at the first occurrence.
+    if (seen.has(description)) continue;
+    seen.add(description);
     const tag = nodeTag(description);
-    if (!tag) continue;
-    const childPath = path ? `${path} > ${tag}` : tag;
+    const tagOrderIssues = checkTagNotFirst(description, tag, path);
+    if (tagOrderIssues.length > 0) {
+      for (const issue of tagOrderIssues) {
+        if (!isSuppressed(description, issue.rule)) out.push(issue);
+      }
+      continue;
+    }
+    // tag is non-null here: checkTagNotFirst reports and short-circuits the
+    // tagless case above.
+    const resolvedTag = tag as string;
+    const childPath = path ? `${path} > ${resolvedTag}` : resolvedTag;
 
-    for (const issue of checkUnknownTag(description, tag, childPath)) {
+    for (const issue of checkUnknownTag(description, resolvedTag, childPath)) {
       if (!isSuppressed(description, issue.rule)) out.push(issue);
     }
     for (const rule of RULES) {
-      for (const issue of rule(description, tag, childPath)) {
+      for (const issue of rule(description, resolvedTag, childPath)) {
         if (!isSuppressed(description, issue.rule)) out.push(issue);
       }
     }
 
-    walkChildren(description[tag] as SceneChildren, childPath, out);
+    walkChildren(
+      description[resolvedTag] as SceneChildren,
+      childPath,
+      out,
+      seen,
+    );
   }
 }
 
@@ -189,7 +255,9 @@ function checkCamera(options: ThreeOptions, out: SceneDiagnostic[]): void {
   if (!Array.isArray(position)) return;
   const [x, y] = position as number[];
   const offAxis = Math.abs(x ?? 0) > 0.001 || Math.abs(y ?? 0) > 0.001;
-  if (!offAxis || options.onCreated) return;
+  // Exemptions: onCreated can aim imperatively (lookAt), and an explicit
+  // `rotation` prop aims the camera declaratively — neither needs lookAt.
+  if (!offAxis || options.onCreated || camera.rotation !== undefined) return;
   out.push({
     rule: "camera-missing-lookat",
     severity: "warning",
@@ -202,7 +270,7 @@ function checkCamera(options: ThreeOptions, out: SceneDiagnostic[]): void {
 /**
  * Statically analyze a three() option object for the silent scene mistakes
  * that produce a wrong or empty render with no error: unknown tags, legacy
- * 0-1 light intensities (three r155+ physical units), additive particle
+ * low light intensities (three r155+ physical units), additive particle
  * blowout, and an off-axis camera that never looks at its subject.
  *
  * Same contract shape as `@domphy/doctor`: returns a list of diagnostics;

@@ -27,7 +27,7 @@ const __DEV__: boolean =
  * that drives reactivity are filled in but may be overridden.
  */
 export type CreateVirtualizerOptions<
-  TScroll extends Element,
+  TScroll extends Element | Window,
   TItem extends Element,
 > = Omit<
   PartialKeys<
@@ -41,7 +41,7 @@ export type CreateVirtualizerOptions<
 >
 
 export interface VirtualizerHandle<
-  TScroll extends Element,
+  TScroll extends Element | Window,
   TItem extends Element,
 > {
   virtualizer: Virtualizer<TScroll, TItem>
@@ -66,11 +66,23 @@ export interface VirtualizerHandle<
   destroy(): void
 }
 
-export function createVirtualizer<
-  TScroll extends Element,
+/**
+ * Element/Window-generic variant of `createVirtualizer` with caller-supplied
+ * observer/scroll defaults — the vendored element observers only accept an
+ * `Element` scroll target, so each public factory passes its own fully-typed
+ * defaults and this core never needs a cast. Used by `createVirtualizer`
+ * (element scroll) and `createWindowVirtualizer` (window scroll); not part of
+ * the public barrel.
+ */
+export function createVirtualizerWithDefaults<
+  TScroll extends Element | Window,
   TItem extends Element,
 >(
   options: CreateVirtualizerOptions<TScroll, TItem>,
+  defaults: Pick<
+    VirtualizerOptions<TScroll, TItem>,
+    "observeElementRect" | "observeElementOffset" | "scrollToFn"
+  >,
 ): VirtualizerHandle<TScroll, TItem> {
   const version = new State(0, "virtualVersion")
   let scrollElement: TScroll | null = null
@@ -81,12 +93,17 @@ export function createVirtualizer<
   const virtualizer = new Virtualizer<TScroll, TItem>({
     ...(options as VirtualizerOptions<TScroll, TItem>),
     getScrollElement: () => scrollElement,
-    observeElementRect: options.observeElementRect ?? observeElementRect,
-    observeElementOffset: options.observeElementOffset ?? observeElementOffset,
-    scrollToFn: options.scrollToFn ?? elementScroll,
+    observeElementRect: options.observeElementRect ?? defaults.observeElementRect,
+    observeElementOffset:
+      options.observeElementOffset ?? defaults.observeElementOffset,
+    scrollToFn: options.scrollToFn ?? defaults.scrollToFn,
     onChange: (instance, sync) => {
       options.onChange?.(instance, sync)
-      version.set(version.get() + 1)
+      // After destroy() the version State is disposed — writing to it would
+      // log "[Domphy] State.set() called on a disposed state" per notify.
+      // The virtualizer object itself stays callable (scrollToIndex etc.),
+      // so post-destroy notifications are possible; just skip the bump.
+      if (!destroyed) version.set(version.get() + 1)
     },
   })
   virtualizer._willUpdate()
@@ -147,4 +164,17 @@ export function createVirtualizer<
       version._dispose()
     },
   }
+}
+
+export function createVirtualizer<
+  TScroll extends Element,
+  TItem extends Element,
+>(
+  options: CreateVirtualizerOptions<TScroll, TItem>,
+): VirtualizerHandle<TScroll, TItem> {
+  return createVirtualizerWithDefaults(options, {
+    observeElementRect,
+    observeElementOffset,
+    scrollToFn: elementScroll,
+  })
 }

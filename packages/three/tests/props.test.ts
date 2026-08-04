@@ -233,6 +233,59 @@ describe("applyProps — static duck-typed values", () => {
 
     expect(instance.position.toArray()).toEqual([5, 1, 0]);
   });
+
+  it("throws when a pierced path breaks at a middle segment", () => {
+    const instance = new THREE.Group(); // no material
+    const node = createNode(instance, root);
+
+    expect(() => applyProps(node, { "material-color": "#ffffff" })).toThrow(
+      '@domphy/three: Cannot set "material-color". Ensure it is an object before setting "color".',
+    );
+    // No garbage assignment onto the wrong level of the object graph.
+    expect((instance as any).material).toBeUndefined();
+  });
+
+  it("still assigns a new property at the final level of a resolvable pierced path", () => {
+    const instance = new THREE.Mesh(undefined, new THREE.MeshBasicMaterial());
+    const node = createNode(instance, root);
+
+    // `material` resolves but `userData` doesn't exist yet — a nullish target
+    // at the FINAL segment must stay assignable (only a broken MIDDLE
+    // segment throws).
+    applyProps(node, { "material-userData": { tag: "hello" } });
+
+    expect((instance.material as any).userData).toEqual({ tag: "hello" });
+  });
+
+  it("treats a duck-typed isColor target as a Color (second three copy via extend())", () => {
+    const set = vi.fn();
+    const fakeColor = { isColor: true, set };
+    const instance: any = { tint: fakeColor };
+    const node = createNode(instance, root);
+
+    applyProps(node, { tint: "#ff0000" });
+
+    // instanceof THREE.Color would fail here — the Color must be mutated via
+    // .set, never replaced by the raw string.
+    expect(set).toHaveBeenCalledWith("#ff0000");
+    expect(instance.tint).toBe(fakeColor);
+  });
+
+  it("merges uniforms on a duck-typed isShaderMaterial root (second three copy)", () => {
+    const originalUniforms = { time: { value: 0 } };
+    const instance: any = {
+      isShaderMaterial: true,
+      uniforms: originalUniforms,
+    };
+    const node = createNode(instance, root);
+
+    applyProps(node, { uniforms: { time: { value: 2 } } });
+
+    // Merged in place, not replaced — instanceof THREE.ShaderMaterial would
+    // have skipped this branch and swapped the whole uniforms object.
+    expect(instance.uniforms).toBe(originalUniforms);
+    expect(instance.uniforms.time.value).toBe(2);
+  });
 });
 
 describe("resolvePath", () => {
@@ -296,6 +349,25 @@ describe("applyProps — reactive prop (rule 7)", () => {
     stateB.set(3);
     flushSync();
     expect(instance.position.x).toBe(3);
+  });
+
+  it("releases the reactive subscription when the same key is re-applied with a static value", () => {
+    const instance = new THREE.Mesh();
+    const node = createNode(instance, root);
+    const spin = toState(0);
+
+    applyProps(node, { "rotation-z": (listener: any) => spin.get(listener) });
+    expect(instance.rotation.z).toBe(0);
+
+    // Same key, now static — the old State listener must be released, or it
+    // would keep overwriting the static value on every state change.
+    applyProps(node, { "rotation-z": 1 });
+    expect(instance.rotation.z).toBe(1);
+
+    spin.set(2);
+    flushSync();
+    expect(instance.rotation.z).toBe(1); // static value not overwritten
+    expect(root.invalidate).not.toHaveBeenCalled(); // listener fully gone
   });
 
   it("releases reactive subscriptions on node removal", () => {
@@ -388,6 +460,41 @@ describe("applyProps — on* rules 4/5/6", () => {
       root,
       instance,
     );
+  });
+
+  it("rule 3/4: clears the callback property when the key is re-applied with undefined", () => {
+    const instance = new THREE.Mesh();
+    const node = createNode(instance, root);
+
+    applyProps(node, { onBeforeRender: vi.fn() });
+    expect(instance.onBeforeRender).toBeTypeOf("function");
+
+    applyProps(node, { onBeforeRender: undefined });
+    expect(instance.onBeforeRender).toBeUndefined();
+  });
+
+  it("rule 5: unbinds the addEventListener handler when the key is re-applied with a non-function value", () => {
+    const instance = new THREE.Object3D();
+    const node = createNode(instance, root);
+    const handler = vi.fn();
+
+    applyProps(node, { onChange: handler });
+    applyProps(node, { onChange: undefined });
+    instance.dispatchEvent({ type: "change" } as any);
+
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it("rule 6: unbinds record entries when `on` is re-applied with a non-object value", () => {
+    const instance = new THREE.Object3D();
+    const node = createNode(instance, root);
+    const handler = vi.fn();
+
+    applyProps(node, { on: { "dragging-changed": handler } });
+    applyProps(node, { on: undefined });
+    instance.dispatchEvent({ type: "dragging-changed" } as any);
+
+    expect(handler).not.toHaveBeenCalled();
   });
 });
 

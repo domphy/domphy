@@ -1,9 +1,12 @@
 import {
+  type BehaviorInstance,
+  behavior,
   type DomphyElement,
   type ElementNode,
   type Listener,
   merge,
   type PartialElement,
+  type State,
   toState,
   type ValueOrState,
 } from "@domphy/core";
@@ -85,6 +88,69 @@ function localeWeekStart(locale: string): number {
   return 0;
 }
 
+// --- per-node state preservation (reused-node lifecycle) -------------------
+
+type DatePickerStates = {
+  selection: State<DatePickerValue>;
+  viewYear: State<number>;
+  viewMonth: State<number>;
+  focused: State<Date>;
+  hovered: State<Date | null>;
+  hour: State<number>;
+  minute: State<number>;
+  onChange?: (value: DatePickerValue) => void;
+};
+
+// Every ancestor re-render re-invokes datePicker() on the SAME reused input
+// node, allocating a fresh set of internal states with INITIAL values —
+// without carry-forward the user's uncontrolled selection, calendar view and
+// time silently reset on the next re-render, and the onChange subscription
+// (wired to the first generation's selection object) goes stale. ONE
+// behavior instance per node copies the live values into each new
+// generation's states (update() runs during patch(), before the fresh
+// input/calendar bindings evaluate) and keeps exactly one onChange
+// subscription on the CURRENT generation's selection.
+function attachDatePicker(
+  _node: ElementNode,
+  initialProps: DatePickerStates,
+): BehaviorInstance<DatePickerStates> {
+  let current = initialProps;
+  let releaseOnChange: (() => void) | null = null;
+  const subscribe = (props: DatePickerStates) => {
+    releaseOnChange?.();
+    releaseOnChange = props.onChange
+      ? props.selection.addListener((value) => props.onChange!(value))
+      : null;
+  };
+  const carryForward = (next: State<any>, prev: State<any>) => {
+    if (next !== prev) next.set(prev.get());
+  };
+  subscribe(current);
+  return {
+    update(next) {
+      carryForward(next.selection, current.selection);
+      carryForward(next.viewYear, current.viewYear);
+      carryForward(next.viewMonth, current.viewMonth);
+      carryForward(next.focused, current.focused);
+      carryForward(next.hovered, current.hovered);
+      carryForward(next.hour, current.hour);
+      carryForward(next.minute, current.minute);
+      if (
+        next.selection !== current.selection ||
+        next.onChange !== current.onChange
+      ) {
+        // Re-subscribe AFTER the carry-forward so it never fires onChange.
+        subscribe(next);
+      }
+      current = next;
+    },
+    destroy() {
+      releaseOnChange?.();
+      releaseOnChange = null;
+    },
+  };
+}
+
 /**
  * A native, themeable date picker patch for an `<input>`. Opens a calendar
  * popover (rendered with Domphy elements, positioned via `@domphy/floating`)
@@ -126,9 +192,6 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
   const selection = toState<DatePickerValue>(
     props.value ?? (mode === "range" ? [null, null] : null),
   );
-  const releaseOnChange = onChange
-    ? selection.addListener((value) => onChange(value))
-    : null;
 
   const primaryDate = ((): Date => {
     const current = selection.get();
@@ -143,8 +206,6 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
   const hovered = toState<Date | null>(null, "hovered");
   const hour = toState(primaryDate.getHours(), "hour");
   const minute = toState(primaryDate.getMinutes(), "minute");
-
-  let contentElement: HTMLElement | null = null;
 
   // --- formatting -----------------------------------------------------------
   const dateFormatter = new Intl.DateTimeFormat(locale, {
@@ -194,11 +255,14 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
     return result;
   };
 
-  const selectDate = (date: Date): void => {
+  const selectDate = (date: Date, node?: ElementNode): void => {
     if (isDisabled(date)) return;
     if (mode === "single") {
       selection.set(withTime(date));
-      if (!time) instantHideRef();
+      // Close via the cell's node: the floating behavior instance is
+      // registered on the panel node (floating.ts), so getBehavior's
+      // ancestor walk from any panel descendant resolves it.
+      if (!time) hide(node);
       return;
     }
     const [start, end] = (selection.get() as [Date | null, Date | null]) ?? [
@@ -209,10 +273,10 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
       selection.set([withTime(date), null]);
     } else if (atMidnight(date) < atMidnight(start)) {
       selection.set([withTime(date), withTime(start)]);
-      if (!time) instantHideRef();
+      if (!time) hide(node);
     } else {
       selection.set([start, withTime(date)]);
-      if (!time) instantHideRef();
+      if (!time) hide(node);
     }
   };
 
@@ -271,9 +335,14 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
   const shiftYear = (delta: number): void =>
     viewYear.set(viewYear.get() + delta);
 
-  const focusActiveCell = (): void => {
+  const focusActiveCell = (node?: ElementNode): void => {
+    // Resolve the panel from the caller's live node (trigger or grid cell):
+    // the old factory-scope `contentElement` was only ever assigned by the
+    // first panel generation's _onMount, so later generations (reused node,
+    // fresh closure) could never move focus into the grid.
+    const root = node?.getRoot()?.domElement;
     setTimeout(() => {
-      contentElement
+      root
         ?.querySelector<HTMLElement>(`[data-date="${isoOf(focused.get())}"]`)
         ?.focus();
     }, 0);
@@ -287,10 +356,6 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
     placement: placeState,
     content: calendar,
   });
-  // selectDate calls this before `createFloating` returns `hide`, so route through a ref.
-  function instantHideRef(): void {
-    hide();
-  }
 
   // Move focus into the grid when the popover opens.
   const triggerPartial: PartialElement = {
@@ -313,18 +378,23 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
         openAndFocus(node);
       }
     },
-    _onMount: (node) =>
-      releaseOnChange &&
-      node.addHook("Remove", () => {
-        releaseOnChange();
-      }),
+    ...behavior<DatePickerStates>("datePicker", attachDatePicker, {
+      selection,
+      viewYear,
+      viewMonth,
+      focused,
+      hovered,
+      hour,
+      minute,
+      onChange,
+    }),
   };
   function openAndFocus(node?: ElementNode): void {
     const current = isSelectedPrimary() ?? new Date();
     focused.set(atMidnight(current));
     goToDate(current);
     show(node);
-    focusActiveCell();
+    focusActiveCell(node);
   }
   function isSelectedPrimary(): Date | null {
     const current = selection.get();
@@ -417,17 +487,21 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
       div: children,
       role: "dialog",
       ariaModal: "false",
-      _onMount: (node) => {
-        contentElement = node.domElement as HTMLElement;
-      },
+      // Surface contract (same as popover/combobox): edge-anchor dataTone +
+      // inherit background + "text" color. The previous `themeColor(l, "base")`
+      // resolved to the ramp's MID anchor (var(--neutral-8), gray) with text
+      // only 2 tone steps away — an unreadable washed-out panel, invisible to
+      // doctor because the calendar is mounted imperatively at runtime.
+      dataTone: "shift-14",
       style: {
         minWidth: themeSpacing(70),
         padding: themeSpacing(3),
         borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
-        backgroundColor: (listener) => themeColor(listener, "base"),
-        color: (listener) => themeColor(listener, "shift-10"),
-        border: (listener) =>
+        backgroundColor: (listener) => themeColor(listener, "inherit"),
+        color: (listener) => themeColor(listener, "text"),
+        outline: (listener) =>
           `1px solid ${themeColor(listener, "border-strong")}`,
+        outlineOffset: "-1px",
         boxShadow: elevation("medium"),
       },
     };
@@ -476,7 +550,7 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
       disabled,
       ariaLabel: fullDateFormatter.format(date),
       dataDate: isoOf(date),
-      onClick: () => selectDate(date),
+      onClick: (_e: Event, node: ElementNode) => selectDate(date, node),
       onMouseEnter: () => mode === "range" && hovered.set(date),
       style: {
         appearance: "none",
@@ -559,10 +633,13 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
   }
 
   function buildFooter(): DomphyElement<"div"> {
-    const action = (label: string, onClick: () => void): DomphyElement => ({
+    const action = (
+      label: string,
+      onClick: (node: ElementNode) => void,
+    ): DomphyElement => ({
       button: label,
       type: "button",
-      onClick,
+      onClick: (_e: Event, node: ElementNode) => onClick(node),
       style: {
         appearance: "none",
         border: "none",
@@ -576,11 +653,11 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
     });
     return {
       div: [
-        action("Today", () => {
+        action("Today", (node) => {
           const today = new Date();
           focused.set(atMidnight(today));
           goToDate(today);
-          focusActiveCell();
+          focusActiveCell(node);
         }),
         action("Clear", () => {
           selection.set(mode === "range" ? [null, null] : null);
@@ -597,7 +674,7 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
     };
   }
 
-  function onGridKey(event: Event): void {
+  function onGridKey(event: Event, node: ElementNode): void {
     const keyboard = event as KeyboardEvent;
     const current = focused.get();
     let next: Date | null = null;
@@ -629,7 +706,7 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
       case "Enter":
       case " ":
         keyboard.preventDefault();
-        selectDate(current);
+        selectDate(current, node);
         return;
       default:
         return;
@@ -637,7 +714,7 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
     keyboard.preventDefault();
     focused.set(next);
     goToDate(next);
-    focusActiveCell();
+    focusActiveCell(node);
   }
 }
 
@@ -675,8 +752,11 @@ function timeSelectStyle() {
     fontSize: (l: Listener) => themeSize(l),
     padding: themeSpacing(1),
     borderRadius: themeSpacing(1),
-    border: (l: Listener) => `1px solid ${themeColor(l, "border-strong")}`,
-    backgroundColor: (l: Listener) => themeColor(l, "base"),
+    // outline, not border — bounded control, keep the geometry formula exact.
+    border: "none",
+    outlineOffset: "-1px",
+    outline: (l: Listener) => `1px solid ${themeColor(l, "border-strong")}`,
+    backgroundColor: (l: Listener) => themeColor(l, "inherit"),
     color: (l: Listener) => themeColor(l, "text"),
   };
 }

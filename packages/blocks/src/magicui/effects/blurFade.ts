@@ -124,9 +124,13 @@ function defaultChildren(): DomphyElement[] {
       div: [0, 1, 2].map((index) => defaultThumbnail(index)),
       style: {
         display: "grid",
-        gridTemplateColumns: "repeat(3, 1fr)",
+        gridTemplateColumns: "1fr",
         gap: themeSpacing(2),
         marginBlockStart: themeSpacing(2),
+        // Stack the demo thumbnails on narrow screens; 3-up from `sm` up.
+        "@media (min-width: 40em)": {
+          gridTemplateColumns: "repeat(3, 1fr)",
+        },
       } as StyleObject,
     },
   ];

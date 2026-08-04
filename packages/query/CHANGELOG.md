@@ -1,5 +1,9 @@
 # @domphy/query Changelog
 
+## 0.18.2
+
+- Vendored core re-synced to `@tanstack/query-core` v5.101.4 (was v5.90.20). All 24 vendored files remain byte-identical to the upstream tarball — zero deviations. Pin evidence: `SOURCES.md`.
+
 ## 0.18.1
 
 - Domphy adapter: `throwOnError` now throws on **reactive** field reads (with a listener), matching TanStack React Query's render-time throw so `_onError` / `errorBoundary()` can catch query failures. Imperative reads without a listener never throw.

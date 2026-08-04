@@ -55,7 +55,7 @@
   },
   "devDependencies": {
     "@domphy/core": "workspace:*",
-    "@types/node": "^25.9.2",
+    "@types/node": "^26.1.2",
     "jsdom": "^29.1.1",
     "tsup": "^8.5.0",
     "typescript": "^5.8.3",
@@ -64,7 +64,8 @@
   "files": [
     "dist",
     "README.md",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "SOURCES.md"
   ],
   "unpkg": "dist/query.global.js",
   "jsdelivr": "dist/query.global.js"

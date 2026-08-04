@@ -284,3 +284,39 @@ describe("COLOR_ROLES", () => {
     expect(new Set(COLOR_ROLES).size).toBe(COLOR_ROLES.length);
   });
 });
+
+// themeColor() resolves var references through themeVars(), which is keyed on
+// the "light" theme STRUCTURE. A custom role registered only on another theme
+// fails that lookup — the error must name the light baseline (the actual
+// problem), not the node's theme.
+describe("themeColor custom-role baseline error", () => {
+  it("names the light baseline when a role exists only on a non-light theme", () => {
+    const name = `vitest-${Math.random().toString(36).slice(2)}`;
+    setTheme(name, {
+      colors: { brand: Array.from({ length: 18 }, () => "#123456") },
+    });
+    const themeRoot = createNode({ dataTheme: name });
+    const node = createNode({}, themeRoot);
+
+    expect(() => themeColor(node as any, "inherit", "brand")).toThrow(
+      /color "brand" not found on the "light" theme \(required by node theme/,
+    );
+    expect(() => themeColor(node as any, "inherit", "brand")).toThrow(
+      /register the role on "light" as well/,
+    );
+  });
+
+  // NOTE: mutates the shared "light" theme — must stay the LAST test in this
+  // file (COLOR_ROLES above asserts light's color keys exactly).
+  it("resolves once the role is also registered on light", () => {
+    const name = `vitest-${Math.random().toString(36).slice(2)}`;
+    const ramp = Array.from({ length: 18 }, () => "#123456");
+    setTheme("light", { colors: { brand: ramp } });
+    setTheme(name, { colors: { brand: ramp } });
+    const themeRoot = createNode({ dataTheme: name });
+    const node = createNode({}, themeRoot);
+
+    expect(themeColor(node as any, "inherit", "brand")).toBe("var(--brand-0)");
+    expect(themeColor(node as any, "shift-3", "brand")).toBe("var(--brand-3)");
+  });
+});

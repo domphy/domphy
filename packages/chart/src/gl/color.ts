@@ -3,9 +3,19 @@ import type { GradientObject, ThemeFamily } from "../types.js";
 
 export type Rgba = [number, number, number, number];
 
-// Converts "#rrggbb" or "#rrggbbaa" hex to [r, g, b, a] floats in [0, 1]
+// Converts "#rgb"/"#rgba"/"#rrggbb"/"#rrggbbaa" hex to [r, g, b, a] floats in
+// [0, 1]. Short forms are expanded first — without expansion "#fff" parsed as
+// r=ff, g=f, b=NaN and fed NaN straight into WebGL uniforms. Invalid digits
+// still yield NaN channels; callers on the uniform path guard for that
+// (createColorResolver falls back to the series palette).
 export function hexToRgba(hex: string, alpha = 1): Rgba {
-  const clean = hex.replace("#", "");
+  let clean = hex.replace("#", "");
+  if (clean.length === 3 || clean.length === 4) {
+    clean = clean
+      .split("")
+      .map((c) => c + c)
+      .join("");
+  }
   const r = parseInt(clean.slice(0, 2), 16) / 255;
   const g = parseInt(clean.slice(2, 4), 16) / 255;
   const b = parseInt(clean.slice(4, 6), 16) / 255;
@@ -161,8 +171,24 @@ export function createColorResolver(el: HTMLElement): ColorResolver {
         return familyToRgba(seriesPaletteFamily(fallbackIndex), alpha);
       }
       const s = String(src);
-      if (s.startsWith("#")) return hexToRgba(s, alpha);
-      if (s.startsWith("rgb")) return withAlpha(parseRgbaString(s), alpha);
+      if (s.startsWith("#")) {
+        const parsed = hexToRgba(s, alpha);
+        // Invalid hex (bad digits/length) parses to NaN — fall back to the
+        // series palette instead of feeding NaN into a WebGL uniform.
+        if (parsed.some((channel) => Number.isNaN(channel))) {
+          return familyToRgba(seriesPaletteFamily(fallbackIndex), alpha);
+        }
+        return parsed;
+      }
+      if (s.startsWith("rgb")) {
+        const parsed = withAlpha(parseRgbaString(s), alpha);
+        // An unparseable rgb()/rgba() string falls through hexToRgba and
+        // yields NaN — same palette fallback as invalid hex.
+        if (parsed.some((channel) => Number.isNaN(channel))) {
+          return familyToRgba(seriesPaletteFamily(fallbackIndex), alpha);
+        }
+        return parsed;
+      }
       if (s.startsWith("var(")) {
         const computed = lookupVar(s);
         if (computed) return withAlpha(computed, alpha);

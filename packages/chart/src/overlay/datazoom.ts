@@ -217,7 +217,14 @@ export function createDataZoomSlider(
   };
 }
 
-// Render all dataZoom sliders and return cleanup + state accessors
+// Render all dataZoom sliders.
+// Returns cleanup plus an update() that syncs slider thumbs to the live zoom
+// window: drags write the engine's zoom map first and trigger a re-render, so
+// re-creating sliders from the option's initial start/end on every render
+// would both kill the in-progress drag (the slider's document-level mousemove
+// listeners are registered per slider) and snap the thumbs back to the
+// option's initial range. The engine caches the returned handle across renders
+// and only re-creates when the dataZoom option or the canvas size changes.
 export function setupDataZoom(
   svg: SVGSVGElement,
   dataZoom: DataZoomOption[],
@@ -225,11 +232,14 @@ export function setupDataZoom(
   svgWidth: number,
   svgHeight: number,
   onZoom: (xAxisIndex: number, state: DataZoomState) => void,
-): () => void {
+): {
+  cleanup: () => void;
+  update: (xAxisIndex: number, state: DataZoomState) => void;
+} {
   const old = svg.querySelectorAll(".dc-datazoom");
   old.forEach((el) => el.remove());
 
-  const handles: SliderHandle[] = [];
+  const handles: { xIndex: number; handle: SliderHandle }[] = [];
 
   for (const dz of dataZoom) {
     if (dz.type === "inside") continue; // inside zoom handled separately
@@ -249,10 +259,17 @@ export function setupDataZoom(
       state,
       (s) => onZoom(xIndex, s),
     );
-    handles.push(handle);
+    handles.push({ xIndex, handle });
   }
 
-  return () => handles.forEach((h) => h.cleanup());
+  return {
+    cleanup: () => handles.forEach((h) => h.handle.cleanup()),
+    update: (xAxisIndex, state) => {
+      for (const h of handles) {
+        if (h.xIndex === xAxisIndex) h.handle.update(state);
+      }
+    },
+  };
 }
 
 // Inside zoom: handle wheel events on container

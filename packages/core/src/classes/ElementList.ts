@@ -371,7 +371,18 @@ export class ElementList {
         // `item._hooks` to `{}` before this line would otherwise re-read it.
         const beforeRemoveHook = item._hooks.BeforeRemove;
         item._beforeRemoveFired = true; // prevent _dispose from re-firing BeforeRemove
-        beforeRemoveHook(item, onceDone);
+        try {
+          beforeRemoveHook(item, onceDone);
+        } catch (error) {
+          // A throwing BeforeRemove must not wedge the node: _beforeRemoveFired
+          // is already set, so every later removal attempt would early-return
+          // and the node would stay in the list (and DOM) forever, leaking its
+          // subscriptions. Route the error like any other lifecycle failure and
+          // complete the removal (onceDone is a no-op if the hook already
+          // completed before throwing).
+          item._handleError(error);
+          onceDone();
+        }
         // Auto-complete only for sync cleanup hooks. A hook that declares `done`
         // (arity >= 2, e.g. an exit animation) owns completion and defers removal.
         if ((beforeRemoveHook as Function).length < 2 && !doneCalled)

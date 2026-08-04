@@ -172,10 +172,11 @@ export function isHTML(str: string): boolean {
 }
 
 // Decode the entity forms an attacker uses to smuggle a scheme past a string
-// check: numeric character references (&#106; / &#x6A;) and the whitespace
-// entities (&Tab; / &NewLine;) that are legal inside a URL. NOT a full entity
-// table — just enough to canonicalize an attribute value before the scheme
-// test below.
+// check: numeric character references (&#106; / &#x6A;), the named &colon;
+// (browsers decode it to ":" inside attribute values, completing a
+// "javascript&colon;…" scheme), and the whitespace entities (&Tab; / &NewLine;)
+// that are legal inside a URL. NOT a full entity table — just enough to
+// canonicalize an attribute value before the scheme test below.
 function decodeSchemeObfuscation(value: string): string {
   return value
     .replace(/&#(x?[0-9a-fA-F]+);/gi, (_match, code: string) => {
@@ -188,6 +189,7 @@ function decodeSchemeObfuscation(value: string): string {
         ? String.fromCodePoint(codePoint)
         : "";
     })
+    .replace(/&colon;/gi, ":")
     .replace(/&Tab;/gi, "\t")
     .replace(/&NewLine;/gi, "\n");
 }
@@ -292,10 +294,27 @@ export function sanitizeHTMLString(html: string): string {
     /\/on[a-zA-Z][\w-]*\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi,
     "/",
   );
+  // Quote-glued form: `<img src="x"onerror=…>`. The HTML5 tokenizer ends a
+  // quoted attribute value at its closing quote and recovers the very next
+  // characters as a NEW attribute even without intervening whitespace — so
+  // an on* handler glued to a quote is a live handler in the browser and
+  // must be stripped too. The preceding quote is preserved ($1) so the
+  // previous attribute stays closed. (Lossy in the pathological case of a
+  // matching quote char inside a quoted value — same accepted trade-off as
+  // the whitespace forms above.)
+  result = result.replace(
+    /(["'])on[a-zA-Z][\w-]*\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi,
+    "$1",
+  );
   // <iframe srcdoc="..."> embeds a whole second HTML document that this string
   // pass cannot sanitize — remove the attribute entirely.
   result = result.replace(/\s+srcdoc\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi, "");
   result = result.replace(/\/srcdoc\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi, "/");
+  // Quote-glued srcdoc (see the on* note above).
+  result = result.replace(
+    /(["'])srcdoc\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]*)/gi,
+    "$1",
+  );
   // Neutralise script-capable schemes (javascript:/vbscript:/data:text/html)
   // in URL attributes — href/src/action/formaction plus object@data. The value
   // is canonicalized before the test, so entity-encoded and

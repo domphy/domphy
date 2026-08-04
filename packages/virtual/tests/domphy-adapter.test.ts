@@ -122,6 +122,57 @@ describe("createVirtualizer anchorTo: 'end' pure-append fast path", () => {
   });
 });
 
+describe("createVirtualizer dynamic measurement (data-index contract)", () => {
+  // The virtualizer resolves an item's index from the element's `data-index`
+  // attribute (upstream indexFromElement). Every measured row MUST render it.
+  it("measureElement resizes the item when data-index is set", () => {
+    const list = createVirtualizer<HTMLDivElement, HTMLDivElement>({
+      count: 10,
+      estimateSize: () => 50,
+      observeElementRect: fixedRect,
+      // Deterministic size under jsdom (offsetHeight is 0 there).
+      measureElement: () => 80,
+    });
+    const scroll = document.createElement("div");
+    document.body.appendChild(scroll);
+    list.setScrollElement(scroll);
+
+    const row = document.createElement("div");
+    row.setAttribute("data-index", "3");
+    scroll.appendChild(row);
+
+    list.measureElement(row);
+    expect(list.getTotalSize()).toBe(9 * 50 + 80);
+
+    list.destroy();
+    scroll.remove();
+  });
+
+  it("measureElement without data-index warns and does not resize", () => {
+    const list = createVirtualizer<HTMLDivElement, HTMLDivElement>({
+      count: 10,
+      estimateSize: () => 50,
+      observeElementRect: fixedRect,
+      measureElement: () => 80,
+    });
+    const scroll = document.createElement("div");
+    document.body.appendChild(scroll);
+    list.setScrollElement(scroll);
+
+    const row = document.createElement("div"); // no data-index
+    scroll.appendChild(row);
+
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    list.measureElement(row);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("data-index"));
+    expect(list.getTotalSize()).toBe(10 * 50);
+
+    warn.mockRestore();
+    list.destroy();
+    scroll.remove();
+  });
+});
+
 describe("createVirtualizer cleanup", () => {
   it("setScrollElement(null) runs the previous mount cleanup (detaches scroll listener)", () => {
     const list = createVirtualizer<HTMLDivElement, HTMLDivElement>({
@@ -230,6 +281,28 @@ describe("createVirtualizer destroy() hardening", () => {
     expect(scrollTo).toHaveBeenCalled();
 
     list.destroy();
+    el.remove();
+  });
+
+  it("post-destroy virtualizer notifications do not warn on the disposed version state", () => {
+    const list = createVirtualizer<HTMLDivElement, HTMLDivElement>({
+      count: 200,
+      estimateSize: () => 25,
+      observeElementRect: fixedRect,
+    });
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+    list.setScrollElement(el);
+    list.destroy();
+
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    // The virtualizer object outlives the handle; direct onChange (as fired
+    // by e.g. a stray measureElement/scroll call) must not write to the
+    // disposed version State.
+    list.virtualizer.options.onChange?.(list.virtualizer, false);
+    expect(warn).not.toHaveBeenCalled();
+
+    warn.mockRestore();
     el.remove();
   });
 });

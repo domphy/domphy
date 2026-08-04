@@ -7,11 +7,9 @@ export default defineConfig({
   test: {
     fileParallelism: false,
     pool: "forks",
-    poolOptions: {
-      forks: {
-        singleFork: true,
-      },
-    },
+    // Vitest 4: poolOptions was removed; maxWorkers is the top-level form of
+    // the old forks.singleFork (same idiom as packages/chart).
+    maxWorkers: 1,
     testTimeout: 30_000,
     hookTimeout: 30_000,
   },

@@ -83,4 +83,147 @@ describe("domphy-doctor CLI", () => {
     expect(result.stdout).toContain("1 file(s) checked");
     expect(result.stdout).toContain("1 failed to import");
   }, 30000);
+
+  it("exits 1 when some input paths exist but another is not found", async () => {
+    const result = await runCli([
+      "--no-output",
+      fixture("cli-ok.mjs"),
+      "does-not-exist.mjs",
+    ]);
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain("Not found");
+    expect(result.stdout).toContain("1 not found");
+  }, 30000);
+
+  it("diagnoses an exported array as one unit so duplicate-key fires", async () => {
+    const result = await runCli(["--no-output", fixture("cli-dup-keys.mjs")]);
+    expect(result.code).toBe(1);
+    expect(result.stdout).toContain("duplicate-key");
+    // The diagnostic is attributed to the file that exported the array.
+    expect(result.stdout).toContain("cli-dup-keys.mjs");
+  }, 30000);
+
+  it("descends into plain container objects to find elements", async () => {
+    const result = await runCli(["--no-output", fixture("cli-routes.mjs")]);
+    expect(result.code).toBe(1);
+    expect(result.stdout).toContain("void-content");
+  }, 30000);
+
+  it("accepts array results from factory exports (array-unit path)", async () => {
+    const result = await runCli([
+      "--no-output",
+      fixture("cli-factory-array.mjs"),
+    ]);
+    expect(result.code).toBe(1);
+    expect(result.stdout).toContain("duplicate-key");
+  }, 30000);
+
+  it("reports a throwing factory as a warning, not a crash or silent drop", async () => {
+    const result = await runCli([
+      "--no-output",
+      fixture("cli-factory-throws.mjs"),
+    ]);
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain("factory-threw");
+    expect(result.stdout).toContain("needs-args");
+    expect(result.stdout).toContain("1 warning(s)");
+  }, 30000);
+
+  it("terminates on cyclic container objects", async () => {
+    const result = await runCli(["--no-output", fixture("cli-cyclic.mjs")]);
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain("1 file(s) checked");
+  }, 30000);
+
+  it("treats an empty --only value as absent instead of silencing everything", async () => {
+    const result = await runCli([
+      "--no-output",
+      "--only",
+      "",
+      fixture("cli-void-error.mjs"),
+    ]);
+    expect(result.code).toBe(1);
+    expect(result.stdout).toContain("void-content");
+  }, 30000);
+
+  it("does not flag arrays of plain data records as unknown tags", async () => {
+    const result = await runCli([
+      "--no-output",
+      fixture("cli-data-records.mjs"),
+    ]);
+    expect(result.code).toBe(0);
+    expect(result.stdout).not.toContain("unknown-tag");
+    expect(result.stdout).toContain("1 file(s) checked");
+  }, 30000);
+
+  it("does not invoke `_`-prefixed lifecycle/metadata functions as factories", async () => {
+    const result = await runCli([
+      "--no-output",
+      fixture("cli-underscore-keys.mjs"),
+    ]);
+    expect(result.code).toBe(0);
+    expect(result.stdout).not.toContain("factory-threw");
+    expect(result.stdout).toContain("1 file(s) checked");
+  }, 30000);
+
+  it("skips factory invocation entirely with --no-factory-exec", async () => {
+    const result = await runCli([
+      "--no-output",
+      "--no-factory-exec",
+      fixture("cli-factory-throws.mjs"),
+    ]);
+    expect(result.code).toBe(0);
+    expect(result.stdout).not.toContain("factory-threw");
+    expect(result.stdout).toContain("1 file(s) checked");
+  }, 30000);
+
+  it("does not analyze factory results with --no-factory-exec", async () => {
+    // Without the flag this fixture exits 1 (duplicate-key inside the factory
+    // result); with it the factory is never invoked, so nothing is diagnosed.
+    const result = await runCli([
+      "--no-output",
+      "--no-factory-exec",
+      fixture("cli-factory-array.mjs"),
+    ]);
+    expect(result.code).toBe(0);
+    expect(result.stdout).not.toContain("duplicate-key");
+    expect(result.stdout).toContain("1 file(s) checked");
+  }, 30000);
+
+  it("rejects an unknown --format value with exit 2", async () => {
+    const result = await runCli(["--format", "yaml", fixture("cli-ok.mjs")]);
+    expect(result.code).toBe(2);
+    expect(result.stderr).toContain('Unknown --format "yaml"');
+  }, 30000);
+
+  it("includes summary counts in the JSON payload", async () => {
+    const result = await runCli([
+      "--no-output",
+      "--format",
+      "json",
+      fixture("cli-ok.mjs"),
+      fixture("cli-void-error.mjs"),
+      "does-not-exist.mjs",
+    ]);
+    expect(result.code).toBe(1);
+    const payload = JSON.parse(result.stdout) as {
+      files: Array<{ file: string; diags: Array<{ rule: string }> }>;
+      summary: Record<string, number>;
+    };
+    // Per-file entries keep their { file, diags } shape.
+    const errorFile = payload.files.find((entry) =>
+      entry.file.endsWith("cli-void-error.mjs"),
+    );
+    expect(errorFile?.diags.some((d) => d.rule === "void-content")).toBe(true);
+    // Summary counts: scanned/skipped/failed/not-found + severity totals.
+    expect(payload.summary).toMatchObject({
+      scanned: 2,
+      skipped: 0,
+      failed: 0,
+      notFound: 1,
+      errors: 1,
+      warnings: 0,
+    });
+    expect(payload.summary.info).toBeGreaterThanOrEqual(0);
+  }, 30000);
 });

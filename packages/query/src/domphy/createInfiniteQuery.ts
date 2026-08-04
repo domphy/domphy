@@ -22,10 +22,16 @@ export interface InfiniteQueryHandle<TData = unknown, TError = DefaultError> {
   data(listener?: Listener): InfiniteResult<TData, TError>["data"]
   error(listener?: Listener): TError | null
   status(listener?: Listener): InfiniteResult<TData, TError>["status"]
+  fetchStatus(listener?: Listener): InfiniteResult<TData, TError>["fetchStatus"]
   isPending(listener?: Listener): boolean
+  isLoading(listener?: Listener): boolean
   isFetching(listener?: Listener): boolean
   isSuccess(listener?: Listener): boolean
   isError(listener?: Listener): boolean
+  isRefetching(listener?: Listener): boolean
+  isStale(listener?: Listener): boolean
+  /** True when the data shown is placeholder data (e.g. `placeholderData: keepPreviousData`). */
+  isPlaceholderData(listener?: Listener): boolean
   hasNextPage(listener?: Listener): boolean
   hasPreviousPage(listener?: Listener): boolean
   isFetchingNextPage(listener?: Listener): boolean
@@ -101,10 +107,15 @@ export function createInfiniteQuery<
     data: (l) => read("data", l),
     error: (l) => read("error", l),
     status: (l) => read("status", l),
+    fetchStatus: (l) => read("fetchStatus", l),
     isPending: (l) => read("isPending", l),
+    isLoading: (l) => read("isLoading", l),
     isFetching: (l) => read("isFetching", l),
     isSuccess: (l) => read("isSuccess", l),
     isError: (l) => read("isError", l),
+    isRefetching: (l) => read("isRefetching", l),
+    isStale: (l) => read("isStale", l),
+    isPlaceholderData: (l) => read("isPlaceholderData", l),
     hasNextPage: (l) => read("hasNextPage", l),
     hasPreviousPage: (l) => read("hasPreviousPage", l),
     isFetchingNextPage: (l) => read("isFetchingNextPage", l),

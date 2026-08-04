@@ -1,4 +1,4 @@
-﻿# @domphy/app
+# @domphy/app
 
 **[domphy.com](https://domphy.com)** · [Docs](https://domphy.com/docs/app/) · [npm](https://www.npmjs.com/package/@domphy/app)
 
@@ -56,6 +56,8 @@ await app.render(document.getElementById("app")!)
 | `loading.tsx` / `error.tsx` / `not-found.tsx` | `loading` / `error` / `notFound` blocks |
 | `[slug]`, `[...all]`, `[[...all]]`, `(group)` | same segment syntax in `path` |
 | `fetch` caching / ISR `revalidate` | `loader` + `revalidate` seconds |
+| `revalidateTag` / `revalidatePath` | not available (deliberate) — time-based `revalidate` + `router.refresh()` |
+| `cookies().set()` / response headers on pages | not available (deliberate) — `cookies()` is read-only; set cookies from API routes |
 | `next/link` | `navLink()` patch (prefetch on hover/visible, active state) |
 | `useRouter()` | `app.router` — `push`, `replace`, `back`, `forward`, `refresh`, `prefetch` |
 | `usePathname()` / `useSearchParams()` | `router.state.get("pathname", listener)` / `router.searchParams(listener)` |

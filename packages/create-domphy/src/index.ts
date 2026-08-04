@@ -99,15 +99,18 @@ function isDirectoryUsable(dir: string): boolean {
   return readdirSync(dir).every((entry) => allowed.has(entry));
 }
 
+// Derives a valid npm package name from the target directory. Always receives
+// the RESOLVED absolute path, so scaffolding into "." names the project after
+// the current directory (like create-vite) instead of a generic fallback.
+// Leading dots/underscores/dashes are stripped because npm rejects package
+// names that start with them.
 function toProjectName(targetDir: string): string {
-  const base =
-    targetDir === "."
-      ? "domphy-app"
-      : targetDir.split(/[\\/]/).filter(Boolean).pop();
-  const name = (base ?? "domphy-app")
+  const base = targetDir.split(/[\\/]/).filter(Boolean).pop();
+  const name = (base ?? "")
     .toLowerCase()
     .replace(/[^a-z0-9._-]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+    .replace(/^[._-]+/, "")
+    .replace(/-+$/, "");
   return name.length > 0 ? name : "domphy-app";
 }
 
@@ -138,7 +141,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  const projectName = toProjectName(targetArgument);
+  const projectName = toProjectName(targetDir);
   const files = templateFiles(projectName, {
     core: `^${CORE_VERSION}`,
     theme: `^${THEME_VERSION}`,

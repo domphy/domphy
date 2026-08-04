@@ -51,7 +51,13 @@ const DEFAULT_TEXT =
 
 // Constant opacity of the always-visible muted full-text layer behind the
 // words — never fully invisible, so the unrevealed tail of the paragraph
-// still reads as a shape while scrolling.
+// still reads as a shape while scrolling. NOTE (documented axe exemption):
+// this ghost layer is a DECORATIVE duplicate — it is `aria-hidden`, and the
+// identical text is presented accessibly by the foreground word layer. axe
+// `color-contrast` flags it (shift-6 at 0.18 opacity is deliberately
+// washed-out; WCAG 1.4.3 exempts purely decorative/incidental text, and the
+// conforming copy exists alongside). Raising its contrast would destroy the
+// reveal effect, so the flag is documented rather than fixed.
 const RESTING_LAYER_OPACITY = 0.18;
 
 /**

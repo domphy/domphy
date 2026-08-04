@@ -208,6 +208,40 @@ describe("effect: dispose", () => {
   });
 });
 
+describe("effect: initial-run throw", () => {
+  it("propagates the throw AND tears down subscriptions made before it", async () => {
+    const a = new State(1, "a");
+    const b = new State(10, "b");
+    // Subscribes to `a`, then throws before ever reading `b` — the pre-throw
+    // subscription must not outlive the failed creation (the caller gets no
+    // dispose handle on this path).
+    expect(() =>
+      effect(() => {
+        a.get();
+        throw new Error("boom");
+      }),
+    ).toThrow("boom");
+
+    expect(listenerCount(a)).toBe(0); // pre-throw subscription released
+    expect(listenerCount(b)).toBe(0);
+
+    // Upstream changes must not wake anything — no re-run, no console.error
+    // from a leaked reaction.
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    a.set(2);
+    await flush();
+    expect(errorSpy).not.toHaveBeenCalled();
+    errorSpy.mockRestore();
+
+    // A throw during creation must not poison later effects on the same states.
+    const seen: number[] = [];
+    effect(() => seen.push(a.get()));
+    a.set(3);
+    await flush();
+    expect(seen).toEqual([2, 3]);
+  });
+});
+
 describe("untrack", () => {
   it("reads inside untrack do not register as dependencies", async () => {
     const a = new State(1, "a");

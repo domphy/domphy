@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import type { Tool } from "@modelcontextprotocol/server";
 import {
   diagnoseTree,
   fixTree,
@@ -26,7 +27,10 @@ export const SERVER_VERSION: string = (
   ) as { version: string }
 ).version;
 
-export const TOOLS = [
+// Annotated as Tool[] so the literal `type: "object"` members are checked
+// against the spec type instead of widening to string (v2 types the
+// tools/list handler return from the method name).
+export const TOOLS: Tool[] = [
   {
     name: "domphy_list_patches",
     description: "List every @domphy/ui patch with its host tag and signature.",

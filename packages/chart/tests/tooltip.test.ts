@@ -66,6 +66,94 @@ describe("tooltip default formatter escapes caller-controlled data", () => {
   });
 });
 
+// Regression: the series color was interpolated into the marker's inline
+// style attribute unescaped — a color string containing a double quote could
+// terminate the attribute and inject new attributes (author-provided, so
+// cosmetic, but defense in depth).
+describe("tooltip default formatter escapes the series color", () => {
+  it("escapes quotes in p.color so the style attribute cannot be broken out of", () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const tooltip = createTooltip(container, {});
+
+    tooltip.update({
+      visible: true,
+      x: 0,
+      y: 0,
+      params: [makeParams({ color: 'red" onmouseover="alert(1)' })],
+    });
+
+    const el = container.querySelector(".dc-tooltip")!;
+    const markers = el.querySelectorAll("span");
+    // The breakout attempt must not parse as a real attribute, and no extra
+    // elements may appear.
+    expect(markers.length).toBe(1);
+    expect(markers[0].getAttribute("onmouseover")).toBeNull();
+    expect(el.innerHTML).toContain("&quot;");
+
+    tooltip.destroy();
+  });
+});
+
+// ECharts label preference: an item-trigger tooltip names the row after the
+// item itself (a pie slice reads "Books: 300", not the series name); an
+// axis-trigger tooltip names each row after its series.
+describe("tooltip default formatter label preference", () => {
+  it("prefers the item name over seriesName for item-trigger tooltips", () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const tooltip = createTooltip(container, { trigger: "item" });
+
+    tooltip.update({
+      visible: true,
+      x: 0,
+      y: 0,
+      params: [makeParams({ seriesName: "Sales", name: "Books", value: 300 })],
+    });
+
+    const el = container.querySelector(".dc-tooltip")!;
+    expect(el.querySelector("strong")!.textContent).toBe("Books");
+
+    tooltip.destroy();
+  });
+
+  it("keeps seriesName as the row label for axis-trigger tooltips", () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const tooltip = createTooltip(container, { trigger: "axis" });
+
+    tooltip.update({
+      visible: true,
+      x: 0,
+      y: 0,
+      params: [makeParams({ seriesName: "Sales", name: "Mon", value: 120 })],
+    });
+
+    const el = container.querySelector(".dc-tooltip")!;
+    expect(el.querySelector("strong")!.textContent).toBe("Sales");
+
+    tooltip.destroy();
+  });
+
+  it("falls back to seriesName when the item has no name", () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const tooltip = createTooltip(container, { trigger: "item" });
+
+    tooltip.update({
+      visible: true,
+      x: 0,
+      y: 0,
+      params: [makeParams({ seriesName: "Sales", name: undefined as any })],
+    });
+
+    const el = container.querySelector(".dc-tooltip")!;
+    expect(el.querySelector("strong")!.textContent).toBe("Sales");
+
+    tooltip.destroy();
+  });
+});
+
 // Regression: a formatter returning a DomphyElement was coerced with String()
 // and rendered as "[object Object]". It is now mounted imperatively.
 describe("tooltip formatter returning a DomphyElement", () => {
@@ -122,6 +210,35 @@ describe("tooltip formatter returning a DomphyElement", () => {
     // through) is also asserted directly.
     expect(cssColor("#112233", 0)).toBe("#112233");
     expect(cssColor("primary", 0)).toMatch(/^var\(--primary-/);
+
+    tooltip.destroy();
+  });
+
+  // ECharts semantics render a string formatter result as HTML, but the string
+  // commonly embeds caller data — run the same sanitizeHTMLString pass core's
+  // rawHtml() applies (script elements, on* handlers, javascript: URLs).
+  it("sanitizes a string formatter result before assigning innerHTML", () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const tooltip = createTooltip(container, {
+      formatter: () =>
+        '<b>ok</b><script>alert(1)</script><img src=x onerror="alert(2)"><a href="javascript:alert(3)">x</a>',
+    });
+
+    tooltip.update({
+      visible: true,
+      x: 0,
+      y: 0,
+      params: [makeParams({})],
+    });
+
+    const el = container.querySelector(".dc-tooltip")!;
+    expect(el.querySelector("b")?.textContent).toBe("ok");
+    expect(el.querySelector("script")).toBeNull();
+    expect(el.querySelector("img")?.getAttribute("onerror")).toBeNull();
+    expect(el.querySelector("a")?.getAttribute("href") ?? "").not.toContain(
+      "javascript:",
+    );
 
     tooltip.destroy();
   });

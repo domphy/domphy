@@ -60,7 +60,13 @@ function buttonGhost(
       outline: "none",
       transition:
         "background-color 140ms ease, color 140ms ease, box-shadow 140ms ease",
-      color: (listener) => themeColor(listener, "shift-6", color.get(listener)),
+      // Resting text uses the "text" alias (shift-9) — NOT the semantic-zone
+      // shift-6 the patch previously used. A ghost button's label is essential
+      // interactive content, and shift-6 on an edge surface measures ~2.4:1,
+      // failing WCAG AA (axe color-contrast). shadcn's ghost variant likewise
+      // rests at full foreground; hover/active keep the same text color and
+      // differentiate via background only.
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
       "&:hover:not([disabled]):not([aria-busy=true])": {
         color: (listener) => themeColor(listener, "text", color.get(listener)),
         backgroundColor: (listener) =>

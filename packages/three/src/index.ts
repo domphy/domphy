@@ -1,7 +1,8 @@
 // Public barrel — SPEC.md "Definition of done" #6: exactly `three`, `extend`,
 // `loadAsset`, `preloadAsset`, `clearAsset`, `diagnose`, `validate`, plus the
 // public types userland code needs to author/type a scene (ThreeOptions/SceneNode grammar,
-// RootState, the renderer contract, and the pointer-event shapes onClick/
+// RootState, CreatedRootState — the onCreated(root) shape with setSize — the
+// renderer contract, and the pointer-event shapes onClick/
 // onPointerMove etc. hand back). Internal primitives (reconciler.ts's
 // create/patch/dispose, props.ts's applyProps/attach/detach, loop.ts's
 // registry/global-effect functions, rootState.ts's createRootState,
@@ -27,6 +28,7 @@ export type {
 export type { AssetResult } from "./loader.js";
 export { clearAsset, loadAsset, preloadAsset } from "./loader.js";
 export { three } from "./patch.js";
+export type { CreatedRootState } from "./rootState.js";
 export type {
   Constructable,
   FrameCallback,

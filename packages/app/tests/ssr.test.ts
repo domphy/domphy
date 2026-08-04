@@ -80,6 +80,43 @@ describe("renderToString", () => {
     expect(result.redirect).toBe("/blog/new");
   });
 
+  it("returns 500 when a loader throws during server rendering", async () => {
+    const routes = defineRoutes([
+      {
+        path: "/",
+        children: [
+          {
+            path: "broken",
+            loader: () => {
+              throw new Error("boom");
+            },
+            page: () => ({ h1: "Broken" }),
+          },
+        ],
+      },
+    ]);
+    const app = createApp(routes, { history: null });
+    const result = await app.renderToString("/broken");
+    expect(result.status).toBe(500);
+    expect(result.html).toContain("boom");
+  });
+
+  it("escapes U+2028/U+2029 in the bootstrap payload", async () => {
+    const routes = defineRoutes([
+      {
+        path: "/",
+        loader: () => ({ text: "a\u2028b\u2029c" }),
+        page: () => ({ h1: "X" }),
+      },
+    ]);
+    const app = createApp(routes, { history: null });
+    const result = await app.renderToString("/");
+    expect(result.bootstrapScript).not.toContain("\u2028");
+    expect(result.bootstrapScript).not.toContain("\u2029");
+    expect(result.bootstrapScript).toContain("\\u2028");
+    expect(result.bootstrapScript).toContain("\\u2029");
+  });
+
   it("escapes script-closing tags in the bootstrap payload", async () => {
     const routes = defineRoutes([
       {

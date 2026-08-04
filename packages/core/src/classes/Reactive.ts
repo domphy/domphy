@@ -239,7 +239,17 @@ export function effect(fn: () => void): () => void {
   };
 
   registerDisposer(dispose);
-  run(); // initial run is synchronous + immediate
+  try {
+    run(); // initial run is synchronous + immediate
+  } catch (error) {
+    // Fail-loud contract preserved (the throw still propagates), but the
+    // caller never receives the dispose handle on this path — tear the
+    // effect down here so dependencies subscribed before the throw do not
+    // stay live (and the queued/scheduled reaction path stays inert via
+    // `disposed`).
+    dispose();
+    throw error;
+  }
   return dispose;
 }
 
@@ -273,6 +283,11 @@ export function computed<T>(fn: () => T): Computed<T> {
   let cachedValue: T = undefined as unknown as T;
   let dirty = true;
   let hasValue = false;
+  // Monotonic recomputation counter, stamped onto the notifier so a Collector
+  // that already consumed THIS version by reading can skip the redundant wake
+  // the notifier flush would otherwise deliver (the diamond case — see
+  // Collector._consumedVersions).
+  let version = 0;
 
   // A dependency changed: schedule a single deduplicated reaction. Marking dirty
   // is immediate (so a synchronous read after the change recomputes); the
@@ -305,6 +320,8 @@ export function computed<T>(fn: () => T): Computed<T> {
   const recompute = (): void => {
     collector.reset();
     cachedValue = runWithCollector(collector, fn);
+    version++;
+    notifier._version = version;
     dirty = false;
     hasValue = true;
   };
@@ -319,13 +336,16 @@ export function computed<T>(fn: () => T): Computed<T> {
   };
 
   const get = (listener?: ValueListener<T>): T => {
+    // The collector reading us (when read inside an effect/computed), so the
+    // consumed version can be recorded after any recompute below.
+    let outer: Collector | null = null;
     if (listener) {
       notifier.addListener(EVENT, listener);
     } else {
       // Auto-tracking: reading a computed inside another computed/effect makes
       // the outer computation depend on this one. Reusing State's collector path
       // means a chain of computeds composes through one Notifier graph.
-      const outer = activeCollector();
+      outer = activeCollector();
       if (outer) notifier.addListener(EVENT, outer.handler);
     }
     if (dirty) {
@@ -342,6 +362,10 @@ export function computed<T>(fn: () => T): Computed<T> {
       if (hasValue && notifier.listenerCount(EVENT) > 0) recomputeAndNotify();
       else recompute();
     }
+    // Record the version this read consumed, so the notifier flush scheduled
+    // by recomputeAndNotify (which the reader's own run just incorporated)
+    // does not re-wake the reader with a value it already has.
+    outer?._consumedVersions.set(notifier, version);
     return cachedValue;
   };
 

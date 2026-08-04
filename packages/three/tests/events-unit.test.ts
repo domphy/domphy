@@ -330,6 +330,78 @@ describe("events — intersection order, occlusion, hover, capture, miss", () =>
     expect(onPointerMissed).toHaveBeenCalledTimes(1);
     expect(root.onPointerMissed).toHaveBeenCalledTimes(1);
   });
+
+  it("skips interactive objects whose raycast is nulled out instead of throwing", () => {
+    const nulled = addMesh(0);
+    const healthy = addMesh(1);
+    root.scene.updateMatrixWorld(true);
+
+    const nulledMove = vi.fn();
+    const healthyMove = vi.fn();
+    // Declared in ONE bag on purpose: applyProps applies the handler (and the
+    // `interactive` membership) BEFORE the static `raycast: null` assignment,
+    // so membership and the null raycast diverge — the exact state the
+    // grammar's raycast opt-out (SPEC.md) can leave behind. props.ts's
+    // raycast-aware membership check only runs when a pointer-event prop is
+    // (re-)applied, so it never gets a chance to undo this.
+    applyProps(nulled.node, { onPointerMove: nulledMove, raycast: null });
+    applyProps(healthy.node, { onPointerMove: healthyMove });
+    expect(nulled.instance.raycast).toBeNull();
+    expect(root.internal.interactive).toContain(nulled.instance);
+
+    const events = createEvents(root);
+    const move = events.handlePointer("onPointerMove");
+
+    // Three calls object.raycast() unconditionally inside intersectObject —
+    // before the fix this TypeError'd and killed the whole event layer.
+    expect(() => move(createPointerEvent("pointermove", CENTER))).not.toThrow();
+    // Excluded from raycasting means no hit for the nulled mesh, but the
+    // rest of the event layer keeps working.
+    expect(nulledMove).not.toHaveBeenCalled();
+    expect(healthyMove).toHaveBeenCalledTimes(1);
+  });
+
+  it("swapInteractivity rewrites the captured record's intersection to the new instance", async () => {
+    const { swapInteractivity } = await import("../src/events.js");
+    const mesh = addMesh(0);
+    root.scene.updateMatrixWorld(true);
+
+    let capturedEvent: any = null;
+    const onPointerMove = vi.fn((event: any) => {
+      capturedEvent = event;
+    });
+    applyProps(mesh.node, {
+      onPointerDown: (event: any) =>
+        event.target.setPointerCapture(event.nativeEvent.pointerId),
+      onPointerMove,
+    });
+
+    const events = createEvents(root);
+    events.handlePointer("onPointerDown")(
+      createPointerEvent("pointerdown", { ...CENTER, pointerId: 7 }),
+    );
+    expect(root.internal.captured.get(7)?.has(mesh.instance)).toBe(true);
+
+    // Reconstruct (args change) mid-capture: the reconciler swaps
+    // interactivity onto the new instance and re-applies the props.
+    const newMesh = new THREE.Mesh(
+      mesh.instance.geometry,
+      mesh.instance.material,
+    );
+    newMesh.position.copy(mesh.instance.position);
+    swapInteractivity(root, mesh.instance, newMesh);
+    applyProps(createNode(newMesh, root, sceneParent), { onPointerMove });
+
+    // Move far off the mesh — only the stored capture record can route this
+    // back, so the delivered event is built from that record's intersection.
+    events.handlePointer("onPointerMove")(
+      createPointerEvent("pointermove", { ...CORNER, pointerId: 7 }),
+    );
+
+    expect(onPointerMove).toHaveBeenCalledTimes(1);
+    expect(capturedEvent.eventObject).toBe(newMesh);
+    expect(capturedEvent.object).toBe(newMesh);
+  });
 });
 
 describe("events — swapInteractivity / removeInteractivity", () => {
@@ -372,6 +444,117 @@ describe("events — swapInteractivity / removeInteractivity", () => {
     );
     expect(root.internal.captured.get(1)?.has(newObject)).toBe(true);
     expect(root.internal.captured.get(1)?.has(object)).toBe(false);
+  });
+
+  it("removeInteractivity removes EVERY duplicate occurrence of the object", async () => {
+    const { removeInteractivity } = await import("../src/events.js");
+    const root = createTestRoot();
+    const object = new THREE.Mesh();
+
+    // Duplicates happen in practice: initialHits gets one entry per hit
+    // (several faces of one mesh can each push the same eventObject).
+    root.internal.interactive.push(object, object);
+    root.internal.initialHits.push(object, object, object);
+
+    removeInteractivity(root, object);
+
+    expect(root.internal.interactive).not.toContain(object);
+    expect(root.internal.initialHits).not.toContain(object);
+  });
+
+  it("swapInteractivity replaces EVERY duplicate occurrence of the object", async () => {
+    const { swapInteractivity } = await import("../src/events.js");
+    const root = createTestRoot();
+    const object = new THREE.Mesh();
+    const newObject = new THREE.Mesh();
+
+    root.internal.interactive.push(object, object);
+    root.internal.initialHits.push(object, object, object);
+
+    swapInteractivity(root, object, newObject);
+
+    expect(root.internal.interactive).toEqual([newObject, newObject]);
+    expect(root.internal.initialHits).toEqual([
+      newObject,
+      newObject,
+      newObject,
+    ]);
+  });
+
+  // Builds a captured-mesh fixture for the implicit-release regression tests
+  // below: a real raycast-hit mesh whose pointerdown captures pointer 7 on a
+  // state-tracking capture double (mimics the DOM API: releasing without an
+  // active capture throws NotFoundError).
+  function setupImplicitRelease(options: { implementHas: boolean }) {
+    const root = createTestRoot();
+    const sceneParent = createNode(root.scene, root, null);
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(1, 1, 1),
+      new THREE.MeshBasicMaterial(),
+    );
+    root.scene.add(mesh);
+    root.scene.updateMatrixWorld(true);
+    const node = createNode(mesh, root, sceneParent);
+    applyProps(node, {
+      onPointerDown: (event: any) =>
+        event.target.setPointerCapture(event.nativeEvent.pointerId),
+    });
+
+    const state = { captured: false };
+    const captureTarget: any = {
+      setPointerCapture: vi.fn(() => {
+        state.captured = true;
+      }),
+      releasePointerCapture: vi.fn(() => {
+        if (!state.captured)
+          throw new DOMException("No capture to release", "NotFoundError");
+        state.captured = false;
+      }),
+    };
+    if (options.implementHas)
+      captureTarget.hasPointerCapture = vi.fn(() => state.captured);
+
+    const events = createEvents(root);
+    events.handlePointer("onPointerDown")(
+      createPointerEvent("pointerdown", {
+        ...CENTER,
+        pointerId: 7,
+        target: captureTarget,
+      }),
+    );
+    expect(state.captured).toBe(true);
+
+    return { root, mesh, captureTarget, state };
+  }
+
+  it("removeInteractivity does not throw when the browser already implicitly released the capture", async () => {
+    const { removeInteractivity } = await import("../src/events.js");
+    const { root, mesh, captureTarget, state } = setupImplicitRelease({
+      implementHas: true,
+    });
+
+    // The browser implicitly releases on pointerup while this package's
+    // bookkeeping (rAF-deferred lostpointercapture cleanup) hasn't caught up.
+    state.captured = false;
+
+    expect(() => removeInteractivity(root, mesh)).not.toThrow();
+    // hasPointerCapture reported "no capture" — the DOM release must be
+    // skipped entirely (calling it would throw NotFoundError).
+    expect(captureTarget.releasePointerCapture).not.toHaveBeenCalled();
+  });
+
+  it("removeInteractivity swallows NotFoundError from targets without hasPointerCapture", async () => {
+    const { removeInteractivity } = await import("../src/events.js");
+    const { root, mesh, captureTarget, state } = setupImplicitRelease({
+      implementHas: false,
+    });
+
+    state.captured = false;
+
+    // No hasPointerCapture to consult — the guarded fallback must catch the
+    // DOM's NotFoundError instead of letting it escape mid-disposal.
+    expect(() => removeInteractivity(root, mesh)).not.toThrow();
+    expect(captureTarget.releasePointerCapture).toHaveBeenCalledWith(7);
   });
 });
 

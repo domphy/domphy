@@ -207,7 +207,13 @@ export class ElementNode {
     // Skip if the async-removal path in ElementList already fired it.
     if (!this._beforeRemoveFired) {
       this._beforeRemoveFired = true;
-      this._hooks.BeforeRemove?.(this, () => {});
+      try {
+        this._hooks.BeforeRemove?.(this, () => {});
+      } catch (error) {
+        // A throwing BeforeRemove must not abort disposal halfway (leaking the
+        // rest of the subtree's teardown) — route the error and continue.
+        this._handleError(error);
+      }
     }
 
     if (this.children) {
@@ -814,7 +820,15 @@ export class ElementNode {
         // `this._hooks` to `{}` before this line would otherwise re-read it.
         const beforeRemoveHook = this._hooks.BeforeRemove;
         this._beforeRemoveFired = true;
-        beforeRemoveHook(this, once);
+        try {
+          beforeRemoveHook(this, once);
+        } catch (error) {
+          // Same anti-wedge contract as ElementList.remove: a throwing
+          // BeforeRemove completes the removal instead of leaving the root
+          // half-removed with _beforeRemoveFired already set.
+          this._handleError(error);
+          once();
+        }
         if ((beforeRemoveHook as Function).length < 2 && !called) once();
         else if (__DEV__ && !called) {
           setTimeout(() => {

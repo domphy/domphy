@@ -9,6 +9,7 @@ import type { DomphyElement } from "@domphy/core";
 import { ElementNode, flushSync, toState } from "@domphy/core";
 import * as THREE from "three";
 import { afterEach, describe, expect, it } from "vitest";
+import type { CreatedRootState } from "../src/index.js";
 import * as ThreeBarrel from "../src/index.js";
 import { three } from "../src/patch.js";
 import { calculateDpr } from "../src/rootState.js";
@@ -103,14 +104,20 @@ describe("three() — dpr (upstream: 'should handle the DPR prop reactively')", 
 });
 
 describe("three() — renderer config (upstream: shadows/tonemapping/colorSpace)", () => {
-  it("should set PCFSoftShadowMap as the default shadow map", () => {
+  it("should set the soft shadow map as the default shadow map", () => {
     const stub = createStubRenderer();
     mount({
       div: null,
       $: [three({ scene: null, shadows: true, createRenderer: () => stub })],
     } as DomphyElement);
 
-    expect(stub.shadowMap!.type).toBe(THREE.PCFSoftShadowMap);
+    // three r182 deprecated PCFSoftShadowMap for WebGLRenderer (PCFShadowMap
+    // is soft now); patch.ts resolves the soft variant by three revision.
+    const expected =
+      Number.parseInt(THREE.REVISION, 10) >= 182
+        ? THREE.PCFShadowMap
+        : THREE.PCFSoftShadowMap;
+    expect(stub.shadowMap!.type).toBe(expected);
   });
 
   it("sets tonemapping to ACESFilmicToneMapping and outputColorSpace to SRGBColorSpace when linear is false", () => {
@@ -172,5 +179,34 @@ describe("exports (upstream: 'matches public API')", () => {
         "validate",
       ].sort(),
     );
+  });
+
+  it("re-exports the CreatedRootState type, and the onCreated root actually has setSize", () => {
+    // Type exports are invisible to a runtime Object.keys() check — the
+    // import above fails type-checking if the barrel drops the re-export.
+    // This assertion covers the runtime half: the object onCreated receives
+    // must really carry the setSize the type promises.
+    let capturedRoot: CreatedRootState | undefined;
+    mount({
+      div: null,
+      $: [
+        three({
+          scene: null,
+          createRenderer: () => createStubRenderer(),
+          onCreated: (root) => {
+            capturedRoot = root as CreatedRootState;
+          },
+        }),
+      ],
+    } as DomphyElement);
+
+    expect(typeof capturedRoot!.setSize).toBe("function");
+
+    capturedRoot!.setSize(320, 240, 1);
+    expect(capturedRoot!.size.get()).toEqual({
+      width: 320,
+      height: 240,
+      dpr: 1,
+    });
   });
 });

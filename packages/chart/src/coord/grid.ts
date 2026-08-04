@@ -55,25 +55,34 @@ function dataExtentFromSeries(
   let min = Infinity;
   let max = -Infinity;
 
-  // Series sharing a `stack` id are rendered as a cumulative running total on
-  // this dimension (see engine.ts's accumStackedLines and gl/BarRenderer.ts's
+  // Series sharing a `stack` id are rendered as a cumulative total on this
+  // dimension (see engine.ts's accumStackedLines and gl/BarRenderer.ts's
   // stackTops/stackRights) — the axis extent must be computed from that same
   // cumulative sum, not each series' own raw values, or the topmost stacked
   // layer overflows past an axis that was auto-sized from individual-series
   // maxima (each stacked series' running total is tracked in its own map
   // entry so unrelated stack groups don't bleed into each other).
-  const stackRunningTotal = new Map<string, number[]>();
+  // ECharts mixed-sign stacking: positive and negative values accumulate in
+  // separate running totals (up/down from the zero baseline), so the extent
+  // must track both — same-sign stacks leave one total at zero and match the
+  // old single-total math exactly.
+  const stackRunningTotalPos = new Map<string, number[]>();
+  const stackRunningTotalNeg = new Map<string, number[]>();
 
   for (const s of series) {
     if ((s[axisKey] ?? 0) !== axisIndex) continue;
     const data: any[] = s.data ?? [];
     const stackName: string | undefined =
       typeof s.stack === "string" ? s.stack : undefined;
-    let acc: number[] | undefined;
+    let accPos: number[] | undefined;
+    let accNeg: number[] | undefined;
     if (stackName) {
-      if (!stackRunningTotal.has(stackName))
-        stackRunningTotal.set(stackName, []);
-      acc = stackRunningTotal.get(stackName)!;
+      if (!stackRunningTotalPos.has(stackName))
+        stackRunningTotalPos.set(stackName, []);
+      if (!stackRunningTotalNeg.has(stackName))
+        stackRunningTotalNeg.set(stackName, []);
+      accPos = stackRunningTotalPos.get(stackName)!;
+      accNeg = stackRunningTotalNeg.get(stackName)!;
     }
 
     data.forEach((item, itemIndex) => {
@@ -94,7 +103,8 @@ function dataExtentFromSeries(
         }
         let value = dim === "x" ? item[0] : item[1];
         if (typeof value === "number" && !Number.isNaN(value)) {
-          if (acc) {
+          if (accPos && accNeg) {
+            const acc = value >= 0 ? accPos : accNeg;
             value = (acc[itemIndex] ?? 0) + value;
             acc[itemIndex] = value;
           }
@@ -112,7 +122,8 @@ function dataExtentFromSeries(
         else if (Array.isArray(raw)) value = dim === "x" ? raw[0] : raw[1];
       }
       if (value !== null && !Number.isNaN(value)) {
-        if (acc) {
+        if (accPos && accNeg) {
+          const acc = value >= 0 ? accPos : accNeg;
           value = (acc[itemIndex] ?? 0) + value;
           acc[itemIndex] = value;
         }

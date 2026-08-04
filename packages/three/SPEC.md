@@ -20,7 +20,7 @@ The vendored upstream lives at `reference/react-three-fiber/packages/fiber/`
 
 | Decision | Rule |
 | --- | --- |
-| Version-agnostic | No class catalog. Tag resolves by reflection: `registry[Pascal] ?? THREE[Pascal]`. Duck-type props (`.set`/`.copy`/`.setScalar`). Attach inference via three's `.isBufferGeometry`/`.isMaterial`/`.isObject3D` flags, never `instanceof`. |
+| Version-agnostic | No class catalog. Tag resolves by reflection: `registry[Pascal] ?? THREE[Pascal]` — the THREE fallback accepts functions only (namespace constants like `AdditiveBlending`/`REVISION`/`MOUSE` are not constructors and must fail with the friendly unknown-tag error, not a runtime `is not a constructor`). Duck-type props (`.set`/`.copy`/`.setScalar`). Attach inference via three's `.isBufferGeometry`/`.isMaterial`/`.isObject3D` flags, never `instanceof`. |
 | Renderer injectable | `createRenderer?: (canvas) => RendererLike`. Default `new THREE.WebGLRenderer({ canvas, antialias: true, ...gl })`. Tests inject a stub. |
 | State-in | `three(options \| ReadableState<options>)`. Lifecycle hooks run once per DOM node — a fresh plain option object per parent re-render must NOT be required for updates; reactivity lives INSIDE the option (`scene: (l) => [...]`) or the option itself is a State. |
 | `primitive` first-class | `{ primitive: [children...], object: existingObject3D }` adopts a user-created instance. Never disposed by us (implicit `dispose: null`). |
@@ -249,7 +249,14 @@ export function clearAsset(LoaderClass: Constructable, input?: string | string[]
 ```
 
 Cache key = `LoaderClass` + input (module-level Map, r3f parity). Multi-url
-input resolves to an array. `configure` runs before `.load` (draco setup etc.).
+input resolves to an array. `configure` runs once per loader instance (a
+class shares one instance across all its inputs), before that instance's
+first `.load` (draco setup etc.). Load errors are re-thrown as
+`Error("Could not load <url>: <message>")` with the original error chained
+as `cause` (XHR loaders reject with a ProgressEvent, so the message falls
+back to `String(error)`). `clearAsset(Class, undefined, { dispose: true })`
+shares one pair of disposed/visited guard sets across all evicted entries —
+a resource referenced by two cached inputs is disposed exactly once.
 
 ### Patch (patch.ts) — the ONLY file that touches DOM/Domphy elements
 
@@ -312,9 +319,15 @@ precedent — read `packages/chart/src/patch.ts` and follow its shape):
 the three() option object (which @domphy/doctor cannot see). Built-in rules,
 each from a real silent failure: `unknown-tag` (error — typo'd/unregistered
 tag throws at runtime), `legacy-light-intensity` (warning — point/spot
-intensity in the 0-1 legacy range; three r155+ physical units), `additive-blowout`
-(warning — additive points with size ≥ 4 and opacity ≥ 0.6),
+intensity low enough to look like a legacy pre-r155 value, i.e. in (0, 5];
+three r155+ physical units. RectAreaLight is NOT flagged — it never switched
+to physical units), `additive-blowout`
+(warning — transparent additive points with size ≥ 4 and opacity ≥ 0.6;
+explicitly opaque (`transparent: false`) materials are exempt because three's
+opaque pass forces NoBlending and never applies the additive blend),
 `camera-missing-lookat` (warning — off-axis camera position with no
-onCreated). Per-node suppression via `_doctorDisable: true | "rule-id" |
+onCreated and no explicit `rotation` prop). Per-node suppression via `_doctorDisable: true | "rule-id" |
 string[]` — same convention as core elements. Reactive values are resolved
 with a no-op listener; values needing a live root are skipped, never guessed.
+Self-referencing (cyclic) scene descriptions are walked with a seen-set
+guard instead of overflowing the stack.

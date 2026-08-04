@@ -3,6 +3,7 @@ import {
   flattenSidebar,
   prevNextForRoute,
   sidebarForRoute,
+  withBase,
 } from "../src/routes-browser.ts";
 import type { SiteConfig } from "../src/types.ts";
 
@@ -90,5 +91,29 @@ describe("prevNextForRoute", () => {
 
   it("returns empty object for an unknown route", () => {
     expect(prevNextForRoute("/guide/unknown", config)).toEqual({});
+  });
+});
+
+describe("withBase", () => {
+  it("prefixes root-relative hrefs on non-root deployments", () => {
+    expect(withBase("/docs/", "/guide/intro")).toBe("/docs/guide/intro");
+    expect(withBase("/docs", "/guide/intro")).toBe("/docs/guide/intro");
+    expect(withBase("/docs/", "/")).toBe("/docs/");
+  });
+
+  it("leaves hrefs unchanged on a root deployment", () => {
+    expect(withBase("/", "/guide/intro")).toBe("/guide/intro");
+  });
+
+  it("leaves external URLs, anchors and in-page hrefs alone", () => {
+    expect(withBase("/docs/", "https://example.com/x")).toBe(
+      "https://example.com/x",
+    );
+    expect(withBase("/docs/", "#section")).toBe("#section");
+    expect(withBase("/docs/", "mailto:a@b.c")).toBe("mailto:a@b.c");
+  });
+
+  it("does not double-prefix hrefs already under the base", () => {
+    expect(withBase("/docs/", "/docs/guide/intro")).toBe("/docs/guide/intro");
   });
 });

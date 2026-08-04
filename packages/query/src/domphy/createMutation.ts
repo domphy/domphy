@@ -9,10 +9,30 @@ import type {
 } from "../types.js"
 import { bindResult } from "./bindResult.js"
 
+declare const process:
+  | { env: Record<string, string | undefined> }
+  | undefined
+
+// Dev-only warning guard, same pattern as @domphy/core's dev.ts — production
+// bundlers fold this to `false` and tree-shake the guarded warnings away.
+const __DEV__: boolean =
+  typeof process !== "undefined" &&
+  process.env != null &&
+  process.env.NODE_ENV !== "production"
+
 type MutationResult<TData, TError, TVariables, TContext> =
   MutationObserverResult<TData, TError, TVariables, TContext>
 
-/** Reactive handle around a `MutationObserver`. */
+/**
+ * Reactive handle around a `MutationObserver`.
+ *
+ * **Lifecycle contract (recommended):** `destroy()` is manual — call it from
+ * the owning subtree's `_onRemove` (or a `behavior()` instance's `destroy`)
+ * so the observer subscription and the reactive state are released with the
+ * DOM that uses them. Skipping it leaks the subscription for the mutation's
+ * whole cache lifetime. As a cheap tripwire, the handle dev-warns when a
+ * field is read after `destroy()` and when `destroy()` is called twice.
+ */
 export interface MutationHandle<
   TData = unknown,
   TError = DefaultError,
@@ -44,6 +64,12 @@ export interface MutationHandle<
     options?: MutateOptions<TData, TError, TVariables, TContext>,
   ): Promise<TData>
   reset(): void
+  /**
+   * Unsubscribes the observer, disposes the reactive state, and resets the
+   * mutation (removing it from the cache). Call it once, from the owning
+   * subtree's `_onRemove` (see the contract note above); dev-warns on a
+   * second call and on field reads after destruction.
+   */
   destroy(): void
 }
 
@@ -65,17 +91,36 @@ export function createMutation<
     MutationResult<TData, TError, TVariables, TContext>
   >(observer.getCurrentResult(), (callback) => observer.subscribe(callback))
 
+  let destroyed = false
+  let readAfterDestroyWarned = false
+
+  const read = <K extends keyof MutationResult<TData, TError, TVariables, TContext>>(
+    key: K,
+    listener?: Listener,
+  ): MutationResult<TData, TError, TVariables, TContext>[K] => {
+    if (__DEV__ && destroyed && !readAfterDestroyWarned) {
+      readAfterDestroyWarned = true
+      console.warn(
+        "[@domphy/query] MutationHandle field read after destroy(). The value is " +
+          "stale — the observer was unsubscribed. Call destroy() only from " +
+          "_onRemove of the subtree that owns the handle, and keep renders " +
+          "above that subtree from reading it afterwards.",
+      )
+    }
+    return field(key, listener)
+  }
+
   return {
     state,
     observer,
-    data: (l) => field("data", l),
-    error: (l) => field("error", l),
-    variables: (l) => field("variables", l),
-    status: (l) => field("status", l),
-    isPending: (l) => field("isPending", l),
-    isSuccess: (l) => field("isSuccess", l),
-    isError: (l) => field("isError", l),
-    isIdle: (l) => field("isIdle", l),
+    data: (l) => read("data", l),
+    error: (l) => read("error", l),
+    variables: (l) => read("variables", l),
+    status: (l) => read("status", l),
+    isPending: (l) => read("isPending", l),
+    isSuccess: (l) => read("isSuccess", l),
+    isError: (l) => read("isError", l),
+    isIdle: (l) => read("isIdle", l),
     mutate: (variables, mutateOptions) => {
       observer.mutate(variables, mutateOptions).catch(() => {})
     },
@@ -83,6 +128,15 @@ export function createMutation<
       observer.mutate(variables, mutateOptions),
     reset: () => observer.reset(),
     destroy: () => {
+      if (__DEV__ && destroyed) {
+        console.warn(
+          "[@domphy/query] MutationHandle.destroy() called twice — the second " +
+            "call is a no-op. This usually means two owners think they own " +
+            "the handle; keep exactly one _onRemove responsible for it.",
+        )
+      }
+      if (destroyed) return
+      destroyed = true
       release()
       observer.reset()
     },

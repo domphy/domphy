@@ -32,18 +32,21 @@ import {
 // shared `monoUnitValueRenderer` dropped the value's medium weight and left
 // the unit at foreground strength in the default proportional font, flattening
 // upstream's emphasized-value / muted-unit contrast — so this recipe supplies
-// its own value renderer instead of the shared one. The muted tone is a
+// its own value renderer instead of the shared one. The unit is a
 // neutral-scale var(--…) reference (panel foreground = shift-10), resolved
 // against the live theme at paint time, so the unit reads as de-emphasized
 // against the value without a raw opacity multiply (which measured a WCAG
-// color-contrast failure in a prior pass).
-const TOOLTIP_MUTED_COLOR = themeColor(null, "shift-8", "neutral");
+// color-contrast failure in a prior pass). It rests at shift-9, not the muted
+// shift-8: the unit is essential content (it qualifies the value), and shift-8
+// measures ~4.06:1 — below WCAG AA (axe color-contrast). De-emphasis is
+// carried by the weight/size contrast against the medium-weight value instead.
+const TOOLTIP_UNIT_COLOR = themeColor(null, "shift-9", "neutral");
 
 // Upstream's `min-w-[130px]` sits on the whole tooltip row; reproduced here as
 // the tooltip panel's minimum width.
 const TOOLTIP_PANEL_MIN_WIDTH_PX = 130;
 
-function mutedMonoUnitValueRenderer(
+function unitValueRenderer(
   unit: string,
 ): (context: TooltipValueContext) => string {
   const safeUnit = unit
@@ -57,8 +60,9 @@ function mutedMonoUnitValueRenderer(
     // foreground color (upstream `text-foreground`).
     `<span style="font-variant-numeric:tabular-nums;font-family:ui-monospace,monospace;font-weight:500;">${String(context.value)}</span>` +
     // Unit: same monospace family (inherited from the value div upstream),
-    // normal weight, muted color (upstream `font-normal text-muted-foreground`).
-    `<span style="margin-left:2px;font-family:ui-monospace,monospace;color:${TOOLTIP_MUTED_COLOR};">${safeUnit}</span>`;
+    // normal weight, text tone (upstream `font-normal text-muted-foreground` —
+    // see the TOOLTIP_UNIT_COLOR note for the muted → text deviation).
+    `<span style="margin-left:2px;font-family:ui-monospace,monospace;color:${TOOLTIP_UNIT_COLOR};">${safeUnit}</span>`;
 }
 
 export interface ChartTooltipFormatterProps {
@@ -95,7 +99,7 @@ function chartTooltipFormatter(
   const formatter = activityTooltipFormatter(data, series, {
     indicator: "none",
     showLabel: false,
-    renderValue: mutedMonoUnitValueRenderer(unit),
+    renderValue: unitValueRenderer(unit),
     minRowWidthPx,
     panelMinWidthPx: TOOLTIP_PANEL_MIN_WIDTH_PX,
   });

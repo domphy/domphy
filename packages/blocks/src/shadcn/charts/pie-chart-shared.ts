@@ -585,8 +585,13 @@ export function pieLegendRow(
     div: items,
     style: {
       display: "grid",
-      gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+      // Wrap to 2 columns on narrow screens instead of squeezing `columns`
+      // legend items into ~85px cells (upstream uses a wrapping flex row).
+      gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
       gap: themeSpacing(2),
+      "@media (min-width: 40em)": {
+        gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+      },
       // Negative offset so the legend "hugs" the chart above it instead of
       // sitting at the container's default gap distance.
       marginTop: themeSpacing(-6),

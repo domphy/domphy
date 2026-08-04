@@ -40,14 +40,14 @@
     "directory": "packages/i18n"
   },
   "dependencies": {
-    "i18next": "^25.0.0"
+    "i18next": "^26.3.6"
   },
   "peerDependencies": {
     "@domphy/core": "workspace:^"
   },
   "devDependencies": {
     "@domphy/core": "workspace:*",
-    "@types/node": "^25.9.2",
+    "@types/node": "^26.1.2",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"

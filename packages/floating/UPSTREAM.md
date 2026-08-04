@@ -5,16 +5,32 @@ This package is a 1-1 vendor of [floating-ui](https://github.com/floating-ui/flo
 
 ## Pinned upstream versions
 
-Vendored from the floating-ui monorepo at tag `@floating-ui/dom@1.7.6`:
+Vendored from the floating-ui monorepo at tag `@floating-ui/dom@1.8.0`:
 
 | Upstream package    | Version | Vendored to                 |
 | ------------------- | ------- | --------------------------- |
-| `@floating-ui/core` | 1.7.5   | `src/core/`                 |
-| `@floating-ui/dom`  | 1.7.6   | `src/dom/`                  |
-| `@floating-ui/utils`| 0.2.11  | `src/utils/`, `src/utils/dom.ts` |
+| `@floating-ui/core` | 1.8.0   | `src/core/`                 |
+| `@floating-ui/dom`  | 1.8.0   | `src/dom/`                  |
+| `@floating-ui/utils`| 0.2.12  | `src/utils/`, `src/utils/dom.ts` |
 
 Verified by a full recursive diff of `src/` against the upstream tag: every file
 is byte-identical except the deviations listed below.
+
+Sync history:
+
+- 2026-08-04: 1.7.5/1.7.6/0.2.11 → 1.8.0/1.8.0/0.2.12. Absorbs upstream fixes
+  relevant to Domphy overlays: `inline()` no-ops on empty client rects
+  (hidden/detached references, collapsed ranges) and detects RTL-disjoined line
+  rects; `size()` computes available size correctly for centered elements
+  overflowing both sides; `autoUpdate` refreshes immediately (instead of waiting
+  for the 1s throttle) when the reference moved during an observer refresh and
+  rebuilds the layout-shift observer on root resize; `getClippingRect` filters
+  clipping ancestors correctly for fixed-position elements; `platform.getClientRects`
+  no longer throws for a virtual element without `getClientRects`; plus the new
+  `'layoutViewport'` `rootBoundary` option. Pinned by new fixtures in
+  `tests/middleware.test.ts` (size centered-overflow, inline empty-rects,
+  RTL alignment) and `tests/floating.test.ts` (autoUpdate cleanup).
+- Initial pin: core 1.7.5 / dom 1.7.6 / utils 0.2.11.
 
 ## Deviation list
 
@@ -25,7 +41,7 @@ The port tracks upstream byte-for-byte **except**:
    equivalent) that does not exist upstream. `src/dom/index.ts` carries two
    extra export lines for it (`createFloating`, `FloatingHandle`,
    `FloatingPosition`).
-2. **`src/dom/autoUpdate.ts:47` — `NodeJS.Timeout` → `ReturnType<typeof setTimeout>`.**
+2. **`src/dom/autoUpdate.ts` — `NodeJS.Timeout` → `ReturnType<typeof setTimeout>`.**
    Upstream types the `observeMove` timeout handle as `NodeJS.Timeout`; this
    package must type-check and build without `@types/node`, so the handle uses
    the browser-safe return type instead. Behavior is unchanged.
@@ -35,14 +51,6 @@ The port tracks upstream byte-for-byte **except**:
    those specifiers to the vendored `src/core` / `src/utils` files. The source
    text of the imports is unchanged — this is the vendoring mechanism, not a
    code deviation.
-
-### Explicitly *not* a deviation
-
-`src/dom/autoUpdate.ts:150` types the `floating` parameter as
-`FloatingElement | null`. This is sometimes assumed to be a local widening —
-it is not: upstream `@floating-ui/dom@1.7.6` has the identical signature (the
-widening landed upstream between 1.7.4 and 1.7.5). The file is byte-identical
-to upstream apart from deviation 2 above.
 
 ## Re-syncing with upstream
 

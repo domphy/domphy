@@ -52,6 +52,17 @@ describe("splitFrontmatter", () => {
     expect(content).toBe(source);
   });
 
+  it("accepts a UTF-8 BOM before the opening fence", () => {
+    // Windows-authored files often carry a BOM; gray-matter strips it, and so
+    // should we — otherwise the whole block degrades into an <hr> plus YAML
+    // text in the rendered body.
+    const { frontmatter, content } = splitFrontmatter(
+      "\uFEFF---\ntitle: Z\n---\nBody",
+    );
+    expect(frontmatter).toEqual({ title: "Z" });
+    expect(content).toBe("Body");
+  });
+
   it("returns the document unchanged when there is no frontmatter", () => {
     const { frontmatter, content } = splitFrontmatter("# Heading\n\nBody");
     expect(frontmatter).toEqual({});

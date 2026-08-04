@@ -30,6 +30,29 @@ export interface MdastWalkOptions {
 
 type Child = string | RawHTML | DomphyElement;
 
+/**
+ * Neutralizes script-capable URL schemes in author-supplied markdown
+ * link/image destinations. Mirrors @domphy/core's `isDangerousURL`
+ * canonicalization (ASCII whitespace/control characters stripped — browsers
+ * ignore them inside a scheme — then lowercased); remark has already decoded
+ * HTML entities in the destination by this point. Everything else (http(s),
+ * mailto, relative paths, anchors, `data:image/…`) passes through unchanged,
+ * matching react-markdown's default URL transform contract.
+ */
+function sanitizeUrl(url: string): string {
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: stripping ASCII control characters out of the scheme is exactly the point of this canonicalization (same pattern as @domphy/core's isDangerousURL).
+  const canonical = url.replace(/[\x00-\x20]+/g, "").toLowerCase();
+  if (
+    canonical.startsWith("javascript:") ||
+    canonical.startsWith("vbscript:") ||
+    canonical.startsWith("data:text/html") ||
+    canonical.startsWith("data:application/xhtml+xml")
+  ) {
+    return "#";
+  }
+  return url;
+}
+
 /** Recursively flatten an MDAST node to plain text (for heading anchors / toc). */
 export function nodeToText(node: Nodes): string {
   if (node.type === "text" || node.type === "inlineCode") return node.value;
@@ -79,7 +102,10 @@ function walkNode(node: Nodes, ctx: WalkContext): Child | null {
         a: "#",
         href: `#${slug}`,
         class: "header-anchor",
+        // aria-hidden but still keyboard-reachable without tabIndex -1
+        // (axe aria-hidden-focus); screen readers use the TOC instead.
         ariaHidden: "true",
+        tabIndex: -1,
       } as DomphyElement);
       return {
         [`h${node.depth}`]: children,
@@ -100,12 +126,12 @@ function walkNode(node: Nodes, ctx: WalkContext): Child | null {
       return { s: walkChildren(node, ctx) } as DomphyElement;
 
     case "link": {
+      const href = sanitizeUrl(node.url);
       const el: Record<string, unknown> = {
         a: walkChildren(node, ctx),
-        href: node.url,
+        href,
       };
       if (node.title) el.title = node.title;
-      const href = node.url;
       if (href.startsWith("http://") || href.startsWith("https://")) {
         el.target = "_blank";
         el.rel = "noopener noreferrer";
@@ -116,7 +142,7 @@ function walkNode(node: Nodes, ctx: WalkContext): Child | null {
     case "image": {
       const el: Record<string, unknown> = {
         img: null,
-        src: node.url,
+        src: sanitizeUrl(node.url),
         alt: node.alt ?? "",
         loading: "lazy",
       };

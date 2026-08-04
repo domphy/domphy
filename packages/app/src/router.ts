@@ -852,12 +852,18 @@ export class AppRouter {
         dataRecord[this.cacheKey(chainIds[index], url)] = results[index].data;
       }
     });
+
+    const metadata = await this.resolveRouteMetadata(match, context);
+    if (token !== this.navigationToken) return;
+
+    // Mutate shared router state and the document head only after the final
+    // staleness check: a superseded navigation that lost the race must leave
+    // the newer navigation's match, data, metadata and head tags untouched.
     this.lastData = dataRecord;
     this.currentRenderKeys = new Set(Object.keys(dataRecord));
-
     this.currentMatch = match;
-    await this.applyMetadata(match, context);
-    if (token !== this.navigationToken) return;
+    this.metadata = metadata;
+    applyHeadTags(metadataToHeadTags(metadata));
 
     this.commit(url, match, built.element, built.status, options);
     // Kick off stale-while-revalidate refetches now that the route is committed,
@@ -873,10 +879,10 @@ export class AppRouter {
     const built = this.buildWithContext(() =>
       buildNotFoundTree(this.notFoundBlock),
     );
+    if (token !== this.navigationToken) return;
     this.currentMatch = null;
     this.metadata = {};
     applyHeadTags([]);
-    if (token !== this.navigationToken) return;
     this.commit(url, null, built.element, "notfound", options);
   }
 
@@ -891,19 +897,24 @@ export class AppRouter {
     };
   }
 
-  private async applyMetadata(
+  /**
+   * Resolves the metadata chain without side effects. Applying it to
+   * `this.metadata` and `document.head` is the caller's job, after the
+   * navigation-staleness check, so a superseded navigation never clobbers the
+   * head tags of the navigation that won the race.
+   */
+  private async resolveRouteMetadata(
     match: RouteMatch,
     context: LoaderContext,
-  ): Promise<void> {
+  ): Promise<ResolvedMetadata> {
     try {
-      this.metadata = await resolveMetadata(
+      return await resolveMetadata(
         match.route.chain.map((route) => routeMetadata(route)),
         context,
       );
     } catch {
-      this.metadata = {};
+      return {};
     }
-    applyHeadTags(metadataToHeadTags(this.metadata));
   }
 
   private commit(

@@ -338,6 +338,10 @@ export class Editor implements EditorInstance {
     this.view = new EditorView(this, element);
     this.options.element = element;
     this.view.render();
+    // Extensions needing the host element bind here rather than in onCreate:
+    // the createEditor() flow mounts after construction, so onCreate fires
+    // while `this.view` is still null.
+    this.extensionManager.emit("onMount");
   }
 
   unmount(): void {

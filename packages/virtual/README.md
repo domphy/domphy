@@ -1,4 +1,4 @@
-﻿# @domphy/virtual
+# @domphy/virtual
 
 **[domphy.com](https://domphy.com)** · [Docs](https://domphy.com/docs/virtual/) · [npm](https://www.npmjs.com/package/@domphy/virtual)
 
@@ -45,6 +45,7 @@ const App: DomphyElement<"div"> = {
             transform: `translateY(${item.start}px)`,
           },
           _key: item.key,
+          "data-index": item.index,
           _onMount: (node) => list.measureElement(node.domElement),
         })),
       style: {
@@ -69,7 +70,7 @@ const App: DomphyElement<"div"> = {
 | `getVirtualItems(l)` | Reactive list of visible `VirtualItem`s — read with the listener inside the items function. |
 | `getTotalSize(l)` | Reactive total scroll size, for the spacer's height/width. |
 | `setScrollElement(el)` | Wire the scroll container DOM node; call from its `_onMount`. |
-| `measureElement(el)` | Dynamic measurement ref; call from each item's `_onMount`. |
+| `measureElement(el)` | Dynamic measurement ref; call from each item's `_onMount`. The item element must carry `"data-index": item.index` — the virtualizer reads the index from that attribute and skips measurement (with a console warning) when it is missing. |
 | `scrollToIndex(index, opts?)` / `scrollToOffset(offset, opts?)` | Imperative scrolling. |
 | `scrollBy(delta, opts?)` | Relative scroll by a pixel delta. |
 | `scrollToEnd(opts?)` | Scroll to the last item. |
@@ -79,3 +80,24 @@ const App: DomphyElement<"div"> = {
 | `destroy()` | Detach observers; call from `_onRemove`. |
 
 Options are the virtual-core `VirtualizerOptions` minus `getScrollElement` (the adapter owns it); `observeElementRect`, `observeElementOffset`, `scrollToFn`, and `onChange` default to the DOM implementations but can be overridden (e.g. for window virtualization).
+
+## Window virtualization
+
+For content that scrolls with the browser window instead of a fixed-height container, use `createWindowVirtualizer` — same handle contract as `createVirtualizer` with `TScroll` fixed to `Window` and the `observeWindowRect` / `observeWindowOffset` / `windowScroll` defaults filled in (no `as any` casts):
+
+```ts
+import { createWindowVirtualizer } from "@domphy/virtual/domphy"
+
+const list = createWindowVirtualizer<HTMLDivElement>({
+  count: rows.length,
+  estimateSize: () => 52,
+})
+
+const App = {
+  div: [/* spacer + absolute-positioned items, same as element mode */],
+  _onMount: () => list.setScrollElement(window),
+  _onRemove: () => list.destroy(),
+}
+```
+
+The factory touches no DOM globals at construction, so it is SSR-safe; `window` is only passed once the tree mounts client-side.

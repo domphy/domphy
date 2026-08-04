@@ -189,10 +189,18 @@ function detachForReconstruct(node: SceneNode): any {
 // `reconcileChildren`'s two-phase reused-child pass). Ported from r3f's
 // swapInstances, collapsed to a single node (Domphy reconciles one node per
 // call rather than batching a whole fiber commit).
+//
+// `props` is the FRESH props bag of this patch, handed to applyProps so it
+// can diff removed keys against the node's CURRENT (pre-patch) `node.props`
+// — callers must NOT assign `node.props = props` beforehand, or the diff
+// would compare the new bag against itself and never unwind removed props
+// (an `onFrame` dropped from the bag would keep firing on the disposed
+// instance, leaking its registration).
 function attachReconstructed(
   node: SceneNode,
   oldInstance: any,
   buildNewInstance: () => any,
+  props: Record<string, any>,
 ): void {
   const newInstance = buildNewInstance();
   node.instance = newInstance;
@@ -209,7 +217,7 @@ function attachReconstructed(
   // hovered/captured) that events.ts keys off object identity.
   if (oldInstance) swapInteractivity(node.root, oldInstance, newInstance);
 
-  applyProps(node, node.props);
+  applyProps(node, props);
   attachToParent(node);
 
   for (const child of node.children) {
@@ -220,9 +228,15 @@ function attachReconstructed(
     }
   }
 
-  // Never dispose primitives (caller-owned) or a Scene (three's own API
-  // refuses to be disposed) — mirrors r3f's removeChild guard exactly.
-  if (node.autoDispose && !node.isPrimitive && oldInstance?.type !== "Scene") {
+  // Re-derive the dispose decision from the CURRENT props bag (applyProps
+  // above just stored it): `dispose: null` can appear or disappear on the
+  // very patch that triggers this reconstruct, so the value frozen at node
+  // creation would dispose an instance the author just opted out of
+  // disposing. Never dispose primitives (caller-owned) or a Scene (three's
+  // own API refuses to be disposed) — mirrors r3f's removeChild guard
+  // exactly.
+  node.autoDispose = !node.isPrimitive && node.props.dispose !== null;
+  if (node.autoDispose && oldInstance?.type !== "Scene") {
     disposeOnIdle(oldInstance);
   }
 
@@ -232,13 +246,16 @@ function attachReconstructed(
 // Single-node reconstruct: the composition of both phases above, used
 // wherever only ONE node is involved (a standalone `patchSceneNode` call, or
 // `resolveArgs`'s own reactive-args `onChange`) and the sibling-swap hazard
-// two-phase reconciling guards against cannot arise.
+// two-phase reconciling guards against cannot arise. `props` defaults to
+// `node.props` — the reactive-args path reconstructs against the node's
+// last-applied bag, not a fresh description.
 function reconstructSceneNode(
   node: SceneNode,
   buildNewInstance: () => any,
+  props: Record<string, any> = node.props,
 ): void {
   const oldInstance = detachForReconstruct(node);
-  attachReconstructed(node, oldInstance, buildNewInstance);
+  attachReconstructed(node, oldInstance, buildNewInstance, props);
 }
 
 // Decides whether a REUSED node's fresh description requires reconstructing
@@ -338,7 +355,26 @@ function setupFunctionChildren(
 }
 
 // Falsy entries (`null`/`undefined`/`false`) are skipped — enables
-// `cond && { mesh: ... }` inside a scene array/function.
+// `cond && { mesh: ... }` inside a scene array/function. Any truthy entry
+// that isn't a plain description object is an authoring mistake (a nested
+// array from a `.map()` that wasn't spread, a core-style string child, ...)
+// — thrown eagerly here so the failure points at the actual bad value
+// instead of surfacing later as a cryptic `"0" is not part of the THREE
+// namespace` from getSceneTag reading the array's first index as its tag
+// (same rationale as assertArgsArray above).
+function assertSceneDescription(item: any): void {
+  if (Array.isArray(item)) {
+    throw new Error(
+      "@domphy/three: scene children must be description objects keyed by tag — got a nested array. Spread it into the parent array instead (e.g. [...children, ...mapped]).",
+    );
+  }
+  if (typeof item !== "object" || item === null) {
+    throw new Error(
+      `@domphy/three: scene children must be description objects keyed by tag — got ${typeof item === "string" ? JSON.stringify(item) : `a ${typeof item}`}.`,
+    );
+  }
+}
+
 function normalizeChildren(input: SceneChildren): Record<string, any>[] {
   const list =
     input == null || input === false
@@ -346,7 +382,11 @@ function normalizeChildren(input: SceneChildren): Record<string, any>[] {
       : Array.isArray(input)
         ? input
         : [input];
-  return list.filter((item): item is Record<string, any> => !!item);
+  return list.filter((item): item is Record<string, any> => {
+    if (!item) return false;
+    assertSceneDescription(item);
+    return true;
+  });
 }
 
 // After a reconcile pass that added/removed/reordered children, rebuilds the
@@ -398,17 +438,46 @@ export function createSceneNode(
   const resolvedArgs = isPrimitive
     ? []
     : resolveArgs(node, props.args, () => reconstructOnArgsChange(node));
-  const instance = instantiate(tag, isPrimitive, props, resolvedArgs);
+
+  // Error unwinding: a failed create must not leak anything it already set
+  // up. If `instantiate` throws (unregistered tag, throwing constructor), the
+  // reactive-args binding resolveArgs just subscribed would stay orphaned on
+  // a node nothing references. If anything AFTER instantiation throws (a bad
+  // child description mid-reconciliation, ...), the fresh instance may
+  // already be attached to its parent — a ghost instance no node manages.
+  // Both paths clean up, then re-throw: an authoring error must still throw.
+  let instance: any;
+  try {
+    instance = instantiate(tag, isPrimitive, props, resolvedArgs);
+  } catch (error) {
+    releaseArgsBinding(node);
+    throw error;
+  }
   node.instance = instance;
   instance.__domphy = node;
 
-  applyProps(node, props);
-  attachToParent(node);
+  try {
+    applyProps(node, props);
+    attachToParent(node);
 
-  if (typeof childrenValue === "function") {
-    setupFunctionChildren(node, childrenValue, root);
-  } else {
-    reconcileChildren(node, childrenValue, root);
+    if (typeof childrenValue === "function") {
+      setupFunctionChildren(node, childrenValue, root);
+    } else {
+      reconcileChildren(node, childrenValue, root);
+    }
+  } catch (error) {
+    // Same teardown disposeSceneNode performs (minus the parent-children
+    // splice — a half-created node was never pushed into `parent.children`),
+    // so no subscription, event binding, or attached instance survives.
+    releaseFunctionChildren(node);
+    releaseArgsBinding(node);
+    for (const release of node.releases.splice(0)) release();
+    detachFromParent(node);
+    delete instance.__domphy;
+    if (node.autoDispose && instance?.type !== "Scene") {
+      disposeOnIdle(instance);
+    }
+    throw error;
   }
 
   root.invalidate();
@@ -430,10 +499,13 @@ export function patchSceneNode(
 
   const build = reconstructPlan(node, props);
   if (build) {
-    node.props = props;
-    reconstructSceneNode(node, build);
+    reconstructSceneNode(node, build, props);
   } else {
     applyProps(node, props);
+    // A props-only patch changes the rendered scene without any
+    // create/reconstruct/dispose (those invalidate on their own) — demand
+    // mode would otherwise never re-render it.
+    node.root.invalidate();
   }
 
   finishChildReconcile(node, childrenValue, root);
@@ -498,7 +570,11 @@ export function reconcileChildren(
     }
   }
 
-  for (const child of oldChildren) {
+  // Iterate over a COPY: disposeSceneNode splices itself out of
+  // `node.children` (which `oldChildren` still aliases — `node.children` is
+  // only replaced below), so iterating the live array would skip every
+  // second removed child, leaving it attached and undisposed.
+  for (const child of oldChildren.slice()) {
     if (!claimed.has(child)) disposeSceneNode(child);
   }
 
@@ -537,13 +613,20 @@ export function reconcileChildren(
       });
     } else {
       applyProps(childNode, props);
+      // Same props-only invalidation as patchSceneNode's non-reconstruct
+      // branch — without it a demand-mode root never re-renders the change.
+      childNode.root.invalidate();
       finishChildReconcile(childNode, childrenValue, root);
     }
   }
 
   for (const entry of pendingReconstructs) {
-    entry.node.props = entry.props;
-    attachReconstructed(entry.node, entry.oldInstance, entry.build);
+    attachReconstructed(
+      entry.node,
+      entry.oldInstance,
+      entry.build,
+      entry.props,
+    );
     finishChildReconcile(entry.node, entry.childrenValue, root);
   }
 

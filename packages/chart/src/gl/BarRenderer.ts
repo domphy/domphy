@@ -151,7 +151,12 @@ export class BarRenderer {
 
       // Horizontal stacked bars
       for (const [, stackSeries] of stacked) {
-        const stackRights = new Map<number, number>();
+        // ECharts mixed-sign stacking: positive values accumulate rightward
+        // from zero, negative values leftward — two running totals per data
+        // index, not one naive sum. Same-sign stacks behave identically to a
+        // single running total (the other total never leaves zero).
+        const stackRightsPos = new Map<number, number>();
+        const stackRightsNeg = new Map<number, number>();
         stackSeries.forEach((s) => {
           const barColor = color.rgba(
             s.color,
@@ -169,6 +174,7 @@ export class BarRenderer {
                     : null;
             if (rawValue === null) return;
 
+            const stackRights = rawValue >= 0 ? stackRightsPos : stackRightsNeg;
             const prevRight = stackRights.get(dataIndex) ?? 0;
             const newRight = prevRight + rawValue;
             stackRights.set(dataIndex, newRight);
@@ -252,7 +258,12 @@ export class BarRenderer {
       });
 
       for (const [, stackSeries] of stacked) {
-        const stackTops = new Map<number, number>();
+        // ECharts mixed-sign stacking: positive values accumulate upward from
+        // zero, negative values downward — two running totals per data index,
+        // not one naive sum (mirrors the horizontal path above and
+        // engine.ts's accumStackedLines).
+        const stackTopsPos = new Map<number, number>();
+        const stackTopsNeg = new Map<number, number>();
         stackSeries.forEach((s) => {
           const barColor = color.rgba(
             s.color,
@@ -270,6 +281,7 @@ export class BarRenderer {
                     : null;
             if (rawValue === null) return;
 
+            const stackTops = rawValue >= 0 ? stackTopsPos : stackTopsNeg;
             const prevTop = stackTops.get(dataIndex) ?? 0;
             const newTop = prevTop + rawValue;
             stackTops.set(dataIndex, newTop);

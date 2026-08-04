@@ -445,6 +445,8 @@ export {
 export type { NotFoundError } from './not-found'
 export { isNotFound, notFound } from './not-found'
 
+export { MatchSupersededError, isMatchSupersededError } from './load-matches'
+
 export {
   defaultGetScrollRestorationKey,
   getElementScrollRestorationEntry,

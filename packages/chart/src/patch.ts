@@ -57,6 +57,10 @@ function attachChart(
   let rawOption = initialProps.option;
   let currentOption: ChartOption | null = null;
   let unsubscribeOption: (() => void) | null = null;
+  // Tracks whether currentOption changed since the last engine.setOption().
+  // setOption() resets interactive state (legend toggles, dataZoom windows),
+  // so a pure resize must re-render without re-setting the option.
+  let optionDirty = true;
 
   const applySize = () => {
     const rect = container.getBoundingClientRect();
@@ -69,8 +73,16 @@ function attachChart(
 
   const applyOption = () => {
     applySize();
-    if (width && height && initialized && !destroyed && currentOption) {
+    if (!(width && height && initialized && !destroyed && currentOption)) {
+      return;
+    }
+    if (optionDirty) {
+      optionDirty = false;
       engine.setOption(currentOption);
+    } else {
+      // Size-only change (ResizeObserver): re-render in place so legend
+      // toggles and dataZoom windows survive the resize.
+      engine.render();
     }
   };
 
@@ -81,12 +93,14 @@ function attachChart(
     unsubscribeOption?.();
     const optionState = toState(next.option);
     currentOption = optionState.get();
+    optionDirty = true;
     // A bare ReadableState (e.g. readonly()) has no addListener — it renders
     // once per update, same as a plain object.
     unsubscribeOption =
       typeof optionState.addListener === "function"
         ? optionState.addListener(() => {
             currentOption = optionState.get();
+            optionDirty = true;
             applyOption();
           })
         : null;

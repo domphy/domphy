@@ -71,6 +71,46 @@ describe("@domphy/markdown parseMarkdown", () => {
     expect(link.href).toBe("https://domphy.dev");
   });
 
+  it("neutralizes script-capable URL schemes in link hrefs", () => {
+    // remark decodes HTML entities in destinations, so the obfuscated form
+    // arrives as a literal "javascript:" too. Core's sanitizeHTMLString only
+    // covers rawHtml strings, so the walker must guard element attributes.
+    for (const md of [
+      "[x](javascript:alert(1))",
+      "[x](vbscript:msgbox(1))",
+      "[x](data:text/html,<script>alert(1)</script>)",
+      "[x](&#106;avascript:alert(1))",
+    ]) {
+      const body = markdownToDomphy(md);
+      const p = asRecord(body[0]);
+      const link = asRecord((p.p as unknown[])[0]);
+      expect(link.href).toBe("#");
+    }
+  });
+
+  it("neutralizes script-capable URL schemes in image src", () => {
+    const body = markdownToDomphy("![x](javascript:alert(1))");
+    const p = asRecord(body[0]);
+    const img = asRecord((p.p as unknown[])[0]);
+    expect(img.src).toBe("#");
+  });
+
+  it("leaves safe link URLs untouched", () => {
+    for (const url of [
+      "https://domphy.dev",
+      "http://domphy.dev",
+      "mailto:a@b.c",
+      "/relative/path",
+      "#anchor",
+      "data:image/png;base64,AAAA",
+    ]) {
+      const body = markdownToDomphy(`[x](${url})`);
+      const p = asRecord(body[0]);
+      const link = asRecord((p.p as unknown[])[0]);
+      expect(link.href).toBe(url);
+    }
+  });
+
   it("renders images with src and alt", () => {
     const body = markdownToDomphy("![logo](/logo.png)");
     const p = asRecord(body[0]);

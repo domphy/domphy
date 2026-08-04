@@ -1,4 +1,4 @@
-import { cssColor, seriesColor } from "../gl/color.js";
+import { seriesColor } from "../gl/color.js";
 import type { GraphLink, GraphNode, GraphSeriesOption } from "../types.js";
 
 interface PhysicsNode {

@@ -81,4 +81,51 @@ describe("templateFiles", () => {
     expect(mainTs).toBeDefined();
     expect(mainTs?.contents).toContain("applySystemTheme()");
   });
+
+  it("uses layout patches instead of hand-rolled flex styles in main.ts", () => {
+    // Regression: the starter hand-rolled `display: flex` + `gap`/`flexDirection`
+    // inline styles, which AGENTS.md forbids ("Layout, not hand-rolled flex
+    // styles: reach for stack()/row()"). The first file a new user reads must
+    // model the idiomatic pattern.
+    const mainTs = files.find((file) => file.path === "src/main.ts");
+    expect(mainTs).toBeDefined();
+    expect(mainTs?.contents).toContain("$: [row()]");
+    expect(mainTs?.contents).toContain("$: [stack({ gap: 4 })]");
+    expect(mainTs?.contents).not.toContain('display: "flex"');
+  });
+
+  it("has no literal px/rem/em spacing values in main.ts (doctor raw-spacing-value)", () => {
+    // Regression: the starter carried `gap: "8px"`, `marginTop: "12px"`,
+    // `margin: "48px auto"`, `padding: "0 16px"` — five raw-spacing-value
+    // diagnostics on a brand-new project running the prescribed
+    // `domphy-doctor` self-check. themeSpacing() returns calc(…) strings,
+    // which the rule treats as computed and never flags.
+    const mainTs = files.find((file) => file.path === "src/main.ts");
+    expect(mainTs).toBeDefined();
+    const literalSpacing =
+      /\b(?:margin|marginTop|marginBottom|marginBlock|marginInline|padding|paddingInline|paddingBlock|gap|rowGap|columnGap):\s*"[^"]*-?\d+(?:\.\d+)?(?:px|rem|em)\b/;
+    expect(mainTs?.contents).not.toMatch(literalSpacing);
+  });
+
+  it("ships an AGENTS.md whose tone grammar matches the current spec", () => {
+    // Regression: the scaffolded guide documented only inherit/base/shift-N,
+    // omitting the increase-N/decrease-N families and the border-strong alias
+    // the root AGENTS.md has specified since the tone model landed.
+    const agentsMd = files.find((file) => file.path === "AGENTS.md");
+    expect(agentsMd).toBeDefined();
+    expect(agentsMd?.contents).toContain("increase-N");
+    expect(agentsMd?.contents).toContain("decrease-N");
+    expect(agentsMd?.contents).toContain("border-strong");
+  });
+
+  it("ships an AGENTS.md that steers to layout patches and away from removed APIs", () => {
+    // An AI working in the scaffolded project must not revive the removed
+    // form()/field() patches (old docs mention them) and must prefer
+    // stack()/row() over inline flex styles.
+    const agentsMd = files.find((file) => file.path === "AGENTS.md");
+    expect(agentsMd).toBeDefined();
+    expect(agentsMd?.contents).toContain("stack()");
+    expect(agentsMd?.contents).toContain("row()");
+    expect(agentsMd?.contents).toContain("@domphy/form");
+  });
 });

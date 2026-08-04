@@ -5,7 +5,11 @@ export default defineConfig([
     // Main library entry: build-time renderer + cache + tree integration +
     // client patch. Node-only dependencies stay external so they are required
     // lazily at runtime and never bundled.
-    entry: { index: "src/index.ts" },
+    // The separate `client` entry is the browser-safe subpath export
+    // (`@domphy/mermaid/client`): the main index pulls in `node:fs`/`node:crypto`
+    // via the build-time renderer, which breaks browser bundlers (Vite/esbuild)
+    // even when only the client patch is used.
+    entry: { index: "src/index.ts", client: "src/client.ts" },
     format: ["esm", "cjs"],
     globalName: "Domphy",
     dts: true,

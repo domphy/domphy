@@ -125,6 +125,61 @@ describe("rgbToLab known values", () => {
     expect(a).toBeCloseTo(0, 4);
     expect(b).toBeCloseTo(0, 4);
   });
+
+  // Absolute references cross-checked against colormath 3.0 (Python) and
+  // Bruce Lindbloom's CIE calculator; residual error is the 4-7-digit
+  // sRGB<->XYZ matrix precision, bounded well under 0.01 Lab units.
+  it("sRGB red maps to the canonical CIELAB value", () => {
+    const [L, a, b] = rgbToLab(hexToRgb("#ff0000"));
+    expect(L).toBeCloseTo(53.241, 2);
+    expect(a).toBeCloseTo(80.092, 2);
+    expect(b).toBeCloseTo(67.203, 2);
+  });
+
+  it("a mid chromatic blue matches the colormath reference", () => {
+    const [L, a, b] = rgbToLab(hexToRgb("#4a7ff4"));
+    // colormath: (55.2413, 20.5468, -63.9205); matrix-constant precision
+    // accounts for up to ~0.008 units, so bound at 0.01.
+    expect(Math.abs(L - 55.2413)).toBeLessThan(0.01);
+    expect(Math.abs(a - 20.5468)).toBeLessThan(0.01);
+    expect(Math.abs(b - -63.9205)).toBeLessThan(0.01);
+  });
+});
+
+describe("rgbToOklab known values", () => {
+  // Ottosson's published reference for linear sRGB red (2020 spec post).
+  it("linear sRGB red maps to the published Oklab value", () => {
+    const [L, a, b] = rgbToOklab([1, 0, 0]);
+    expect(L).toBeCloseTo(0.6279554, 6);
+    expect(a).toBeCloseTo(0.2248631, 6);
+    expect(b).toBeCloseTo(0.1258463, 6);
+  });
+});
+
+describe("calcDeltaE2000 known values", () => {
+  // Cross-checked against colormath 3.0 delta_e_cie2000 (agrees to < 0.002).
+  it("red vs green matches the independent reference", () => {
+    const dE = calcDeltaE2000(
+      rgbToLab(hexToRgb("#ff0000")),
+      rgbToLab(hexToRgb("#00ff00")),
+    );
+    expect(dE).toBeCloseTo(86.608, 2);
+  });
+
+  it("white vs black is ~100 and identical colors are 0", () => {
+    expect(
+      calcDeltaE2000(
+        rgbToLab(hexToRgb("#ffffff")),
+        rgbToLab(hexToRgb("#000000")),
+      ),
+    ).toBeCloseTo(100, 1);
+    expect(
+      calcDeltaE2000(
+        rgbToLab(hexToRgb("#808080")),
+        rgbToLab(hexToRgb("#808080")),
+      ),
+    ).toBe(0);
+  });
 });
 
 describe("labToLch", () => {

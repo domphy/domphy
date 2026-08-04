@@ -73,6 +73,10 @@ function combobox(props: {
     dataTone: "shift-14",
     style: {
       backgroundColor: (listener) => themeColor(listener, "inherit"),
+      // Surface contract (dataTone-surface-contract): a tone-anchored panel
+      // must declare BOTH background and text color — on the dark shift-14
+      // surface, inherited portal context colors can fall below contrast.
+      color: (listener) => themeColor(listener, "text"),
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
       outline: (listener) =>
         `1px solid ${themeColor(listener, "border-strong")}`,

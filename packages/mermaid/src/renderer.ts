@@ -84,7 +84,16 @@ export async function renderMermaidToSvg(
 
   const theme = options.theme ?? "default";
   const background = options.background ?? "transparent";
-  const mermaidConfig = { theme, ...(options.mermaidConfig ?? {}) };
+  // securityLevel defaults to "strict", pinned for the same reason as the
+  // client path (see resolveMermaidConfig in client.ts): diagram source is
+  // author-supplied text and the rendered SVG is later inlined into the page,
+  // so mermaid's built-in HTML sanitization must not silently fall back to a
+  // looser library default. An explicit caller choice still wins.
+  const mermaidConfig = {
+    theme,
+    securityLevel: "strict",
+    ...(options.mermaidConfig ?? {}),
+  };
 
   const { run } = await loadMermaidCli();
 

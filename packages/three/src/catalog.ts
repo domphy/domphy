@@ -25,8 +25,18 @@ export function resolve(tag: string): Constructable | null {
   const name = toPascalCase(tag);
   const fromRegistry = registry[name];
   if (fromRegistry) return fromRegistry;
-  const fromThree = (THREE as unknown as Record<string, Constructable>)[name];
-  return fromThree ?? null;
+  // The THREE namespace also exports non-constructors whose PascalCase names
+  // collide with the tag grammar (AdditiveBlending = 2, MOUSE = object,
+  // REVISION = string). Accepting them would defer the failure to a runtime
+  // `TagClass is not a constructor` instead of the friendly "not part of the
+  // THREE namespace!" error — so only functions count as tags here. (Falsy
+  // entries like NoBlending = 0 already fell through to null; the typeof
+  // check makes the rejection consistent.) Registry entries from extend()
+  // are trusted as-is: the user explicitly opted them in.
+  const fromThree: unknown = (THREE as unknown as Record<string, unknown>)[
+    name
+  ];
+  return typeof fromThree === "function" ? (fromThree as Constructable) : null;
 }
 
 // Test-only escape hatch: reset the registry between test cases.

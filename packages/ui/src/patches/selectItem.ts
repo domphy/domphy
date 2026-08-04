@@ -31,6 +31,9 @@ function selectItem(
 
   const partial: PartialElement = {
     role: "option",
+    // Programmatically focusable (not tabbable): selectBox typeahead and
+    // keyboard navigation move focus between options roving-style.
+    tabindex: -1,
     // aria-selected and the click toggler must be DECLARED on the partial, not
     // wired imperatively in _onInit: hooks run once per real DOM node, but
     // patch() resets _events and strips undeclared attributes on every

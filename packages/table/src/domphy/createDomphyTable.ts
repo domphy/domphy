@@ -49,6 +49,18 @@ export interface DomphyTable<TData extends RowData> {
 
   setState(updater: Updater<TableState>): void
 
+  /**
+   * Feeds new options into the table (new `data`, new `columns`, changed
+   * feature callbacks, …) and bumps the version counter so reactive readers
+   * re-render. The row models re-derive automatically on a `data` identity
+   * change (including `autoResetPageIndex` page-index clamping on data
+   * shrink). Do NOT use this for `state` or `onStateChange` — state updates
+   * go through `setState`, and `onStateChange` is owned by the adapter.
+   */
+  setOptions(
+    updater: Updater<TableOptionsResolved<TData>>,
+  ): void
+
   /** Releases the version state's listeners. Call from `_onRemove`. */
   destroy(): void
 
@@ -123,6 +135,9 @@ export function createDomphyTable<TData extends RowData>(
   options: TableOptions<TData>,
 ): DomphyTable<TData> {
   const version = new State(0, "tableVersion")
+  // Set by destroy(): suppresses any further version writes so a table that
+  // outlives its binding never writes to a disposed state (DEV warns).
+  let destroyed = false
 
   const table = createTable<TData>({
     ...options,
@@ -142,8 +157,8 @@ export function createDomphyTable<TData extends RowData>(
       options.onStateChange?.(updater)
       // No-op update (the updater returned the state unchanged): skip the
       // version bump — otherwise renders re-run for changes that never
-      // happened.
-      if (next === previousState) return
+      // happened. Post-destroy the version state is disposed; skip the write.
+      if (next === previousState || destroyed) return
       version.set(version.get() + 1)
     },
     renderFallbackValue: options.renderFallbackValue ?? null,
@@ -169,7 +184,26 @@ export function createDomphyTable<TData extends RowData>(
     version: (listener) => version.get(listener),
     state: (listener) => read(listener, () => table.getState()),
     setState: (updater) => table.setState(updater),
-    destroy: () => version._dispose(),
+    setOptions: (updater) => {
+      // Resolve the updater here (table-core's setOptions always merges into
+      // a fresh object, so post-hoc identity can't detect a no-op): an
+      // identity-returning updater changes nothing — skip apply + bump.
+      const next =
+        typeof updater === "function"
+          ? (updater as (old: TableOptionsResolved<TData>) => TableOptionsResolved<TData>)(
+              table.options,
+            )
+          : updater
+      if (next === table.options) return
+      table.setOptions(() => next)
+      // Post-destroy the version state is disposed; skip the write.
+      if (destroyed) return
+      version.set(version.get() + 1)
+    },
+    destroy: () => {
+      destroyed = true
+      version._dispose()
+    },
 
     getRowModel: (listener) => read(listener, () => table.getRowModel()),
     getHeaderGroups: (listener) => read(listener, () => table.getHeaderGroups()),

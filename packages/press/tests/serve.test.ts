@@ -62,6 +62,29 @@ describe("startServer", () => {
     expect(response.status).toBe(404);
     expect(await response.text()).toContain("not found");
   });
+
+  it("never serves files outside the root (path traversal)", async () => {
+    const secretName = `press-serve-secret-${process.pid}.txt`;
+    const secret = join(tmpdir(), secretName);
+    writeFileSync(secret, "top secret");
+    try {
+      server = startServer(root, 0);
+      const base = await listen(server);
+      for (const attempt of [
+        // Sibling of root: served if the ../ guard ever regresses.
+        `/../${secretName}`,
+        `/..%2F${secretName}`,
+        `/..%5c${secretName}`,
+        `/%2e%2e/%2e%2e/${secretName}`,
+      ]) {
+        const response = await fetch(base + attempt);
+        expect(response.status).toBe(404);
+        expect(await response.text()).not.toContain("top secret");
+      }
+    } finally {
+      rmSync(secret, { force: true });
+    }
+  });
 });
 
 describe("startDevServer", () => {

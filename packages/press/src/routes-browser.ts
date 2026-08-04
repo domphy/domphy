@@ -2,6 +2,22 @@
 // The file-discovery functions (discoverPages) stay in routes.ts (Node.js-only).
 import type { SidebarItem, SiteConfig } from "./types.js";
 
+/**
+ * Prefixes a root-relative href with the site base (VitePress `withBase`
+ * parity) so internal links resolve on non-root deployments (base "/docs/").
+ * External URLs, anchors, and hrefs already under the base pass through.
+ * Root-relative routes stay base-LESS everywhere else (search index, sitemap
+ * slugs, navLink active matching) — this helper is for emitted hrefs only.
+ */
+export function withBase(base: string, href: string): string {
+  if (!href.startsWith("/")) return href;
+  const prefix = base === "/" ? "" : base.replace(/\/+$/, "");
+  if (!prefix) return href;
+  return href === prefix || href.startsWith(`${prefix}/`)
+    ? href
+    : `${prefix}${href}`;
+}
+
 export function flattenSidebar(
   items: SidebarItem[],
 ): { text: string; link: string }[] {

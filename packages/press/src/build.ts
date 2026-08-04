@@ -18,6 +18,7 @@ import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createApp, defineRoutes } from "@domphy/app";
 import type { DomphyElement } from "@domphy/core";
+import { configure } from "@domphy/core";
 import { themeCSS } from "@domphy/theme";
 import type * as EsbuildType from "esbuild";
 import { createHighlighter } from "./highlight.js";
@@ -154,6 +155,7 @@ export function hashConfig(config: SiteConfig): string {
         hostname: config.hostname,
         base: config.base,
         head: config.head,
+        cspNonce: config.cspNonce,
         lastUpdated: config.lastUpdated,
         locales: config.locales,
         themeConfig: config.themeConfig,
@@ -233,11 +235,11 @@ function escapeXml(value: string): string {
     .replace(/'/g, "&apos;");
 }
 
-function toAbsUrl(hostname: string, route: string): string {
+function toAbsUrl(hostname: string, route: string, basePrefix = ""): string {
   return escapeXml(
     route === "/"
-      ? `${hostname}/`
-      : `${`${hostname}${route}`.replace(/\/+$/, "")}/`,
+      ? `${hostname}${basePrefix}/`
+      : `${`${hostname}${basePrefix}${route}`.replace(/\/+$/, "")}/`,
   );
 }
 
@@ -245,6 +247,7 @@ function buildSitemap(
   routes: string[],
   hostname: string,
   locales?: Record<string, import("./types.js").LocaleConfig>,
+  basePrefix = "",
 ): string {
   const routeSet = new Set(routes);
   const localePairs = locales ? Object.entries(locales) : [];
@@ -262,7 +265,7 @@ function buildSitemap(
       : (localePairs[0]?.[0] ?? "/");
 
   const urls = routes.map((route) => {
-    const loc = toAbsUrl(hostname, route);
+    const loc = toAbsUrl(hostname, route, basePrefix);
 
     if (!hasAlternates) return `  <url><loc>${loc}</loc></url>`;
 
@@ -285,7 +288,7 @@ function buildSitemap(
       const altRoute = prefix === "/" ? slug : prefix + slug.slice(1);
       if (!routeSet.has(altRoute)) continue;
       alternates.push(
-        `    <xhtml:link rel="alternate" hreflang="${escapeXml(locale.lang)}" href="${toAbsUrl(hostname, altRoute)}"/>`,
+        `    <xhtml:link rel="alternate" hreflang="${escapeXml(locale.lang)}" href="${toAbsUrl(hostname, altRoute, basePrefix)}"/>`,
       );
     }
 
@@ -294,7 +297,7 @@ function buildSitemap(
       defaultPrefix === "/" ? slug : defaultPrefix + slug.slice(1);
     if (routeSet.has(xDefaultRoute)) {
       alternates.push(
-        `    <xhtml:link rel="alternate" hreflang="x-default" href="${toAbsUrl(hostname, xDefaultRoute)}"/>`,
+        `    <xhtml:link rel="alternate" hreflang="x-default" href="${toAbsUrl(hostname, xDefaultRoute, basePrefix)}"/>`,
       );
     }
 
@@ -389,12 +392,80 @@ addEventListener('DOMContentLoaded',function(){
 });
 })();`;
 
-function mermaidHeadScript(mermaid: boolean | { cdn?: string }): string {
+// Inline source of the SVG sanitizer embedded in the mermaid head script
+// below — the script runs standalone in the browser and cannot import
+// @domphy/core, so this mirrors core's sanitizeHTMLString (script elements,
+// on* handler attributes, srcdoc documents, script-capable URL schemes after
+// canonicalization). Defense in depth on top of mermaid's strict
+// securityLevel, which the script pins at initialize time. Exported so tests
+// can evaluate it directly and verify payload stripping.
+export const mermaidSanitizeSource = `function sanitize(html){
+html=html.replace(/<script[\\s/>][\\s\\S]*?<\\/script\\s*>/gi,'');
+html=html.replace(/<script[\\s/>][^>]*>/gi,'');
+html=html.replace(/<script[\\s/>][\\s\\S]*$/gi,'');
+html=html.replace(/([\\s/])on[a-zA-Z][\\w-]*\\s*=\\s*("[^"]*"|'[^']*'|[^\\s>]*)/gi,'$1');
+html=html.replace(/([\\s/])srcdoc\\s*=\\s*("[^"]*"|'[^']*'|[^\\s>]*)/gi,'$1');
+html=html.replace(/((?:href|src|action|formaction|data)\\s*=\\s*)("([^"]*)"|'([^']*)'|([^\\s>]*))/gi,function(match,prefix,_raw,dq,sq,bare){
+var canonical=(dq||sq||bare||'')
+.replace(/&#(x?[0-9a-fA-F]+);/gi,function(_,code){var cp=code.charAt(0)==='x'||code.charAt(0)==='X'?parseInt(code.slice(1),16):parseInt(code,10);return cp>=0&&cp<=0x10ffff?String.fromCodePoint(cp):'';})
+.replace(/&Tab;/gi,'\\t').replace(/&NewLine;/gi,'\\n')
+.replace(/[\\x00-\\x20]+/g,'').toLowerCase();
+if(canonical.indexOf('javascript:')===0||canonical.indexOf('vbscript:')===0||canonical.indexOf('data:text/html')===0||canonical.indexOf('data:application/xhtml+xml')===0)return prefix+'"#"';
+return match;
+});
+return html;
+}`;
+
+function mermaidHeadScript(
+  mermaid: boolean | { cdn?: string },
+  nonceAttr: string,
+): string {
   const cdn =
     typeof mermaid === "object" && mermaid.cdn
       ? mermaid.cdn
       : "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
-  return `<script type="module">(async()=>{const blocks=[...document.querySelectorAll('.dp-mermaid')];if(!blocks.length)return;let m=null,i=0;const load=async()=>{if(m)return;const mod=await import('${cdn}');m=mod.default;m.initialize({startOnLoad:false,theme:document.documentElement.getAttribute('data-theme')==='dark'?'dark':'default'});};const obs=new IntersectionObserver(async(entries)=>{for(const e of entries){if(!e.isIntersecting)continue;obs.unobserve(e.target);await load();try{const{svg}=await m.render('dp-m-'+(i++),e.target.textContent||'');const w=document.createElement('div');w.className='mermaid';w.innerHTML=svg;e.target.replaceWith(w);}catch(_){}}},{rootMargin:'200px 0px'});blocks.forEach(b=>obs.observe(b));})();</script>`;
+  return `<script type="module"${nonceAttr}>(async()=>{
+const blocks=[...document.querySelectorAll('.dp-mermaid')];
+if(!blocks.length)return;
+${mermaidSanitizeSource}
+let mermaid=null,index=0;
+const rendered=[];
+// mermaid.initialize() mutates the library's GLOBAL config, so every
+// initialize+render pair is serialized through this queue — a theme-flip
+// re-render must not interleave with an in-flight first render.
+let queue=Promise.resolve();
+const enqueue=(task)=>{const result=queue.then(task);queue=result.catch(()=>{});return result;};
+const currentTheme=()=>document.documentElement.getAttribute('data-theme')==='dark'?'dark':'default';
+const load=async()=>{if(mermaid)return;const mod=await import('${cdn}');mermaid=mod.default;};
+const renderSource=async(source)=>{
+await load();
+// Pin strict: diagram source is author-supplied text and the rendered SVG is
+// written via innerHTML, so mermaid's label sanitization must not rest on the
+// library default never changing.
+mermaid.initialize({startOnLoad:false,securityLevel:'strict',theme:currentTheme()});
+const {svg}=await mermaid.render('dp-m-'+(index++),source);
+return sanitize(svg);
+};
+const renderBlock=(el)=>enqueue(async()=>{
+try{
+const source=el.textContent||'';
+const svg=await renderSource(source);
+const wrapper=document.createElement('div');
+wrapper.className='mermaid';
+wrapper.innerHTML=svg;
+el.replaceWith(wrapper);
+rendered.push({el:wrapper,source});
+}catch(_){}
+});
+const observer=new IntersectionObserver((entries)=>{for(const e of entries){if(!e.isIntersecting)continue;observer.unobserve(e.target);renderBlock(e.target);}},{rootMargin:'200px 0px'});
+blocks.forEach((b)=>observer.observe(b));
+// Follow [data-theme] flips: re-render already-rendered diagrams with the
+// new theme.
+new MutationObserver(()=>{
+if(!mermaid||rendered.length===0)return;
+for(const r of rendered)enqueue(async()=>{try{r.el.innerHTML=await renderSource(r.source);}catch(_){}});
+}).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+})();</script>`;
 }
 
 function htmlDocument(
@@ -404,12 +475,13 @@ function htmlDocument(
   generatedCss: string,
   pageHead: string[],
   lang: string,
+  nonceAttr: string,
 ): string {
   const islandsScript = islandsScriptUrl
-    ? `\n<script type="module" src="${islandsScriptUrl}"></script>`
+    ? `\n<script type="module" src="${islandsScriptUrl}"${nonceAttr}></script>`
     : "";
   const mermaidScript = config.themeConfig.mermaid
-    ? mermaidHeadScript(config.themeConfig.mermaid)
+    ? mermaidHeadScript(config.themeConfig.mermaid, nonceAttr)
     : "";
   return `<!DOCTYPE html>
 <html lang="${lang}" data-theme="light">
@@ -422,9 +494,9 @@ ${result.head}
 ${config.head.join("\n")}
 ${pageHead.join("\n")}
 ${mermaidScript}
-<style>${generatedCss}</style>
-<style id="domphy-style">${result.css}</style>
-<script>${RUNTIME_SCRIPT}</script>
+<style${nonceAttr}>${generatedCss}</style>
+<style id="domphy-style"${nonceAttr}>${result.css}</style>
+<script${nonceAttr}>${RUNTIME_SCRIPT}</script>
 </head>
 <body>
 <div id="domphy-app">${result.html}</div>${islandsScript}
@@ -448,6 +520,16 @@ export async function buildSite(options: BuildOptions): Promise<void> {
   const showLastUpdated = !!config.lastUpdated;
   const rawBase = config.base ?? "/";
   const base = rawBase.endsWith("/") ? rawBase : `${rawBase}/`;
+  // URL prefix for emitted absolute hrefs on non-root deployments ("/docs").
+  const basePrefix = base === "/" ? "" : base.replace(/\/+$/, "");
+  // CSP: stamp the configured nonce on every press-emitted inline <script>/
+  // <style> below, and propagate it into @domphy/app SSR (its injected head
+  // tags read getConfig().cspNonce at render time). Passing undefined clears
+  // a nonce set by an earlier buildSite call in the same process.
+  configure({ cspNonce: config.cspNonce });
+  const nonceAttr = config.cspNonce
+    ? ` nonce="${escapeXml(config.cspNonce)}"`
+    : "";
   // Per-page failures from BOTH render stages, printed together at the end.
   const failures: Array<{ route: string; stage: string; error: string }> = [];
 
@@ -657,10 +739,9 @@ export async function buildSite(options: BuildOptions): Promise<void> {
       const siteTitle = localeConfig?.title ?? config.title;
       const pageTitle =
         page.title === siteTitle ? siteTitle : `${page.title} | ${siteTitle}`;
-      const canonical =
-        page.route === "/"
-          ? `${config.hostname}/`
-          : `${config.hostname}${page.route}/`;
+      // Index routes already end in "/" — collapse before appending the
+      // trailing slash or the canonical gets a double slash ("/docs//").
+      const canonical = `${`${config.hostname}${basePrefix}${page.route}`.replace(/\/+$/, "")}/`;
       const pageHead = Array.isArray(page.doc.frontmatter.head)
         ? (page.doc.frontmatter.head as string[]).filter(
             (s) => typeof s === "string",
@@ -677,7 +758,7 @@ export async function buildSite(options: BuildOptions): Promise<void> {
           openGraph: {
             title: pageTitle,
             description,
-            url: page.route === "/" ? "/" : `${page.route}/`,
+            url: `${`${basePrefix}${page.route}`.replace(/\/+$/, "")}/`,
             siteName: siteTitle,
             type: "website" as const,
           },
@@ -709,6 +790,7 @@ export async function buildSite(options: BuildOptions): Promise<void> {
         generatedCss,
         pageHead,
         lang,
+        nonceAttr,
       );
       const outPath = join(outDir, page.outFile);
       mkdirSync(dirname(outPath), { recursive: true });
@@ -762,6 +844,7 @@ export async function buildSite(options: BuildOptions): Promise<void> {
         generatedCss,
         [],
         "en",
+        nonceAttr,
       ),
       "utf8",
     );
@@ -792,6 +875,7 @@ export async function buildSite(options: BuildOptions): Promise<void> {
         [...cachedRoutes, ...built.map((p) => p.route)],
         config.hostname,
         config.locales,
+        basePrefix,
       ),
       "utf8",
     );

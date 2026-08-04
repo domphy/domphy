@@ -145,6 +145,14 @@ export class EditorView implements EditorViewLike {
     );
     element.setAttribute("role", "textbox");
     element.setAttribute("aria-multiline", "true");
+    // role=textbox needs an accessible name (axe aria-input-field-name) —
+    // supply a default, but never override a name the host already carries.
+    if (
+      !element.hasAttribute("aria-label") &&
+      !element.hasAttribute("aria-labelledby")
+    ) {
+      element.setAttribute("aria-label", "Rich text editor");
+    }
     if (!element.hasAttribute("tabindex")) {
       element.setAttribute("tabindex", "0");
     }

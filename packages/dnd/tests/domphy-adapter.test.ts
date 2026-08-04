@@ -96,6 +96,28 @@ describe("dragDrop reorder -> bound State", () => {
 
     expect(parents.get(ul)).toBeUndefined();
   });
+
+  it("removal after registration tears FormKit down (listeners, observer, registry)", async () => {
+    const items = toState<Item[]>([{ id: 1, label: "A" }]);
+
+    const { host, node } = mount({
+      ul: (l) =>
+        items.get(l).map((item) => ({ li: item.label, _key: item.id })),
+      $: [dragDrop(items)],
+    } as DomphyElement);
+
+    const ul = host.querySelector("ul") as HTMLUListElement;
+    await waitFrame();
+    await waitFrame();
+    expect(parents.get(ul)).toBeDefined();
+
+    // The behavior's destroy() runs on removal and must call FormKit's
+    // tearDown() — which disconnects the MutationObserver, aborts the
+    // parent-level listeners, and deletes the parent from the registry.
+    node.remove();
+
+    expect(parents.get(ul)).toBeUndefined();
+  });
 });
 
 describe("dragDrop cross-generation re-renders (reused-node behavior)", () => {

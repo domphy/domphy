@@ -176,7 +176,11 @@ function editorContent(
         borderRadius: themeSpacing(1),
         backgroundColor: (listener) =>
           themeColor(listener, "surface", color.get(listener)),
-        color: (listener) => themeColor(listener, "text", color.get(listener)),
+        // One step stronger than body text: the chip's own surface lifts the
+        // background to shift-1, where shift-9 text only reaches 4.2:1 —
+        // below WCAG AA (axe color-contrast). Gap restored to 9.
+        color: (listener) =>
+          themeColor(listener, "shift-10", color.get(listener)),
       },
       "& pre": {
         padding: themeSpacing(3),
@@ -184,7 +188,8 @@ function editorContent(
         overflowX: "auto",
         backgroundColor: (listener) =>
           themeColor(listener, "surface", color.get(listener)),
-        color: (listener) => themeColor(listener, "text", color.get(listener)),
+        color: (listener) =>
+          themeColor(listener, "shift-10", color.get(listener)),
       },
       // A code block's own surface already carries the tone — the inline
       // `code` chrome nested inside it would double it up.
@@ -210,6 +215,9 @@ function editorContent(
         textAlign: "start",
         backgroundColor: (listener) =>
           themeColor(listener, "surface", color.get(listener)),
+        // Same WCAG AA lift as the code chip: surface bg + shift-9 text is 4.2:1.
+        color: (listener) =>
+          themeColor(listener, "shift-10", color.get(listener)),
       },
       "& hr": {
         border: "none",

@@ -78,8 +78,11 @@ function linkButton(
         outline: "none",
         transition:
           "background-color 140ms ease, color 140ms ease, box-shadow 140ms ease",
-        color: (listener) =>
-          themeColor(listener, "shift-6", color.get(listener)),
+        // Resting text uses the "text" alias (shift-9), matching buttonGhost:
+        // a text-labeled ghost control fails WCAG AA at the previous shift-6
+        // (~2.4:1 on an edge surface). Hover/active differentiate via
+        // background only.
+        color: (listener) => themeColor(listener, "text", color.get(listener)),
         "&:hover:not([aria-disabled=true])": {
           color: (listener) =>
             themeColor(listener, "text", color.get(listener)),

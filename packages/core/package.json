@@ -44,8 +44,10 @@
     "url": "https://github.com/domphy/domphy.git",
     "directory": "packages/core"
   },
+  "dependencies": {
+    "csstype": "^3.2.3"
+  },
   "devDependencies": {
-    "csstype": "^3.2.3",
     "jsdom": "^29.1.1",
     "tsup": "^8.5.0",
     "typescript": "^5.8.3",

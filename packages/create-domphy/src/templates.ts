@@ -15,6 +15,9 @@ export interface DomphyVersions {
   ui: string;
 }
 
+// vite stays on ^6: vite 7 requires Node ^20.19 || >=22.12, and this starter
+// deliberately keeps Node 18-era compatibility (no engines floor is declared
+// in the scaffolded package.json). Revisit when the template drops Node 18.
 const packageJson = `{
   "name": "__PROJECT_NAME__",
   "private": true,
@@ -60,8 +63,8 @@ const indexHtml = `<!doctype html>
 `;
 
 const mainTs = `import { ElementNode, type DomphyElement, toState } from "@domphy/core";
-import { applySystemTheme, themeApply } from "@domphy/theme";
-import { button, card, heading, paragraph } from "@domphy/ui";
+import { applySystemTheme, themeApply, themeSpacing } from "@domphy/theme";
+import { button, card, heading, paragraph, row, stack } from "@domphy/ui";
 
 // Apply the Domphy design tokens to the document once at startup, then
 // activate a theme (follows the OS light/dark preference). Without an
@@ -97,19 +100,21 @@ const App: DomphyElement<"div"> = {
               $: [button()],
             },
           ],
-          style: { display: "flex", gap: "8px", marginTop: "12px" },
+          // Layout comes from patches, never hand-rolled flex styles.
+          $: [row()],
         },
       ],
-      $: [card()],
+      $: [card(), stack()],
     },
   ],
+  // stack() owns the vertical rhythm; themeSpacing() keeps the structural
+  // spacing on the design-token scale instead of literal px values.
+  $: [stack({ gap: 4 })],
   style: {
     maxWidth: "560px",
-    margin: "48px auto",
-    padding: "0 16px",
-    display: "flex",
-    flexDirection: "column",
-    gap: "16px",
+    marginInline: "auto",
+    marginBlock: themeSpacing(12),
+    paddingInline: themeSpacing(4),
   },
 };
 
@@ -223,15 +228,21 @@ const App = {
   \`small()\`, \`paragraph()\`, \`heading()\`, \`link()\`, \`strong()\`,
   \`emphasis()\`, \`code()\`, \`keyboard()\`.
 - **Theme, not hard-coded values:** \`themeColor()\`, \`themeSpacing()\`,
-  \`themeSize()\`, \`themeDensity()\`; tones are \`inherit\`/\`base\`/\`shift-N\`
-  or the semantic aliases \`surface\`/\`hover\`/\`border\`/\`muted\`/\`text\`
-  (prefer aliases over raw \`shift-N\`).
+  \`themeSize()\`, \`themeDensity()\`; tones are \`inherit\`/\`base\`/\`shift-N\`/
+  \`increase-N\`/\`decrease-N\` or the semantic aliases \`surface\`/\`hover\`/
+  \`border\`/\`border-strong\`/\`muted\`/\`text\` (prefer aliases over raw
+  \`shift-N\`).
+- **Layout, not hand-rolled flex styles:** use the \`stack()\` (vertical) and
+  \`row()\` (horizontal) layout patches before writing
+  \`style: { display: "flex", gap: ... }\` inline.
 - **\`_key\`** on dynamic/reordered child lists (identity for reconcile).
 - **Lifecycle hooks** (\`_onMount\`, \`_onBeforeRemove(node, done)\` — must call
   \`done()\`, \`_onRemove\`) for imperative/3rd-party integration; events stay flat
   (\`onClick\`, \`onInput\`).
 - **Comments in code: English only.** Names: descriptive, no abbreviations
   (\`index\` not \`i\` except loops; listener \`l\`, event \`e\`, node \`node\`).
+- **Removed APIs:** the \`form()\`/\`field()\` patches and \`FormState\`/
+  \`FieldState\` no longer exist — use \`@domphy/form\` (\`createForm\`) for forms.
 
 ## Packages
 

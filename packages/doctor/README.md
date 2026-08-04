@@ -1,4 +1,4 @@
-﻿# @domphy/doctor
+# @domphy/doctor
 
 **[domphy.com](https://domphy.com)** · [Docs](https://domphy.com/docs/doctor/) · [npm](https://www.npmjs.com/package/@domphy/doctor)
 
@@ -53,7 +53,7 @@ interface Diagnostic {
 
 ## Rules
 
-The doctor implements 18 rules:
+The doctor implements 22 rules:
 
 | Rule | Severity | Catches |
 | --- | --- | --- |
@@ -67,7 +67,7 @@ The doctor implements 18 rules:
 | `raw-spacing-value` | info | a literal `rem`/`em`/`px` spacing value in a spacing `style` prop — use `themeSpacing()` |
 | `low-opacity` | warning/info | `style.opacity` < 0.6 on a control; info if hover-restore pattern (`&:hover: { opacity: '1' }`) is detected |
 | `tone-background-inherit` | warning | `style.backgroundColor` resolves to a fixed shifted tone var instead of the inherit tone — use `dataTone` to shift the surface, not `backgroundColor` |
-| `missing-color` | warning | element uses `themeColor()` for at least one styled prop but has no `style.color` — text color won't re-evaluate when the tone context shifts |
+| `missing-color` | warning | element uses `themeColor()` for at least one styled prop but has no `style.color` — text color won't re-evaluate when the tone context shifts (null-content decorative hosts, e.g. swatches/glyphs, are exempt) |
 | `low-contrast` | warning | `style.color` and `style.backgroundColor` are both reactive theme vars but their shift-step gap is < 9 (insufficient contrast) |
 | `dataTone-surface-contract` | warning | element sets `dataTone` but is missing `backgroundColor` and/or `color` — a tone context surface must declare both so children can guarantee readable contrast |
 | `color-shift-minimum` | warning | element with `dataTone` sets `style.color` to a tone step < 9 — below the minimum for legible body text |
@@ -75,6 +75,10 @@ The doctor implements 18 rules:
 | `middle-surface-anchor` | warning | a `dataTone` of `shift-4`…`shift-13` (mid-ramp surface anchor) that may collapse child contrast |
 | `unknown-density` | warning/error | a `dataDensity` that isn't valid grammar, or whose offset is out of the 5-step range (0–4) |
 | `unknown-size` | warning/error | a `dataSize` that isn't valid grammar, or whose offset is out of the 8-step range (0–7) |
+| `invalid-nesting` | error | HTML content-model violations the browser re-parents (breaking SSR/hydration): flow content in `<p>`, `a`/`button` inside `a`/`button`, `li`/`dt`/`dd`/`tr`/`td`/`th`/`option`/table-section tags with the wrong parent, non-`li` element child of `ul`/`ol`. Declared direct parent-child pairs only — reactive content, `rawHtml`, and SVG subtrees are exempt |
+| `click-without-keyboard` | warning | an `onClick` on a non-interactive element (not a/button/input/select/textarea/summary/label, no interactive role, no `tabIndex`) without a keyboard handler — hidden elements exempt |
+| `missing-required-attribute` | error (warning for `a`) | `<img>` without `alt` (`aria-label`/`aria-labelledby`/`role: "presentation"\|"none"` accepted), `<iframe>` without `title`; `<a>` with `onClick` but no `href`/`role` is a warning |
+| `unused-doctor-disable` | info | a `_doctorDisable` entry that suppresses nothing on its element — the named rule fired no diagnostic there, `_doctorDisable: true` consumed nothing, or the id matches no known rule (typo detection, à la ESLint's `reportUnusedDisableDirectives`) |
 
 By default the doctor **invokes reactive content functions** with a no-op listener to inspect their output (this is how `missing-key` is detected). Pass `{ runReactive: false }` if your reactive functions have side effects.
 
@@ -86,7 +90,7 @@ By default the doctor **invokes reactive content functions** with a no-op listen
 npx domphy-doctor src/
 ```
 
-Flags: `--only <rules>`, `--exclude <rules>`, `--no-reactive`, `--no-output` (skip Layer 4, see below), `--format text|json`. Exit code `1` when any error-severity diagnostic is found, `2` on a CLI/usage error. See the [configuration docs](https://domphy.com/docs/doctor/configuration) for the full flag reference.
+Flags: `--only <rules>`, `--exclude <rules>`, `--no-reactive`, `--no-output` (skip Layer 4, see below), `--no-factory-exec` (never invoke exported functions as zero-arg factories — suppresses `factory-threw` warnings on component-library files whose factories require props), `--format text|json`. Exit code `1` when any error-severity diagnostic is found, `2` on a CLI/usage error. See the [configuration docs](https://domphy.com/docs/doctor/configuration) for the full flag reference.
 
 ## Layer 4: HTML/CSS output linting
 

@@ -9,8 +9,22 @@ import {
   animations,
   dragAndDrop,
   type ParentConfig,
+  parents,
   tearDown,
 } from "@formkit/drag-and-drop";
+
+// FormKit's tearDown() only aborts the parent-level listeners — it leaves the
+// entry in the exported `parents` registry and never disconnects the
+// MutationObserver it created at setup (no observer handle is exposed
+// upstream). The orphaned observer keeps firing remapNodes() against the stale
+// registry entry — on a detached parent after removal, and TWICE per mutation
+// after a tearDown+re-register cycle (old observer + new observer). Deleting
+// the registry entry neutralizes the orphan: remapNodes() no-ops on an
+// unknown parent. (The observer/target cycle itself is GC-able once detached.)
+function tearDownFully(parent: HTMLElement): void {
+  tearDown(parent);
+  parents.delete(parent);
+}
 
 export interface DragDropConfig<T> extends Partial<ParentConfig<T>> {
   /** Enable sort animations. Default: true. */
@@ -88,7 +102,7 @@ export function attachDragDrop<T>(
   const register = () => {
     if (!parent) return;
     if (registered) {
-      tearDown(parent);
+      tearDownFully(parent);
       registered = false;
     }
     const { values, group } = props;
@@ -141,7 +155,7 @@ export function attachDragDrop<T>(
       disposed = true;
       cancelFrames();
       if (parent && registered) {
-        tearDown(parent);
+        tearDownFully(parent);
         registered = false;
       }
     },

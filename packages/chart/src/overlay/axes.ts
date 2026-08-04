@@ -54,6 +54,23 @@ function svgLine(
 
 // ─── Axis rendering ───────────────────────────────────────────────────────────
 
+// ECharts axisLabel.formatter semantics: a function receives (value, index);
+// a string is a template where "{value}" is replaced with the default label.
+function formatAxisLabel(
+  axis: AxisOption,
+  scale: AnyScale,
+  tick: unknown,
+  index: number,
+): string {
+  const formatter = axis.axisLabel?.formatter;
+  if (typeof formatter === "function") return String(formatter(tick, index));
+  const fallback = scale.format(tick as any);
+  if (typeof formatter === "string") {
+    return formatter.replace(/\{value\}/g, fallback);
+  }
+  return fallback;
+}
+
 export function renderAxes(
   svg: SVGSVGElement,
   options: AxisSvgOptions,
@@ -137,7 +154,7 @@ export function renderAxes(
 
       if (axis.axisLabel?.show !== false && ti % labelInterval === 0) {
         const labelY = finalY + (isBottom ? 18 : -8);
-        const label = scale.format(tick as any);
+        const label = formatAxisLabel(axis, scale, tick, ti);
         const textEl = svgText(label, tickX, labelY, {
           fill: labelColor,
           "text-anchor": "middle",
@@ -194,7 +211,8 @@ export function renderAxes(
     }
 
     const ticks = scale.ticks(6);
-    for (const tick of ticks) {
+    for (let ti = 0; ti < ticks.length; ti++) {
+      const tick = ticks[ti];
       const tickY = scale.map(tick as any);
       if (tickY < gridRect.y || tickY > gridRect.y + gridRect.height) continue;
 
@@ -222,7 +240,7 @@ export function renderAxes(
 
       if (axis.axisLabel?.show !== false) {
         const labelX = finalX + (isLeft ? -10 : 10);
-        const label = scale.format(tick as any);
+        const label = formatAxisLabel(axis, scale, tick, ti);
         group.appendChild(
           svgText(label, labelX, tickY, {
             fill: labelColor,

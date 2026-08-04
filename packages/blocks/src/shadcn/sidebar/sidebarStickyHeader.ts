@@ -16,7 +16,7 @@
 // (user-footer menu items, project-row "more" menu items, default main-content
 // grid) and so are shared across sidebar variants rather than owned here.
 
-import type { DomphyElement, ElementNode, Listener } from "@domphy/core";
+import type { DomphyElement, Listener } from "@domphy/core";
 import { rawHtml, toState } from "@domphy/core";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import {
@@ -54,6 +54,7 @@ import {
   srOnlyLabel,
   verticalDivider,
 } from "./sidebar05-08-shared.js";
+import { sidebarHotkey } from "./sidebarHotkey.js";
 
 /** A quiet utility link (Support/Feedback) — no active-state styling, always visible. */
 type SidebarStickyHeaderSecondaryItem = {
@@ -468,21 +469,9 @@ function sidebarStickyHeader(
       } as unknown as DomphyElement,
     ],
     dataTone: "shift-1",
-    _onMount: (node: ElementNode) => {
-      const onKeyDown = (event: KeyboardEvent) => {
-        if (
-          (event.metaKey || event.ctrlKey) &&
-          event.key.toLowerCase() === "b"
-        ) {
-          event.preventDefault();
-          sidebarOpen.set(!sidebarOpen.get());
-        }
-      };
-      window.addEventListener("keydown", onKeyDown);
-      node.addHook("Remove", () =>
-        window.removeEventListener("keydown", onKeyDown),
-      );
-    },
+    // Ctrl/Cmd+B hotkey via behavior() — a `_onMount` listener would keep
+    // calling generation 1's `sidebarOpen` state after any ancestor re-render.
+    ...sidebarHotkey(() => sidebarOpen.set(!sidebarOpen.get())),
     // Offcanvas panel: a fixed-position sibling of the layout spacer below.
     // Toggling `sidebarOpen` slides the whole panel off the left edge (upstream
     // `collapsible="offcanvas"` → fixed container `left: -sidebar-width`) while
@@ -549,9 +538,8 @@ function sidebarStickyHeader(
         ],
         // Layout-only row (aside + main manage their own color/background) —
         // the `var(--siteHeaderHeight)` reference in height/marginBlockStart is
-        // a plain CSS custom property, not a themeColor() call; the doctor's
-        // heuristic can't tell those apart from here, so it's a false positive.
-        _doctorDisable: "missing-color",
+        // a plain CSS custom property, not a themeColor() call, and it carries
+        // no `-N` tone-step suffix, so missing-color does not fire here.
         style: {
           display: "flex",
           height: "calc(100dvh - var(--siteHeaderHeight))",

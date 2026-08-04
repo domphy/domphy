@@ -67,6 +67,22 @@ describe("createForm field cache with differing options", () => {
     form.destroy();
   });
 
+  it("does not warn for inline closures re-created per call (re-render pattern)", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const form = createForm<{ name: string }>({
+      defaultValues: { name: "" },
+    });
+
+    // Each call passes a FRESH closure with the same structural shape — the
+    // common pattern when form.field() runs inside a reactive render callback.
+    form.field<string>("name", { validators: { onChange: () => undefined } });
+    form.field<string>("name", { validators: { onChange: () => undefined } });
+    form.field<string>("name", { validators: { onChange: () => undefined } });
+
+    expect(warn).not.toHaveBeenCalled();
+    form.destroy();
+  });
+
   it("does not warn for equivalent options by reference-equal values", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const form = createForm<{ name: string }>({

@@ -3,12 +3,15 @@
 import type { DomphyElement } from "@domphy/core";
 import { ElementNode, flushSync, toState } from "@domphy/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { diagnose } from "../../doctor/src/index.ts";
 import {
   alert,
+  combobox,
   dialog,
   drawer,
   errorBoundary,
   popover,
+  selectBox,
   toast,
   tooltip,
 } from "../src/index.ts";
@@ -178,6 +181,38 @@ describe("dialog", () => {
     } as DomphyElement);
     const dlg = host.querySelector("dialog");
     expect(dlg?.getAttribute("aria-modal")).toBe("true");
+  });
+
+  it("wires aria-labelledby/aria-describedby from labelledBy/describedBy (Radix Title/Description parity)", () => {
+    const open = toState(false);
+    const { host } = render({
+      div: [
+        {
+          dialog: [
+            { h2: "Confirm action", id: "dlg-title" },
+            { p: "Are you sure you want to continue?", id: "dlg-desc" },
+          ],
+          $: [
+            dialog({ open, labelledBy: "dlg-title", describedBy: "dlg-desc" }),
+          ],
+        },
+      ],
+    } as DomphyElement);
+    const dlg = host.querySelector("dialog") as HTMLDialogElement;
+    expect(dlg.getAttribute("aria-labelledby")).toBe("dlg-title");
+    expect(dlg.getAttribute("aria-describedby")).toBe("dlg-desc");
+    // Referenced ids exist inside the dialog (no broken ARIA references).
+    expect(dlg.querySelector("#dlg-title")?.textContent).toBe("Confirm action");
+    expect(dlg.querySelector("#dlg-desc")).not.toBeNull();
+  });
+
+  it("omits aria-labelledby/aria-describedby when the props are absent", () => {
+    const { host } = render({
+      div: [{ dialog: [{ h2: "Untitled" }], $: [dialog()] }],
+    } as DomphyElement);
+    const dlg = host.querySelector("dialog") as HTMLDialogElement;
+    expect(dlg.hasAttribute("aria-labelledby")).toBe(false);
+    expect(dlg.hasAttribute("aria-describedby")).toBe(false);
   });
 
   it("calls showModal when opened", () => {
@@ -701,5 +736,36 @@ describe("errorBoundary", () => {
 
     expect(host.textContent).toContain("42");
     expect(host.querySelector("p")).toBeNull();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Floating panel surface contract (doctor: dataTone-surface-contract)
+// ---------------------------------------------------------------------------
+describe("floating panel surface contract", () => {
+  it("popover/selectBox/combobox panels declare text color on the shift-14 surface", () => {
+    // A dataTone-anchored panel must declare BOTH backgroundColor and color:
+    // the panel portals under the root, where an inherited text color can
+    // belong to a different (potentially low-contrast) tone scope.
+    const popContent: DomphyElement = { div: "Panel" };
+    popover({ content: popContent });
+    const popPartial = (popContent.$ as any[])?.[0];
+    expect(popPartial?.dataTone).toBe("shift-14");
+    expect(typeof popPartial?.style?.backgroundColor).toBe("function");
+    expect(typeof popPartial?.style?.color).toBe("function");
+
+    for (const patch of [selectBox, combobox] as const) {
+      const content: DomphyElement = { div: "Panel" };
+      (patch as (p: unknown) => unknown)({ content });
+      const merged = content as any;
+      expect(merged.dataTone).toBe("shift-14");
+      expect(typeof merged.style?.backgroundColor).toBe("function");
+      expect(typeof merged.style?.color).toBe("function");
+      // The doctor rule named for this contract must stay silent.
+      const diags = diagnose(merged).filter(
+        (d) => d.rule === "dataTone-surface-contract",
+      );
+      expect(diags).toEqual([]);
+    }
   });
 });

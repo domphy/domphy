@@ -274,7 +274,10 @@ function orbitingCircles(
       padding: themeSpacing(iconSizeUnits),
       marginInline: "auto",
       overflow: "hidden",
-      boxSizing: "content-box",
+      // Border-box so maxWidth caps the TOTAL width (padding included) —
+      // with content-box a 320px circle + 60px of padding overflowed a
+      // 375px viewport by ~5–25px depending on cell margins.
+      boxSizing: "border-box",
       ...(props.style ?? {}),
     } as StyleObject,
   };

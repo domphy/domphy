@@ -4,8 +4,9 @@
 // punch-hole cutout, used to display a screenshot or video inside its screen
 // area. Purely a static presentational frame — no interactivity of its own.
 //
-// Unlike safari()/iphone() (sized by their wrapper at width: 100%), this
-// frame is sized directly by explicit `width`/`height` props, per the spec.
+// Like safari()/iphone() (sized by their wrapper), the frame never exceeds its
+// container: it renders at width: 100% capped by the `width`/`height` props,
+// keeping the requested aspect ratio.
 //
 // Geometry mirrors upstream's authored SVG (viewBox 0 0 433 882): the phone
 // BODY is a 378×830 rounded rect pinned to the top-left of the 433×882 canvas
@@ -26,9 +27,9 @@ export interface AndroidProps {
   videoSrc?: string;
   /** Accessible label for the screen content (image alt text / video description). */
   alt?: string;
-  /** Overall mockup width in pixels. Defaults to `433`. */
+  /** Maximum mockup width in pixels (the frame shrinks with its container). Defaults to `433`. */
   width?: number;
-  /** Overall mockup height in pixels. Defaults to `882`. */
+  /** Frame height in pixels at the maximum width — sets the aspect ratio. Defaults to `882`. */
   height?: number;
   style?: StyleObject;
 }
@@ -212,7 +213,8 @@ function screenMedia(
 /**
  * A realistic Android flagship device-frame mockup with a front camera punch-hole cutout
  * that shows a screenshot or video inside its screen area. Static presentational frame — no
- * built-in interactivity. Sized directly by `width`/`height` props (defaults 433×882). Call
+ * built-in interactivity. Fills its wrapper up to the `width`/`height` props
+ * (defaults 433×882), keeping the frame ratio on narrow screens. Call
  * with no arguments for a working demo (sample app screen + camera cutout).
  */
 function android(props: AndroidProps = {}): DomphyElement<"div"> {
@@ -265,8 +267,12 @@ function android(props: AndroidProps = {}): DomphyElement<"div"> {
     ariaLabel: `Android phone mockup showing ${alt}`,
     style: {
       position: "relative",
-      width: `${width}px`,
-      height: `${height}px`,
+      // Fill the wrapper up to the requested size, keeping the 433:882 frame
+      // ratio (same sizing contract as iphone()/safari()) so a default 433px
+      // frame never overflows a narrow (375px) viewport.
+      width: "100%",
+      maxWidth: `${width}px`,
+      aspectRatio: `${width} / ${height}`,
       ...(props.style ?? {}),
     },
   };

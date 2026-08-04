@@ -174,6 +174,13 @@ function dockIconButton(
       flexShrink: "0",
       width: themeSpacing(iconSizeUnits),
       height: themeSpacing(iconSizeUnits),
+      // Shrink icons on phones so the default 7-icon bar fits a 375px
+      // viewport instead of overflowing it. The magnification rAF measures
+      // the rendered size, so it adapts automatically.
+      "@media (max-width: 480px)": {
+        width: themeSpacing(iconSizeUnits * 0.8),
+        height: themeSpacing(iconSizeUnits * 0.8),
+      },
       borderRadius: "50%",
       textDecoration: () => "none",
       willChange: "width, height",
@@ -304,6 +311,13 @@ function dock(props: DockProps = {}): DomphyElement<"nav"> {
         themeSpacing(themeDensity(listener) * 3),
       paddingBlock: (listener: Listener) =>
         themeSpacing(themeDensity(listener) * 2),
+      // Tighten the bar on phones (together with the per-icon shrink above)
+      // so the default 7-icon demo fits a 375px viewport.
+      "@media (max-width: 480px)": {
+        gap: (listener: Listener) => themeSpacing(themeDensity(listener) * 1),
+        paddingInline: (listener: Listener) =>
+          themeSpacing(themeDensity(listener) * 1.5),
+      },
       // Upstream rounded-2xl (16px rounded rectangle), not a fully-rounded pill.
       borderRadius: themeSpacing(4),
       // Translucent frosted-white bar (upstream's macOS-style glassy dock):

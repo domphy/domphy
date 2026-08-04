@@ -232,6 +232,66 @@ describe("DomphyTable reactive convenience reads", () => {
   });
 });
 
+describe("createDomphyTable.setOptions", () => {
+  it("feeds new data and bumps version so reactive reads re-derive", () => {
+    const dTable = setup();
+    const before = dTable.version();
+
+    dTable.setOptions((prev) => ({
+      ...prev,
+      data: [...people, { id: 4, name: "Dave", age: 51 }],
+    }));
+
+    expect(dTable.version()).toBe(before + 1);
+    expect(dTable.getPageCount()).toBe(2); // 4 rows, pageSize 2
+    dTable.table.setPageIndex(1);
+    expect(dTable.getRowModel().rows.length).toBe(2); // 2 rows on page 2 now
+  });
+
+  it("clamps the page index when data shrinks (autoResetPageIndex)", async () => {
+    const dTable = setup(); // 3 rows, pageSize 2 → 2 pages
+    // Mount derivation: the first _autoResetPageIndex call only registers the
+    // table (upstream behavior, so an initialState pageIndex survives mount).
+    dTable.getRowModel();
+    await flush();
+    dTable.table.setPageIndex(1);
+
+    dTable.setOptions((prev) => ({ ...prev, data: people.slice(0, 2) }));
+    // The clamp runs inside the core row model's memo onChange (fires on the
+    // first row-model read after the data identity changes) and is deferred
+    // through table._queue's microtask — same lazy semantics as upstream.
+    dTable.getRowModel();
+    await flush();
+
+    expect(dTable.table.getState().pagination.pageIndex).toBe(0);
+    expect(dTable.getRowModel().rows.length).toBe(2);
+  });
+
+  it("does not bump version when the updater returns options unchanged", () => {
+    const dTable = setup();
+    const before = dTable.version();
+
+    dTable.setOptions((prev) => prev);
+
+    expect(dTable.version()).toBe(before);
+  });
+});
+
+describe("createDomphyTable destroy", () => {
+  it("post-destroy table mutations do not warn about a disposed state", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const dTable = setup();
+
+    dTable.destroy();
+    dTable.table.getColumn("age")?.toggleSorting(false);
+    dTable.setOptions((prev) => ({ ...prev, data: people.slice(0, 1) }));
+    await flush();
+
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+});
+
 describe("createDomphyTable no-op state updates", () => {
   it("does not bump version when the updater returns the state unchanged", () => {
     const { version, setState } = setup();

@@ -201,4 +201,72 @@ describe("loop", () => {
     expect(before).toEqual([10]);
     expect(after).toEqual([10]);
   });
+
+  it("a throwing frame callback neither stops other roots nor wedges runningFrameCallbacks", () => {
+    const bad = createTestRoot("always");
+    bad.frame(() => {
+      throw new Error("boom");
+    });
+    const good = createTestRoot("always");
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    loop(0);
+
+    // The bad root died mid-update (its own render is skipped), but the root
+    // after it in the Set still rendered — the loop didn't abort.
+    expect(bad.gl.calls.render.length).toBe(0);
+    expect(good.gl.calls.render.length).toBe(1);
+    expect(errorSpy).toHaveBeenCalled();
+
+    // try/finally restored runningFrameCallbacks: an invalidate() from
+    // OUTSIDE a frame callback must request exactly one frame, not the
+    // two the stuck flag would have produced.
+    const plain = createTestRoot("demand");
+    plain.invalidate();
+    expect(plain.internal.frames).toBe(1);
+
+    errorSpy.mockRestore();
+  });
+
+  it("caps the clock delta at 0.1s so a backgrounded-tab resume can't teleport animations", () => {
+    const root = createTestRoot("always");
+    vi.spyOn(root.clock, "getDelta").mockReturnValue(5);
+
+    let receivedDelta: number | undefined;
+    root.frame((_state, delta) => {
+      receivedDelta = delta;
+    });
+    root.advance(0);
+    expect(receivedDelta).toBe(0.1);
+
+    // The "never"-mode path derives delta from the caller-supplied timestamp
+    // and is deliberately NOT capped — manual stepping owns its own dt.
+    const neverRoot = createTestRoot("never");
+    let neverDelta: number | undefined;
+    neverRoot.frame((_state, delta) => {
+      neverDelta = delta;
+    });
+    neverRoot.advance(5);
+    expect(neverDelta).toBe(5);
+  });
+
+  it("advance() sets runningFrameCallbacks so invalidate() inside a callback requests the extra frame", () => {
+    const root = createTestRoot("demand");
+    let calls = 0;
+    root.frame(() => {
+      calls += 1;
+      if (calls === 1) root.invalidate();
+    });
+
+    root.advance(0);
+
+    // invalidate() during the callback requests 2 frames (the current one is
+    // already spent), updateRoot then consumes 1 — 1 remains pending. Without
+    // the flag the request would have been for 1 frame and nothing pending.
+    expect(root.internal.frames).toBe(1);
+
+    // And the pending frame really renders on the next loop tick.
+    loop(16);
+    expect(calls).toBe(2);
+  });
 });

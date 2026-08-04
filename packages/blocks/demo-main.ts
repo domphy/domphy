@@ -64,6 +64,15 @@ const entries = Object.entries(blocks as Record<string, unknown>)
   )
   .sort(([a], [b]) => a.localeCompare(b));
 
+// Plain-object view of the namespace for by-name factory lookup (the demo
+// harness mounts blocks dynamically). Dynamic access on the namespace import
+// itself defeats tree-shaking analysis — a single cast up front keeps the
+// lookups below explicit property access on a plain record.
+const blockRegistry = blocks as unknown as Record<
+  string,
+  ((props?: unknown) => DomphyElement) | undefined
+>;
+
 const mounted = new Set<string>();
 const observer = new IntersectionObserver(
   (observedEntries) => {
@@ -73,11 +82,9 @@ const observer = new IntersectionObserver(
       if (mounted.has(name)) continue;
       mounted.add(name);
       observer.unobserve(observed.target);
-      const factory = blocks[
-        name as keyof typeof blocks
-      ] as unknown as () => DomphyElement;
+      const factory = blockRegistry[name];
       const box = observed.target.querySelector(".block-box") as HTMLElement;
-      mount(name, factory, box);
+      mount(name, factory!, box);
     }
   },
   { rootMargin: "400px 0px" },
@@ -102,9 +109,7 @@ for (const [name, factory] of entries) {
   window as unknown as { mountBlock: (name: string, props?: unknown) => void }
 ).mountBlock = (name: string, props?: unknown) => {
   if (mounted.has(name)) return;
-  const factory = blocks[name as keyof typeof blocks] as unknown as
-    | ((props?: unknown) => DomphyElement)
-    | undefined;
+  const factory = blockRegistry[name];
   const wrapper = document.getElementById(`block-${name}`);
   const box = wrapper?.querySelector(".block-box") as HTMLElement | null;
   if (!factory || !box) return;
@@ -141,9 +146,7 @@ for (const [name, factory] of entries) {
     ) => void;
   }
 ).mountBlockWithProps = (name: string, elementId: string, props: unknown) => {
-  const factory = blocks[name as keyof typeof blocks] as unknown as
-    | ((p: unknown) => DomphyElement)
-    | undefined;
+  const factory = blockRegistry[name];
   if (!factory) return;
   const container = document.createElement("div");
   container.id = elementId;

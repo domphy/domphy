@@ -6,8 +6,8 @@ import { describe, expect, it, vi } from "vitest";
 import { multiList, parents, setParentValues } from "../src/index";
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
-// multiList()'s _onMount defers dragAndDrop() registration by a double rAF,
-// same as dragDrop.ts — see multiList.ts for why.
+// multiList()'s behavior attach defers dragAndDrop() registration by a double
+// rAF, same as dragDrop() — see dragDrop.ts for why.
 const waitFrame = () =>
   new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
 

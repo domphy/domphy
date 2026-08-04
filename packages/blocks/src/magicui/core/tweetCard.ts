@@ -160,10 +160,14 @@ const SR_ONLY_STYLE: StyleObject = {
 /** Body-entity (@mention / #hashtag / URL) styling. Upstream renders these as
  * muted, de-emphasized text below the body copy (`text-muted-foreground`), no
  * underline, brightening to the foreground color on hover (`hover:text-foreground
- * transition-colors`) — the reverse of an emphasized accent link. */
+ * transition-colors`). Two deliberate deviations for WCAG: these are interactive
+ * links (essential content), so they rest at the `text` tone (shift-9) — muted
+ * (shift-8) measures ~4.06:1, below AA for normal text — and they carry an
+ * underline, since inside a paragraph of full-strength text a color-only
+ * distinction fails axe `link-in-text-block`. */
 const ENTITY_STYLE: StyleObject = {
-  color: (listener: Listener) => themeColor(listener, "shift-8", "neutral"),
-  textDecoration: fixed("none"),
+  color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
+  textDecoration: fixed("underline"),
   fontWeight: fixed(400),
   transition: "color 150ms ease",
   "&:hover": {

@@ -102,6 +102,16 @@ function applyCameraConfig(
   }
 }
 
+// three r182 deprecated PCFSoftShadowMap for WebGLRenderer: PCFShadowMap is
+// now soft as well, and setting PCFSoftShadowMap logs a deprecation warning
+// before the renderer silently rewrites it to PCFShadowMap. Resolve the soft
+// type version-agnostically (peer range is >=0.156) so consumers on r182+
+// get no console noise while older three keeps the genuinely-soft variant.
+const SOFT_SHADOW_MAP =
+  Number.parseInt(THREE.REVISION, 10) >= 182
+    ? THREE.PCFShadowMap
+    : THREE.PCFSoftShadowMap;
+
 // Port of renderer.tsx's shadow/color-space/tone-mapping setup, applied once
 // at mount (SPEC.md's ReadableState re-apply list is camera/dpr/frameloop/
 // scene only — shadows/flat/linear are not meant to be reactive here). Each
@@ -112,15 +122,15 @@ function applyRendererConfig(gl: RendererLike, options: ThreeOptions): void {
     const shadows = options.shadows;
     gl.shadowMap.enabled = !!shadows;
     if (shadows === true) {
-      gl.shadowMap.type = THREE.PCFSoftShadowMap;
+      gl.shadowMap.type = SOFT_SHADOW_MAP;
     } else if (typeof shadows === "string") {
       const types: Record<string, number> = {
         basic: THREE.BasicShadowMap,
         percentage: THREE.PCFShadowMap,
-        soft: THREE.PCFSoftShadowMap,
+        soft: SOFT_SHADOW_MAP,
         variance: THREE.VSMShadowMap,
       };
-      gl.shadowMap.type = types[shadows] ?? THREE.PCFSoftShadowMap;
+      gl.shadowMap.type = types[shadows] ?? SOFT_SHADOW_MAP;
     }
   }
   if ("toneMapping" in gl) {
@@ -222,11 +232,11 @@ function three(
       };
       const initialSize = measureSize();
       // The single most common integration mistake: a host div with no
-      // explicit height collapses to 0 and the canvas renders nothing, with
-      // no error anywhere. Warn once — a 0-height host is never intentional.
-      if (initialSize.height === 0) {
+      // explicit size collapses to 0x0 and the canvas renders nothing, with
+      // no error anywhere. Warn once — a zero-size host is never intentional.
+      if (initialSize.width === 0 || initialSize.height === 0) {
         console.warn(
-          '[@domphy/three] three() host element has zero height — nothing will be visible. Give the host div an explicit height (e.g. style: { height: "400px" }).',
+          '[@domphy/three] three() host element has zero size (width or height is 0) — nothing will be visible. Give the host div an explicit width and height (e.g. style: { width: "600px", height: "400px" }).',
         );
       }
       root.setSize(initialSize.width, initialSize.height);
@@ -277,26 +287,20 @@ function three(
 
       registerRoot(root);
       root.internal.active = true;
-      initialOptions.onCreated?.(root);
+      // Every invalidate() up to this point (setSize's included) was a no-op
+      // against the still-inactive root (loop.ts's guard) — kick one now
+      // that the loop will honor it, so the first frame doesn't hang on the
+      // initial ResizeObserver callback (which stubs/polyfills may never
+      // fire). A no-op itself for "never" roots.
+      root.invalidate();
 
-      // ReadableState option → re-apply camera/dpr/frameloop/scene on every
-      // change (SPEC.md's locked re-apply list — shadows/flat/linear/gl/
-      // raycaster/events are mount-time-only, see applyRendererConfig above).
+      // Registered BEFORE onCreated fires: if onCreated throws, the root is
+      // still fully teardown-reachable — otherwise the renderer, WebGL
+      // context, and ResizeObserver above would leak for the life of the
+      // page. The closure captures optionReleases by reference and splices
+      // it at run time, so releases pushed by the State listener below are
+      // still picked up.
       const optionReleases: Array<() => void> = [];
-      if (isState(options)) {
-        const listener: Handler = (() => {
-          const next = optionsState.get(listener);
-          applyCameraConfig(cameraNode, next.camera);
-          const currentSize = root.size.get();
-          root.setSize(currentSize.width, currentSize.height, next.dpr);
-          root.setFrameloop(next.frameloop ?? "always");
-          applyScene(next.scene);
-        }) as Handler;
-        listener.onSubscribe = (release: () => void) =>
-          optionReleases.push(release);
-        optionsState.get(listener);
-      }
-
       node.addHook("Remove", () => {
         events?.disconnect();
         root.internal.active = false;
@@ -321,6 +325,35 @@ function three(
         for (const release of raycasterNode.releases.splice(0)) release();
         for (const release of optionReleases.splice(0)) release();
       });
+
+      initialOptions.onCreated?.(root);
+
+      // ReadableState option → re-apply camera/dpr/frameloop/scene on every
+      // change (SPEC.md's locked re-apply list — shadows/flat/linear/gl/
+      // raycaster/events are mount-time-only, see applyRendererConfig above).
+      if (isState(options)) {
+        const listener: Handler = (() => {
+          const next = optionsState.get(listener);
+          applyCameraConfig(cameraNode, next.camera);
+          // dpr: undefined means "keep the last resolved dpr" (rootState.ts's
+          // setSize contract) — only re-run setSize when the caller actually
+          // passed one, not on every unrelated options change.
+          if (next.dpr !== undefined) {
+            const currentSize = root.size.get();
+            root.setSize(currentSize.width, currentSize.height, next.dpr);
+          }
+          // setFrameloop stops and zeroes the clock on EVERY call — guard on
+          // a real mode change or any options update (scene/camera swap)
+          // resets elapsedTime and spikes the next frame's delta.
+          const nextFrameloop = next.frameloop ?? "always";
+          if (nextFrameloop !== root.frameloop)
+            root.setFrameloop(nextFrameloop);
+          applyScene(next.scene);
+        }) as Handler;
+        listener.onSubscribe = (release: () => void) =>
+          optionReleases.push(release);
+        optionsState.get(listener);
+      }
     },
   };
 }

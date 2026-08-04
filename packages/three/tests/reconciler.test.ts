@@ -60,7 +60,21 @@ function createTestRoot(): RootState {
     size,
     invalidate: vi.fn(),
     advance: vi.fn(),
-    frame: () => () => {},
+    // Real push/unregister against internal.frameCallbacks (mirroring
+    // loop.ts's registerFrameCallback) instead of a no-op — tests assert on
+    // onFrame registrations being released.
+    frame: (callback, priority = 0) => {
+      const entry = { callback, priority };
+      internal.frameCallbacks.push(entry);
+      if (priority > 0) internal.priorityCount += 1;
+      internal.subscribersDirty = true;
+      return () => {
+        const index = internal.frameCallbacks.indexOf(entry);
+        if (index === -1) return;
+        internal.frameCallbacks.splice(index, 1);
+        if (priority > 0) internal.priorityCount -= 1;
+      };
+    },
     setFrameloop: vi.fn(),
     internal,
   };
@@ -130,6 +144,30 @@ describe("reconciler — createSceneNode", () => {
     expect(node.instance).toBe(existing);
     expect(node.isPrimitive).toBe(true);
     expect(root.scene.children).toContain(existing);
+  });
+
+  it("throws a clear error for a nested-array child instead of the cryptic namespace error", () => {
+    expect(() =>
+      reconcileChildren(
+        rootNode,
+        [
+          { ambientLight: null, intensity: 0.5 },
+          [
+            { mesh: null, _key: "a" },
+            { mesh: null, _key: "b" },
+          ] as any,
+        ],
+        root,
+      ),
+    ).toThrow(
+      "@domphy/three: scene children must be description objects keyed by tag — got a nested array. Spread it into the parent array instead (e.g. [...children, ...mapped]).",
+    );
+  });
+
+  it("throws a clear error for a non-object child (string, number, ...)", () => {
+    expect(() => reconcileChildren(rootNode, ["hello" as any], root)).toThrow(
+      '@domphy/three: scene children must be description objects keyed by tag — got "hello".',
+    );
   });
 });
 
@@ -416,5 +454,303 @@ describe("reconciler — reactive children (SceneFunction)", () => {
     expect(groupNode.instance.children).toContain(instanceA);
     expect(groupNode.instance.children).not.toContain(nodeB.instance);
     expect(groupNode.instance.children).toHaveLength(2);
+  });
+});
+
+// Regression: reconcileChildren used to iterate `oldChildren` — a live alias
+// of `node.children` — while disposeSceneNode splices the disposed node out
+// of that very array, skipping every second removed child.
+describe("reconciler — removal disposes every unclaimed child", () => {
+  let root: RootState;
+  let rootNode: SceneNode;
+
+  beforeEach(() => {
+    root = createTestRoot();
+    rootNode = createRootNode(root);
+  });
+
+  it("disposes ALL children and detaches their instances when reconciling to []", () => {
+    reconcileChildren(
+      rootNode,
+      [
+        { mesh: null, _key: "a" },
+        { mesh: null, _key: "b" },
+        { mesh: null, _key: "c" },
+      ],
+      root,
+    );
+
+    const removedNodes = rootNode.children.slice();
+    // three's Mesh has no own dispose() — stub one per instance so the
+    // dispose pass is observable (disposeOnIdle only calls functions).
+    const disposeSpies = removedNodes.map((child) => {
+      const spy = vi.fn();
+      child.instance.dispose = spy;
+      return spy;
+    });
+
+    reconcileChildren(rootNode, [], root);
+
+    expect(rootNode.children).toHaveLength(0);
+    expect(root.scene.children).toHaveLength(0);
+    for (const removed of removedNodes) {
+      expect(removed.disposed).toBe(true);
+    }
+    for (const spy of disposeSpies) {
+      expect(spy).toHaveBeenCalledTimes(1);
+    }
+  });
+});
+
+// Regression: the reconstruct paths used to assign the NEW props bag onto
+// `node.props` BEFORE applyProps ran, so applyProps diffed removed keys
+// against the new bag itself and never unwound them — a dropped `onFrame`
+// kept firing on the disposed instance.
+describe("reconciler — reconstruct unwinds removed props", () => {
+  let root: RootState;
+  let rootNode: SceneNode;
+
+  beforeEach(() => {
+    extend({ SizedGroup });
+    root = createTestRoot();
+    rootNode = createRootNode(root);
+  });
+
+  afterEach(() => {
+    clearRegistry();
+  });
+
+  it("releases onFrame when a patchSceneNode args-reconstruct drops it from the bag", () => {
+    reconcileChildren(
+      rootNode,
+      [{ sizedGroup: null, args: [1], onFrame: () => {} }],
+      root,
+    );
+    const node = rootNode.children[0];
+    expect(root.internal.frameCallbacks).toHaveLength(1);
+
+    patchSceneNode(node, { sizedGroup: null, args: [2] }, root);
+
+    expect(root.internal.frameCallbacks).toHaveLength(0);
+    expect(node.props.onFrame).toBeUndefined();
+  });
+
+  it("releases onFrame when a reconcileChildren two-phase reconstruct drops it from the bag", () => {
+    reconcileChildren(
+      rootNode,
+      [{ sizedGroup: null, args: [1], onFrame: () => {}, _key: "a" }],
+      root,
+    );
+    expect(root.internal.frameCallbacks).toHaveLength(1);
+
+    reconcileChildren(
+      rootNode,
+      [{ sizedGroup: null, args: [2], _key: "a" }],
+      root,
+    );
+
+    expect(root.internal.frameCallbacks).toHaveLength(0);
+  });
+
+  it("reactive-args reconstructs still apply the last-applied props bag", () => {
+    const size = toState(1);
+    reconcileChildren(
+      rootNode,
+      [
+        {
+          sizedGroup: null,
+          args: (listener: any) => [size.get(listener)],
+          "userData-tag": "kept",
+        },
+      ],
+      root,
+    );
+    const node = rootNode.children[0];
+
+    size.set(2);
+    flushSync();
+
+    expect(node.instance.size).toBe(2);
+    // The reconstruct must re-apply the node's existing props onto the new
+    // instance, not lose them.
+    expect(node.instance.userData.tag).toBe("kept");
+  });
+});
+
+// Regression: the reconstruct dispose decision used the autoDispose value
+// frozen at node creation, so a patch adding `dispose: null` alongside new
+// args still disposed the old instance.
+describe("reconciler — reconstruct honors a newly-added dispose: null", () => {
+  let root: RootState;
+  let rootNode: SceneNode;
+
+  beforeEach(() => {
+    root = createTestRoot();
+    rootNode = createRootNode(root);
+  });
+
+  it("does NOT dispose the old instance when the reconstructing patch adds dispose: null", () => {
+    reconcileChildren(
+      rootNode,
+      [{ mesh: [{ boxGeometry: null, args: [1] }] }],
+      root,
+    );
+    const geometryNode = rootNode.children[0].children[0];
+    const oldInstance = geometryNode.instance;
+    const disposeSpy = vi.spyOn(oldInstance, "dispose");
+
+    patchSceneNode(
+      geometryNode,
+      { boxGeometry: null, args: [2], dispose: null },
+      root,
+    );
+
+    expect(geometryNode.instance).not.toBe(oldInstance);
+    expect(disposeSpy).not.toHaveBeenCalled();
+    expect(geometryNode.autoDispose).toBe(false);
+  });
+
+  it("still disposes the old instance when the reconstructing patch does not opt out", () => {
+    reconcileChildren(
+      rootNode,
+      [{ mesh: [{ boxGeometry: null, args: [1] }] }],
+      root,
+    );
+    const geometryNode = rootNode.children[0].children[0];
+    const oldInstance = geometryNode.instance;
+    const disposeSpy = vi.spyOn(oldInstance, "dispose");
+
+    patchSceneNode(geometryNode, { boxGeometry: null, args: [2] }, root);
+
+    expect(geometryNode.instance).not.toBe(oldInstance);
+    expect(disposeSpy).toHaveBeenCalledTimes(1);
+    expect(geometryNode.autoDispose).toBe(true);
+  });
+});
+
+// Regression: a props-only patch (no args/object change) never invalidated
+// the root, so a demand-mode frameloop never re-rendered the change.
+describe("reconciler — props-only patch invalidates", () => {
+  let root: RootState;
+  let rootNode: SceneNode;
+
+  beforeEach(() => {
+    extend({ SizedGroup });
+    root = createTestRoot();
+    root.frameloop = "demand";
+    rootNode = createRootNode(root);
+  });
+
+  afterEach(() => {
+    clearRegistry();
+  });
+
+  it("invalidates after patchSceneNode re-applies props without reconstructing", () => {
+    reconcileChildren(rootNode, [{ mesh: null }], root);
+    const node = rootNode.children[0];
+    (root.invalidate as ReturnType<typeof vi.fn>).mockClear();
+
+    patchSceneNode(node, { mesh: null, "rotation-z": 1 }, root);
+
+    expect(root.invalidate).toHaveBeenCalled();
+    expect(node.instance.rotation.z).toBe(1);
+  });
+
+  it("invalidates after reconcileChildren re-applies props without reconstructing", () => {
+    reconcileChildren(
+      rootNode,
+      [{ sizedGroup: null, args: [1], _key: "a" }],
+      root,
+    );
+    (root.invalidate as ReturnType<typeof vi.fn>).mockClear();
+
+    reconcileChildren(
+      rootNode,
+      [{ sizedGroup: null, args: [1], _key: "a", "rotation-z": 1 }],
+      root,
+    );
+
+    expect(root.invalidate).toHaveBeenCalled();
+    expect(rootNode.children[0].instance.rotation.z).toBe(1);
+  });
+});
+
+// Regression: a failed createSceneNode leaked whatever it had already set up
+// — the reactive-args subscription when instantiate threw, and a ghost
+// instance attached to the parent when child reconciliation threw after
+// attach.
+describe("reconciler — createSceneNode error unwinding", () => {
+  let root: RootState;
+  let rootNode: SceneNode;
+
+  beforeEach(() => {
+    extend({ SizedGroup });
+    root = createTestRoot();
+    rootNode = createRootNode(root);
+  });
+
+  afterEach(() => {
+    clearRegistry();
+  });
+
+  it("releases the reactive-args binding when instantiate throws (unregistered tag)", () => {
+    const size = toState(1);
+    const argsFn = vi.fn((listener: any) => [size.get(listener)]);
+
+    expect(() =>
+      createSceneNode(
+        { unregisteredThing: null, args: argsFn } as any,
+        rootNode,
+        root,
+      ),
+    ).toThrow(
+      '@domphy/three: "unregisteredThing" is not part of the THREE namespace!',
+    );
+
+    // The binding must be gone: mutating the state must not re-fire it.
+    const callsAfterThrow = argsFn.mock.calls.length;
+    size.set(2);
+    flushSync();
+    expect(argsFn.mock.calls.length).toBe(callsAfterThrow);
+  });
+
+  it("detaches and unwinds a primitive whose child reconciliation throws after attach", () => {
+    const object = new THREE.Group();
+
+    expect(() =>
+      createSceneNode(
+        { primitive: ["bad-child" as any], object },
+        rootNode,
+        root,
+      ),
+    ).toThrow(
+      "@domphy/three: scene children must be description objects keyed by tag",
+    );
+
+    expect(root.scene.children).not.toContain(object);
+    expect((object as any).__domphy).toBeUndefined();
+  });
+
+  it("detaches and disposes a non-primitive whose child reconciliation throws after attach", () => {
+    let captured: SizedGroup | null = null;
+    class CapturingGroup extends SizedGroup {
+      constructor() {
+        super(1);
+        captured = this as SizedGroup;
+      }
+    }
+    extend({ CapturingGroup });
+    const disposeSpy = vi.fn();
+    (CapturingGroup.prototype as any).dispose = disposeSpy;
+
+    expect(() =>
+      createSceneNode({ capturingGroup: ["bad-child" as any] }, rootNode, root),
+    ).toThrow(
+      "@domphy/three: scene children must be description objects keyed by tag",
+    );
+
+    expect(captured).not.toBeNull();
+    expect(root.scene.children).not.toContain(captured);
+    expect(disposeSpy).toHaveBeenCalledTimes(1);
   });
 });

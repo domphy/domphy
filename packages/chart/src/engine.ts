@@ -57,37 +57,55 @@ import type {
 // Accumulate y-values for line series sharing the same stack name.
 // Each stacked series receives the sum of all previous series at the same data index.
 //
+// ECharts mixed-sign stacking: positive values accumulate upward from zero
+// and negative values downward, so each stack tracks TWO running totals per
+// data index (one per sign) instead of a single naive sum. Same-sign stacks
+// behave exactly like the old single-total accumulation (the other sign's
+// total never leaves zero).
+//
 // Also returns, per series (same index alignment as the input array), the
 // "baseline" array — the running total BEFORE this series was added. This is
 // the bottom edge of this series' area-fill band (matching gl/BarRenderer.ts's
 // stacked bars, which draw each segment between the previous cumulative top
 // and the new one rather than from zero). `undefined` for non-stacked series,
 // which keep the plain zero baseline in LineRenderer.
-function accumStackedLines(series: LineSeriesOption[]): {
+// (`export` for direct unit tests; not re-exported from the package index.)
+export function accumStackedLines(series: LineSeriesOption[]): {
   series: LineSeriesOption[];
   baselines: (number[] | undefined)[];
 } {
-  const sums = new Map<string, number[]>(); // stackName → accumulated y per dataIndex
+  const sumsPos = new Map<string, number[]>(); // stackName → positive total per dataIndex
+  const sumsNeg = new Map<string, number[]>(); // stackName → negative total per dataIndex
   const baselines: (number[] | undefined)[] = [];
   const stackedSeries = series.map((s) => {
     if (!s.stack) {
       baselines.push(undefined);
       return s;
     }
-    if (!sums.has(s.stack)) sums.set(s.stack, []);
-    const acc = sums.get(s.stack)!;
+    if (!sumsPos.has(s.stack)) sumsPos.set(s.stack, []);
+    if (!sumsNeg.has(s.stack)) sumsNeg.set(s.stack, []);
+    const accPos = sumsPos.get(s.stack)!;
+    const accNeg = sumsNeg.get(s.stack)!;
     const rawItems = s.data ?? [];
     // Snapshot the running total for every data index up front (defaulting
     // unseen indices to 0) so the baseline array always matches this series'
-    // own data length, even for the first series in a stack.
-    baselines.push(rawItems.map((_: any, di: number) => acc[di] ?? 0));
+    // own data length, even for the first series in a stack. The snapshot
+    // must read the sign-matched accumulator, so values are extracted first.
+    const rawValues = rawItems.map((item: any) => {
+      if (typeof item === "number") return item;
+      if (Array.isArray(item)) return (item[1] as number) ?? 0;
+      return typeof item?.value === "number" ? item.value : 0;
+    });
+    baselines.push(
+      rawValues.map((yRaw, di) =>
+        yRaw >= 0 ? (accPos[di] ?? 0) : (accNeg[di] ?? 0),
+      ),
+    );
     const newData = rawItems.map((item: any, di: number) => {
-      let yRaw: number;
-      if (typeof item === "number") yRaw = item;
-      else if (Array.isArray(item)) yRaw = (item[1] as number) ?? 0;
-      else yRaw = typeof item?.value === "number" ? item.value : 0;
+      const yRaw = rawValues[di];
+      const acc = yRaw >= 0 ? accPos : accNeg;
       const prev = acc[di] ?? 0;
-      const next = prev + (yRaw ?? 0);
+      const next = prev + yRaw;
       acc[di] = next;
       if (typeof item === "number") return next;
       if (Array.isArray(item)) return [item[0], next];
@@ -99,6 +117,9 @@ function accumStackedLines(series: LineSeriesOption[]): {
 }
 
 // Hit-test cursor position against all pie sectors. Returns params for the hit sector or null.
+// Legend-hidden slices (item names in `hiddenSeries`) are skipped — a hidden
+// slice must not fire a tooltip — but still consume their angle span so the
+// walk stays aligned with PieRenderer, which draws every slice.
 function hitTestPie(
   series: any[],
   mx: number,
@@ -106,6 +127,7 @@ function hitTestPie(
   width: number,
   height: number,
   allSeries: SeriesOption[],
+  hiddenSeries: ReadonlySet<string>,
 ): TooltipParams | null {
   const PI2 = Math.PI * 2;
   const startOffset = -Math.PI / 2;
@@ -158,7 +180,9 @@ function hitTestPie(
 
       let a = cursorAngle;
       if (a < currentAngle) a += PI2;
-      if (a >= currentAngle && a < endAngle) {
+      const isLegendHidden =
+        typeof item?.name === "string" && hiddenSeries.has(item.name);
+      if (!isLegendHidden && a >= currentAngle && a < endAngle) {
         return {
           componentType: "series",
           seriesType: "pie",
@@ -259,14 +283,23 @@ const IMPLEMENTED_SERIES_TYPES = new Set([
  * Consumers should treat these as unsupported until implemented — we warn so
  * production charts do not fail silently.
  */
+// Dedupe by message: setOption() runs on every option update, and without
+// dedupe a chart with an unsupported key would spam the console on each one.
+const unsupportedWarned = new Set<string>();
+function warnOnce(message: string): void {
+  if (unsupportedWarned.has(message)) return;
+  unsupportedWarned.add(message);
+  console.warn(message);
+}
+
 function warnUnsupportedChartOption(option: ChartOption): void {
   if (option.toolbox != null) {
-    console.warn(
+    warnOnce(
       "@domphy/chart: option.toolbox is typed for ECharts interop but is not implemented yet; it has no effect.",
     );
   }
   if (option.brush != null) {
-    console.warn(
+    warnOnce(
       "@domphy/chart: option.brush is typed for ECharts interop but is not implemented yet; it has no effect.",
     );
   }
@@ -290,7 +323,7 @@ function warnUnsupportedChartOption(option: ChartOption): void {
   if (tooltip != null) {
     for (const key of UNSUPPORTED_TOOLTIP_KEYS) {
       if ((tooltip as Record<string, unknown>)[key] != null) {
-        console.warn(
+        warnOnce(
           `@domphy/chart: option.tooltip.${key} is typed for ECharts interop but is not implemented yet; it has no effect.`,
         );
       }
@@ -305,7 +338,7 @@ function warnUnsupportedChartOption(option: ChartOption): void {
     const type = (entry as { type?: string })?.type;
     if (type == null) continue;
     if (!IMPLEMENTED_SERIES_TYPES.has(type)) {
-      console.warn(
+      warnOnce(
         `@domphy/chart: series type "${type}" is not implemented; the series is ignored. Supported: ${[...IMPLEMENTED_SERIES_TYPES].join(", ")}.`,
       );
     }
@@ -342,6 +375,13 @@ export class ChartEngine {
   private yZoomMap: Map<number, ZoomWindow> = new Map();
   private dataZoomCleanup: (() => void) | null = null;
   private insideZoomCleanup: (() => void) | null = null;
+  // Cached dataZoom slider handle + the option/size key it was built for, so
+  // re-renders sync thumbs instead of re-creating the sliders (see render()).
+  private dataZoomSliders: {
+    cleanup: () => void;
+    update: (xAxisIndex: number, state: ZoomWindow) => void;
+  } | null = null;
+  private dataZoomKey = "";
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -407,17 +447,51 @@ export class ChartEngine {
   setOption(option: ChartOption): void {
     // A node removed before async init resolves must not revive the engine.
     if (this.destroyed) return;
-    this.option = option;
+    // ECharts allows `series` as a single object; every render path below
+    // iterates it as an array, so normalize once up front instead of crashing
+    // on `.filter` later.
+    const normalizedOption: ChartOption = Array.isArray(option.series)
+      ? option
+      : { ...option, series: option.series ? [option.series] : [] };
+    this.option = normalizedOption;
 
     // Honest surface: type/docs may list ECharts-compatible keys that are not
     // implemented yet. Warn once per option so silent no-ops do not ship as
     // "working" enterprise charts.
-    warnUnsupportedChartOption(option);
+    warnUnsupportedChartOption(normalizedOption);
 
     // Reset interactive state when option changes
     this.hiddenSeries = new Set();
     this.xZoomMap = new Map();
     this.yZoomMap = new Map();
+
+    // Seed legend toggles from `legend.selected` (ECharts semantics: a name
+    // mapped to `false` starts hidden and is restored by clicking the legend).
+    const initialLegends = Array.isArray(normalizedOption.legend)
+      ? normalizedOption.legend
+      : normalizedOption.legend
+        ? [normalizedOption.legend]
+        : [];
+    for (const legend of initialLegends) {
+      if (!legend.selected) continue;
+      for (const [name, selected] of Object.entries(legend.selected)) {
+        if (selected === false) this.hiddenSeries.add(name);
+      }
+    }
+
+    // ECharts selectedMode "single" constrains the INITIAL state too: at most
+    // one series may start visible. When the `selected` map (or the default
+    // all-visible state) leaves several visible, the first one in series
+    // order wins and the rest start hidden — matching the last-click-wins
+    // toggle behavior in render().
+    for (const legend of initialLegends) {
+      if (legend.selectedMode !== "single") continue;
+      const names = (normalizedOption.series ?? [])
+        .map((s) => s.name ?? "")
+        .filter((n) => n !== "");
+      const visible = names.filter((n) => !this.hiddenSeries.has(n));
+      for (const extra of visible.slice(1)) this.hiddenSeries.add(extra);
+    }
 
     // Initialize DataZoom state from option (skip "inside" — it has no initial range)
     const dataZooms = Array.isArray(option.dataZoom)
@@ -438,9 +512,12 @@ export class ChartEngine {
       this.tooltipCtrl.destroy();
       this.tooltipCtrl = null;
     }
-    if (option.tooltip?.show !== false) {
-      this.tooltipCtrl = createTooltip(this.container, option.tooltip ?? {});
-      this.bindTooltipEvents(option);
+    if (normalizedOption.tooltip?.show !== false) {
+      this.tooltipCtrl = createTooltip(
+        this.container,
+        normalizedOption.tooltip ?? {},
+      );
+      this.bindTooltipEvents(normalizedOption);
     }
 
     this.render();
@@ -450,12 +527,6 @@ export class ChartEngine {
     if (!this.device || !this.option || this.destroyed) return;
     const { option, width, height } = this;
     if (!width || !height) return;
-
-    // Clean up old DataZoom handlers before re-rendering
-    this.dataZoomCleanup?.();
-    this.insideZoomCleanup?.();
-    this.dataZoomCleanup = null;
-    this.insideZoomCleanup = null;
 
     const allSeries = option.series ?? [];
     // Filter out hidden series for WebGL renderers
@@ -567,8 +638,26 @@ export class ChartEngine {
         allSeries,
         this.hiddenSeries,
         (name) => {
-          if (this.hiddenSeries.has(name)) this.hiddenSeries.delete(name);
-          else this.hiddenSeries.add(name);
+          // ECharts selectedMode semantics: `false` disables toggling;
+          // "single" keeps exactly one series selected (clicking the sole
+          // visible one hides all); "multiple"/true toggles freely.
+          const mode = legend.selectedMode ?? true;
+          if (mode === false) return;
+          if (mode === "single") {
+            const names = allSeries
+              .map((s) => s.name ?? "")
+              .filter((n) => n !== "");
+            const isSoleVisible =
+              !this.hiddenSeries.has(name) &&
+              names.every((n) => n === name || this.hiddenSeries.has(n));
+            this.hiddenSeries = isSoleVisible
+              ? new Set(names)
+              : new Set(names.filter((n) => n !== name));
+          } else if (this.hiddenSeries.has(name)) {
+            this.hiddenSeries.delete(name);
+          } else {
+            this.hiddenSeries.add(name);
+          }
           this.render();
         },
       );
@@ -1013,20 +1102,47 @@ export class ChartEngine {
     if (marksData.length > 0)
       renderMarksToSvg(this.overlaysvg, marksData as any);
 
-    // DataZoom sliders
+    // DataZoom sliders. Sliders carry in-progress drag state on document-level
+    // listeners, so they must NOT be torn down and re-created on every render
+    // (a drag's first mousemove re-renders via onZoom — re-creating mid-drag
+    // would remove the very listeners the drag depends on, and would snap the
+    // thumbs back to the option's initial start/end). Re-create only when the
+    // dataZoom option set or the canvas size changes; otherwise sync the
+    // thumbs to the live zoom window.
     if (dataZooms.length > 0) {
-      this.dataZoomCleanup = setupDataZoom(
-        this.overlaysvg,
-        dataZooms,
-        grid.gridRect,
-        width,
-        height,
-        (xAxisIndex, state) => {
-          this.xZoomMap.set(xAxisIndex, state);
-          this.render();
-        },
-      );
+      const dataZoomKey = `${width}x${height}:${JSON.stringify(dataZooms)}`;
+      if (dataZoomKey !== this.dataZoomKey || !this.dataZoomSliders) {
+        this.dataZoomCleanup?.();
+        this.dataZoomSliders = setupDataZoom(
+          this.overlaysvg,
+          dataZooms,
+          grid.gridRect,
+          width,
+          height,
+          (xAxisIndex, state) => {
+            this.xZoomMap.set(xAxisIndex, state);
+            this.render();
+          },
+        );
+        this.dataZoomCleanup = this.dataZoomSliders.cleanup;
+        this.dataZoomKey = dataZoomKey;
+      }
+      // Sync thumbs to the live zoom window (drags write xZoomMap first).
+      for (const dz of dataZooms) {
+        if (dz.type === "inside") continue;
+        const xIndex = typeof dz.xAxisIndex === "number" ? dz.xAxisIndex : 0;
+        this.dataZoomSliders.update(
+          xIndex,
+          this.xZoomMap.get(xIndex) ?? {
+            start: dz.start ?? 0,
+            end: dz.end ?? 100,
+          },
+        );
+      }
 
+      // The inside-zoom wheel listener is stateless and cheap — safe to
+      // re-bind on every render.
+      this.insideZoomCleanup?.();
       this.insideZoomCleanup = setupInsideZoom(
         this.container,
         dataZooms,
@@ -1039,6 +1155,13 @@ export class ChartEngine {
 
       // Enable pointer events on SVG for drag interactivity
       this.overlaysvg.style.pointerEvents = "none";
+    } else {
+      this.dataZoomCleanup?.();
+      this.insideZoomCleanup?.();
+      this.dataZoomCleanup = null;
+      this.insideZoomCleanup = null;
+      this.dataZoomSliders = null;
+      this.dataZoomKey = "";
     }
   }
 
@@ -1169,8 +1292,15 @@ export class ChartEngine {
         renderAxisPointer(this.overlaysvg, null, null, gridRect);
 
         const hit =
-          hitTestPie(series, mx, my, this.width, this.height, allSeries) ??
-          hitTestScatter(series, mx, my, xScales, yScales, allSeries);
+          hitTestPie(
+            series,
+            mx,
+            my,
+            this.width,
+            this.height,
+            allSeries,
+            this.hiddenSeries,
+          ) ?? hitTestScatter(series, mx, my, xScales, yScales, allSeries);
         if (hit) params.push(hit);
       }
 

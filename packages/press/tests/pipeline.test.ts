@@ -110,6 +110,45 @@ describe("renderDoc", () => {
     expect(cg).toContain('class="tabs"');
     expect(cg).toContain('class="blocks"');
   });
+
+  it("VitePress containers: ::: name [Title] → custom-block with title, details → <details>", async () => {
+    const md = [
+      "::: tip Custom Title",
+      "tip body",
+      ":::",
+      "",
+      "::: warning",
+      "warn body",
+      ":::",
+      "",
+      "::: details Click me",
+      "hidden",
+      ":::",
+    ].join("\n");
+    const { body } = await renderDoc(md, opts);
+    const json = JSON.stringify(body);
+    // VitePress "::: tip My Title" syntax → custom-block with the custom title
+    expect(json).toContain("custom-block tip");
+    expect(json).toContain("Custom Title");
+    expect(json).toContain("tip body");
+    // Default title from the type when none is given
+    expect(json).toContain("custom-block warning");
+    expect(json).toContain("WARNING");
+    // ::: details → a real <details>/<summary>
+    const details = body.find(
+      (el) => typeof el === "object" && el !== null && "details" in el,
+    ) as Record<string, unknown> | undefined;
+    expect(
+      details,
+      "details container not rendered as <details>",
+    ).toBeDefined();
+    expect(JSON.stringify(details)).toContain("Click me");
+  });
+
+  it("TOC dedupes duplicate heading slugs (VitePress parity)", async () => {
+    const { toc } = await renderDoc("## Second\n\n## Second\n", opts);
+    expect(toc.map((e) => e.slug)).toEqual(["second", "second-1"]);
+  });
 });
 
 describe("fence-aware preprocessing", () => {

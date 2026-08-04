@@ -44,6 +44,12 @@ let _batchedNotifiers: Set<Notifier> = new Set();
 // flushPendingNotifiers); normal operation still flushes via the microtask.
 const _scheduledNotifiers: Set<Notifier> = new Set();
 
+// The Notifier currently delivering notifications to its listeners, or null
+// outside a flush. Module-level so a Collector's handler can tell WHICH source
+// a wake came from (see Collector); saved/restored around delivery because a
+// listener may synchronously drain ANOTHER notifier (flushSync) mid-flush.
+export let _deliveringNotifier: Notifier | null = null;
+
 // Run `fn`, deferring all flushes triggered inside it into one flush afterwards.
 // Nested batches collapse into the outermost one. Reentrant-safe: the stack is
 // restored and the batched set is flushed even if `fn` throws.
@@ -78,6 +84,12 @@ export class Notifier {
   // event's Set empties). `computed` uses it to drop its upstream dependency
   // subscriptions once nothing downstream observes it anymore.
   _onEmpty?: (event: string) => void;
+  // Monotonic version stamp a derived source (`computed`) bumps per
+  // recomputation. Collector handlers compare it against the version they
+  // already consumed by reading, to skip a redundant wake (see Collector).
+  // Undefined for plain State/RecordState sources — their notifications are
+  // never skipped.
+  _version?: number;
 
   _dispose(): void {
     if (this._listeners) {
@@ -214,14 +226,20 @@ export class Notifier {
 
     _chain.push([this, event]);
     this._flushing.set(event, args);
+    const prevDelivering = _deliveringNotifier;
+    _deliveringNotifier = this;
 
-    for (const listener of [...listeners]) {
-      if (!listeners.has(listener)) continue;
-      try {
-        listener(...args);
-      } catch (e) {
-        console.error(e);
+    try {
+      for (const listener of [...listeners]) {
+        if (!listeners.has(listener)) continue;
+        try {
+          listener(...args);
+        } catch (e) {
+          console.error(e);
+        }
       }
+    } finally {
+      _deliveringNotifier = prevDelivering;
     }
 
     this._flushing.delete(event);

@@ -329,8 +329,13 @@ export function applyHeadTags(tags: HeadTag[]): void {
       continue;
     }
     const element = document.createElement(tag.tag);
-    for (const name of Object.keys(tag.attributes)) {
-      element.setAttribute(name, tag.attributes[name]);
+    for (const rawName of Object.keys(tag.attributes)) {
+      // Same sanitization as renderHeadTags: a metadata key that is not a
+      // valid attribute name (e.g. via `other`) must not throw
+      // InvalidCharacterError on client navigation while SSR silently strips it.
+      const name = sanitizeAttributeName(rawName);
+      if (!name) continue;
+      element.setAttribute(name, tag.attributes[rawName]);
     }
     element.setAttribute(MANAGED_ATTRIBUTE, "");
     document.head.appendChild(element);

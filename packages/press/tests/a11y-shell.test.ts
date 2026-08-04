@@ -170,4 +170,21 @@ describe("pageShell aside:false keeps sidebar and expands content", () => {
     expect(contentDiv).toBeTruthy();
     expect(contentDiv.style.maxWidth).toBe("none");
   });
+
+  it("never emits a bare 1fr content track (mobile grid blowout)", () => {
+    // A bare `1fr` is `minmax(auto,1fr)`: the track floors at the item's
+    // min-content width, so a page with a wide unbreakable subtree (the
+    // playground's CodeMirror scroller) overflows the viewport horizontally
+    // on ≤860px. Found by visual:responsive playground @ mobile-375.
+    for (const partial of [
+      {}, // sidebar page
+      { config: baseConfig }, // no-sidebar page
+    ]) {
+      const grid = shellGrid(partial);
+      expect(grid).toBeTruthy();
+      expect(String(grid.style.gridTemplateColumns)).not.toBe("1fr");
+      const mobile = grid.style["@media (max-width: 860px)"];
+      expect(String(mobile.gridTemplateColumns)).toMatch(/minmax\(0,\s*1fr\)/);
+    }
+  });
 });

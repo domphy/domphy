@@ -75,9 +75,9 @@ interface Store<TLocale extends string> {
   localeState: ReturnType<typeof toState<TLocale>>;
   initialized: boolean;
   // Fingerprint of the createI18n() options that created this store
-  // (namespace + sorted locale codes + defaultLocale). A second createI18n()
-  // with the same globalKey but different options silently reuses this store —
-  // the fingerprint lets us warn about that mismatch in dev.
+  // (namespace + sorted locale codes + defaultLocale + escapeValue). A second
+  // createI18n() with the same globalKey but different options silently
+  // reuses this store — the fingerprint lets us warn about that in dev.
   fingerprint: string;
   // Dev warn-once flags (see __DEV__ above).
   mismatchWarned?: boolean;
@@ -122,7 +122,7 @@ export function createI18n<
   TMessages extends Record<string, unknown> = Record<string, unknown>,
 >(
   options: CreateI18nOptions<TLocale>,
-): I18nInstance<Extract<keyof FlattenKeys<TMessages>, string>, TLocale> {
+): I18nInstance<Extract<FlattenKeys<TMessages>, string>, TLocale> {
   const { globalKey, namespace, locales, defaultLocale, interpolation } =
     options;
   const localeKeys = new Set(Object.keys(locales));
@@ -136,10 +136,14 @@ export function createI18n<
 
   // Stable fingerprint of the options that own the store — compared when a
   // second createI18n() reuses the same globalKey (see getOrCreateStore).
+  // escapeValue is included: a reuse with the opposite XSS-escaping posture
+  // must not pass silently. (Message CONTENT is not fingerprinted — too
+  // expensive; the mismatch warning covers the structural options only.)
   const fingerprint = JSON.stringify([
     namespace,
     [...localeKeys].sort(),
     defaultLocale,
+    interpolation?.escapeValue ?? true,
   ]);
 
   function getStore() {
@@ -170,7 +174,9 @@ export function createI18n<
         ns: [namespace],
         interpolation: { escapeValue: true, ...interpolation },
         resources,
-        initImmediate: false,
+        // initAsync:false keeps init() synchronous with inline resources —
+        // renamed from initImmediate in i18next v24, removed in v26.
+        initAsync: false,
       })
       .then(() => {
         store.initialized = true;
@@ -225,8 +231,8 @@ export function createI18n<
   }
 
   function t(
-    a: Extract<keyof FlattenKeys<TMessages>, string> | Listener,
-    b?: Extract<keyof FlattenKeys<TMessages>, string> | Record<string, unknown>,
+    a: Extract<FlattenKeys<TMessages>, string> | Listener,
+    b?: Extract<FlattenKeys<TMessages>, string> | Record<string, unknown>,
     c?: Record<string, unknown>,
   ): string {
     const store = getStore();
@@ -266,13 +272,23 @@ export function createI18n<
     setLocale,
     getLocale,
     detectLocale,
-  } as I18nInstance<Extract<keyof FlattenKeys<TMessages>, string>, TLocale>;
+  } as I18nInstance<Extract<FlattenKeys<TMessages>, string>, TLocale>;
 }
 
 // Utility: flatten nested object keys to dot-notation string literals.
 // FlattenKeys<{ a: { b: string }, c: string }> = "a.b" | "c"
+//
+// i18next v4 plural suffixes: t("item", { count: 2 }) resolves against the
+// "item_one"/"item_other"/... leaf keys, so the BASE key is a valid call even
+// though it never appears as a leaf in the messages object. WithPluralBase
+// adds it to the union (additive only — a false positive like "phone_one"
+// merely also admits "phone", which fails harmlessly at runtime).
+type PluralSuffix = "_zero" | "_one" | "_two" | "_few" | "_many" | "_other";
+type WithPluralBase<K extends string> = K extends `${infer Base}${PluralSuffix}`
+  ? Base | K
+  : K;
 type FlattenKeys<T, Prefix extends string = ""> = {
   [K in Extract<keyof T, string>]: T[K] extends Record<string, unknown>
     ? FlattenKeys<T[K], `${Prefix}${K}.`>
-    : `${Prefix}${K}`;
+    : WithPluralBase<`${Prefix}${K}`>;
 }[Extract<keyof T, string>];

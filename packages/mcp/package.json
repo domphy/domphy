@@ -43,15 +43,16 @@
     "directory": "packages/mcp"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.29.0",
-    "@domphy/doctor": "workspace:^"
+    "@domphy/doctor": "workspace:^",
+    "@modelcontextprotocol/server": "^2.0.0",
+    "@modelcontextprotocol/client": "^2.0.0"
   },
   "peerDependencies": {
     "@domphy/core": "workspace:^"
   },
   "devDependencies": {
     "@domphy/core": "workspace:*",
-    "@types/node": "^25.9.2",
+    "@types/node": "^26.1.2",
     "tsup": "^8.5.0",
     "typescript": "^5.8.3",
     "vitest": "^4.0.18"
