@@ -86,6 +86,16 @@ Domphy's 18-step ramp and the `shift-N` tone system are the sizes they are —
 9 is the number of tone steps you can reliably jump for guaranteed contrast,
 almost exactly half the ramp.
 
+`K_ideal` is the *achromatic* ideal, not a measured universal. Probing the
+generator (§3) over 30 hues (24 full-saturation + 6 brand colors) gives an
+observed `K` of 9 for 17/30 ramps, 10 for 11/30, and 11 for the most
+saturated greens — so consumers should treat 9 as the typical span, not a
+worst-case guarantee. What *does* hold for 100% of probed ramps is strict
+luminance monotonicity along the ramp, the property the tone system actually
+relies on (pinned by the monotonicity test in
+`packages/palette/tests/generator.test.ts`); the built-in themes' K = 9
+contrast contract is pinned by `packages/theme/tests/contrast.test.ts`.
+
 Efficiency is then the gap between the *observed* density `D = K/(N-1)` and
 this ideal:
 
@@ -275,9 +285,11 @@ generation step itself *target* the accessibility structure analytically —
 the contrast span isn't checked after the fact, it's the thing the warp
 curve is shaped to hit. §2's evaluation framework and §3's generator are two
 halves of one falsifiable claim: give it any brand color, and the resulting
-18-step ramp will — with high, measured probability, not by convention —
-already satisfy WCAG 4.5:1 at index distance 9. That claim is testable
-(`generator.test.ts` tests it) and re-derivable from first principles (§2.1's
+18-step ramp will land at or near the §2.1 ideal span — measured `K` = 9 for
+17/30 probed hues, 10–11 for the most saturated ones (§2.1). That claim is
+testable (`packages/palette/tests/generator.test.ts` pins the span bound and
+strict luminance monotonicity, `packages/theme/tests/contrast.test.ts` pins
+K = 9 for the built-in themes) and re-derivable from first principles (§2.1's
 `λ ≈ 0.501` is arithmetic, not a magic number).
 
 ## 5. Space axis: spacing, density, size
