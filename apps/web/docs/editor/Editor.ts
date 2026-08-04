@@ -1,6 +1,7 @@
 import { javascript } from "@codemirror/lang-javascript";
 import { oneDark } from "@codemirror/theme-one-dark";
 import type { DomphyElement, State } from "@domphy/core";
+import { themeColor } from "@domphy/theme";
 import { basicSetup, EditorView } from "codemirror";
 
 /**
@@ -27,8 +28,18 @@ export function Editor(code: State<string>): DomphyElement<"div"> {
               fontSize: "14px",
               backgroundColor: "#0d1117",
             },
+            // Focus ring: the design-system focusRing() box-shadow pattern
+            // cannot be used here — every playground wrapper up to
+            // .dp-playground clips with overflow:hidden (an outer box-shadow
+            // would be invisible), and an inset box-shadow would paint UNDER
+            // the editor's opaque children (gutters/content). An outline
+            // paints above descendants and ignores ancestor clipping; the
+            // negative offset keeps it inside the editor bounds. shift-9 is
+            // the same accent tone focusRing() uses for its halo, and the
+            // themeColor() var reference follows site theme flips.
             "&.cm-focused": {
-              outline: "none",
+              outline: `2px solid ${themeColor(node, "shift-9", "primary")}`,
+              outlineOffset: "-2px",
             },
             ".cm-scroller": {
               overflow: "auto",

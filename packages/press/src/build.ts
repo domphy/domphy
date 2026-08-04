@@ -315,7 +315,7 @@ try{var t=localStorage.getItem('dp-theme');if(t)document.documentElement.setAttr
 function closeSidebar(){document.documentElement.setAttribute('data-sidebar','');}
 addEventListener('click',function(e){
   var el=e.target.closest&&e.target.closest('[data-theme-toggle]');
-  if(el){var d=document.documentElement;var n=d.getAttribute('data-theme')==='dark'?'':'dark';d.setAttribute('data-theme',n);try{localStorage.setItem('dp-theme',n);}catch(_){}return;}
+  if(el){var d=document.documentElement;var n=d.getAttribute('data-theme')==='dark'?'light':'dark';d.setAttribute('data-theme',n);try{localStorage.setItem('dp-theme',n);}catch(_){}return;}
   var m=e.target.closest&&e.target.closest('[data-menu-toggle]');
   if(m){var d2=document.documentElement;d2.setAttribute('data-sidebar',d2.getAttribute('data-sidebar')==='open'?'':'open');return;}
   var bd=e.target.closest&&e.target.closest('.dp-sidebar-backdrop');

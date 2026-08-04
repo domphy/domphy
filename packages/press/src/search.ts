@@ -411,12 +411,30 @@ export function searchWidget(options: SearchWidgetOptions = {}): DomphyElement {
       };
       document.addEventListener("pointerdown", handler);
       node.setMetadata("dpSearchHandler", handler);
+      // Global Ctrl+K / Cmd+K shortcut focuses the search input (and selects
+      // any existing text so typing replaces it). Document-level, so it is
+      // removed in _onRemove alongside the outside-pointerdown listener —
+      // island re-mounts across page navigations must not stack listeners.
+      const keyHandler = (e: KeyboardEvent) => {
+        if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== "k") return;
+        const input = host.querySelector("input");
+        if (!input) return;
+        e.preventDefault();
+        input.focus();
+        input.select();
+      };
+      document.addEventListener("keydown", keyHandler);
+      node.setMetadata("dpSearchKeyHandler", keyHandler);
     },
     _onRemove: (node) => {
       const handler = node.getMetadata("dpSearchHandler") as
         | ((e: Event) => void)
         | undefined;
       if (handler) document.removeEventListener("pointerdown", handler);
+      const keyHandler = node.getMetadata("dpSearchKeyHandler") as
+        | ((e: KeyboardEvent) => void)
+        | undefined;
+      if (keyHandler) document.removeEventListener("keydown", keyHandler);
       if (debounceTimer) clearTimeout(debounceTimer);
     },
   };
