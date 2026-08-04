@@ -22,4 +22,36 @@ describe("transformCode", () => {
       "const page = __modules__['page'].default ?? __modules__['page']",
     );
   });
+
+  it("rewrites `as` aliases in named imports to destructuring rename", () => {
+    const output = transformCode(
+      `import { button, table as tableUI } from "@domphy/ui";\nexport default { button, tableUI };\n`,
+    );
+    expect(output).toContain(
+      "const { button, table: tableUI } = __modules__['@domphy/ui']",
+    );
+    // `as` is module-only syntax — it must not leak into the emitted code.
+    expect(output).not.toContain(" as ");
+    expect(() => new Function("__modules__", output)).not.toThrow();
+  });
+
+  it("rewrites mixed default + named imports", () => {
+    const output = transformCode(
+      `import page, { type Context as PageContext } from "page";\nexport default page;\n`,
+    );
+    expect(output).toContain(
+      "const page = __modules__['page'].default ?? __modules__['page']",
+    );
+    expect(output).not.toContain("import");
+    expect(() => new Function("__modules__", output)).not.toThrow();
+  });
+
+  it("drops an emptied named-import clause left by type stripping", () => {
+    const output = transformCode(
+      `import { type DomphyElement, toState } from "@domphy/core";\nexport default toState;\n`,
+    );
+    expect(output).toContain("const { toState } = __modules__['@domphy/core']");
+    expect(output).not.toContain("import");
+    expect(() => new Function("__modules__", output)).not.toThrow();
+  });
 });

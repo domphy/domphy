@@ -28,6 +28,7 @@ export default {
       "tests/theme-builder.test.ts",
       "tests/transformCode.test.ts",
       "tests/playground-layout.test.ts",
+      "tests/playground-payloads.test.ts",
       "tests/mermaid-islands.test.ts",
     ],
     environment: "node",
