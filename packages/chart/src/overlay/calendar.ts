@@ -106,9 +106,18 @@ function buildCalendarLayout(
   }
 
   const firstDay = cal.dayLabel?.firstDay ?? 0;
+
+  // ECharts cellSize accepts "auto" per dimension: the cell stretches to fill
+  // the available rect (width over the week's column count, height over the
+  // 7 weekday rows). Without this the literal string "auto" leaks into
+  // coordinate math and every cell renders at NaN.
+  const weekCount =
+    weekOfYear(endDate, firstDay) - weekOfYear(startDate, firstDay) + 1;
   const cellSize = cal.cellSize ?? 20;
-  const cellW = Array.isArray(cellSize) ? cellSize[0] : cellSize;
-  const cellH = Array.isArray(cellSize) ? cellSize[1] : cellSize;
+  const rawCellW = Array.isArray(cellSize) ? cellSize[0] : cellSize;
+  const rawCellH = Array.isArray(cellSize) ? cellSize[1] : cellSize;
+  const cellW = rawCellW === "auto" ? rectW / weekCount : rawCellW;
+  const cellH = rawCellH === "auto" ? rectH / 7 : rawCellH;
 
   const rect = { x: marginL, y: marginT, w: rectW, h: rectH };
 

@@ -577,8 +577,12 @@ export class ChartEngine {
     );
 
     // Only render Cartesian axes when there are series that use them.
-    // "lines" defaults to geo coordinates (see lines.ts) — only count it when explicitly cartesian2d,
-    // otherwise a geo-only flow map gets spurious default axes drawn over it.
+    // A series bound to a non-cartesian coordinate system (calendar heatmap,
+    // geo scatter/effectScatter, …) must not drag default axes into the
+    // chart — its data is not axis-indexed, so the labels come out mangled.
+    // "lines" defaults to geo coordinates (see lines.ts), so it only counts
+    // when explicitly cartesian2d, otherwise a geo-only flow map gets
+    // spurious default axes drawn over it.
     const cartesianTypes = new Set([
       "line",
       "bar",
@@ -590,11 +594,14 @@ export class ChartEngine {
       "pictorialBar",
       "lines",
     ]);
-    const hasCartesian = series.some(
-      (s) =>
-        cartesianTypes.has(s.type ?? "") &&
-        !(s.type === "lines" && (s as any).coordinateSystem !== "cartesian2d"),
-    );
+    const hasCartesian = series.some((s) => {
+      if (!cartesianTypes.has(s.type ?? "")) return false;
+      const coordinateSystem = (s as any).coordinateSystem;
+      if (s.type === "lines") return coordinateSystem === "cartesian2d";
+      return (
+        coordinateSystem === undefined || coordinateSystem === "cartesian2d"
+      );
+    });
 
     // Per-pass theme-aware color resolver — resolved against this container's
     // computed style so [data-theme] ancestors and custom themes are honored

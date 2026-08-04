@@ -24330,7 +24330,7 @@ Requires `calendar` in the option. Use with `heatmap` (set `coordinateSystem: "c
 {
   calendar: {
     range: "2024",                        // full year, or ["2024-01-01", "2024-06-30"]
-    cellSize?: number | [w, h],           // default 20
+    cellSize?: number | [w, h],           // default 20; "auto" per dimension fills the rect
     dayLabel?: { firstDay?: 0|1, show?: boolean },
     monthLabel?: { show?: boolean },
     yearLabel?: { show?: boolean },

@@ -1,9 +1,13 @@
 import type { ChartOption } from "@domphy/chart";
-import { chart } from "@domphy/chart";
+import { chart, registerMap } from "@domphy/chart";
 import type { DomphyElement } from "@domphy/core";
+import worldGeoJSON from "geo/world.json";
+
+// @domphy/chart ships no GeoJSON — register the map before rendering (see docs/chart/geo).
+registerMap("world", worldGeoJSON);
 
 const gdpData = [
-  { name: "United States", value: 25.5 },
+  { name: "United States of America", value: 25.5 },
   { name: "China", value: 17.7 },
   { name: "Japan", value: 4.2 },
   { name: "Germany", value: 4.1 },

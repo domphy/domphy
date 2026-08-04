@@ -85,29 +85,48 @@ export function renderVisualMap(
     const itemH =
       orient === "vertical" ? (vm.itemHeight ?? 140) : (vm.itemWidth ?? 140);
 
-    // Position
+    // Position. ECharts keywords ("left"/"center"/"right", "top"/"middle"/
+    // "bottom") must resolve to real offsets — feeding them to parseFloat
+    // yields NaN and every legend rect/label lands at NaN.
+    const MARGIN = 20;
     const right =
       vm.right !== undefined
         ? typeof vm.right === "number"
           ? vm.right
           : parseFloat(String(vm.right))
-        : 20;
-    const top =
-      vm.top === "center" || vm.top === undefined
+        : MARGIN;
+    const vmTop = vm.top;
+    const y =
+      vmTop === "middle" || vmTop === "center"
         ? (height - itemH) / 2
-        : typeof vm.top === "number"
-          ? vm.top
-          : parseFloat(String(vm.top));
+        : vmTop === "top"
+          ? MARGIN
+          : vmTop === "bottom"
+            ? height - itemH - MARGIN
+            : typeof vmTop === "number"
+              ? vmTop
+              : vmTop !== undefined
+                ? parseFloat(String(vmTop))
+                : vm.bottom !== undefined
+                  ? height -
+                    itemH -
+                    (typeof vm.bottom === "number"
+                      ? vm.bottom
+                      : parseFloat(String(vm.bottom)))
+                  : (height - itemH) / 2;
     const vmLeft = vm.left;
     const x =
       vmLeft === "center"
         ? (width - itemW) / 2
-        : typeof vmLeft === "number"
-          ? vmLeft
-          : vmLeft !== undefined
-            ? parseFloat(String(vmLeft))
-            : width - right - itemW;
-    const y = top;
+        : vmLeft === "left"
+          ? MARGIN
+          : vmLeft === "right"
+            ? width - itemW - MARGIN
+            : typeof vmLeft === "number"
+              ? vmLeft
+              : vmLeft !== undefined
+                ? parseFloat(String(vmLeft))
+                : width - right - itemW;
 
     if (vm.type === "piecewise") {
       // Piecewise legend

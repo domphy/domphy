@@ -133,10 +133,16 @@ export function renderEffectScatter(
     const data = (s.data ?? []) as (
       | [number, number]
       | [number, number, number]
+      | { name?: string; value: number[] }
     )[];
 
     for (const item of data) {
-      const [rawX, rawY, rawSize] = item;
+      // ECharts data items are either raw [x, y, size?] tuples or
+      // { name, value: [x, y, size?] } objects — destructuring an object
+      // throws "item is not iterable".
+      const value = Array.isArray(item) ? item : item?.value;
+      if (!Array.isArray(value)) continue;
+      const [rawX, rawY, rawSize] = value;
       let cx: number, cy: number;
 
       const coordSys = s.coordinateSystem ?? "cartesian2d";
@@ -154,7 +160,7 @@ export function renderEffectScatter(
 
       const size =
         typeof s.symbolSize === "function"
-          ? s.symbolSize(item)
+          ? s.symbolSize(value)
           : (s.symbolSize ?? (rawSize ? Math.sqrt(rawSize) * 2 : 10));
       const r = size / 2;
 

@@ -16,6 +16,7 @@
       "!paper",
       "!paper",
       "!bench/generated.json",
+      "!apps/web/docs/editor/world.geo.json",
       "!packages/query/src",
       "!packages/table/src",
       "!packages/router/src",

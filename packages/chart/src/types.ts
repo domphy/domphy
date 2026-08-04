@@ -1960,7 +1960,7 @@ export interface CustomSeriesOption {
 export interface CalendarOption {
   id?: string;
   range: string | [string, string];
-  cellSize?: number | [number, number];
+  cellSize?: number | "auto" | [number | "auto", number | "auto"];
   left?: number | string;
   top?: number | string;
   right?: number | string;
@@ -2232,7 +2232,10 @@ export interface EffectScatterSeriesOption {
   xAxisIndex?: number;
   yAxisIndex?: number;
   geoIndex?: number;
-  data?: [number, number][] | [number, number, number][];
+  data?:
+    | [number, number][]
+    | [number, number, number][]
+    | { name?: string; value: number[] }[];
   symbolSize?: number | ((val: number[]) => number);
   rippleEffect?: {
     period?: number;

@@ -38,6 +38,11 @@ import * as threeEffectComposer from "three/addons/postprocessing/EffectComposer
 import * as threeRenderPass from "three/addons/postprocessing/RenderPass.js";
 import * as threeUnrealBloomPass from "three/addons/postprocessing/UnrealBloomPass.js";
 import * as zod from "zod";
+// GeoJSON asset for the geo/map chart demos ("world" is not built into
+// @domphy/chart — demos must registerMap() it, see docs/chart/geo.md).
+// Converted from world-atlas@2 countries-110m (TopoJSON → GeoJSON, 2-decimal
+// coordinates); excluded from biome like bench/generated.json.
+import worldGeoJSON from "./world.geo.json";
 
 const moduleMap: Record<string, unknown> = {
   "@domphy/blocks": domphyBlocks,
@@ -73,6 +78,7 @@ const moduleMap: Record<string, unknown> = {
   "three/addons/postprocessing/EffectComposer.js": threeEffectComposer,
   "three/addons/postprocessing/RenderPass.js": threeRenderPass,
   "three/addons/postprocessing/UnrealBloomPass.js": threeUnrealBloomPass,
+  "geo/world.json": worldGeoJSON,
   zod,
 };
 

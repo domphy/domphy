@@ -1,6 +1,10 @@
 import type { ChartOption } from "@domphy/chart";
-import { chart } from "@domphy/chart";
+import { chart, registerMap } from "@domphy/chart";
 import type { DomphyElement } from "@domphy/core";
+import worldGeoJSON from "geo/world.json";
+
+// @domphy/chart ships no GeoJSON — register the map before rendering (see docs/chart/geo).
+registerMap("world", worldGeoJSON);
 
 const cities: Record<string, [number, number]> = {
   "New York": [-74.0, 40.7],
