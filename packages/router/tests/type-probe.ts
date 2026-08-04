@@ -1,4 +1,8 @@
 // Type-surface spot-check: route generics must not collapse to any.
+// Not a vitest test — the checks are the `@ts-expect-error` assertions below,
+// verified by the TypeScript compiler (an unused directive is error TS2578).
+// Run: `npx tsc --noEmit -p tsconfig.json` from packages/router (tests/ is in
+// the tsconfig `include`).
 import {
   createMemoryHistory,
   createRootRouteWithContext,

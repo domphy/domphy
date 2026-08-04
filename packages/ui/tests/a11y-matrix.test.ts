@@ -599,7 +599,6 @@ describe("a11y matrix — interactive @domphy/ui patches", () => {
     flushSync();
     await auditCritical(name, host);
     // Listed in output for harness grep.
-    // eslint-disable-next-line no-console
     console.log(`a11y-matrix ok ${name}`);
   }, 20_000);
 });

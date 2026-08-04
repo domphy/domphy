@@ -421,7 +421,6 @@ export async function renderDoc(
   // so the reassembled <span> reaches them (and walkMdast) as one html
   // node; code-group must run before pressCodePlugin so it can access the
   // MDAST Code nodes before they become html strings.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const proc = remark()
     .use(remarkGfm as any)
     .use(remarkDirective as any)
@@ -430,7 +429,6 @@ export async function renderDoc(
     .use(pressCodePlugin(highlight));
 
   const tree = proc.parse(normalized) as Root;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (proc as any).runSync(tree, normalized);
 
   const slug = createUniqueSlugger(defaultSlugify);

@@ -98,7 +98,7 @@ try {
   const axePath = require.resolve("axe-core/axe.min.js");
   await page.addScriptTag({ path: axePath });
   axeSummary = await page.evaluate(async () => {
-    // eslint-disable-next-line no-undef
+    // `axe` is a browser global injected by addScriptTag above.
     const r = await axe.run(document, { resultTypes: ["violations"] });
     return {
       violationCount: r.violations.length,

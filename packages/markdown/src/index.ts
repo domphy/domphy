@@ -39,10 +39,8 @@ function buildProcessor(options: ParseOptions) {
   // error on every parse — verified against pristine HEAD.)
   const gfm = ((remarkGfm as { default?: unknown }).default ??
     remarkGfm) as typeof remarkGfm;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let proc = remark().use(gfm as any);
   for (const plugin of options.plugins ?? []) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     proc = proc.use(plugin as any);
   }
   return proc;
@@ -87,7 +85,6 @@ function requireOptionalPeer(name: string): unknown {
     return optionalPeerRequire(name);
   }
   // CJS build (import.meta emptied by esbuild) — native require.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
   return require(name);
 }
 
