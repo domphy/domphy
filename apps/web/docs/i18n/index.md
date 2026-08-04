@@ -3,6 +3,11 @@ title: "@domphy/i18n"
 description: "Internationalization for Domphy — reactive i18next wrapper with Domphy reactivity."
 ---
 
+<script setup lang="ts">
+
+import Basic from "../demos/i18n/basic.ts?raw"
+</script>
+
 # @domphy/i18n
 
 A thin reactive wrapper around [i18next](https://www.i18next.com/). When the locale changes, any UI element that called `t(listener, key)` re-renders automatically.
@@ -12,6 +17,12 @@ A thin reactive wrapper around [i18next](https://www.i18next.com/). When the loc
 ```bash
 npm install @domphy/i18n i18next
 ```
+
+## Live Example
+
+Switch locales and watch every `t(listener, key)` binding re-render — including plural forms:
+
+<CodeEditor :code="Basic" />
 
 ## Quick start
 

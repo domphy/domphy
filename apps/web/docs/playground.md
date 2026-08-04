@@ -3,6 +3,7 @@ title: Playground
 sidebar: false
 aside: false
 layout: page
+wide: true
 ---
 <script setup>
 const code = `

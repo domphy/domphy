@@ -42,7 +42,7 @@
     },
     {
       "name": "create-domphy",
-      "version": "0.18.6",
+      "version": "0.18.7",
       "description": "Scaffold a runnable Domphy starter project (npm create domphy@latest)",
       "subpaths": ["."],
       "peerDependencies": []
@@ -107,7 +107,7 @@
       "name": "@domphy/mermaid",
       "version": "0.19.0",
       "description": "Domphy Mermaid - build-time (SSG) and client-side Mermaid diagram rendering, with markdown tree integration for @domphy/markdown",
-      "subpaths": ["."],
+      "subpaths": [".", "./client"],
       "peerDependencies": ["@domphy/core", "mermaid"]
     },
     {
@@ -696,7 +696,7 @@
     {
       "name": "dialog",
       "hostTag": "dialog",
-      "signature": "dialog(props: { color?: ThemeColor; open?: ValueOrState<boolean> } = {})",
+      "signature": "dialog(props: { color?: ThemeColor; open?: ValueOrState<boolean>; labelledBy?: string; describedBy?: string; } = {})",
       "props": [
         {
           "name": "color",
@@ -709,10 +709,22 @@
           "type": "ValueOrState<boolean>",
           "optional": true,
           "doc": "Open state (`ValueOrState<boolean>`); set it to true/false to show/hide. Defaults to false."
+        },
+        {
+          "name": "labelledBy",
+          "type": "string",
+          "optional": true,
+          "doc": "`id` of the element labeling the dialog (wired to `aria-labelledby`). Optional."
+        },
+        {
+          "name": "describedBy",
+          "type": "string",
+          "optional": true,
+          "doc": "`id` of the element describing the dialog (wired to `aria-describedby`). Optional."
         }
       ],
-      "doc": "Modal dialog patch driven by an `open` State. Calls `showModal()`/`close()`, fades via opacity, locks page scroll while open, traps Tab focus within the dialog, restores focus to the previously focused element on close, sets `aria-modal`, and closes on outside (backdrop) click. Apply to a `<dialog>`.",
-      "example": "{ dialog: [...], $: [dialog({ open })] }",
+      "doc": "Modal dialog patch driven by an `open` State. Calls `showModal()`/`close()`, fades via opacity, locks page scroll while open, traps Tab focus within the dialog, restores focus to the previously focused element on close, sets `aria-modal`, and closes on outside (backdrop) click. Apply to a `<dialog>`. Accessible name/description: pass `labelledBy`/`describedBy` the `id` of a heading/paragraph inside the dialog (Radix Title/Description parity). The native `ariaLabelledby`/`ariaDescribedby` attributes on the host element remain an equivalent escape hatch (the native element always wins).",
+      "example": "{ dialog: [{ h2: \"Confirm\", id: \"dlg-title\" }], $: [dialog({ open, labelledBy: \"dlg-title\" })] }",
       "source": "packages/ui/src/patches/dialog.ts"
     },
     {
@@ -1900,7 +1912,7 @@
           "doc": "Whether the popover is open. Accepts a value or reactive state. Defaults to `false`."
         }
       ],
-      "doc": "A clickable select trigger box that renders the currently selected option(s) as removable tags and toggles a floating popover (the dropdown content) anchored to itself. Selected labels are derived from `options` matching the bound `value`; removing a tag updates the value.",
+      "doc": "A clickable select trigger box that renders the currently selected option(s) as removable tags and toggles a floating popover (the dropdown content) anchored to itself. Selected labels are derived from `options` matching the bound `value`; removing a tag updates the value. Keyboard: Enter/Space toggle, ArrowDown opens, Escape closes, and printable characters typeahead-search options (closed: selects the match; open: focuses the matching `[role=option]` in the panel; a repeated character cycles matches).",
       "example": "{ div: null, $: [selectBox({ content: { div: [...] }, options: [{ label: \"A\", value: \"a\" }] })] }",
       "source": "packages/ui/src/patches/selectBox.ts"
     },

@@ -200,6 +200,7 @@ const rowVirtualizer = createVirtualizer({
 // Attach measurement ref to each row
 const Row = (virtualRow: VirtualItem) => ({
   div: RowContent(virtualRow.index),
+  "data-index": virtualRow.index,
   _onMount: (node) =>
     rowVirtualizer.measureElement(node.domElement as HTMLElement),
   _key: virtualRow.key,

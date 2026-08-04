@@ -41,7 +41,9 @@ function toolButton(
       },
     ],
     type: "button",
-    ariaLabel: typeof label === "function" ? undefined : label,
+    // Reactive labels still need an accessible name — the tooltip text alone
+    // (aria-describedby) does not name the button (axe button-name).
+    ariaLabel: typeof label === "function" ? (l: Listener) => label(l) : label,
     onClick,
     $: [
       buttonGhost({ color: "neutral", size: "small" }),
@@ -67,7 +69,10 @@ function paneTab(
   return {
     button: label,
     type: "button",
-    ariaPressed: (l: Listener) => (pane.get(l) === id ? "true" : "false"),
+    // APG tabs pattern: a tablist's children must be tabs (axe
+    // aria-required-children), selected state via aria-selected.
+    role: "tab",
+    ariaSelected: (l: Listener) => (pane.get(l) === id ? "true" : "false"),
     onClick: () => pane.set(id),
     style: {
       appearance: "none",

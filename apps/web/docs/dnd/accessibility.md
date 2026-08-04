@@ -1,64 +1,83 @@
 ---
 title: "Accessibility"
-description: "Keyboard drag-and-drop, ARIA attributes, screen reader announcements, and touch accessibility in @domphy/dnd."
+description: "Keyboard alternatives, screen reader announcements, and touch accessibility in @domphy/dnd."
 ---
 
 # Accessibility
 
-`@domphy/dnd` inherits the accessibility features built into `@formkit/drag-and-drop`. Keyboard navigation, ARIA attributes, and basic touch support work without any extra setup.
+`@domphy/dnd` wraps `@formkit/drag-and-drop`, whose engine is **pointer-based**. Keyboard drag-and-drop is not implemented upstream (`handleNodeKeydown` is an empty stub; the only built-in key handling is `Escape` clearing a multi-drag selection), and FormKit does not manage `tabindex`, `aria-grabbed`, or `aria-dropeffect` for you. This page shows how to build the keyboard alternative yourself.
 
-## Keyboard Navigation
+## Keyboard Alternative: Reorder the State
 
-FormKit attaches keyboard listeners automatically when `dragDrop` is applied. All standard patterns are supported:
-
-| Key | Action |
-|---|---|
-| `Tab` | Move focus between list items |
-| `Space` | Pick up the focused item (enter drag mode) |
-| `Arrow Up` or `Arrow Left` | Move the held item one position earlier |
-| `Arrow Down` or `Arrow Right` | Move the held item one position later |
-| `Space` or `Enter` | Drop the item at the current position |
-| `Escape` | Cancel the drag — item returns to its original position |
-
-No configuration is required for any of these.
-
-## ARIA Attributes
-
-FormKit manages ARIA attributes on both the list and its items:
-
-- `aria-grabbed="true"` — set on the item currently being dragged via keyboard
-- `aria-dropeffect="move"` — set on the parent while an item is held
-
-These values change dynamically as the user drags and drops, so screen readers receive live feedback.
-
-## Making Items Keyboard-Focusable
-
-Items must be keyboard-focusable for keyboard drag to work. Native list items (`<li>`) are focusable when FormKit sets `tabindex` on them. If you use a different element as the list item, ensure it is reachable:
+The supported pattern is to make items focusable and reorder the bound state from a key handler. Because Domphy re-renders the keyed children from the same state the drag engine writes to, a keyboard reorder and a pointer drag stay in sync automatically:
 
 ```ts
-tasks.get(l).map((task) => ({
-  // <div> is not natively focusable — add tabindex.
-  div: task.title,
-  _key: task.id,
-  tabindex: "0",
-  role: "listitem",
-  style: {
-    padding: themeSpacing(3),
-    marginBottom: themeSpacing(2),
-    backgroundColor: (cl) => themeColor(cl, "shift-2"),
-    borderRadius: themeSpacing(2),
-    cursor: "grab",
-    userSelect: "none",
-  },
-}))
+import { toState } from "@domphy/core"
+import { dragDrop } from "@domphy/dnd"
+
+type Task = { id: number; title: string }
+
+const tasks = toState<Task[]>([
+  { id: 1, title: "Write specs" },
+  { id: 2, title: "Build feature" },
+  { id: 3, title: "Review PR" },
+])
+
+const announcement = toState("")
+
+// Move the item at `index` by `delta` (-1 up, +1 down) and announce it.
+function move(index: number, delta: number) {
+  const list = tasks.get()
+  const target = index + delta
+  if (target < 0 || target >= list.length) return
+  const next = list.slice()
+  const [item] = next.splice(index, 1)
+  next.splice(target, 0, item)
+  tasks.set(next)
+  announcement.set(
+    `"${item.title}" moved to position ${target + 1} of ${next.length}.`,
+  )
+}
+
+const App = {
+  div: [
+    {
+      ul: (l) =>
+        tasks.get(l).map((task, index) => ({
+          li: task.title,
+          _key: task.id,
+          tabindex: "0", // <li> is not natively focusable — add it yourself
+          onKeydown: (e: KeyboardEvent) => {
+            if (e.key === "ArrowUp") {
+              e.preventDefault()
+              move(index, -1)
+            } else if (e.key === "ArrowDown") {
+              e.preventDefault()
+              move(index, 1)
+            }
+          },
+        })),
+      $: [dragDrop(tasks)],
+      role: "list",
+    },
+    {
+      // Invisible ARIA live region — screen readers announce reorders politely.
+      div: (l) => announcement.get(l),
+      ariaLive: "polite",
+      ariaAtomic: "true",
+    },
+  ],
+}
 ```
 
-Add a focus-visible ring in a stylesheet:
+The same approach works between lists: move the item between the two state arrays. If you need the engine's own bookkeeping updated instead (e.g. mid-drag), the low-level `performSort` / `performTransfer` functions are re-exported from `@domphy/dnd`.
+
+Add a focus-visible ring in a stylesheet so the focused item is visible:
 
 ```ts
 const sheet = document.createElement("style")
 sheet.textContent = `
-  [role="listitem"]:focus-visible {
+  li:focus-visible {
     outline: 2px solid currentColor;
     outline-offset: 2px;
   }

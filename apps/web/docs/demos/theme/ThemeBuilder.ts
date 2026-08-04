@@ -269,13 +269,13 @@ function tabButton(
     activeTab.get() === key ? "primary" : "neutral",
   );
   return {
-    button: label_,
+    button: (l: Listener) =>
+      activeTab.get(l) === key
+        ? ({ strong: label_, $: [strong()] } as DomphyElement<"strong">)
+        : label_,
     onClick: () => activeTab.set(key),
     $: [buttonGhost({ color })],
-    style: {
-      flex: "1",
-      fontWeight: (l: Listener) => (activeTab.get(l) === key ? "600" : "400"),
-    },
+    style: { flex: "1" },
   };
 }
 
@@ -462,19 +462,16 @@ function formsGallery(): DomphyElement<"section"> {
       input: null,
       type: "checkbox",
       $: [inputCheckbox()],
-      _doctorDisable: "missing-color",
     } as DomphyElement<"input">,
     {
       input: null,
       type: "radio",
       $: [inputRadio()],
-      _doctorDisable: "missing-color",
     } as DomphyElement<"input">,
     {
       input: null,
       type: "checkbox",
       $: [inputSwitch()],
-      _doctorDisable: "missing-color",
     } as DomphyElement<"input">,
     { input: null, type: "range", $: [inputRange()] } as DomphyElement<"input">,
     {
@@ -482,7 +479,6 @@ function formsGallery(): DomphyElement<"section"> {
       type: "color",
       value: "#4a7ff4",
       $: [inputColor()],
-      _doctorDisable: "missing-color",
     } as DomphyElement<"input">,
     { input: null, type: "file", $: [inputFile()] } as DomphyElement<"input">,
     {
@@ -517,12 +513,10 @@ function feedbackGallery(): DomphyElement<"section"> {
       value: 40,
       max: 100,
       $: [progress()],
-      _doctorDisable: "missing-color",
     } as DomphyElement<"progress">,
     {
       div: null,
       $: [ringProgress({ value: 65 })],
-      _doctorDisable: "missing-color",
     } as DomphyElement<"div">,
     { span: null, $: [spinner()] } as DomphyElement<"span">,
     {
@@ -577,7 +571,6 @@ function dataDisplayGallery(): DomphyElement<"section"> {
     {
       hr: null,
       $: [horizontalRule()],
-      _doctorDisable: "missing-color",
     } as DomphyElement<"hr">,
   ]);
 }
@@ -622,9 +615,6 @@ function navigationGallery(): DomphyElement<"section"> {
       ],
       $: [accordion()],
       style: { width: themeSpacing(70) },
-      // Text color is set by the summary/p children the accordion() patch
-      // renders — the outer group container itself carries no text.
-      _doctorDisable: "missing-color",
     } as DomphyElement<"div">,
     {
       div: null,
@@ -637,7 +627,6 @@ function navigationGallery(): DomphyElement<"section"> {
           ],
         }),
       ],
-      _doctorDisable: "missing-color",
     } as DomphyElement<"div">,
     {
       div: null,
@@ -650,7 +639,6 @@ function navigationGallery(): DomphyElement<"section"> {
           ],
         }),
       ],
-      _doctorDisable: "missing-color",
     } as DomphyElement<"div">,
     {
       div: "",

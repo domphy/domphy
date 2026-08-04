@@ -361,6 +361,11 @@ bootstrap(previewRegistry);
     sourcemap: false,
     target: "es2020",
     define: { "process.env.NODE_ENV": '"production"' },
+    // @domphy/doctor's Layer 4 (auditOutput) dynamic-imports these Node-only
+    // linters. They are never called from the playground (diagnose/validate/
+    // fix/format run in-browser), so keep them out of the browser bundle —
+    // stylelint statically imports node: builtins and would fail the build.
+    external: ["htmlhint", "stylelint"],
     logLevel: "error",
     loader: { ".ttf": "file", ".woff": "file", ".woff2": "file" },
   });
@@ -378,8 +383,9 @@ bootstrap(previewRegistry);
 function buildSitemap(pages: BuiltPage[], hostname: string): string {
   const urls = pages
     .map((page) => {
-      const loc =
-        page.route === "/" ? `${hostname}/` : `${hostname}${page.route}/`;
+      // Index routes already end in "/" — collapse or the URL gets a
+      // double slash ("https://…/docs//").
+      const loc = `${`${hostname}${page.route}`.replace(/\/+$/, "")}/`;
       return `  <url><loc>${loc}</loc></url>`;
     })
     .join("\n");
@@ -459,10 +465,9 @@ async function run(): Promise<void> {
         page.title === config.title
           ? config.title
           : `${page.title} | ${config.title}`;
-      const canonical =
-        page.route === "/"
-          ? `${config.hostname}/`
-          : `${config.hostname}${page.route}/`;
+      // Index routes already end in "/" — collapse before appending the
+      // trailing slash or the canonical gets a double slash ("/docs//").
+      const canonical = `${`${config.hostname}${page.route}`.replace(/\/+$/, "")}/`;
       return {
         path: page.route,
         metadata: {
@@ -472,7 +477,7 @@ async function run(): Promise<void> {
           openGraph: {
             title: pageTitle,
             description,
-            url: page.route === "/" ? "/" : `${page.route}/`,
+            url: `${page.route.replace(/\/+$/, "")}/`,
             siteName: config.title,
             type: "website",
           },
@@ -517,9 +522,12 @@ async function run(): Promise<void> {
     }
   }
   if (failures.length > 0) {
-    console.warn(`\n${failures.length} page(s) failed to render:`);
+    console.error(`\n${failures.length} page(s) failed to render:`);
     for (const failure of failures)
-      console.warn(`  ✗ ${failure.route}: ${failure.error}`);
+      console.error(`  ✗ ${failure.route}: ${failure.error}`);
+    // Match @domphy/press's buildSite contract: any page failure fails the
+    // build — a silently skipped page would ship as a CDN-cached 404.
+    process.exit(1);
   }
 
   const indexJson = buildSearchIndex(searchDocs);

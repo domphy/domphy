@@ -93,7 +93,7 @@ interface DiagnoseOptions {
   exclude?: string[]
 
   /**
-   * Additional custom rules to run alongside the 18 built-in rules.
+   * Additional custom rules to run alongside the 22 built-in rules.
    * Custom rule ids are also subject to `only`/`exclude` filtering.
    * See "Custom Rules" section below.
    */
@@ -431,14 +431,20 @@ Options:
   --exclude <rules>    Skip these rule IDs (comma-separated)
   --no-reactive        Skip reactive function evaluation
   --no-output          Skip Layer 4 HTML+CSS linting (htmlhint + stylelint)
+  --no-factory-exec    Never invoke exported functions as zero-arg factories
+                       (suppresses factory-threw warnings on component-library
+                       files whose factories require props)
   --format text|json   Output format (default: text)
   -h, --help           Show this help
 
 Exit codes:
   0  No errors (warnings/info are fine)
-  1  One or more error-severity diagnostics
-  2  CLI usage error or file not found
+  1  One or more error-severity diagnostics, a file failed to import,
+     or an input path was not found
+  2  CLI usage error or nothing to analyze
 ```
+
+`--no-factory-exec` is the flag to reach for when scanning component-library files: factories that genuinely require props cannot be invoked zero-arg, so without the flag each one produces a `factory-threw` warning. With the flag those exports are left untouched — no invocation, no warning (they are simply not analyzed).
 
 ```json
 // package.json

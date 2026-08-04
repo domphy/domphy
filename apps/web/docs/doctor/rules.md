@@ -1,11 +1,11 @@
 ---
 title: "Rules Reference"
-description: "Complete reference for all 18 @domphy/doctor rules — what each one catches, why it matters, and how to fix the violation."
+description: "Complete reference for all 22 @domphy/doctor rules — what each one catches, why it matters, and how to fix the violation."
 ---
 
 # Rules Reference
 
-`@domphy/doctor` runs 18 rules against a Domphy element tree. This page covers each rule in full: what triggers it, why the pattern is non-idiomatic, and how to write the correct version.
+`@domphy/doctor` runs 22 rules against a Domphy element tree. This page covers each rule in full: what triggers it, why the pattern is non-idiomatic, and how to write the correct version.
 
 Severity levels:
 - **error** — structurally invalid; the tree will not render correctly. `validate().ok` is `false` when any error is present.
@@ -31,6 +31,94 @@ Void HTML tags (`input`, `img`, `br`, `hr`, `meta`, `link`, `area`, `col`, `embe
 ```
 
 This is the only rule where `fix()` applies a lossless auto-correction: it sets the tag value to `null`. The fix is lossless because void tags cannot render children regardless, so clearing the content loses nothing.
+
+---
+
+## `invalid-nesting` — error
+
+HTML content-model violations that browsers "repair" by re-parenting or discarding nodes. The repair changes the tree shape between server render and client mount, breaking SSR/hydration parity — so violations are errors, not warnings. Modeled on Svelte's `node_invalid_placement_ssr` and html-validate.
+
+**Checked combinations (declared direct parent → child pairs only):**
+
+- Flow/block content inside `<p>` (phrasing content only): `div`, `p`, `h1`–`h6`, `ul`, `ol`, `dl`, `blockquote`, `pre`, `table`, `form`, `fieldset`, `figure`, `figcaption`, `main`, `section`, `article`, `aside`, `header`, `footer`, `nav`, `hr`, `address`.
+- Interactive content inside interactive content: `a` or `button` inside `<a>`, `a` or `button` inside `<button>`.
+- `li` outside `ul`/`ol`/`menu`; `dt`/`dd` outside `dl`; `tr` outside `table`/`thead`/`tbody`/`tfoot`; `td`/`th` outside `tr`; `option` outside `select`/`optgroup`/`datalist`; `thead`/`tbody`/`tfoot`/`caption`/`colgroup` outside `table`.
+- A direct element child of `ul`/`ol` that is not `li`/`script`/`template`.
+
+```ts
+// Bad — browser closes the <p> early and re-parents the <div>
+{ p: [{ div: "Card" }] }
+
+// Bad — interactive inside interactive
+{ a: [{ button: "Click" }], href: "/" }
+
+// Bad — li without a list parent
+{ div: [{ li: "Item" }] }
+
+// Bad — non-li child of ul
+{ ul: [{ div: "Item" }] }
+```
+
+```ts
+// Good
+{ div: [{ p: "Intro" }, { div: "Card" }] }
+{ button: [{ span: "Click" }] }
+{ ul: [{ li: "Item" }] }
+```
+
+**Exempt (never flagged):** text content, reactive `(listener) => …` function results, `rawHtml()` content, `$`-patch/imperatively-inserted children (all invisible to the static tree), and everything inside `<svg>` subtrees — SVG has its own content model. `foreignObject` re-enters HTML, so HTML checks apply again inside it.
+
+---
+
+## `click-without-keyboard` — warning
+
+An element with an `onClick` handler that is not inherently interactive and has no keyboard handler is mouse-only — an accessibility bug. Modeled on Svelte's `a11y_click_events_have_key_events` + `a11y_no_static_element_interactions`.
+
+**Exempt (never flagged):**
+
+- Natively interactive tags: `a`, `button`, `input`, `select`, `textarea`, `summary`, `label`.
+- Elements with an interactive ARIA `role` (`button`, `link`, `menuitem`, `menuitemcheckbox`, `menuitemradio`, `tab`, `switch`, `checkbox`, `radio`, `option`, `treeitem`) or a `tabIndex`/`tabindex` attribute.
+- Elements with a keyboard handler: `onKeyDown`, `onKeyUp`, or `onKeyPress`.
+- Hidden elements: `hidden: true`, `aria-hidden: "true"`, or `style: { display: "none" }` — they are not pointer-reachable either.
+
+```ts
+// Bad — mouse-only
+{ div: "Open", onClick: () => open() }
+```
+
+```ts
+// Good — keyboard handler + role + tabIndex
+{ div: "Open", role: "button", tabIndex: 0, onClick: () => open(), onKeyDown: (e) => e.key === "Enter" && open() }
+
+// Better — use a natively interactive element
+{ button: "Open", onClick: () => open() }
+```
+
+---
+
+## `missing-required-attribute` — error / warning
+
+Required accessibility attributes that assistive technology depends on. Modeled on htmlhint's `alt-require`/`title-require` and Svelte's `a11y_missing_attribute`.
+
+- **`<img>` without `alt`** — error. An empty `alt: ""` is valid (decorative image); `aria-label`, `aria-labelledby`, or `role: "presentation"` / `"none"` are accepted alternatives. Only a missing/`undefined` value is flagged.
+- **`<iframe>` without `title`** — error.
+- **`<a>` with `onClick` but no `href` and no `role`** — warning. A link without `href` is not focusable; it behaves like a button and should say so.
+
+```ts
+// Bad
+{ img: null, src: "/logo.png" }
+{ iframe: null, src: "https://example.com" }
+{ a: "Save", onClick: () => save() }
+```
+
+```ts
+// Good
+{ img: null, src: "/logo.png", alt: "Domphy logo" }
+{ img: null, src: "/divider.png", alt: "" }              // decorative
+{ iframe: null, src: "https://example.com", title: "Example embed" }
+{ a: "Save", role: "button", tabIndex: 0, onClick: () => save(), onKeyDown: (e) => e.key === "Enter" && save() }
+// or just: { button: "Save", onClick: () => save() }
+```
 
 ---
 
@@ -563,3 +651,35 @@ When an element with `dataTone` sets `style.color` to a theme var whose shift st
 ```
 
 This rule only fires when `dataTone` is also set and `style.color` resolves to a recognizable theme CSS var. It is a companion to `dataTone-surface-contract` — once the surface contract is satisfied, this rule verifies the color step is high enough.
+
+---
+
+## `unused-doctor-disable` — info
+
+A `_doctorDisable` suppression entry that suppresses **nothing** on its element — modeled on ESLint v9's `reportUnusedDisableDirectives`. Stale suppressions rot silently: the rule you meant to silence may have been fixed long ago, or the id was never valid in the first place.
+
+An entry is stale when:
+
+- it names a **known rule** (built-in or custom via `options.rules`) that produced no diagnostic on this element, or
+- it **matches no known rule id at all** — e.g. a typo like `"low-contrst"`. This is the highest-value case: the suppression silently disables nothing, so the diagnostic says the id matches no known rule.
+- `_doctorDisable: true` is stale only when it suppressed **zero** diagnostics (as long as any rule fired on the element, "suppress all" is doing work and cannot be proven stale).
+
+Suppression scope is per-element: an entry is "used" when the named rule fired on the element itself (or an array-level rule like `missing-key` fired at the element's own path) — descendant diagnostics are never suppressed, so they never count as usage.
+
+```ts
+// Bad — low-contrast never fires here; the entry is stale
+{ div: "Card", _doctorDisable: "low-contrast" }
+
+// Bad — "low-contrst" matches no known rule (typo)
+{ div: "Card", _doctorDisable: "low-contrst" }
+
+// Bad — true suppresses all, but nothing fired on this element
+{ div: "Card", _doctorDisable: true }
+```
+
+```ts
+// Good — inline-typography fires and is suppressed; the stale entry is removed
+{ p: "Body", style: { fontSize: "20px" }, _doctorDisable: ["inline-typography"] }
+```
+
+Usage is measured against the diagnostics the rules actually produced, before the `only`/`exclude` output filter — so `exclude: ["low-contrast"]` hides the rule's diagnostics but does **not** turn a suppression that consumed one stale. The rule itself is suppressible like any other: `_doctorDisable: "unused-doctor-disable"` on the same element silences its report there, and `exclude: ["unused-doctor-disable"]` turns it off globally.

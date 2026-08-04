@@ -223,7 +223,9 @@ title: {
 
 ## Toolbox
 
-Built-in chart toolbar with export, zoom, restore, and data-view actions.
+> **Not implemented yet.** The `toolbox` option is typed for ECharts interop, but
+> no toolbar is rendered — setting it logs a runtime warning and has no effect.
+> The shape below is accepted so ECharts options migrate without type errors;
 
 ```ts
 toolbox: {
@@ -240,11 +242,12 @@ toolbox: {
 }
 ```
 
-`yAxisIndex: "none"` keeps the y axis fixed while zooming x. Use `"all"` to allow y-axis zoom too.
-
 ## Brush
 
-Area selection for highlighting or filtering data points.
+> **Not implemented yet.** The `brush` option is typed for ECharts interop, but
+> area selection is not rendered — setting it logs a runtime warning and has no
+> effect. The shape below is accepted so ECharts options migrate without type
+> errors;
 
 ```ts
 brush: {
@@ -257,34 +260,22 @@ brush: {
 }
 ```
 
-Brush is most useful paired with the `toolbox.feature.brush` to give users a UI toggle. The `brushLink` option syncs selection across multiple series sharing the same axis.
-
 ## Animation
 
-Charts animate in by default. Configure or disable:
+> **Not implemented yet.** Charts render statically: the `animation*` keys
+> (`animation`, `animationDuration`, `animationEasing`, `animationDelay`,
+> `animationDurationUpdate`, …) are typed on the top-level option and on every
+> series for ECharts interop — ECharts options migrate without type errors —
+> but no enter/update tweening runs. The exceptions are the series that carry
+> their own SVG effects: `effectScatter` (ripple) and `lines` (`effect` dot via
+> `animateMotion`).
 
 ```ts
-// Disable all animation (useful for SSR or performance-critical renders):
+// Accepted for ECharts interop; currently has no visual effect:
 {
   animation: false,
+  animationDuration: 800,
+  animationEasing: "cubicOut",
+  animationDurationUpdate: 300,
 }
-
-// Customize duration and easing:
-{
-  animation: true,
-  animationDuration: 800,          // ms for initial render animation
-  animationEasing: "cubicOut",     // easing function name (ECharts easing names)
-  animationDurationUpdate: 300,    // ms for data-update transitions
-}
-```
-
-Common `animationEasing` values: `"linear"`, `"quadraticIn"`, `"quadraticOut"`, `"cubicOut"`, `"elasticOut"`, `"bounceOut"`.
-
-Set `animation: false` on individual series to disable animation for that series only:
-
-```ts
-series: [
-  { type: "line", data: [...], animation: false },
-  { type: "bar",  data: [...] },   // still animates
-]
 ```

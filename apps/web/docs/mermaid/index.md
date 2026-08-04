@@ -1,3 +1,8 @@
+<script setup lang="ts">
+
+import Basic from "../demos/mermaid/basic.ts?raw"
+</script>
+
 # Mermaid
 
 `@domphy/mermaid` renders [Mermaid](https://mermaid.js.org/) diagrams for Domphy. It has two complementary paths:
@@ -27,6 +32,12 @@ npm install @domphy/mermaid
 :::
 
 `@domphy/core` is a peer dependency. `@mermaid-js/mermaid-cli` is a **direct** dependency that powers the build-time path; it manages its own headless browser (Puppeteer / Chrome) internally, so you do not install or configure Puppeteer yourself. `mermaid` is an **optional** peer dependency, needed only for the client-side patch.
+
+## Live Example
+
+Client-side rendering with the `mermaidClient()` patch — pick a diagram to re-render:
+
+<CodeEditor :code="Basic" />
 
 ## Build-time rendering
 
@@ -112,6 +123,14 @@ const App = {
   $: [mermaidClient({ theme: "dark" })],
 }
 ```
+
+::: tip Browser bundlers
+The main `@domphy/mermaid` entry statically imports Node built-ins (`node:fs`, `node:crypto`) for the build-time renderer. In a browser bundle (Vite, esbuild, webpack), import the client patch from the browser-safe subpath instead — it is identical, minus the Node-only exports:
+
+```ts
+import { mermaidClient } from "@domphy/mermaid/client"
+```
+:::
 
 On mount the patch reads the source from the element (preferring an inner `<code>`), renders it with the `mermaid` library, and swaps in the SVG. Install `mermaid` to use this path:
 

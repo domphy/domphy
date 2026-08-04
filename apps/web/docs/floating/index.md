@@ -3,6 +3,11 @@ title: "Getting Started"
 description: "Install @domphy/floating and position a floating element in three steps."
 ---
 
+<script setup lang="ts">
+
+import Basic from "../demos/floating/basic.ts?raw"
+</script>
+
 # @domphy/floating
 
 `@domphy/floating` places any floating element — tooltip, popover, dropdown, context menu — next to a reference element. It handles viewport clipping, scrolling, resizing, and placement flips automatically.
@@ -21,6 +26,12 @@ npm install @domphy/floating
 :::
 
 `@domphy/floating` is framework-agnostic and has zero dependencies — it does not depend on `@domphy/core`. The tooltip example below also uses `@domphy/core` (`ElementNode`, `toState`) and `@domphy/theme`; install those separately if you want to follow along, but they are not required to use `@domphy/floating` on its own.
+
+## Live Example
+
+`createFloating` (the Popper-style manager) positioning a chip against a reference box — switch placements and scroll the preview to see `flip()`/`shift()` react:
+
+<CodeEditor :code="Basic" />
 
 ## Core Concepts
 

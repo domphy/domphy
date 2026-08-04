@@ -125,6 +125,10 @@ export function visualPage(
           fontWeight: "700",
           margin: `0 0 ${themeSpacing(2)}`,
           color: (l) => themeColor(l, "text"),
+          // Solo block pages title the page "Block <camelCaseName>" — a long
+          // unbreakable camelCase word must wrap on narrow viewports instead
+          // of overflowing (it tripped the responsive sweep's overflow gate).
+          overflowWrap: "anywhere",
         },
       },
       {

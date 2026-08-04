@@ -12,6 +12,8 @@ Unlike `combobox`, `selectBox` has no input field — it is suited for fixed opt
 
 `selectBox` gives the dropdown panel a default surface (background, `"border-strong"` outline, density-scaled radius, medium `elevation()` shadow) so it's usable without the caller styling `content` itself.
 
+Keyboard: Enter/Space toggle the dropdown, ArrowDown opens it, Escape closes. Typing printable characters runs typeahead (Radix Select character-search parity): while closed, the first case-insensitive prefix match in `options` becomes the selection; while open, focus moves to the matching `[role=option]` in the panel. The buffer resets after 1s of idle, a repeated character cycles through that character's matches, and disabled options are skipped.
+
 ## Props
 
 | Prop | Type | Default | Description |

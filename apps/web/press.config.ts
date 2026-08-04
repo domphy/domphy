@@ -52,6 +52,7 @@ export const config = defineConfig({
           { text: "Chart", link: "/docs/chart/" },
           { text: "Three", link: "/docs/three/" },
           { text: "Editor", link: "/docs/editor/" },
+          { text: "Floating", link: "/docs/floating/" },
           { text: "Press", link: "/docs/press/" },
           { text: "Doctor", link: "/docs/doctor/" },
           { text: "MCP", link: "/docs/mcp/" },

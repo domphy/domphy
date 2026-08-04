@@ -82,11 +82,12 @@ Because the cache already holds the server data, the observer's first result is 
 
 ## What Gets Dehydrated
 
-By default `dehydrate` includes successful and pending queries, and skips mutations. Both are configurable:
+By default `dehydrate` includes only successful queries — pending queries are skipped unless you opt in (needed when streaming dehydrated promises) — and only paused mutations are included (none in practice). Both are configurable:
 
 ```ts
 dehydrate(queryClient, {
-    shouldDehydrateQuery: (query) => query.state.status === "success",
+    shouldDehydrateQuery: (query) =>
+        query.state.status === "success" || query.state.status === "pending",
     shouldDehydrateMutation: () => false,
 })
 ```

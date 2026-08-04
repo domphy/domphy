@@ -87,12 +87,13 @@ Set `dataTone="shift-14"` on the chart container → all series colors adapt to 
 | Tooltip (axis/item) | ✓ (Domphy element or string) | ✓ (HTML or richText) |
 | DataZoom (slider/inside) | ✓ | ✓ |
 | VisualMap (continuous/piecewise) | ✓ | ✓ |
-| Brush | ✓ (option type) | ✓ |
-| Toolbox | ✓ (option type) | ✓ |
+| Brush | typed only (warns, no effect) | ✓ |
+| Toolbox | typed only (warns, no effect) | ✓ |
 | Mark point/line/area | ✓ | ✓ |
 | Dataset + transforms | ✓ | ✓ |
 | Axis pointer | ✓ | ✓ |
 | Geo roam (interactive pan/zoom) | static (`zoom`/`center` only) | ✓ |
+| Enter/update animation (`animation*`) | typed only (static render; `effectScatter`/`lines` have own SVG effects) | ✓ |
 
 ## Bundle size
 

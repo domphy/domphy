@@ -51,7 +51,7 @@ const App = {
 - **Error boundaries:** use the `errorBoundary()` patch (`@domphy/ui`) to catch errors thrown in reactive children. It invokes `_onError` on the nearest ancestor; call `reset()` to swap in a fallback element.
 - **Lifecycle hooks** (`_onSchedule`, `_onInit`, `_onInsert`, `_onMount`, `_onBeforeUpdate`, `_onUpdate`, `_onBeforeRemove(node, done)` — must call `done()`, `_onRemove`, `_onError(node, error, reset)` — error boundary; call `reset()` to clear children and render fallback) for imperative/3rd-party integration; events stay flat (`onClick`, `onInput`).
 - **Comments in code: English only.** Names: descriptive, no abbreviations (`index` not `i` except loops; `listener` `l`, event `e`, node `node`).
-- **Self-check:** run `@domphy/doctor` `diagnose(element)` (or `validate(element)`) on what you produce and fix every reported issue before finishing. Rules: `inline-typography` (fontSize/lineHeight/fontWeight/letterSpacing/fontFamily/textDecoration literals — use patches), `raw-theme-value` (literal hex/rgb colors AND CSS named colors like "red"/"white" on direct color props — hint gives nearest `themeColor()` via CIELAB/LCH perceptual match), `raw-spacing-value` (literal rem/em/px/logical spacing props — use `themeSpacing(n)`), `low-opacity` (style.opacity < 0.6 on interactive elements — too dim to be discoverable), `tone-background-inherit` (backgroundColor must use themeColor(l, "inherit") — shift the surface via dataTone instead), `missing-color` (element uses themeColor but no style.color — text won't follow tone context shifts), `low-contrast` (text/bg shift gap < 9 — insufficient contrast), `dataTone-surface-contract` (dataTone set but missing backgroundColor and/or color), `color-shift-minimum` (style.color resolves to tone step < 9 on a dataTone surface), `unknown-tone` (invalid dataTone — valid: inherit/base/shift-N/increase-N/decrease-N, N ≤ 17), `middle-surface-anchor` (dataTone shift-4–13 mid-ramp — use edge anchors 0–3 or 14–17), `unknown-density` (dataDensity invalid or N > 4), `unknown-size` (dataSize invalid or N > 7), `void-content`, `missing-key`, `duplicate-key`, `unstable-key`, `unknown-tag`. `fix(element)` auto-applies the lossless ones. `DiagnoseOptions`: `only` (whitelist rule ids), `exclude` (blacklist rule ids), `rules` (custom rule array). Inline suppression: `_doctorDisable: true | "rule-id" | string[]` on an element silences its diagnostics.
+- **Self-check:** run `@domphy/doctor` `diagnose(element)` (or `validate(element)`) on what you produce and fix every reported issue before finishing. Rules: `inline-typography` (fontSize/lineHeight/fontWeight/letterSpacing/fontFamily/textDecoration literals — use patches), `raw-theme-value` (literal hex/rgb colors AND CSS named colors like "red"/"white" on direct color props — hint gives nearest `themeColor()` via CIELAB/LCH perceptual match), `raw-spacing-value` (literal rem/em/px/logical spacing props — use `themeSpacing(n)`), `low-opacity` (style.opacity < 0.6 on interactive elements — too dim to be discoverable), `tone-background-inherit` (backgroundColor must use themeColor(l, "inherit") — shift the surface via dataTone instead), `missing-color` (element uses themeColor but no style.color — text won't follow tone context shifts; null-content decorative hosts like swatches/glyphs exempt), `low-contrast` (text/bg shift gap < 9 — insufficient contrast), `dataTone-surface-contract` (dataTone set but missing backgroundColor and/or color), `color-shift-minimum` (style.color resolves to tone step < 9 on a dataTone surface), `unknown-tone` (invalid dataTone — valid: inherit/base/shift-N/increase-N/decrease-N, N ≤ 17), `middle-surface-anchor` (dataTone shift-4–13 mid-ramp — use edge anchors 0–3 or 14–17), `unknown-density` (dataDensity invalid or N > 4), `unknown-size` (dataSize invalid or N > 7), `invalid-nesting` (HTML content-model violations the browser re-parents, breaking SSR/hydration: flow content in `<p>`, a/button inside a/button, `li`/`dt`/`dd`/`tr`/`td`/`th`/`option`/`thead`/`tbody`/`tfoot`/`caption`/`colgroup` with the wrong parent, non-`li` element child of `ul`/`ol` — declared direct parent-child only; reactive content and SVG subtrees exempt), `click-without-keyboard` (`onClick` on a non-interactive element — not a/button/input/select/textarea/summary/label, no interactive role, no tabIndex — without a keyboard handler; hidden elements exempt), `missing-required-attribute` (`img` without `alt` — aria-label/labelledby or role presentation/none OK — and `iframe` without `title` are errors; `a` with `onClick` but no `href`/`role` is a warning), `void-content`, `missing-key`, `duplicate-key`, `unstable-key`, `unknown-tag`, `unused-doctor-disable` (info — a `_doctorDisable` entry that suppresses nothing on its element: the named rule fired no diagnostic there, or the id matches no known rule — catches typo'd suppressions like "low-contrst"). `fix(element)` auto-applies the lossless ones. `DiagnoseOptions`: `only` (whitelist rule ids), `exclude` (blacklist rule ids), `rules` (custom rule array). Inline suppression: `_doctorDisable: true | "rule-id" | string[]` on an element silences its diagnostics.
 
 ## Reused-node lifecycle — the gotchas behind most real bugs
 
@@ -74,7 +74,7 @@ List reconciliation REUSES DOM nodes (by `_key`, or by position for unkeyed list
 | `@domphy/ui` | 98 patches (`button`, `buttonGhost`, `card`, `dialog`, `select`, `motion`, `formGroup`, `errorBoundary`, `rating`, `fab`, `list`, `timeline`, `scrollArea`, `ringProgress`, `inputPassword`, `stack`, `row`, `grid`, `panelSection`, `visuallyHidden`, …); shared style helpers `focusRing`/`elevation` are public exports; `inputText({ type })` sets the input's `type` (default `"text"`) |
 | `@domphy/query` | async state — adapter `createQuery`/`createMutation`/`createInfiniteQuery`/`bindResult` at `@domphy/query/domphy`; `bindResult` connects an observer to Domphy reactivity so result fields are readable with a listener; `dehydrate`/`hydrate` (main entry) serialize/restore query-cache state for SSR |
 | `@domphy/table` | headless tables — adapter `createDomphyTable` at `@domphy/table/domphy` |
-| `@domphy/router` | type-safe routing — `createRouter`/`createRoute`/`createRootRoute`/`createRootRouteWithContext` |
+| `@domphy/router` | type-safe routing — `createRouter`/`createRoute`/`createRootRoute`/`createRootRouteWithContext`; 1-1 port of `@tanstack/router-core` with a deviation list (see `packages/router/UPSTREAM.md`) |
 | `@domphy/virtual` | virtualization — adapter `createVirtualizer` at `@domphy/virtual/domphy` |
 | `@domphy/form` | forms — adapter `createForm` at `@domphy/form/domphy`; byte-level port pinned to `@tanstack/form-core@1.33.0` (see `packages/form/SOURCES.md`) |
 | `@domphy/dnd` | drag & drop — `dragDrop(state, config?)`, `multiList(options)`, `multiListGroup(group, states, config?)` (wraps `@formkit/drag-and-drop`) |
@@ -84,12 +84,12 @@ List reconciliation REUSES DOM nodes (by `_key`, or by position for unkeyed list
 | `@domphy/floating` | anchor positioning (vendored floating-ui, zero-dep; pinned core@1.7.5/dom@1.7.6 with a deviation list — see `packages/floating/UPSTREAM.md`) — powers `@domphy/ui` overlays, `@domphy/chart` tooltips, and `@domphy/editor` bubble menus; public surface: `computePosition`/`autoUpdate` + middleware (`offset`/`flip`/`shift`/`arrow`/`size`/`inline`/…), `VirtualElement` for anchoring to non-element rects |
 | `@domphy/palette` | color-palette engine — `Ramp`/`Palette`/`Swatch`: 5 CIELAB quality metrics (design-time companion to theme); `generateRamp(baseColors, steps)`: builds a WCAG-span-optimized 18-step ramp from one or more anchor colors via a warped Oklab interpolation (see `DESIGN.md` §3); `isValidHex`/`normalizeHex` hex validation (#rgb/#rgba/#rrggbb/#rrggbbaa) |
 | `@domphy/markdown` | parse Markdown → Domphy element trees for SSR/SSG (`parseMarkdown`, `createMarkdown`, `walkMdast`, `splitFrontmatter`, `transformOutsideCodeBlocks`; remark/unified under the hood); powers this docs site |
-| `@domphy/mermaid` | render Mermaid diagrams (build-time `renderMermaidInTree` SVG + client `mermaidClient()` patch) |
+| `@domphy/mermaid` | render Mermaid diagrams (build-time `renderMermaidInTree` SVG + client `mermaidClient()` patch); browser-safe subpath `@domphy/mermaid/client` (main entry statically imports node: builtins — use the subpath in Vite/esbuild browser bundles) |
 | `@domphy/chart` | WebGL + SVG chart engine — `chart(option)` patch renders line/bar/pie/scatter/radar/heatmap/candlestick/etc. series (luma.gl WebGL) with SVG overlays for axes/legend/tooltip/layout series; `ChartEngine` for headless/advanced use; scale creators (`createLinearScale`, `createOrdinalScale`, `createTimeScale`, `createLogScale`), dataset transforms (`applyTransforms`, `resolveDataset`), color utilities (`seriesColor` — theme-aware var-ref default, recommended, `familyCss`, `cssColor`, `createColorResolver`, `hexToRgba`, `seriesHex`/`familyHex` — static light-theme design-time helpers, `seriesPaletteFamily`, `colorFromVisualMap`); theme-aware (colors follow `[data-theme]` at paint time + re-render on flips: SVG layers carry `var(--…)` refs, WebGL uniforms re-resolve); tooltip `formatter` may return a `DomphyElement`, tooltip positioning via `@domphy/floating`; ECharts-compatible type surface |
-| `@domphy/three` | declarative three.js scene graph — 1-1 functional port of `@react-three/fiber` core (reconciler, raycast pointer events, demand frameloop) on Domphy reactivity; `three(options)` patch mounts a canvas host and renders the scene graph, `extend(classes)` registers custom/version-agnostic tags for `resolve()`, `loadAsset`/`preloadAsset`/`clearAsset` for reactive asset loading (`AssetResult<T>`: `data`/`error`/`promise`); `diagnose(options)`/`validate(options)` — scene-level static analyzer (doctor's contract shape for the three() option object doctor cannot see): rules `unknown-tag`, `legacy-light-intensity`, `additive-blowout`, `camera-missing-lookat`; per-node suppression via `_doctorDisable` |
+| `@domphy/three` | declarative three.js scene graph — 1-1 functional port of `@react-three/fiber` core (reconciler, raycast pointer events, demand frameloop) on Domphy reactivity; `three(options)` patch mounts a canvas host and renders the scene graph, `extend(classes)` registers custom/version-agnostic tags for `resolve()`, `loadAsset`/`preloadAsset`/`clearAsset` for reactive asset loading (`AssetResult<T>`: `data`/`error`/`promise`); the `onCreated(root)` object is typed `CreatedRootState` (RootState + `setSize`); `diagnose(options)`/`validate(options)` — scene-level static analyzer (doctor's contract shape for the three() option object doctor cannot see): rules `unknown-tag`, `tag-not-first` (props-first description the reconciler's first-own-key tag read would throw on), `legacy-light-intensity`, `additive-blowout`, `camera-missing-lookat`; per-node suppression via `_doctorDisable` |
 | `@domphy/editor` | rich-text editor with a Tiptap-compatible API on a self-contained engine (no ProseMirror) — `Editor`, `Extension.create`/`Node.create`/`Mark.create` (incl. plain-DOM `addNodeView`), chainable commands (`chain()`/`can()`, `isActive`, `getJSON`/`getHTML`/`getText`), `starterKit(options?)` set (paragraph/heading/bold/italic/strike/code/underline/blockquote/lists/hardBreak/horizontalRule/link with autolink/codeBlock/undo-redo/trailingNode; per-extension `false` to disable) + `Table` subset (`insertTable`/`goToNextCell`/row-column ops, not in the kit), input rules (`# `, `**bold**`, `- `…) + keymap, view hooks `onPaste`/`onDrop`/`onKeyDown`, `onUpdate({ editor, transaction })`; positions are ProseMirror-style token positions; `getJSON()` omits default-valued attrs (Tiptap JSON loads unchanged). Domphy adapter at `@domphy/editor/domphy`: `createEditor`, `editorContent()` patch (host element must declare `null` children), `bubbleMenu()` patch (selection-anchored via `@domphy/floating`, shadow-root-safe), `editorState(editor)` reactive readers; `editor.stateVersion` is the reactivity bridge (a `State<number>` bumped per transaction) |
 | `@domphy/mcp` | MCP server exposing 10 tools: `domphy_list_patches`, `domphy_get_patch`, `domphy_list_packages`, `domphy_rules`, `domphy_tones`, `domphy_diagnose`, `domphy_validate`, `domphy_fix`, `domphy_list_app_blocks`, `domphy_get_app_block` — patches, packages, rules, tones, doctor, and app-block registry |
-| `@domphy/press` | VitePress-baseline static doc site framework — `defineConfig`, `buildSite`, `pressCSS`, CLI `domphy-press build / dev / preview`; built on `@domphy/app` + `@domphy/markdown`; CSS generated via `pressCSS()` + `themeCSS()` (no static .css file); supports VitePress containers (tip/warning/info/danger/details/code-group), `<<<` code imports, frontmatter hero/features/`fullBleed`, `--dp-font-sans`/`--dp-font-mono`/`--dp-font-display` font hooks, sidebar/nav/TOC, built-in local search (`SearchWidgetOptions.basePath` — base-aware); extras: line highlighting, code-group tabs, 14 admonition types, steps, task lists, mark/sub/sup, emoji, mermaid CDN, social links, edit link, last-updated, reading time, sidebar badges/collapsible, announcement bar, i18n, per-page head, heading anchor links, image lazy loading, `<Badge>` inline component; build fails when any page fails unless `continueOnError: true`; emits 404.html + a content-hashed islands bundle |
+| `@domphy/press` | VitePress-baseline static doc site framework — `defineConfig`, `buildSite`, `pressCSS`, CLI `domphy-press build / dev / preview`; built on `@domphy/app` + `@domphy/markdown`; CSS generated via `pressCSS()` + `themeCSS()` (no static .css file); supports VitePress containers (tip/warning/info/danger/details/code-group), `<<<` code imports, frontmatter hero/features/`fullBleed`, `--dp-font-sans`/`--dp-font-mono`/`--dp-font-display` font hooks, sidebar/nav/TOC, built-in local search (`SearchWidgetOptions.basePath` — base-aware); extras: line highlighting, code-group tabs, 14 admonition types, steps, task lists, mark/sub/sup, emoji, mermaid CDN, social links, edit link, last-updated, reading time, sidebar badges/collapsible, announcement bar, i18n, per-page head, heading anchor links, image lazy loading, `<Badge>` inline component; build fails when any page fails unless `continueOnError: true`; emits 404.html + a content-hashed islands bundle; `withBase(base, href)` base-prefixes emitted hrefs (nav/sidebar/hero links + canonical/sitemap/OG URLs auto-prefixed for non-root deploys); `SiteConfig.cspNonce` stamps a CSP nonce on all inline `<script>`/`<style>` + forwards to `@domphy/app` SSR |
 | `@domphy/i18n` | generic i18next wrapper with Domphy reactivity — `createI18n<TLocale, TMessages>(options)` returns `{ t(listener?, key), locale, currentLocale, exists, setLocale, getLocale, detectLocale, initI18n }`; globalThis dedup survives Vite chunk splitting; reactive `t(listener, key)` overload re-renders on `setLocale()` |
 | `create-domphy` | scaffolder — `npm create domphy@latest <dir>` writes a runnable Vite + TS starter (themeApply + sample patches + AGENTS.md) |
 | `domphy-web` | docs website — built with `@domphy/press` on `@domphy/app` + `@domphy/markdown` (internal, not published to npm) |
@@ -132,8 +132,10 @@ Common role mappings from an edge surface (`shift-0`). Prefer the alias column w
 | Stroke / divider | `"border"` | `"shift-3"` | subtle separator |
 | Control outline | `"border-strong"` | `"shift-4"` | button/input/card border |
 | Placeholder | — | `"shift-7"` | input placeholder |
-| Muted / disabled text | `"muted"` | `"shift-8"` | secondary text |
+| Muted / disabled text | `"muted"` | `"shift-8"` | secondary text (de-emphasis only — see note below) |
 | Body text | `"text"` | `"shift-9"` | paragraph |
+
+**Contrast contract:** `"text"` (shift-9) sits at the K=9 contrast span and clears WCAG AA 4.5:1 on any edge-anchored surface in every built-in role. `"muted"` (shift-8) is deliberately below that floor (~4.1–4.2:1): it is the de-emphasis tone for supplementary/decorative content (timestamps, captions, placeholders) where the info is non-essential or available elsewhere. Essential text (labels, instructions, error text, button names, nav items) must use `"text"` — axe `color-contrast` will flag a `muted` element carrying essential content, and the fix is to promote it to `"text"`, not to raise the muted tone.
 | Heading / strong text | — | `"shift-11"` | h2 |
 | Active/pressed bg | — | `"increase-2"` | button:active |
 
@@ -171,8 +173,8 @@ Use `outline` not `border` — a 1px border on both sides adds 2px to height and
 - **Focus ring**: interactive patches (button, buttonGhost, linkButton, link, listItemButton, inputs, select, selectItem, textarea, segmented, tabs, toggleGroup, rating, pagination, menu items, command items, datePicker cells, accordion/details summary, splitter handle, breadcrumbEllipsis, fab) unify on the shared `focusRing(listener, color)` helper (public export of `@domphy/ui`) — ring-offset pattern via layered `box-shadow` on `:focus-visible` (`0 0 0 2px surface, 0 0 0 4px accent@shift-9`), matching Radix/shadcn. Never hand-roll a flush `0 0 0 2px` pastel ring.
 - **Press `:active`**: primary CTA controls (button outline/solid, buttonGhost, linkButton, fab, listItemButton) apply the design-system interactive delta — hover `±1`, pressed `±2` (solid uses `decrease-N` on the dark edge surface).
 
-### Doctor rules (complete list — 18 built-in)
-`inline-typography`, `raw-theme-value` (hex/rgb + CSS named colors), `raw-spacing-value`, `low-opacity` (style.opacity < 0.6 on interactive controls — too dim to be discoverable; info if hover-restore pattern detected), `tone-background-inherit` (backgroundColor must resolve to themeColor(l, "inherit") — detected by running the reactive fn at context=0: var(--X-N) with N>0 means a fixed shifted tone; shift the surface via dataTone instead), `missing-color` (element uses themeColor for bg/border but has no style.color — text won't re-evaluate on tone shift), `low-contrast` (text `color` and `backgroundColor` are both reactive theme vars but their shift numbers differ by < 9 — insufficient contrast; extracted from the `var(--X-N)` string that `themeColor()` returns), `dataTone-surface-contract` (dataTone set but missing backgroundColor and/or color — a tone context surface must declare both so children can guarantee readable contrast), `color-shift-minimum` (style.color on a dataTone element resolves to tone step < 9 — below the minimum for legible body text), `unknown-tone`, `middle-surface-anchor`, `unknown-density`, `unknown-size`, `void-content`, `missing-key`, `duplicate-key`, `unstable-key`, `unknown-tag`. Extend with project rules via `options.rules: CustomRule[]`. Suppress on an element with `_doctorDisable`.
+### Doctor rules (complete list — 22 built-in)
+`inline-typography`, `raw-theme-value` (hex/rgb + CSS named colors), `raw-spacing-value`, `low-opacity` (style.opacity < 0.6 on interactive controls — too dim to be discoverable; info if hover-restore pattern detected), `tone-background-inherit` (backgroundColor must resolve to themeColor(l, "inherit") — detected by running the reactive fn at context=0: var(--X-N) with N>0 means a fixed shifted tone; shift the surface via dataTone instead), `missing-color` (element uses themeColor for bg/border but has no style.color — text won't re-evaluate on tone shift; null-content decorative hosts exempt), `low-contrast` (text `color` and `backgroundColor` resolve to same-family theme vars — reactive `themeColor()` results or static `var(--X-N)` literals — but their shift numbers differ by < 9 — insufficient contrast), `dataTone-surface-contract` (dataTone set but missing backgroundColor and/or color — a tone context surface must declare both so children can guarantee readable contrast), `color-shift-minimum` (style.color on a dataTone element resolves to tone step < 9 — below the minimum for legible body text), `unknown-tone`, `middle-surface-anchor`, `unknown-density`, `unknown-size`, `invalid-nesting` (error — HTML content-model violations the browser re-parents, breaking SSR/hydration: flow content in `<p>`, interactive-in-interactive a/button, `li`/`dt`/`dd`/`tr`/`td`/`th`/`option`/table-section tags with the wrong parent, non-`li` element child of `ul`/`ol`; declared direct parent-child pairs only — reactive content, rawHtml, and SVG subtrees are exempt), `click-without-keyboard` (warning — `onClick` on a non-interactive element without a keyboard handler, interactive role, or tabIndex; hidden elements exempt), `missing-required-attribute` (`img` without `alt` and `iframe` without `title` are errors; `a` with `onClick` but no `href`/`role` is a warning), `void-content`, `missing-key`, `duplicate-key`, `unstable-key`, `unknown-tag`, `unused-doctor-disable` (info — `_doctorDisable` entries that suppress nothing on the element: stale rule ids, `_doctorDisable: true` with nothing fired, or ids matching no known rule). Extend with project rules via `options.rules: CustomRule[]`. Suppress on an element with `_doctorDisable`.
 
 ## Custom spinners
 
@@ -281,6 +283,16 @@ For `N = 18` (Domphy's tone scale): `K_ideal = ⌈0.501 × 17⌉ = 9`. This is w
 Domphy's 18-step ramp and the `shift-N` tone system are the sizes they are —
 9 is the number of tone steps you can reliably jump for guaranteed contrast,
 almost exactly half the ramp.
+
+`K_ideal` is the *achromatic* ideal, not a measured universal. Probing the
+generator (§3) over 30 hues (24 full-saturation + 6 brand colors) gives an
+observed `K` of 9 for 17/30 ramps, 10 for 11/30, and 11 for the most
+saturated greens — so consumers should treat 9 as the typical span, not a
+worst-case guarantee. What *does* hold for 100% of probed ramps is strict
+luminance monotonicity along the ramp, the property the tone system actually
+relies on (pinned by the monotonicity test in
+`packages/palette/tests/generator.test.ts`); the built-in themes' K = 9
+contrast contract is pinned by `packages/theme/tests/contrast.test.ts`.
 
 Efficiency is then the gap between the *observed* density `D = K/(N-1)` and
 this ideal:
@@ -471,9 +483,11 @@ generation step itself *target* the accessibility structure analytically —
 the contrast span isn't checked after the fact, it's the thing the warp
 curve is shaped to hit. §2's evaluation framework and §3's generator are two
 halves of one falsifiable claim: give it any brand color, and the resulting
-18-step ramp will — with high, measured probability, not by convention —
-already satisfy WCAG 4.5:1 at index distance 9. That claim is testable
-(`generator.test.ts` tests it) and re-derivable from first principles (§2.1's
+18-step ramp will land at or near the §2.1 ideal span — measured `K` = 9 for
+17/30 probed hues, 10–11 for the most saturated ones (§2.1). That claim is
+testable (`packages/palette/tests/generator.test.ts` pins the span bound and
+strict luminance monotonicity, `packages/theme/tests/contrast.test.ts` pins
+K = 9 for the built-in themes) and re-derivable from first principles (§2.1's
 `λ ≈ 0.501` is arithmetic, not a magic number).
 
 ## 5. Space axis: spacing, density, size
@@ -568,7 +582,7 @@ Framework-agnostic, no JSX, no virtual DOM, no build step required — and the m
 
 - `@domphy/core` — runtime: rendering, reactivity, lifecycle, SSR, CSS-in-JS (≈ `react-dom` + SSR + CSS-in-JS in one)
 - `@domphy/theme` — context-aware color/size/spacing tokens
-- `@domphy/ui` — 96 patches for native HTML (≈ MUI)
+- `@domphy/ui` — 98 patches for native HTML (≈ MUI)
 
 **Data & logic** — framework-agnostic API + a Domphy adapter at the `/domphy` subpath:
 
@@ -668,7 +682,7 @@ Form state, validation, and submission live in [`@domphy/form`](/docs/form/) (`c
 
 - [Core concepts](/docs/core/) — Syntax, reactivity, lifecycle
 - [Theme](/docs/theme/) — Tone, size, density
-- [All 95 patches](/docs/ui/) — Buttons, inputs, cards, dialogs, and more
+- [All 98 patches](/docs/ui/) — Buttons, inputs, cards, dialogs, and more
 - [Research](/docs/research/) — The two papers behind the design system
 
 
@@ -7200,8 +7214,10 @@ Raw `shift-N` indices work, but they force every caller to remember the numeric 
 | `hover` | `shift-2` | hover/active background |
 | `border` | `shift-3` | default hairline divider (the `K/3` stroke role) |
 | `border-strong` | `shift-4` | control outline (button/input/card boundary) |
-| `muted` | `shift-8` | secondary/disabled text |
+| `muted` | `shift-8` | secondary/disabled text — **de-emphasis only, see below** |
 | `text` | `shift-9` | default/primary text (the `K` text role) |
+
+> **Contrast contract.** `text` (`shift-9`) sits exactly at the `K = 9` contrast span, so it clears WCAG AA `4.5:1` on any edge-anchored surface in every built-in role (measured `4.53:1`–`5.14:1`, light and dark). `muted` (`shift-8`) is deliberately one step *below* that guarantee — it measures about `4.1:1`–`4.2:1` on an edge surface. That is intentional: muted is the de-emphasis tone for **supplementary** content (timestamps, captions, placeholders, secondary metadata) where the information is decorative or available elsewhere. Never use `muted` for essential text (labels, instructions, error text, button names, nav items) — use `text`. Automated checkers such as axe `color-contrast` apply the `4.5:1` normal-text rule indiscriminately, so a `muted` element that carries essential content will be flagged; the fix is always to promote that element to `text`, not to raise the muted tone (which would collapse it into `text` and destroy the semantic distinction).
 
 ```ts
 backgroundColor: (l) => themeColor(l, "inherit", "primary")
@@ -9375,11 +9391,12 @@ Because the cache already holds the server data, the observer's first result is 
 
 ## What Gets Dehydrated
 
-By default `dehydrate` includes successful and pending queries, and skips mutations. Both are configurable:
+By default `dehydrate` includes only successful queries — pending queries are skipped unless you opt in (needed when streaming dehydrated promises) — and only paused mutations are included (none in practice). Both are configurable:
 
 ```ts
 dehydrate(queryClient, {
-    shouldDehydrateQuery: (query) => query.state.status === "success",
+    shouldDehydrateQuery: (query) =>
+        query.state.status === "success" || query.state.status === "pending",
     shouldDehydrateMutation: () => false,
 })
 ```
@@ -14910,7 +14927,7 @@ const list = createVirtualizer<HTMLDivElement, HTMLDivElement>(options)
 | `getVirtualItems(l)` | `VirtualItem[]` | Reactive list of items currently in range. Pass a listener to subscribe. |
 | `getTotalSize(l?)` | `number` | Total scroll size in px. Pass listener to subscribe reactively. |
 | `setScrollElement(el)` | `void` | Wire the scroll container. Call from `_onMount`. |
-| `measureElement(el)` | `void` | Measure an item element. Call from item `_onMount` for variable heights. |
+| `measureElement(el)` | `void` | Measure an item element. Call from item `_onMount` for variable heights. The element must carry `"data-index": item.index` (see `indexAttribute`) — without it the index cannot be resolved and measurement is skipped with a console warning. |
 | `scrollToIndex(i, opts?)` | `void` | Scroll to item at index. |
 | `scrollToOffset(px, opts?)` | `void` | Scroll to an absolute offset. |
 | `scrollBy(delta, opts?)` | `void` | Scroll by a relative pixel delta from the current position. |
@@ -15156,6 +15173,7 @@ const App = {
       div: (l) =>
         list.getVirtualItems(l).map((item) => ({
           _key: item.key,
+          "data-index": item.index,
           div: items[item.index].text,
           // Call measureElement — actual height replaces the estimate
           _onMount: (node) =>
@@ -15344,6 +15362,7 @@ const App = {
       div: (l) =>
         list.getVirtualItems(l).map((item) => ({
           _key: item.key,
+          "data-index": item.index,
           div: items[item.index].title,
           _onMount: (node) =>
             list.measureElement(node.domElement as HTMLDivElement),
@@ -15588,6 +15607,7 @@ const rowVirtualizer = createVirtualizer({
 // Attach measurement ref to each row
 const Row = (virtualRow: VirtualItem) => ({
   div: RowContent(virtualRow.index),
+  "data-index": virtualRow.index,
   _onMount: (node) =>
     rowVirtualizer.measureElement(node.domElement as HTMLElement),
   _key: virtualRow.key,
@@ -15666,7 +15686,7 @@ const list = createVirtualizer<HTMLDivElement, HTMLDivElement>({
 | `getVirtualItems(l)` | Reactive list of visible `VirtualItem`s — read with the listener inside the items function. |
 | `getTotalSize(l)` | Reactive total scroll size, for the spacer height/width. |
 | `setScrollElement(el)` | Wire the scroll container DOM node; call from its `_onMount`. |
-| `measureElement(el)` | Dynamic measurement ref; call from each item's `_onMount` for variable sizes. |
+| `measureElement(el)` | Dynamic measurement ref; call from each item's `_onMount` for variable sizes. The item element must carry `"data-index": item.index` — the virtualizer reads the index from that attribute and warns + skips measurement when it is missing. |
 | `scrollToIndex(i, opts?)` / `scrollToOffset(px, opts?)` | Imperative scrolling. |
 | `setOptions(opts)` | Update `count`/options, then re-measure. |
 | `virtualizer` | The underlying `Virtualizer` — the full virtual-core API including `scrollBy(delta, opts?)`, `scrollToEnd(opts?)`, `takeSnapshot()`, `getDistanceFromEnd()`, `isAtEnd(threshold?)`. |
@@ -15678,7 +15698,7 @@ const list = createVirtualizer<HTMLDivElement, HTMLDivElement>({
 1. Make the outer element a fixed-height scroll container and wire it: `_onMount: (node) => list.setScrollElement(node.domElement)`. Add `_onRemove: () => list.destroy()` to detach observers when the container is removed.
 2. Inside, render a relative spacer whose height is `list.getTotalSize(l)`.
 3. Map `list.getVirtualItems(l)` into absolutely-positioned children using each item's `start`/`size`, keyed by `item.key`.
-4. For variable-height rows, call `list.measureElement(node.domElement)` from each row's `_onMount` and drop the fixed `height`.
+4. For variable-height rows, call `list.measureElement(node.domElement)` from each row's `_onMount` and drop the fixed `height`. Every measured row must render `"data-index": item.index` — the virtualizer resolves the item index from that attribute.
 
 Pass your own `observeElementRect` / `observeElementOffset` / `scrollToFn` to virtualize against the window instead of an element.
 
@@ -15827,6 +15847,7 @@ const PostItem = (post: Post, virtualItem: VirtualItem) => ({
   _onMount: (node) =>
     virtualizer.measureElement(node.domElement as HTMLElement),
   _key: virtualItem.key,
+  "data-index": virtualItem.index,
   style: {
     position: "absolute",
     top: 0,
@@ -15995,6 +16016,7 @@ const App = {
                 color: (cl) => themeColor(cl, "shift-7"),
               },
             },
+            "data-index": item.index,
             _onMount: (node) =>
               list.measureElement(node.domElement as HTMLDivElement),
             style: {
@@ -16443,6 +16465,7 @@ const App = {
         div: (l) => list.getVirtualItems(l).map((item) => ({
           div: data.get()[item.index].text,
           _key: item.key,
+          "data-index": item.index,
           _onMount: (node) => list.measureElement(node.domElement),
           style: {
             position: "absolute",
@@ -16844,6 +16867,7 @@ const list = createVirtualizer({
 // Attach measureElement to each item:
 const PostItem = (item: VirtualItem) => ({
   _key: item.key,
+  "data-index": item.index,
   article: PostContent(posts[item.index]),
   _onMount: (node) =>
     list.measureElement(node.domElement as HTMLElement),
@@ -20151,65 +20175,84 @@ const confirm = form.field("confirm", {
 
 ---
 title: "Accessibility"
-description: "Keyboard drag-and-drop, ARIA attributes, screen reader announcements, and touch accessibility in @domphy/dnd."
+description: "Keyboard alternatives, screen reader announcements, and touch accessibility in @domphy/dnd."
 ---
 
 # Accessibility
 
-`@domphy/dnd` inherits the accessibility features built into `@formkit/drag-and-drop`. Keyboard navigation, ARIA attributes, and basic touch support work without any extra setup.
+`@domphy/dnd` wraps `@formkit/drag-and-drop`, whose engine is **pointer-based**. Keyboard drag-and-drop is not implemented upstream (`handleNodeKeydown` is an empty stub; the only built-in key handling is `Escape` clearing a multi-drag selection), and FormKit does not manage `tabindex`, `aria-grabbed`, or `aria-dropeffect` for you. This page shows how to build the keyboard alternative yourself.
 
-## Keyboard Navigation
+## Keyboard Alternative: Reorder the State
 
-FormKit attaches keyboard listeners automatically when `dragDrop` is applied. All standard patterns are supported:
-
-| Key | Action |
-|---|---|
-| `Tab` | Move focus between list items |
-| `Space` | Pick up the focused item (enter drag mode) |
-| `Arrow Up` or `Arrow Left` | Move the held item one position earlier |
-| `Arrow Down` or `Arrow Right` | Move the held item one position later |
-| `Space` or `Enter` | Drop the item at the current position |
-| `Escape` | Cancel the drag — item returns to its original position |
-
-No configuration is required for any of these.
-
-## ARIA Attributes
-
-FormKit manages ARIA attributes on both the list and its items:
-
-- `aria-grabbed="true"` — set on the item currently being dragged via keyboard
-- `aria-dropeffect="move"` — set on the parent while an item is held
-
-These values change dynamically as the user drags and drops, so screen readers receive live feedback.
-
-## Making Items Keyboard-Focusable
-
-Items must be keyboard-focusable for keyboard drag to work. Native list items (`<li>`) are focusable when FormKit sets `tabindex` on them. If you use a different element as the list item, ensure it is reachable:
+The supported pattern is to make items focusable and reorder the bound state from a key handler. Because Domphy re-renders the keyed children from the same state the drag engine writes to, a keyboard reorder and a pointer drag stay in sync automatically:
 
 ```ts
-tasks.get(l).map((task) => ({
-  // <div> is not natively focusable — add tabindex.
-  div: task.title,
-  _key: task.id,
-  tabindex: "0",
-  role: "listitem",
-  style: {
-    padding: themeSpacing(3),
-    marginBottom: themeSpacing(2),
-    backgroundColor: (cl) => themeColor(cl, "shift-2"),
-    borderRadius: themeSpacing(2),
-    cursor: "grab",
-    userSelect: "none",
-  },
-}))
+import { toState } from "@domphy/core"
+import { dragDrop } from "@domphy/dnd"
+
+type Task = { id: number; title: string }
+
+const tasks = toState<Task[]>([
+  { id: 1, title: "Write specs" },
+  { id: 2, title: "Build feature" },
+  { id: 3, title: "Review PR" },
+])
+
+const announcement = toState("")
+
+// Move the item at `index` by `delta` (-1 up, +1 down) and announce it.
+function move(index: number, delta: number) {
+  const list = tasks.get()
+  const target = index + delta
+  if (target < 0 || target >= list.length) return
+  const next = list.slice()
+  const [item] = next.splice(index, 1)
+  next.splice(target, 0, item)
+  tasks.set(next)
+  announcement.set(
+    `"${item.title}" moved to position ${target + 1} of ${next.length}.`,
+  )
+}
+
+const App = {
+  div: [
+    {
+      ul: (l) =>
+        tasks.get(l).map((task, index) => ({
+          li: task.title,
+          _key: task.id,
+          tabindex: "0", // <li> is not natively focusable — add it yourself
+          onKeydown: (e: KeyboardEvent) => {
+            if (e.key === "ArrowUp") {
+              e.preventDefault()
+              move(index, -1)
+            } else if (e.key === "ArrowDown") {
+              e.preventDefault()
+              move(index, 1)
+            }
+          },
+        })),
+      $: [dragDrop(tasks)],
+      role: "list",
+    },
+    {
+      // Invisible ARIA live region — screen readers announce reorders politely.
+      div: (l) => announcement.get(l),
+      ariaLive: "polite",
+      ariaAtomic: "true",
+    },
+  ],
+}
 ```
 
-Add a focus-visible ring in a stylesheet:
+The same approach works between lists: move the item between the two state arrays. If you need the engine's own bookkeeping updated instead (e.g. mid-drag), the low-level `performSort` / `performTransfer` functions are re-exported from `@domphy/dnd`.
+
+Add a focus-visible ring in a stylesheet so the focused item is visible:
 
 ```ts
 const sheet = document.createElement("style")
 sheet.textContent = `
-  [role="listitem"]:focus-visible {
+  li:focus-visible {
     outline: 2px solid currentColor;
     outline-offset: 2px;
   }
@@ -20861,14 +20904,7 @@ See [FormKit drag-and-drop docs](https://drag-and-drop.formkit.com) for the full
 
 ## Accessibility
 
-FormKit drag-and-drop includes keyboard accessibility built in:
-
-- `Tab` to focus an item
-- `Space` to pick up / drop
-- Arrow keys to move while picked up
-- `Escape` to cancel
-
-No additional setup required. ARIA roles (`role="listitem"`, `aria-grabbed`, `aria-dropeffect`) are applied automatically.
+The engine is pointer-based — keyboard drag-and-drop is **not** implemented upstream (`handleNodeKeydown` is an empty stub; the only built-in key handling is `Escape` clearing a multi-drag selection), and no `aria-grabbed`/`aria-dropeffect`/`tabindex` attributes are applied automatically. Build keyboard-operable reorder yourself: make items focusable, reorder the bound state from a key handler, and announce the result via an ARIA live region — see [Accessibility](./accessibility).
 
 ### handles-and-filtering.md
 
@@ -21088,7 +21124,7 @@ A tap shorter than `longPressDuration` passes through as a normal click event on
 
 # Drag & Drop
 
-`@domphy/dnd` adds sortable lists and drag & drop to Domphy: reorder, transfer between lists, multi-drag, keyboard accessibility, and drop animations.
+`@domphy/dnd` adds sortable lists and drag & drop to Domphy: reorder, transfer between lists, multi-drag, and drop animations.
 
 This package **depends on** [`@formkit/drag-and-drop`](https://drag-and-drop.formkit.com) (MIT, zero-dependency, framework-agnostic) and adds a thin Domphy adapter — the same way FormKit's own React/Vue/Solid adapters wrap the engine. The full FormKit API is re-exported.
 
@@ -21136,11 +21172,11 @@ import { dragDrop } from "@domphy/dnd"
 { ul: (l) => ..., $: [dragDrop(items, { group: "todos" })] }
 ```
 
-Give two lists the same `group` to transfer items between them. Use `animated: false` to opt out of animations. Accessibility, touch and synthetic-drag handling come from FormKit — see the [FormKit DnD docs](https://drag-and-drop.formkit.com) for the full config.
+Give two lists the same `group` to transfer items between them. Use `animated: false` to opt out of animations. Touch and synthetic-drag handling come from FormKit — see the [FormKit DnD docs](https://drag-and-drop.formkit.com) for the full config.
 
 ## Cleanup
 
-The adapter tears down FormKit's listeners automatically on removal (`_onRemove`).
+The FormKit registration lives in a per-node `behavior()` instance; on element removal its `destroy` runs FormKit's `tearDown()` and clears the entry from FormKit's `parents` registry.
 
 ### multi-container.md
 
@@ -22450,7 +22486,9 @@ title: {
 
 ## Toolbox
 
-Built-in chart toolbar with export, zoom, restore, and data-view actions.
+> **Not implemented yet.** The `toolbox` option is typed for ECharts interop, but
+> no toolbar is rendered — setting it logs a runtime warning and has no effect.
+> The shape below is accepted so ECharts options migrate without type errors;
 
 ```ts
 toolbox: {
@@ -22467,11 +22505,12 @@ toolbox: {
 }
 ```
 
-`yAxisIndex: "none"` keeps the y axis fixed while zooming x. Use `"all"` to allow y-axis zoom too.
-
 ## Brush
 
-Area selection for highlighting or filtering data points.
+> **Not implemented yet.** The `brush` option is typed for ECharts interop, but
+> area selection is not rendered — setting it logs a runtime warning and has no
+> effect. The shape below is accepted so ECharts options migrate without type
+> errors;
 
 ```ts
 brush: {
@@ -22484,36 +22523,24 @@ brush: {
 }
 ```
 
-Brush is most useful paired with the `toolbox.feature.brush` to give users a UI toggle. The `brushLink` option syncs selection across multiple series sharing the same axis.
-
 ## Animation
 
-Charts animate in by default. Configure or disable:
+> **Not implemented yet.** Charts render statically: the `animation*` keys
+> (`animation`, `animationDuration`, `animationEasing`, `animationDelay`,
+> `animationDurationUpdate`, …) are typed on the top-level option and on every
+> series for ECharts interop — ECharts options migrate without type errors —
+> but no enter/update tweening runs. The exceptions are the series that carry
+> their own SVG effects: `effectScatter` (ripple) and `lines` (`effect` dot via
+> `animateMotion`).
 
 ```ts
-// Disable all animation (useful for SSR or performance-critical renders):
+// Accepted for ECharts interop; currently has no visual effect:
 {
   animation: false,
+  animationDuration: 800,
+  animationEasing: "cubicOut",
+  animationDurationUpdate: 300,
 }
-
-// Customize duration and easing:
-{
-  animation: true,
-  animationDuration: 800,          // ms for initial render animation
-  animationEasing: "cubicOut",     // easing function name (ECharts easing names)
-  animationDurationUpdate: 300,    // ms for data-update transitions
-}
-```
-
-Common `animationEasing` values: `"linear"`, `"quadraticIn"`, `"quadraticOut"`, `"cubicOut"`, `"elasticOut"`, `"bounceOut"`.
-
-Set `animation: false` on individual series to disable animation for that series only:
-
-```ts
-series: [
-  { type: "line", data: [...], animation: false },
-  { type: "bar",  data: [...] },   // still animates
-]
 ```
 
 ### colors.md
@@ -24674,12 +24701,13 @@ Set `dataTone="shift-14"` on the chart container → all series colors adapt to 
 | Tooltip (axis/item) | ✓ (Domphy element or string) | ✓ (HTML or richText) |
 | DataZoom (slider/inside) | ✓ | ✓ |
 | VisualMap (continuous/piecewise) | ✓ | ✓ |
-| Brush | ✓ (option type) | ✓ |
-| Toolbox | ✓ (option type) | ✓ |
+| Brush | typed only (warns, no effect) | ✓ |
+| Toolbox | typed only (warns, no effect) | ✓ |
 | Mark point/line/area | ✓ | ✓ |
 | Dataset + transforms | ✓ | ✓ |
 | Axis pointer | ✓ | ✓ |
 | Geo roam (interactive pan/zoom) | static (`zoom`/`center` only) | ✓ |
+| Enter/update animation (`animation*`) | typed only (static render; `effectScatter`/`lines` have own SVG effects) | ✓ |
 
 ## Bundle size
 
@@ -25994,6 +26022,8 @@ const HeadingWithBigShortcut = Heading.extend({
 
 Every config hook is called with `this` bound to `{ name, options, storage, editor, parent }`.
 
+Lifecycle hooks: `onCreate` fires once at construction — note the view may not exist yet, since `createEditor()` mounts later. `onMount` fires every time the view is mounted into a host element (at construction when `element` was passed, and on each later `editor.mount(host)`), so it is the right place to bind DOM listeners to the host — pair it with `onDestroy` for teardown. `onUpdate`, `onSelectionUpdate`, `onFocus` and `onBlur` mirror the editor options of the same name.
+
 ## Writing an extension
 
 A `Mark` needs a name, how it parses out of HTML, how it renders back, and the commands it contributes:
@@ -26753,6 +26783,10 @@ Framework-agnostic, zero dependencies, pure color science. (Ported from the *Chr
 ```bash
 npm install @domphy/palette
 ```
+
+## Live Example
+
+Generate a WCAG-optimized 18-step ramp from any anchor color with `generateRamp`:
 
 ## Measure
 
@@ -27759,6 +27793,8 @@ The segment id for a route group is the pattern including the group prefix, e.g.
 
 `router.refresh()` clears the cache and re-runs everything for the current URL.
 
+> **Deliberate gap:** there is no `revalidateTag`/`revalidatePath`-style on-demand revalidation API. Cache invalidation is time-based (`revalidate` seconds) plus manual (`router.refresh()`), by design.
+
 ### Stale-while-revalidate
 
 When a cached entry ages past its `revalidate` window, the next navigation **serves the stale value immediately** and refetches in the background — the same model as Next.js ISR. There is no loading flash: the page renders instantly with the old data, then re-renders in place once the fresh value lands.
@@ -27813,6 +27849,8 @@ loader: async ({ headers }) => {
 ```
 
 On the server, pass `context.headers` (forwarded from the incoming request to `renderToString`). On the client, `cookies()` with no argument falls back to `document.cookie`.
+
+> **Deliberate gap:** `cookies()` is read-only — there is no `cookies().set()` and no Set-Cookie/response-header mutation channel on page SSR (`renderToString`/`renderToStream` results carry `status` and `redirect`, not mutable headers). To set cookies, use an [API route](./api-routes) (handlers return a web-standard `Response`, which can carry `Set-Cookie`) or set them in your host server.
 
 ## Pairing with @domphy/query
 
@@ -28549,6 +28587,8 @@ const result = await app.renderToString(request.url, { headers: request.headers 
 | `data` | loader results, keyed for hydration |
 | `bootstrapScript` | inline `<script>` exposing `data` to the client |
 
+> **Deliberate gap:** `SSRResult` has no response-header channel — pages cannot mutate response headers (no `Set-Cookie`) during SSR, unlike Next.js Server Actions / `cookies().set()`. `cookies()` is the read path only; set cookies from an [API route](./api-routes) (web-standard `Response`) or in your host server.
+
 ## A Node Server
 
 ```ts
@@ -29120,6 +29160,10 @@ pnpm add @domphy/markdown @domphy/core
 ```
 
 `@domphy/core` is a peer dependency.
+
+## Live Example
+
+Edit the Markdown source and watch `parseMarkdown` rebuild the element tree:
 
 ## parseMarkdown
 
@@ -30600,6 +30644,10 @@ description: "Patterns for rendering Mermaid diagrams in the browser with @domph
 
 The `mermaidClient()` function returns a Domphy patch that renders a Mermaid diagram in the browser at mount time. Apply it to any element whose text content is valid Mermaid source.
 
+
+The main `@domphy/mermaid` entry statically imports Node built-ins for the build-time renderer. In a browser bundle (Vite, esbuild, webpack), import from the browser-safe subpath: `import { mermaidClient } from "@domphy/mermaid/client"`.
+
+
 ## Basic usage
 
 ```ts
@@ -31892,6 +31940,10 @@ npm install @domphy/mermaid
 
 `@domphy/core` is a peer dependency. `@mermaid-js/mermaid-cli` is a **direct** dependency that powers the build-time path; it manages its own headless browser (Puppeteer / Chrome) internally, so you do not install or configure Puppeteer yourself. `mermaid` is an **optional** peer dependency, needed only for the client-side patch.
 
+## Live Example
+
+Client-side rendering with the `mermaidClient()` patch — pick a diagram to re-render:
+
 ## Build-time rendering
 
 `renderMermaidToSvg(code, options?)` renders a single diagram to an SVG string:
@@ -31975,6 +32027,12 @@ const App = {
   pre: [{ code: "graph TD; A-->B;" }],
   $: [mermaidClient({ theme: "dark" })],
 }
+```
+
+The main `@domphy/mermaid` entry statically imports Node built-ins (`node:fs`, `node:crypto`) for the build-time renderer. In a browser bundle (Vite, esbuild, webpack), import the client patch from the browser-safe subpath instead — it is identical, minus the Node-only exports:
+
+```ts
+import { mermaidClient } from "@domphy/mermaid/client"
 ```
 
 On mount the patch reads the source from the element (preferring an inner `<code>`), renders it with the `mermaid` library, and swaps in the SVG. Install `mermaid` to use this path:
@@ -32700,7 +32758,7 @@ interface DiagnoseOptions {
   exclude?: string[]
 
   /**
-   * Additional custom rules to run alongside the 18 built-in rules.
+   * Additional custom rules to run alongside the 22 built-in rules.
    * Custom rule ids are also subject to `only`/`exclude` filtering.
    * See "Custom Rules" section below.
    */
@@ -33038,14 +33096,20 @@ Options:
   --exclude <rules>    Skip these rule IDs (comma-separated)
   --no-reactive        Skip reactive function evaluation
   --no-output          Skip Layer 4 HTML+CSS linting (htmlhint + stylelint)
+  --no-factory-exec    Never invoke exported functions as zero-arg factories
+                       (suppresses factory-threw warnings on component-library
+                       files whose factories require props)
   --format text|json   Output format (default: text)
   -h, --help           Show this help
 
 Exit codes:
   0  No errors (warnings/info are fine)
-  1  One or more error-severity diagnostics
-  2  CLI usage error or file not found
+  1  One or more error-severity diagnostics, a file failed to import,
+     or an input path was not found
+  2  CLI usage error or nothing to analyze
 ```
+
+`--no-factory-exec` is the flag to reach for when scanning component-library files: factories that genuinely require props cannot be invoked zero-arg, so without the flag each one produces a `factory-threw` warning. With the flag those exports are left untouched — no invocation, no warning (they are simply not analyzed).
 
 ```json
 // package.json
@@ -33161,6 +33225,10 @@ npm install -D @domphy/doctor @domphy/core
 
 `@domphy/core` is a peer dependency (the doctor reads its tag tables).
 
+## Live Example
+
+Run `diagnose()` on a deliberately broken tree, then apply `fix()` and watch the report shrink:
+
 ## Usage
 
 ```ts
@@ -33257,7 +33325,7 @@ Add `_doctorDisable` to an element to suppress rules at that node (not its child
 
 ### Custom rules
 
-Provide project-specific rules alongside the built-in 18:
+Provide project-specific rules alongside the built-in 22:
 
 ```ts
 import { type CustomRule, diagnose } from "@domphy/doctor"
@@ -33358,12 +33426,12 @@ The loop becomes: list the app's blocks → reuse them → generate → `domphy_
 
 ---
 title: "Rules Reference"
-description: "Complete reference for all 18 @domphy/doctor rules — what each one catches, why it matters, and how to fix the violation."
+description: "Complete reference for all 22 @domphy/doctor rules — what each one catches, why it matters, and how to fix the violation."
 ---
 
 # Rules Reference
 
-`@domphy/doctor` runs 18 rules against a Domphy element tree. This page covers each rule in full: what triggers it, why the pattern is non-idiomatic, and how to write the correct version.
+`@domphy/doctor` runs 22 rules against a Domphy element tree. This page covers each rule in full: what triggers it, why the pattern is non-idiomatic, and how to write the correct version.
 
 Severity levels:
 - **error** — structurally invalid; the tree will not render correctly. `validate().ok` is `false` when any error is present.
@@ -33389,6 +33457,94 @@ Void HTML tags (`input`, `img`, `br`, `hr`, `meta`, `link`, `area`, `col`, `embe
 ```
 
 This is the only rule where `fix()` applies a lossless auto-correction: it sets the tag value to `null`. The fix is lossless because void tags cannot render children regardless, so clearing the content loses nothing.
+
+---
+
+## `invalid-nesting` — error
+
+HTML content-model violations that browsers "repair" by re-parenting or discarding nodes. The repair changes the tree shape between server render and client mount, breaking SSR/hydration parity — so violations are errors, not warnings. Modeled on Svelte's `node_invalid_placement_ssr` and html-validate.
+
+**Checked combinations (declared direct parent → child pairs only):**
+
+- Flow/block content inside `<p>` (phrasing content only): `div`, `p`, `h1`–`h6`, `ul`, `ol`, `dl`, `blockquote`, `pre`, `table`, `form`, `fieldset`, `figure`, `figcaption`, `main`, `section`, `article`, `aside`, `header`, `footer`, `nav`, `hr`, `address`.
+- Interactive content inside interactive content: `a` or `button` inside `<a>`, `a` or `button` inside `<button>`.
+- `li` outside `ul`/`ol`/`menu`; `dt`/`dd` outside `dl`; `tr` outside `table`/`thead`/`tbody`/`tfoot`; `td`/`th` outside `tr`; `option` outside `select`/`optgroup`/`datalist`; `thead`/`tbody`/`tfoot`/`caption`/`colgroup` outside `table`.
+- A direct element child of `ul`/`ol` that is not `li`/`script`/`template`.
+
+```ts
+// Bad — browser closes the <p> early and re-parents the <div>
+{ p: [{ div: "Card" }] }
+
+// Bad — interactive inside interactive
+{ a: [{ button: "Click" }], href: "/" }
+
+// Bad — li without a list parent
+{ div: [{ li: "Item" }] }
+
+// Bad — non-li child of ul
+{ ul: [{ div: "Item" }] }
+```
+
+```ts
+// Good
+{ div: [{ p: "Intro" }, { div: "Card" }] }
+{ button: [{ span: "Click" }] }
+{ ul: [{ li: "Item" }] }
+```
+
+**Exempt (never flagged):** text content, reactive `(listener) => …` function results, `rawHtml()` content, `$`-patch/imperatively-inserted children (all invisible to the static tree), and everything inside `<svg>` subtrees — SVG has its own content model. `foreignObject` re-enters HTML, so HTML checks apply again inside it.
+
+---
+
+## `click-without-keyboard` — warning
+
+An element with an `onClick` handler that is not inherently interactive and has no keyboard handler is mouse-only — an accessibility bug. Modeled on Svelte's `a11y_click_events_have_key_events` + `a11y_no_static_element_interactions`.
+
+**Exempt (never flagged):**
+
+- Natively interactive tags: `a`, `button`, `input`, `select`, `textarea`, `summary`, `label`.
+- Elements with an interactive ARIA `role` (`button`, `link`, `menuitem`, `menuitemcheckbox`, `menuitemradio`, `tab`, `switch`, `checkbox`, `radio`, `option`, `treeitem`) or a `tabIndex`/`tabindex` attribute.
+- Elements with a keyboard handler: `onKeyDown`, `onKeyUp`, or `onKeyPress`.
+- Hidden elements: `hidden: true`, `aria-hidden: "true"`, or `style: { display: "none" }` — they are not pointer-reachable either.
+
+```ts
+// Bad — mouse-only
+{ div: "Open", onClick: () => open() }
+```
+
+```ts
+// Good — keyboard handler + role + tabIndex
+{ div: "Open", role: "button", tabIndex: 0, onClick: () => open(), onKeyDown: (e) => e.key === "Enter" && open() }
+
+// Better — use a natively interactive element
+{ button: "Open", onClick: () => open() }
+```
+
+---
+
+## `missing-required-attribute` — error / warning
+
+Required accessibility attributes that assistive technology depends on. Modeled on htmlhint's `alt-require`/`title-require` and Svelte's `a11y_missing_attribute`.
+
+- **`<img>` without `alt`** — error. An empty `alt: ""` is valid (decorative image); `aria-label`, `aria-labelledby`, or `role: "presentation"` / `"none"` are accepted alternatives. Only a missing/`undefined` value is flagged.
+- **`<iframe>` without `title`** — error.
+- **`<a>` with `onClick` but no `href` and no `role`** — warning. A link without `href` is not focusable; it behaves like a button and should say so.
+
+```ts
+// Bad
+{ img: null, src: "/logo.png" }
+{ iframe: null, src: "https://example.com" }
+{ a: "Save", onClick: () => save() }
+```
+
+```ts
+// Good
+{ img: null, src: "/logo.png", alt: "Domphy logo" }
+{ img: null, src: "/divider.png", alt: "" }              // decorative
+{ iframe: null, src: "https://example.com", title: "Example embed" }
+{ a: "Save", role: "button", tabIndex: 0, onClick: () => save(), onKeyDown: (e) => e.key === "Enter" && save() }
+// or just: { button: "Save", onClick: () => save() }
+```
 
 ---
 
@@ -33922,6 +34078,38 @@ When an element with `dataTone` sets `style.color` to a theme var whose shift st
 
 This rule only fires when `dataTone` is also set and `style.color` resolves to a recognizable theme CSS var. It is a companion to `dataTone-surface-contract` — once the surface contract is satisfied, this rule verifies the color step is high enough.
 
+---
+
+## `unused-doctor-disable` — info
+
+A `_doctorDisable` suppression entry that suppresses **nothing** on its element — modeled on ESLint v9's `reportUnusedDisableDirectives`. Stale suppressions rot silently: the rule you meant to silence may have been fixed long ago, or the id was never valid in the first place.
+
+An entry is stale when:
+
+- it names a **known rule** (built-in or custom via `options.rules`) that produced no diagnostic on this element, or
+- it **matches no known rule id at all** — e.g. a typo like `"low-contrst"`. This is the highest-value case: the suppression silently disables nothing, so the diagnostic says the id matches no known rule.
+- `_doctorDisable: true` is stale only when it suppressed **zero** diagnostics (as long as any rule fired on the element, "suppress all" is doing work and cannot be proven stale).
+
+Suppression scope is per-element: an entry is "used" when the named rule fired on the element itself (or an array-level rule like `missing-key` fired at the element's own path) — descendant diagnostics are never suppressed, so they never count as usage.
+
+```ts
+// Bad — low-contrast never fires here; the entry is stale
+{ div: "Card", _doctorDisable: "low-contrast" }
+
+// Bad — "low-contrst" matches no known rule (typo)
+{ div: "Card", _doctorDisable: "low-contrst" }
+
+// Bad — true suppresses all, but nothing fired on this element
+{ div: "Card", _doctorDisable: true }
+```
+
+```ts
+// Good — inline-typography fires and is suppressed; the stale entry is removed
+{ p: "Body", style: { fontSize: "20px" }, _doctorDisable: ["inline-typography"] }
+```
+
+Usage is measured against the diagnostics the rules actually produced, before the `only`/`exclude` output filter — so `exclude: ["low-contrast"]` hides the rule's diagnostics but does **not** turn a suppression that consumed one stale. The rule itself is suppressible like any other: `_doctorDisable: "unused-doctor-disable"` on the same element silences its report there, and `exclude: ["unused-doctor-disable"]` turns it off globally.
+
 
 
 ---
@@ -34396,6 +34584,10 @@ A thin reactive wrapper around [i18next](https://www.i18next.com/). When the loc
 ```bash
 npm install @domphy/i18n i18next
 ```
+
+## Live Example
+
+Switch locales and watch every `t(listener, key)` binding re-render — including plural forms:
 
 ## Quick start
 
@@ -35194,13 +35386,15 @@ export default defineConfig({ /* SiteConfig */ })
 |---|---|---|
 | `title` | `string` | Site title — appended to page titles |
 | `description` | `string` | Default meta description |
-| `base` | `string` | Deploy base path (e.g. `"/"` or `"/docs/"`) |
+| `base` | `string` | Deploy base path (e.g. `"/"` or `"/docs/"`) — internal nav/sidebar/hero links and canonical/sitemap/OG URLs are prefixed automatically (write them root-relative) |
 | `hostname` | `string` | Canonical hostname for sitemap and OG (e.g. `"https://example.com"`) |
 | `srcDir` | `string` | Absolute path to the Markdown source directory |
 | `outDir` | `string` | Absolute path to the build output directory |
 | `head` | `string[]` | Raw `<head>` tags injected verbatim (analytics, icons) |
 | `themeConfig` | `ThemeConfig` | Navigation, sidebar, footer, social links, etc. |
 | `lastUpdated` | `boolean?` | Show last-updated date from `git log`. Default: `false` |
+| `continueOnError` | `boolean?` | Keep building (and exit 0) when individual pages fail. Default: `false` — any page error fails the build |
+| `cspNonce` | `string?` | Content-Security-Policy nonce stamped on every inline `<script>`/`<style>` press emits and forwarded to `@domphy/app` SSR |
 | `locales` | `Record<string, LocaleConfig>?` | i18n locale routing |
 | `markdown` | `Record<string, never>?` | Reserved for future markdown plugin configuration. Currently a no-op. |
 
@@ -38339,7 +38533,13 @@ function buttonGhost(
       outline: "none",
       transition:
         "background-color 140ms ease, color 140ms ease, box-shadow 140ms ease",
-      color: (listener) => themeColor(listener, "shift-6", color.get(listener)),
+      // Resting text uses the "text" alias (shift-9) — NOT the semantic-zone
+      // shift-6 the patch previously used. A ghost button's label is essential
+      // interactive content, and shift-6 on an edge surface measures ~2.4:1,
+      // failing WCAG AA (axe color-contrast). shadcn's ghost variant likewise
+      // rests at full foreground; hover/active keep the same text color and
+      // differentiate via background only.
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
       "&:hover:not([disabled]):not([aria-busy=true])": {
         color: (listener) => themeColor(listener, "text", color.get(listener)),
         backgroundColor: (listener) =>
@@ -38697,6 +38897,10 @@ function combobox(props: {
     dataTone: "shift-14",
     style: {
       backgroundColor: (listener) => themeColor(listener, "inherit"),
+      // Surface contract (dataTone-surface-contract): a tone-anchored panel
+      // must declare BOTH background and text color — on the dark shift-14
+      // surface, inherited portal context colors can fall below contrast.
+      color: (listener) => themeColor(listener, "text"),
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
       outline: (listener) =>
         `1px solid ${themeColor(listener, "border-strong")}`,
@@ -38971,11 +39175,14 @@ export { command, commandSearch, commandItem };
 
 ```ts
 import {
+  type BehaviorInstance,
+  behavior,
   type DomphyElement,
   type ElementNode,
   type Listener,
   merge,
   type PartialElement,
+  type State,
   toState,
   type ValueOrState,
 } from "@domphy/core";
@@ -39057,6 +39264,69 @@ function localeWeekStart(locale: string): number {
   return 0;
 }
 
+// --- per-node state preservation (reused-node lifecycle) -------------------
+
+type DatePickerStates = {
+  selection: State<DatePickerValue>;
+  viewYear: State<number>;
+  viewMonth: State<number>;
+  focused: State<Date>;
+  hovered: State<Date | null>;
+  hour: State<number>;
+  minute: State<number>;
+  onChange?: (value: DatePickerValue) => void;
+};
+
+// Every ancestor re-render re-invokes datePicker() on the SAME reused input
+// node, allocating a fresh set of internal states with INITIAL values —
+// without carry-forward the user's uncontrolled selection, calendar view and
+// time silently reset on the next re-render, and the onChange subscription
+// (wired to the first generation's selection object) goes stale. ONE
+// behavior instance per node copies the live values into each new
+// generation's states (update() runs during patch(), before the fresh
+// input/calendar bindings evaluate) and keeps exactly one onChange
+// subscription on the CURRENT generation's selection.
+function attachDatePicker(
+  _node: ElementNode,
+  initialProps: DatePickerStates,
+): BehaviorInstance<DatePickerStates> {
+  let current = initialProps;
+  let releaseOnChange: (() => void) | null = null;
+  const subscribe = (props: DatePickerStates) => {
+    releaseOnChange?.();
+    releaseOnChange = props.onChange
+      ? props.selection.addListener((value) => props.onChange!(value))
+      : null;
+  };
+  const carryForward = (next: State<any>, prev: State<any>) => {
+    if (next !== prev) next.set(prev.get());
+  };
+  subscribe(current);
+  return {
+    update(next) {
+      carryForward(next.selection, current.selection);
+      carryForward(next.viewYear, current.viewYear);
+      carryForward(next.viewMonth, current.viewMonth);
+      carryForward(next.focused, current.focused);
+      carryForward(next.hovered, current.hovered);
+      carryForward(next.hour, current.hour);
+      carryForward(next.minute, current.minute);
+      if (
+        next.selection !== current.selection ||
+        next.onChange !== current.onChange
+      ) {
+        // Re-subscribe AFTER the carry-forward so it never fires onChange.
+        subscribe(next);
+      }
+      current = next;
+    },
+    destroy() {
+      releaseOnChange?.();
+      releaseOnChange = null;
+    },
+  };
+}
+
 /**
  * A native, themeable date picker patch for an `<input>`. Opens a calendar
  * popover (rendered with Domphy elements, positioned via `@domphy/floating`)
@@ -39098,9 +39368,6 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
   const selection = toState<DatePickerValue>(
     props.value ?? (mode === "range" ? [null, null] : null),
   );
-  const releaseOnChange = onChange
-    ? selection.addListener((value) => onChange(value))
-    : null;
 
   const primaryDate = ((): Date => {
     const current = selection.get();
@@ -39115,8 +39382,6 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
   const hovered = toState<Date | null>(null, "hovered");
   const hour = toState(primaryDate.getHours(), "hour");
   const minute = toState(primaryDate.getMinutes(), "minute");
-
-  let contentElement: HTMLElement | null = null;
 
   // --- formatting -----------------------------------------------------------
   const dateFormatter = new Intl.DateTimeFormat(locale, {
@@ -39166,11 +39431,14 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
     return result;
   };
 
-  const selectDate = (date: Date): void => {
+  const selectDate = (date: Date, node?: ElementNode): void => {
     if (isDisabled(date)) return;
     if (mode === "single") {
       selection.set(withTime(date));
-      if (!time) instantHideRef();
+      // Close via the cell's node: the floating behavior instance is
+      // registered on the panel node (floating.ts), so getBehavior's
+      // ancestor walk from any panel descendant resolves it.
+      if (!time) hide(node);
       return;
     }
     const [start, end] = (selection.get() as [Date | null, Date | null]) ?? [
@@ -39181,10 +39449,10 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
       selection.set([withTime(date), null]);
     } else if (atMidnight(date) < atMidnight(start)) {
       selection.set([withTime(date), withTime(start)]);
-      if (!time) instantHideRef();
+      if (!time) hide(node);
     } else {
       selection.set([start, withTime(date)]);
-      if (!time) instantHideRef();
+      if (!time) hide(node);
     }
   };
 
@@ -39243,9 +39511,14 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
   const shiftYear = (delta: number): void =>
     viewYear.set(viewYear.get() + delta);
 
-  const focusActiveCell = (): void => {
+  const focusActiveCell = (node?: ElementNode): void => {
+    // Resolve the panel from the caller's live node (trigger or grid cell):
+    // the old factory-scope `contentElement` was only ever assigned by the
+    // first panel generation's _onMount, so later generations (reused node,
+    // fresh closure) could never move focus into the grid.
+    const root = node?.getRoot()?.domElement;
     setTimeout(() => {
-      contentElement
+      root
         ?.querySelector<HTMLElement>(`[data-date="${isoOf(focused.get())}"]`)
         ?.focus();
     }, 0);
@@ -39259,10 +39532,6 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
     placement: placeState,
     content: calendar,
   });
-  // selectDate calls this before `createFloating` returns `hide`, so route through a ref.
-  function instantHideRef(): void {
-    hide();
-  }
 
   // Move focus into the grid when the popover opens.
   const triggerPartial: PartialElement = {
@@ -39285,18 +39554,23 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
         openAndFocus(node);
       }
     },
-    _onMount: (node) =>
-      releaseOnChange &&
-      node.addHook("Remove", () => {
-        releaseOnChange();
-      }),
+    ...behavior<DatePickerStates>("datePicker", attachDatePicker, {
+      selection,
+      viewYear,
+      viewMonth,
+      focused,
+      hovered,
+      hour,
+      minute,
+      onChange,
+    }),
   };
   function openAndFocus(node?: ElementNode): void {
     const current = isSelectedPrimary() ?? new Date();
     focused.set(atMidnight(current));
     goToDate(current);
     show(node);
-    focusActiveCell();
+    focusActiveCell(node);
   }
   function isSelectedPrimary(): Date | null {
     const current = selection.get();
@@ -39389,17 +39663,21 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
       div: children,
       role: "dialog",
       ariaModal: "false",
-      _onMount: (node) => {
-        contentElement = node.domElement as HTMLElement;
-      },
+      // Surface contract (same as popover/combobox): edge-anchor dataTone +
+      // inherit background + "text" color. The previous `themeColor(l, "base")`
+      // resolved to the ramp's MID anchor (var(--neutral-8), gray) with text
+      // only 2 tone steps away — an unreadable washed-out panel, invisible to
+      // doctor because the calendar is mounted imperatively at runtime.
+      dataTone: "shift-14",
       style: {
         minWidth: themeSpacing(70),
         padding: themeSpacing(3),
         borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
-        backgroundColor: (listener) => themeColor(listener, "base"),
-        color: (listener) => themeColor(listener, "shift-10"),
-        border: (listener) =>
+        backgroundColor: (listener) => themeColor(listener, "inherit"),
+        color: (listener) => themeColor(listener, "text"),
+        outline: (listener) =>
           `1px solid ${themeColor(listener, "border-strong")}`,
+        outlineOffset: "-1px",
         boxShadow: elevation("medium"),
       },
     };
@@ -39448,7 +39726,7 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
       disabled,
       ariaLabel: fullDateFormatter.format(date),
       dataDate: isoOf(date),
-      onClick: () => selectDate(date),
+      onClick: (_e: Event, node: ElementNode) => selectDate(date, node),
       onMouseEnter: () => mode === "range" && hovered.set(date),
       style: {
         appearance: "none",
@@ -39531,10 +39809,13 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
   }
 
   function buildFooter(): DomphyElement<"div"> {
-    const action = (label: string, onClick: () => void): DomphyElement => ({
+    const action = (
+      label: string,
+      onClick: (node: ElementNode) => void,
+    ): DomphyElement => ({
       button: label,
       type: "button",
-      onClick,
+      onClick: (_e: Event, node: ElementNode) => onClick(node),
       style: {
         appearance: "none",
         border: "none",
@@ -39548,11 +39829,11 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
     });
     return {
       div: [
-        action("Today", () => {
+        action("Today", (node) => {
           const today = new Date();
           focused.set(atMidnight(today));
           goToDate(today);
-          focusActiveCell();
+          focusActiveCell(node);
         }),
         action("Clear", () => {
           selection.set(mode === "range" ? [null, null] : null);
@@ -39569,7 +39850,7 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
     };
   }
 
-  function onGridKey(event: Event): void {
+  function onGridKey(event: Event, node: ElementNode): void {
     const keyboard = event as KeyboardEvent;
     const current = focused.get();
     let next: Date | null = null;
@@ -39601,7 +39882,7 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
       case "Enter":
       case " ":
         keyboard.preventDefault();
-        selectDate(current);
+        selectDate(current, node);
         return;
       default:
         return;
@@ -39609,7 +39890,7 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
     keyboard.preventDefault();
     focused.set(next);
     goToDate(next);
-    focusActiveCell();
+    focusActiveCell(node);
   }
 }
 
@@ -39647,8 +39928,11 @@ function timeSelectStyle() {
     fontSize: (l: Listener) => themeSize(l),
     padding: themeSpacing(1),
     borderRadius: themeSpacing(1),
-    border: (l: Listener) => `1px solid ${themeColor(l, "border-strong")}`,
-    backgroundColor: (l: Listener) => themeColor(l, "base"),
+    // outline, not border — bounded control, keep the geometry formula exact.
+    border: "none",
+    outlineOffset: "-1px",
+    outline: (l: Listener) => `1px solid ${themeColor(l, "border-strong")}`,
+    backgroundColor: (l: Listener) => themeColor(l, "inherit"),
     color: (l: Listener) => themeColor(l, "text"),
   };
 }
@@ -40047,15 +40331,27 @@ function attachDialog(
  * dialog, restores focus to the previously focused element on close, sets
  * `aria-modal`, and closes on outside (backdrop) click. Apply to a `<dialog>`.
  *
+ * Accessible name/description: pass `labelledBy`/`describedBy` the `id` of a
+ * heading/paragraph inside the dialog (Radix Title/Description parity). The
+ * native `ariaLabelledby`/`ariaDescribedby` attributes on the host element
+ * remain an equivalent escape hatch (the native element always wins).
+ *
  * @hostTag dialog
  * @param props.color - Theme color tone for the dialog surface. Defaults to "neutral".
  * @param props.open - Open state (`ValueOrState<boolean>`); set it to true/false to show/hide. Defaults to false.
- * @example { dialog: [...], $: [dialog({ open })] }
+ * @param props.labelledBy - `id` of the element labeling the dialog (wired to `aria-labelledby`). Optional.
+ * @param props.describedBy - `id` of the element describing the dialog (wired to `aria-describedby`). Optional.
+ * @example { dialog: [{ h2: "Confirm", id: "dlg-title" }], $: [dialog({ open, labelledBy: "dlg-title" })] }
  */
 function dialog(
-  props: { color?: ThemeColor; open?: ValueOrState<boolean> } = {},
+  props: {
+    color?: ThemeColor;
+    open?: ValueOrState<boolean>;
+    labelledBy?: string;
+    describedBy?: string;
+  } = {},
 ): PartialElement {
-  const { color = "neutral", open = false } = props;
+  const { color = "neutral", open = false, labelledBy, describedBy } = props;
   const state = toState(open);
 
   return {
@@ -40065,6 +40361,8 @@ function dialog(
       }
     },
     ...behavior<DialogProps>("dialog", attachDialog, { state }),
+    ariaLabelledby: labelledBy,
+    ariaDescribedby: describedBy,
     onClick: (e: MouseEvent, node) => {
       if (e.target !== node.domElement) return;
       const r = node.domElement!.getBoundingClientRect();
@@ -42440,8 +42738,11 @@ function linkButton(
         outline: "none",
         transition:
           "background-color 140ms ease, color 140ms ease, box-shadow 140ms ease",
-        color: (listener) =>
-          themeColor(listener, "shift-6", color.get(listener)),
+        // Resting text uses the "text" alias (shift-9), matching buttonGhost:
+        // a text-labeled ghost control fails WCAG AA at the previous shift-6
+        // (~2.4:1 on an edge surface). Hover/active differentiate via
+        // background only.
+        color: (listener) => themeColor(listener, "text", color.get(listener)),
         "&:hover:not([aria-disabled=true])": {
           color: (listener) =>
             themeColor(listener, "text", color.get(listener)),
@@ -43440,6 +43741,10 @@ function popover(props: {
     dataTone: "shift-14",
     style: {
       backgroundColor: (l: Listener) => themeColor(l, "inherit"),
+      // Surface contract (dataTone-surface-contract): a tone-anchored panel
+      // must declare BOTH background and text color — on the dark shift-14
+      // surface, inherited portal context colors can fall below contrast.
+      color: (l: Listener) => themeColor(l, "text"),
       borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 2),
       outline: (l: Listener) => `1px solid ${themeColor(l, "border-strong")}`,
       outlineOffset: "-1px",
@@ -44334,14 +44639,59 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { elevation } from "../utils/elevation.js";
-import { createFloating } from "../utils/floating.js";
+import { createFloating, floatingPanelId } from "../utils/floating.js";
 import { focusRing } from "../utils/focusRing.js";
 import { tag } from "./tag.js";
+
+// Typeahead (Radix Select character-search parity): printable characters
+// accumulate into a buffer that resets after 1s of idle; the buffer is a
+// case-insensitive prefix match against option labels. CLOSED trigger: the
+// match becomes the selection (native <select> behavior). OPEN panel: focus
+// moves to the matching [role=option] — focus is the keyboard highlight.
+// A buffer of one repeated character ("aaa") cycles through that char's
+// matches instead of pinning the first; disabled options are skipped.
+const TYPEAHEAD_RESET_MS = 1000;
+
+type TypeaheadMeta = {
+  buffer: string;
+  timer: ReturnType<typeof setTimeout> | null;
+};
+
+// The buffer lives on the NODE (not the factory closure): a selectBox inside
+// a reactive parent gets a fresh closure per ancestor re-render, and a
+// closure-local buffer would silently reset mid-typing on the reused node.
+function resolveTypeahead(node: ElementNode): TypeaheadMeta {
+  let meta = node.getMetadata("selectBoxTypeahead") as
+    | TypeaheadMeta
+    | undefined;
+  if (!meta) {
+    meta = { buffer: "", timer: null };
+    node.setMetadata("selectBoxTypeahead", meta);
+  }
+  return meta;
+}
+
+const matchesPrefix = (label: string, needle: string) =>
+  label.trim().toLowerCase().startsWith(needle);
+
+function enabledPanelOptions(panel: Element | null): HTMLElement[] {
+  if (!panel) return [];
+  return Array.from(
+    panel.querySelectorAll<HTMLElement>("[role=option]"),
+  ).filter(
+    (el) =>
+      el.getAttribute("aria-disabled") !== "true" &&
+      !el.hasAttribute("disabled"),
+  );
+}
 
 /**
  * A clickable select trigger box that renders the currently selected option(s) as removable
  * tags and toggles a floating popover (the dropdown content) anchored to itself. Selected
  * labels are derived from `options` matching the bound `value`; removing a tag updates the value.
+ * Keyboard: Enter/Space toggle, ArrowDown opens, Escape closes, and printable characters
+ * typeahead-search options (closed: selects the match; open: focuses the matching
+ * `[role=option]` in the panel; a repeated character cycles matches).
  *
  * @hostTag div
  * @param props.multiple - Whether multiple selection is allowed (renders removable tags and
@@ -44394,6 +44744,10 @@ function selectBox(props: {
     dataTone: "shift-14",
     style: {
       backgroundColor: (listener) => themeColor(listener, "inherit"),
+      // Surface contract (dataTone-surface-contract): a tone-anchored panel
+      // must declare BOTH background and text color — on the dark shift-14
+      // surface, inherited portal context colors can fall below contrast.
+      color: (listener) => themeColor(listener, "text"),
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
       outline: (listener) =>
         `1px solid ${themeColor(listener, "border-strong")}`,
@@ -44432,6 +44786,48 @@ function selectBox(props: {
   const toggle = (node?: ElementNode) =>
     openState.get() ? hide(node) : show(node);
 
+  const typeahead = (key: string, node: ElementNode) => {
+    const meta = resolveTypeahead(node);
+    if (meta.timer) clearTimeout(meta.timer);
+    meta.buffer += key.toLowerCase();
+    meta.timer = setTimeout(() => {
+      meta.buffer = "";
+    }, TYPEAHEAD_RESET_MS);
+    // "aaa" cycles through the a* matches rather than matching "aaa" literally.
+    const repeated = meta.buffer.length > 1 && new Set(meta.buffer).size === 1;
+    const needle = repeated ? meta.buffer[0]! : meta.buffer;
+
+    if (openState.get()) {
+      // Panel is portaled under the root (see floating.ts); its id is
+      // deterministic, same lookup pattern as popover's onBlur guard.
+      const root = node.getRoot().domElement as Element | null;
+      const panel =
+        root?.querySelector(`#${floatingPanelId("selectBox", node)}`) ?? null;
+      const matches = enabledPanelOptions(panel).filter((el) =>
+        matchesPrefix(el.textContent ?? "", needle),
+      );
+      if (!matches.length) return;
+      const active = node.domElement?.ownerDocument
+        ?.activeElement as HTMLElement | null;
+      const from = repeated && active ? matches.indexOf(active) : -1;
+      const target = matches[(from + 1) % matches.length]!;
+      target.focus();
+      target.scrollIntoView?.({ block: "nearest" });
+      return;
+    }
+
+    // Closed trigger: selection follows typeahead. Single-select only — a
+    // multi-select tag set has no "current option" to move from.
+    if (multiple) return;
+    const matches = options.filter((opt) => matchesPrefix(opt.label, needle));
+    if (!matches.length) return;
+    const from = repeated
+      ? matches.findIndex((opt) => opt.value === state.get())
+      : -1;
+    const next = matches[(from + 1) % matches.length]!;
+    state.set(next.value as any);
+  };
+
   const partial: PartialElement = {
     _onInsert: (node) => {
       if (node.tagName !== "div") {
@@ -44462,6 +44858,13 @@ function selectBox(props: {
       if (key === "ArrowDown" && !openState.get()) {
         e.preventDefault();
         show(node);
+        return;
+      }
+      // Character typeahead (Radix Select parity) — modifier chords are
+      // shortcuts, not search input.
+      const kb = e as KeyboardEvent;
+      if (key.length === 1 && !kb.ctrlKey && !kb.metaKey && !kb.altKey) {
+        typeahead(key, node);
       }
     },
     style: {
@@ -44529,6 +44932,9 @@ function selectItem(
 
   const partial: PartialElement = {
     role: "option",
+    // Programmatically focusable (not tabbable): selectBox typeahead and
+    // keyboard navigation move focus between options roving-style.
+    tabindex: -1,
     // aria-selected and the click toggler must be DECLARED on the partial, not
     // wired imperatively in _onInit: hooks run once per real DOM node, but
     // patch() resets _events and strips undeclared attributes on every
@@ -45951,7 +46357,12 @@ export { timeline, timelineItem };
 ### toast
 
 ```ts
-import type { DomphyElement, ElementNode, PartialElement } from "@domphy/core";
+import type {
+  DomphyElement,
+  ElementNode,
+  PartialElement,
+  State,
+} from "@domphy/core";
 import { toState } from "@domphy/core";
 import {
   type ThemeColor,
@@ -45970,6 +46381,27 @@ type ToastPosition =
   | "bottom-center"
   | "bottom-right";
 
+// The open state must live on the NODE, not in the factory closure: a toast
+// inside a reactive parent gets a fresh toast() closure per ancestor
+// re-render (fresh `toState(false)`), while `_onMount` (which flips the state
+// to visible via rAF) runs ONCE for the first generation. The reused node's
+// re-patched style bindings would read the new generation's still-false
+// state and snap the visible toast back to opacity 0 / translated out.
+// Resolving through node metadata gives every generation the SAME state.
+function resolveOpenState(node: ElementNode): State<boolean> {
+  let state = node.getMetadata("toastOpen") as State<boolean> | undefined;
+  if (!state) {
+    state = toState(false);
+    node.setMetadata("toastOpen", state);
+  }
+  return state;
+}
+
+const readOpen = (listener: any): boolean => {
+  const node = listener?.elementNode as ElementNode | undefined;
+  return node ? resolveOpenState(node).get(listener) : false;
+};
+
 /**
  * Renders a transient notification surface as a fixed-position overlay (portaled
  * into a corner stack), animating in on mount and out before removal. No host
@@ -45983,7 +46415,6 @@ function toast(
   props: { position?: ToastPosition; color?: ThemeColor } = {},
 ): PartialElement {
   const { position = "top-center", color = "neutral" } = props;
-  const state = toState(false);
 
   const isTop = position.startsWith("top");
   const isCenter = position.endsWith("center");
@@ -46032,16 +46463,17 @@ function toast(
       color: (listener) => themeColor(listener, "text", color),
       backgroundColor: (listener) => themeColor(listener, "inherit", color),
       boxShadow: elevation("medium"),
-      opacity: (listener) => Number(state.get(listener)),
+      opacity: (listener) => Number(readOpen(listener)),
       transform: (listener) =>
-        state.get(listener)
+        readOpen(listener)
           ? "translateY(0)"
           : isTop
             ? "translateY(-100%)"
             : "translateY(100%)",
       transition: "opacity 300ms ease, transform 300ms ease",
     },
-    _onMount: () => requestAnimationFrame(() => state.set(true)),
+    _onMount: (node) =>
+      requestAnimationFrame(() => resolveOpenState(node).set(true)),
     _onBeforeRemove: (node, done) => {
       let finished = false;
       let timer: ReturnType<typeof setTimeout> | null = null;
@@ -46097,7 +46529,7 @@ function toast(
         node.domElement?.removeEventListener("transitionend", onEnd);
         removeOverlayIfEmpty();
       });
-      state.set(false);
+      resolveOpenState(node).set(false);
     },
   };
 }

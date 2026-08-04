@@ -18,6 +18,8 @@ The dialog surface uses a high `elevation()` box-shadow (no outline — shadow-o
 |------|------|---------|-------------|
 | `open` | `ValueOrState<boolean>` | `false` | Controls visibility. Set to `true` to open, `false` to close. |
 | `color` | `ThemeColor` | `"neutral"` | Theme color tone for the dialog surface. |
+| `labelledBy` | `string` | — | `id` of the element labeling the dialog, wired to `aria-labelledby` (Radix `Title` parity). Give the heading inside the dialog an `id` and pass it here. |
+| `describedBy` | `string` | — | `id` of the element describing the dialog, wired to `aria-describedby` (Radix `Description` parity). |
 
 ## Example
 

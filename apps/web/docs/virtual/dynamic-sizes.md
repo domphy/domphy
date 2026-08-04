@@ -41,6 +41,7 @@ const App = {
       div: (l) =>
         list.getVirtualItems(l).map((item) => ({
           _key: item.key,
+          "data-index": item.index,
           div: items[item.index].text,
           // Call measureElement — actual height replaces the estimate
           _onMount: (node) =>
@@ -229,6 +230,7 @@ const App = {
       div: (l) =>
         list.getVirtualItems(l).map((item) => ({
           _key: item.key,
+          "data-index": item.index,
           div: items[item.index].title,
           _onMount: (node) =>
             list.measureElement(node.domElement as HTMLDivElement),

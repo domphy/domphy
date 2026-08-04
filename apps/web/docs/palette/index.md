@@ -1,3 +1,8 @@
+<script setup lang="ts">
+
+import Basic from "../demos/palette/basic.ts?raw"
+</script>
+
 # Palette
 
 `@domphy/palette` is Domphy's color-palette quality engine: **measure and validate** sequential color ramps using five perceptual metrics in CIELAB. It is the design-time companion to `@domphy/theme` — theme ships the runtime tokens, palette validates the ramps behind them.
@@ -9,6 +14,12 @@ Framework-agnostic, zero dependencies, pure color science. (Ported from the *Chr
 ```bash
 npm install @domphy/palette
 ```
+
+## Live Example
+
+Generate a WCAG-optimized 18-step ramp from any anchor color with `generateRamp`:
+
+<CodeEditor :code="Basic" />
 
 ## Measure
 

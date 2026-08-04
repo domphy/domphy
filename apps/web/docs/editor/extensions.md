@@ -116,6 +116,8 @@ const HeadingWithBigShortcut = Heading.extend({
 
 Every config hook is called with `this` bound to `{ name, options, storage, editor, parent }`.
 
+Lifecycle hooks: `onCreate` fires once at construction — note the view may not exist yet, since `createEditor()` mounts later. `onMount` fires every time the view is mounted into a host element (at construction when `element` was passed, and on each later `editor.mount(host)`), so it is the right place to bind DOM listeners to the host — pair it with `onDestroy` for teardown. `onUpdate`, `onSelectionUpdate`, `onFocus` and `onBlur` mirror the editor options of the same name.
+
 ## Writing an extension
 
 A `Mark` needs a name, how it parses out of HTML, how it renders back, and the commands it contributes:

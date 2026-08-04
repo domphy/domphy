@@ -15,6 +15,10 @@ const button: DomphyElement<"button"> = {
   button: "Increment",
   onClick: () => count.set(count.get() + 1),
 
+  // Deliberate solid fill: a fixed shifted background is exactly what
+  // "tone-background-inherit" flags — suppress it like button({variant:"solid"}) does.
+  _doctorDisable: "tone-background-inherit",
+
   // Standard Nested CSS nesting
   style: {
     padding: `${themeSpacing(1)} ${themeSpacing(4)}`,

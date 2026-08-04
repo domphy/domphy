@@ -21,13 +21,15 @@ export default defineConfig({ /* SiteConfig */ })
 |---|---|---|
 | `title` | `string` | Site title — appended to page titles |
 | `description` | `string` | Default meta description |
-| `base` | `string` | Deploy base path (e.g. `"/"` or `"/docs/"`) |
+| `base` | `string` | Deploy base path (e.g. `"/"` or `"/docs/"`) — internal nav/sidebar/hero links and canonical/sitemap/OG URLs are prefixed automatically (write them root-relative) |
 | `hostname` | `string` | Canonical hostname for sitemap and OG (e.g. `"https://example.com"`) |
 | `srcDir` | `string` | Absolute path to the Markdown source directory |
 | `outDir` | `string` | Absolute path to the build output directory |
 | `head` | `string[]` | Raw `<head>` tags injected verbatim (analytics, icons) |
 | `themeConfig` | `ThemeConfig` | Navigation, sidebar, footer, social links, etc. |
 | `lastUpdated` | `boolean?` | Show last-updated date from `git log`. Default: `false` |
+| `continueOnError` | `boolean?` | Keep building (and exit 0) when individual pages fail. Default: `false` — any page error fails the build |
+| `cspNonce` | `string?` | Content-Security-Policy nonce stamped on every inline `<script>`/`<style>` press emits and forwarded to `@domphy/app` SSR |
 | `locales` | `Record<string, LocaleConfig>?` | i18n locale routing |
 | `markdown` | `Record<string, never>?` | Reserved for future markdown plugin configuration. Currently a no-op. |
 

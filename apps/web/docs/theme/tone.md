@@ -226,8 +226,10 @@ Raw `shift-N` indices work, but they force every caller to remember the numeric 
 | `hover` | `shift-2` | hover/active background |
 | `border` | `shift-3` | default hairline divider (the `K/3` stroke role) |
 | `border-strong` | `shift-4` | control outline (button/input/card boundary) |
-| `muted` | `shift-8` | secondary/disabled text |
+| `muted` | `shift-8` | secondary/disabled text — **de-emphasis only, see below** |
 | `text` | `shift-9` | default/primary text (the `K` text role) |
+
+> **Contrast contract.** `text` (`shift-9`) sits exactly at the `K = 9` contrast span, so it clears WCAG AA `4.5:1` on any edge-anchored surface in every built-in role (measured `4.53:1`–`5.14:1`, light and dark). `muted` (`shift-8`) is deliberately one step *below* that guarantee — it measures about `4.1:1`–`4.2:1` on an edge surface. That is intentional: muted is the de-emphasis tone for **supplementary** content (timestamps, captions, placeholders, secondary metadata) where the information is decorative or available elsewhere. Never use `muted` for essential text (labels, instructions, error text, button names, nav items) — use `text`. Automated checkers such as axe `color-contrast` apply the `4.5:1` normal-text rule indiscriminately, so a `muted` element that carries essential content will be flagged; the fix is always to promote that element to `text`, not to raise the muted tone (which would collapse it into `text` and destroy the semantic distinction).
 
 ```ts
 backgroundColor: (l) => themeColor(l, "inherit", "primary")

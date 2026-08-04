@@ -54,6 +54,8 @@ The segment id for a route group is the pattern including the group prefix, e.g.
 
 `router.refresh()` clears the cache and re-runs everything for the current URL.
 
+> **Deliberate gap:** there is no `revalidateTag`/`revalidatePath`-style on-demand revalidation API. Cache invalidation is time-based (`revalidate` seconds) plus manual (`router.refresh()`), by design.
+
 ### Stale-while-revalidate
 
 When a cached entry ages past its `revalidate` window, the next navigation **serves the stale value immediately** and refetches in the background — the same model as Next.js ISR. There is no loading flash: the page renders instantly with the old data, then re-renders in place once the fresh value lands.
@@ -108,6 +110,8 @@ loader: async ({ headers }) => {
 ```
 
 On the server, pass `context.headers` (forwarded from the incoming request to `renderToString`). On the client, `cookies()` with no argument falls back to `document.cookie`.
+
+> **Deliberate gap:** `cookies()` is read-only — there is no `cookies().set()` and no Set-Cookie/response-header mutation channel on page SSR (`renderToString`/`renderToStream` results carry `status` and `redirect`, not mutable headers). To set cookies, use an [API route](./api-routes) (handlers return a web-standard `Response`, which can carry `Set-Cookie`) or set them in your host server.
 
 ## Pairing with @domphy/query
 

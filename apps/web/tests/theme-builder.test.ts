@@ -25,7 +25,11 @@ afterEach(() => {
   document.head.querySelectorAll("style").forEach((s) => s.remove());
 });
 
-describe("ThemeBuilder demo", () => {
+// Suite-level timeout: every test re-imports the whole demo module graph
+// (vi.resetModules + dynamic import in mountFresh). The 20s config timeout
+// still flakes under parallel CI load (audit 04-web finding #6 / 18-router),
+// so this file gets a robust 60s budget.
+describe("ThemeBuilder demo", { timeout: 60_000 }, () => {
   it("renders one color picker per semantic role", async () => {
     const { host } = await mountFresh();
     const pickers = host.querySelectorAll('input[type="color"]');

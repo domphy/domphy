@@ -1,3 +1,8 @@
+<script setup lang="ts">
+
+import Basic from "../demos/doctor/basic.ts?raw"
+</script>
+
 # Doctor
 
 `@domphy/doctor` is a static analyzer for Domphy element trees. It walks the plain-object tree — including the output of reactive `(listener) => …` functions — and flags non-idiomatic patterns. Its main job is to give **AI agents** (and humans) a feedback loop: generate code → `diagnose()` → fix what it reports.
@@ -11,6 +16,12 @@ npm install -D @domphy/doctor @domphy/core
 ```
 
 `@domphy/core` is a peer dependency (the doctor reads its tag tables).
+
+## Live Example
+
+Run `diagnose()` on a deliberately broken tree, then apply `fix()` and watch the report shrink:
+
+<CodeEditor :code="Basic" />
 
 ## Usage
 
@@ -108,7 +119,7 @@ Add `_doctorDisable` to an element to suppress rules at that node (not its child
 
 ### Custom rules
 
-Provide project-specific rules alongside the built-in 18:
+Provide project-specific rules alongside the built-in 22:
 
 ```ts
 import { type CustomRule, diagnose } from "@domphy/doctor"

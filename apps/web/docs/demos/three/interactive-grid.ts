@@ -128,8 +128,9 @@ const App: DomphyElement<"div"> = {
       // Pulled in close (same direction, smaller magnitude than a wide
       // establishing shot) so the 5x5 wall fills most of the frame width.
       camera: { position: [1.9, 2.9, 3.8] },
-      // "soft" enables PCFSoftShadowMap on the renderer — required for the
-      // key light's castShadow below to actually paint the backdrop plane.
+      // "soft" enables the soft shadow map on the renderer (PCFSoftShadowMap
+      // on three <0.182, PCFShadowMap since r182 made PCF soft) — required
+      // for the key light's castShadow below to actually paint the backdrop.
       shadows: "soft",
       // Fixed cinematic backdrop — scene content rendered inside the canvas,
       // not a DOM element, so doctor's raw-theme-value rule doesn't apply.

@@ -10,8 +10,12 @@ const requireFromMarkdownPkg = createRequire(
 );
 const requireFromWeb = createRequire(resolve(here, "package.json"));
 
-const markdownItMain = requireFromMarkdownPkg.resolve("markdown-it");
-const markdownItEsm = resolve(dirname(markdownItMain), "../index.mjs");
+const markdownItPkg = requireFromMarkdownPkg.resolve(
+  "markdown-it/package.json",
+);
+// markdown-it 15 ships dist/markdown-it.mjs as its ESM entry (the old
+// package-root index.mjs no longer exists).
+const markdownItEsm = resolve(dirname(markdownItPkg), "dist/markdown-it.mjs");
 
 export default {
   root: here,
@@ -24,6 +28,7 @@ export default {
       "tests/theme-builder.test.ts",
       "tests/transformCode.test.ts",
       "tests/playground-layout.test.ts",
+      "tests/mermaid-islands.test.ts",
     ],
     environment: "node",
     // theme-builder.test.ts re-imports the whole demo module graph per test
@@ -33,6 +38,10 @@ export default {
   },
   resolve: {
     alias: [
+      {
+        find: "@domphy/press/browser",
+        replacement: resolve(repoRoot, "packages/press/src/browser.ts"),
+      },
       {
         find: "@domphy/press",
         replacement: resolve(repoRoot, "packages/press/src/index.ts"),
@@ -74,18 +83,6 @@ export default {
         replacement: resolve(repoRoot, "packages/floating/src/core/index.ts"),
       },
       { find: /^markdown-it$/, replacement: markdownItEsm },
-      {
-        find: /^markdown-it-container$/,
-        replacement: requireFromWeb.resolve("markdown-it-container"),
-      },
-      {
-        find: /^markdown-it-include$/,
-        replacement: requireFromWeb.resolve("markdown-it-include"),
-      },
-      {
-        find: /^markdown-it-emoji$/,
-        replacement: requireFromWeb.resolve("markdown-it-emoji"),
-      },
       { find: /^shiki$/, replacement: requireFromWeb.resolve("shiki") },
     ],
   },

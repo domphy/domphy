@@ -21,6 +21,8 @@ const result = await app.renderToString(request.url, { headers: request.headers 
 | `data` | loader results, keyed for hydration |
 | `bootstrapScript` | inline `<script>` exposing `data` to the client |
 
+> **Deliberate gap:** `SSRResult` has no response-header channel — pages cannot mutate response headers (no `Set-Cookie`) during SSR, unlike Next.js Server Actions / `cookies().set()`. `cookies()` is the read path only; set cookies from an [API route](./api-routes) (web-standard `Response`) or in your host server.
+
 ## A Node Server
 
 ```ts

@@ -18,6 +18,9 @@ export function Editor(code: State<string>): DomphyElement<"div"> {
           basicSetup,
           javascript({ typescript: true }),
           oneDark,
+          // Name the editable region — axe aria-input-field-name.
+          // contentAttributes is a Facet: set values with .of(), not a call.
+          EditorView.contentAttributes.of({ "aria-label": "Code editor" }),
           EditorView.theme({
             "&": {
               height: "100%",

@@ -5,7 +5,7 @@ import Basic from "../demos/dnd/basic.ts?raw"
 
 # Drag & Drop
 
-`@domphy/dnd` adds sortable lists and drag & drop to Domphy: reorder, transfer between lists, multi-drag, keyboard accessibility, and drop animations.
+`@domphy/dnd` adds sortable lists and drag & drop to Domphy: reorder, transfer between lists, multi-drag, and drop animations.
 
 This package **depends on** [`@formkit/drag-and-drop`](https://drag-and-drop.formkit.com) (MIT, zero-dependency, framework-agnostic) and adds a thin Domphy adapter — the same way FormKit's own React/Vue/Solid adapters wrap the engine. The full FormKit API is re-exported.
 
@@ -58,8 +58,8 @@ import { dragDrop } from "@domphy/dnd"
 { ul: (l) => ..., $: [dragDrop(items, { group: "todos" })] }
 ```
 
-Give two lists the same `group` to transfer items between them. Use `animated: false` to opt out of animations. Accessibility, touch and synthetic-drag handling come from FormKit — see the [FormKit DnD docs](https://drag-and-drop.formkit.com) for the full config.
+Give two lists the same `group` to transfer items between them. Use `animated: false` to opt out of animations. Touch and synthetic-drag handling come from FormKit — see the [FormKit DnD docs](https://drag-and-drop.formkit.com) for the full config.
 
 ## Cleanup
 
-The adapter tears down FormKit's listeners automatically on removal (`_onRemove`).
+The FormKit registration lives in a per-node `behavior()` instance; on element removal its `destroy` runs FormKit's `tearDown()` and clears the entry from FormKit's `parents` registry.

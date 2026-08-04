@@ -181,6 +181,7 @@ const list = createVirtualizer({
 // Attach measureElement to each item:
 const PostItem = (item: VirtualItem) => ({
   _key: item.key,
+  "data-index": item.index,
   article: PostContent(posts[item.index]),
   _onMount: (node) =>
     list.measureElement(node.domElement as HTMLElement),

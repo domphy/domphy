@@ -3,6 +3,11 @@ title: "@domphy/markdown"
 description: "Parse Markdown into Domphy element trees for SSR/SSG."
 ---
 
+<script setup lang="ts">
+
+import Basic from "../demos/markdown/basic.ts?raw"
+</script>
+
 # Markdown
 
 `@domphy/markdown` parses Markdown into **Domphy element trees** — plain objects like `{ h1: ... }`, `{ ul: [...] }`, `{ pre: [{ code: ... }] }` — so the result can be server-rendered by `@domphy/core` / `@domphy/app` with no client runtime.
@@ -37,6 +42,12 @@ pnpm add @domphy/markdown @domphy/core
 :::
 
 `@domphy/core` is a peer dependency.
+
+## Live Example
+
+Edit the Markdown source and watch `parseMarkdown` rebuild the element tree:
+
+<CodeEditor :code="Basic" />
 
 ## parseMarkdown
 

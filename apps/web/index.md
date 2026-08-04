@@ -1,6 +1,7 @@
 ---
 layout: home
 title: Domphy
+description: The AI-friendly UI framework — patch-based, framework-agnostic, no virtual DOM. UIs as plain objects, reactivity without a compiler.
 fullBleed: true
 ---
 
@@ -43,7 +44,7 @@ Live, right here on the page:
 |---|---|
 | [`@domphy/core`](/docs/core/) | Runtime — elements, reactivity, lifecycle, SSR |
 | [`@domphy/theme`](/docs/theme/) | Design tokens — color, spacing, size, dark mode |
-| [`@domphy/ui`](/docs/ui/) | 96 UI patches — button, dialog, table, form controls… |
+| [`@domphy/ui`](/docs/ui/) | 98 UI patches — button, dialog, table, form controls… |
 | [`@domphy/app`](/docs/app/) | App layer — file-based routing, layouts, SSR, lazy routes |
 | [`@domphy/query`](/docs/query/) | Async data fetching, caching, mutations, infinite queries |
 | [`@domphy/router`](/docs/router/) | Type-safe client-side router with search params and loaders |
@@ -51,7 +52,11 @@ Live, right here on the page:
 | [`@domphy/virtual`](/docs/virtual/) | Virtualization — lists, grids, masonry, infinite scroll |
 | [`@domphy/form`](/docs/form/) | Form state, validation, field arrays, async submission |
 | [`@domphy/dnd`](/docs/dnd/) | Drag and drop — sortable lists, multi-container, multi-drag |
+| [`@domphy/blocks`](/docs/blocks/) | 173 composed blocks — sidebars, auth pages, dashboards, effects |
 | [`@domphy/chart`](/docs/chart/) | SVG + WebGL charts — line, bar, pie, scatter, gauge… |
+| [`@domphy/three`](/docs/three/) | Declarative three.js scene graph on Domphy reactivity |
+| [`@domphy/editor`](/docs/editor/) | Rich-text editor — Tiptap-compatible API, self-contained engine |
+| [`@domphy/floating`](/docs/floating/) | Anchor positioning — floating-ui core, zero-dep, powers overlays |
 | [`@domphy/press`](/docs/press/) | SSG docs engine — markdown, search, islands, routing |
 | [`@domphy/markdown`](/docs/markdown/) | Markdown → Domphy elements (SSR/SSG pipelines) |
 | [`@domphy/mermaid`](/docs/mermaid/) | Mermaid diagrams — build-time SVG + client render |

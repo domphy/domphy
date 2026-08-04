@@ -7,6 +7,10 @@ description: "Patterns for rendering Mermaid diagrams in the browser with @domph
 
 The `mermaidClient()` function returns a Domphy patch that renders a Mermaid diagram in the browser at mount time. Apply it to any element whose text content is valid Mermaid source.
 
+::: tip Browser bundlers
+The main `@domphy/mermaid` entry statically imports Node built-ins for the build-time renderer. In a browser bundle (Vite, esbuild, webpack), import from the browser-safe subpath: `import { mermaidClient } from "@domphy/mermaid/client"`.
+:::
+
 ## Basic usage
 
 ```ts

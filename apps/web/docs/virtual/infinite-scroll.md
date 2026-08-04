@@ -141,6 +141,7 @@ const PostItem = (post: Post, virtualItem: VirtualItem) => ({
   _onMount: (node) =>
     virtualizer.measureElement(node.domElement as HTMLElement),
   _key: virtualItem.key,
+  "data-index": virtualItem.index,
   style: {
     position: "absolute",
     top: 0,

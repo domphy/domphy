@@ -36,6 +36,7 @@ const App = {
         div: (l) => list.getVirtualItems(l).map((item) => ({
           div: data.get()[item.index].text,
           _key: item.key,
+          "data-index": item.index,
           _onMount: (node) => list.measureElement(node.domElement),
           style: {
             position: "absolute",

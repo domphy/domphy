@@ -24,7 +24,7 @@ const list = createVirtualizer<HTMLDivElement, HTMLDivElement>(options)
 | `getVirtualItems(l)` | `VirtualItem[]` | Reactive list of items currently in range. Pass a listener to subscribe. |
 | `getTotalSize(l?)` | `number` | Total scroll size in px. Pass listener to subscribe reactively. |
 | `setScrollElement(el)` | `void` | Wire the scroll container. Call from `_onMount`. |
-| `measureElement(el)` | `void` | Measure an item element. Call from item `_onMount` for variable heights. |
+| `measureElement(el)` | `void` | Measure an item element. Call from item `_onMount` for variable heights. The element must carry `"data-index": item.index` (see `indexAttribute`) — without it the index cannot be resolved and measurement is skipped with a console warning. |
 | `scrollToIndex(i, opts?)` | `void` | Scroll to item at index. |
 | `scrollToOffset(px, opts?)` | `void` | Scroll to an absolute offset. |
 | `scrollBy(delta, opts?)` | `void` | Scroll by a relative pixel delta from the current position. |

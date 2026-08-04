@@ -100,6 +100,7 @@ const App = {
                 color: (cl) => themeColor(cl, "shift-7"),
               },
             },
+            "data-index": item.index,
             _onMount: (node) =>
               list.measureElement(node.domElement as HTMLDivElement),
             style: {

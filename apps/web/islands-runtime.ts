@@ -7,7 +7,11 @@
 // script setting `window.__DP_PAGE_ISLANDS__` (the island specs for that page),
 // then loads the bundled entry which calls `bootstrap(previewRegistry)`.
 
-import { type DomphyElement, ElementNode } from "@domphy/core";
+import {
+  type DomphyElement,
+  ElementNode,
+  sanitizeHTMLString,
+} from "@domphy/core";
 import { mountSearch } from "@domphy/press/browser";
 import { themeApply } from "@domphy/theme";
 // Side effect: registers the site's brand palette into the client theme
@@ -90,12 +94,27 @@ export type PreviewRegistry = Record<
   () => Promise<{ default: DomphyElement }>
 >;
 
+/** Minimal structural type for the parts of the `mermaid` browser lib used. */
+export interface MermaidBrowserModule {
+  initialize(config: Record<string, unknown>): void;
+  render(id: string, text: string): Promise<{ svg: string }>;
+}
+
 /**
  * Renders any ```mermaid fenced code blocks on the page client-side using
  * IntersectionObserver so the ~2MB mermaid library is only loaded when a diagram
  * is actually scrolled into view (200px lookahead).
+ *
+ * Hardened to match `@domphy/mermaid`'s client patch: `securityLevel` is
+ * pinned to "strict" at every initialize, the rendered SVG is sanitized with
+ * core's `sanitizeHTMLString` before the `innerHTML` write, and rendered
+ * diagrams re-render when `[data-theme]` flips. `loadMermaid` is injectable
+ * for tests.
  */
-async function renderMermaidBlocks(): Promise<void> {
+export async function renderMermaidBlocks(
+  loadMermaid: () => Promise<MermaidBrowserModule> = async () =>
+    (await import("mermaid")).default,
+): Promise<void> {
   const blocks = Array.from(
     document.querySelectorAll<HTMLElement>(
       'pre > code.language-mermaid, code[data-language="mermaid"]',
@@ -103,9 +122,27 @@ async function renderMermaidBlocks(): Promise<void> {
   );
   if (blocks.length === 0) return;
 
-  let mermaidLib: typeof import("mermaid")["default"] | null = null;
+  let mermaidLib: MermaidBrowserModule | null = null;
   let renderIndex = 0;
   const rendered = new WeakSet<HTMLElement>();
+  // Diagrams already swapped in, kept so a [data-theme] flip can re-render
+  // them with the new theme.
+  const renderedBlocks: { el: HTMLElement; source: string }[] = [];
+
+  // mermaid.initialize() mutates the library's GLOBAL config, so every
+  // initialize+render pair is serialized through this queue — a theme-flip
+  // re-render must not interleave with an in-flight first render.
+  let queue: Promise<unknown> = Promise.resolve();
+  const enqueue = <T>(task: () => Promise<T>): Promise<T> => {
+    const result = queue.then(task);
+    queue = result.catch(() => {});
+    return result;
+  };
+
+  const currentTheme = () =>
+    document.documentElement.getAttribute("data-theme") === "dark"
+      ? "dark"
+      : "default";
 
   const decode = (text: string): string =>
     text
@@ -115,33 +152,38 @@ async function renderMermaidBlocks(): Promise<void> {
       .replace(/&#39;/g, "'")
       .replace(/&amp;/g, "&");
 
-  const renderBlock = async (code: HTMLElement) => {
-    if (rendered.has(code)) return;
-    rendered.add(code);
-    if (!mermaidLib) {
-      mermaidLib = (await import("mermaid")).default;
-      const dark =
-        document.documentElement.getAttribute("data-theme") === "dark";
-      mermaidLib.initialize({
-        startOnLoad: false,
-        theme: dark ? "dark" : "default",
-      });
-    }
-    const source = decode(code.textContent ?? "");
-    const target = code.closest("pre") ?? code;
-    try {
-      const { svg } = await mermaidLib.render(
-        `dp-mermaid-${renderIndex++}`,
-        source,
-      );
+  const renderSource = async (source: string): Promise<string> => {
+    if (!mermaidLib) mermaidLib = await loadMermaid();
+    // Pin strict: diagram source is author-supplied text and the rendered SVG
+    // is written via innerHTML, so mermaid's built-in label sanitization must
+    // not rest on the library default never changing.
+    mermaidLib.initialize({
+      startOnLoad: false,
+      securityLevel: "strict",
+      theme: currentTheme(),
+    });
+    const { svg } = await mermaidLib.render(
+      `dp-mermaid-${renderIndex++}`,
+      source,
+    );
+    return sanitizeHTMLString(svg);
+  };
+
+  const renderBlock = (code: HTMLElement) =>
+    enqueue(async () => {
+      if (rendered.has(code)) return;
+      rendered.add(code);
+      const source = decode(code.textContent ?? "");
+      const target = code.closest("pre") ?? code;
+      const svg = await renderSource(source);
       const wrapper = document.createElement("div");
       wrapper.className = "mermaid";
       wrapper.innerHTML = svg;
       target.replaceWith(wrapper);
-    } catch (error) {
+      renderedBlocks.push({ el: wrapper, source });
+    }).catch((error) => {
       console.error("mermaid render failed", error);
-    }
-  };
+    });
 
   const observer = new IntersectionObserver(
     (entries) => {
@@ -155,6 +197,22 @@ async function renderMermaidBlocks(): Promise<void> {
   );
 
   for (const block of blocks) observer.observe(block);
+
+  // Follow [data-theme] flips: re-render already-rendered diagrams with the
+  // new theme.
+  new MutationObserver(() => {
+    if (!mermaidLib || renderedBlocks.length === 0) return;
+    for (const block of renderedBlocks) {
+      void enqueue(async () => {
+        block.el.innerHTML = await renderSource(block.source);
+      }).catch((error) => {
+        console.error("mermaid render failed", error);
+      });
+    }
+  }).observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["data-theme"],
+  });
 }
 
 /** Reads the page's island specs and hydrates each placeholder. */

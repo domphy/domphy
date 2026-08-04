@@ -330,11 +330,4 @@ See [FormKit drag-and-drop docs](https://drag-and-drop.formkit.com) for the full
 
 ## Accessibility
 
-FormKit drag-and-drop includes keyboard accessibility built in:
-
-- `Tab` to focus an item
-- `Space` to pick up / drop
-- Arrow keys to move while picked up
-- `Escape` to cancel
-
-No additional setup required. ARIA roles (`role="listitem"`, `aria-grabbed`, `aria-dropeffect`) are applied automatically.
+The engine is pointer-based — keyboard drag-and-drop is **not** implemented upstream (`handleNodeKeydown` is an empty stub; the only built-in key handling is `Escape` clearing a multi-drag selection), and no `aria-grabbed`/`aria-dropeffect`/`tabindex` attributes are applied automatically. Build keyboard-operable reorder yourself: make items focusable, reorder the bound state from a key handler, and announce the result via an ARIA live region — see [Accessibility](./accessibility).
