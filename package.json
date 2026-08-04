@@ -9,6 +9,8 @@
     "check": "biome check .",
     "fix": "biome check --write .",
     "verify:publish": "node scripts/verify-publish.mjs",
+    "smoke": "node smoke/run-smoke.mjs",
+    "lint:pkg": "node scripts/lint-pkg.mjs",
     "verify:stable": "node scripts/stable-readiness-check.mjs",
     "ci": "pnpm check && pnpm -r --workspace-concurrency=3 build && pnpm -r --workspace-concurrency=3 test && node scripts/stable-readiness-check.mjs",
     "a11y": "pnpm --filter domphy-web a11y",
@@ -55,7 +57,9 @@
   "license": "MIT",
   "packageManager": "pnpm@10.24.0",
   "devDependencies": {
-    "@biomejs/biome": "^2.4.6"
+    "@arethetypeswrong/cli": "^0.18.5",
+    "@biomejs/biome": "^2.4.6",
+    "publint": "^0.3.23"
   },
   "version": "0.18.0"
 }

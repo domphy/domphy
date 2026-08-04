@@ -1,0 +1,14 @@
+{
+  "name": "domphy-smoke-ssr-app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Smoke fixture: a plain Node ESM script installing Domphy from packed tarballs (npm, file: deps) — SSR render must produce the expected HTML.",
+  "scripts": {
+    "start": "node main.mjs"
+  },
+  "dependencies": {
+    "@domphy/core": "file:../../.tarballs/domphy-core.tgz",
+    "@domphy/markdown": "file:../../.tarballs/domphy-markdown.tgz"
+  }
+}

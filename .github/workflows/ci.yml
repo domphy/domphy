@@ -58,6 +58,43 @@ jobs:
       - name: Test
         run: pnpm -r test
 
+  # Tarball-install smoke test: packs all publishable packages and installs
+  # the tarballs into the smoke/ fixture consumers (a Vite app and a
+  # plain-Node SSR script) with npm, so workspace `link:` resolution cannot
+  # hide missing-deps or exports-map bugs. Needs the packages built, so it
+  # builds like the check job (job artifacts are not shared between jobs).
+  smoke:
+    name: Tarball smoke test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: check
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.24.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm -r build
+
+      - name: Package lint (publint + attw on tarballs)
+        run: pnpm lint:pkg
+
+      - name: Smoke test (tarball installs)
+        run: pnpm smoke
+
   # Front-End Checklist enterprise gate: axe + structural HTML checks against production.
   # Runs after merge to main so deploys are verified; PRs stay fast without live URL flakiness.
   a11y-prod:

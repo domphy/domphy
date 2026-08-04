@@ -1,0 +1,19 @@
+{
+  "name": "domphy-smoke-vite-app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Smoke fixture: a real-consumer Vite+TS app installing Domphy from packed tarballs (npm, file: deps) — vite build must succeed.",
+  "scripts": {
+    "build": "tsc --noEmit && vite build"
+  },
+  "dependencies": {
+    "@domphy/core": "file:../../.tarballs/domphy-core.tgz",
+    "@domphy/theme": "file:../../.tarballs/domphy-theme.tgz",
+    "@domphy/ui": "file:../../.tarballs/domphy-ui.tgz"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vite": "^6.0.0"
+  }
+}

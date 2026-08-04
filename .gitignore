@@ -76,3 +76,9 @@ paper/*.fdb_latexmk
 paper/*.fls
 paper/*.out
 paper/*.synctex.gz
+
+# Smoke-test artifacts (smoke/)
+smoke/.tarballs/
+smoke/fixtures/*/node_modules/
+smoke/fixtures/*/package-lock.json
+smoke/fixtures/*/dist/

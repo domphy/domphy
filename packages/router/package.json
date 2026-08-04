@@ -7,6 +7,22 @@
   "main": "./dist/cjs/index.cjs",
   "module": "./dist/esm/index.js",
   "types": "./dist/esm/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "ssr/server": [
+        "./dist/esm/ssr/server.d.ts"
+      ],
+      "ssr/client": [
+        "./dist/esm/ssr/client.d.ts"
+      ],
+      "isServer": [
+        "./dist/esm/isServer/client.d.ts"
+      ],
+      "scroll-restoration-script": [
+        "./dist/esm/scroll-restoration-script/server.d.ts"
+      ]
+    }
+  },
   "exports": {
     ".": {
       "import": {

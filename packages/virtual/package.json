@@ -6,6 +6,13 @@
   "sideEffects": false,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "domphy": [
+        "./dist/domphy.d.ts"
+      ]
+    }
+  },
   "exports": {
     ".": {
       "import": {

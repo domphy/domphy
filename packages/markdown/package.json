@@ -62,7 +62,5 @@
     "dist",
     "README.md",
     "CHANGELOG.md"
-  ],
-  "unpkg": "dist/markdown.global.js",
-  "jsdelivr": "dist/markdown.global.js"
+  ]
 }
