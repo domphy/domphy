@@ -47,7 +47,6 @@
     "@domphy/i18n": "workspace:*",
     "@domphy/markdown": "workspace:*",
     "@domphy/mermaid": "workspace:*",
-    "@domphy/palette": "workspace:*",
     "@domphy/press": "workspace:*",
     "@domphy/query": "workspace:*",
     "@domphy/router": "workspace:*",

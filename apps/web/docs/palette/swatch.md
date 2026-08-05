@@ -5,14 +5,14 @@ description: "The Swatch class for inspecting individual colors, plus the export
 
 # Swatch & Color Utilities
 
-`@domphy/palette` exports the `Swatch` class and a suite of standalone color-space functions. These are the building blocks used internally by `Ramp`, and you can use them independently to inspect a single color, convert between color spaces, or build custom palette tooling.
+`@domphy/theme` exports the `Swatch` class and a suite of standalone color-space functions. These are the building blocks used internally by `Ramp`, and you can use them independently to inspect a single color, convert between color spaces, or build custom palette tooling.
 
 ## Swatch
 
 `Swatch` wraps a single hex color and lazily computes its CIELAB, LCH, perceptual lightness, and relative luminance.
 
 ```ts
-import { Swatch } from "@domphy/palette"
+import { Swatch } from "@domphy/theme"
 
 const s = new Swatch("#3b82f6")
 ```
@@ -108,7 +108,7 @@ wcagContrast("#2354b2", "#ffffff")  // ≈ 7.05  (AAA)
 
 ## Color-space conversion functions
 
-All of the following are named exports from `@domphy/palette`:
+All of the following are named exports from `@domphy/theme`:
 
 ```ts
 import {
@@ -121,7 +121,7 @@ import {
   cssRgbToRgb,
   createMonotone,
   calcScore, calcStatistics, rootMeanSquare,
-} from "@domphy/palette"
+} from "@domphy/theme"
 ```
 
 ### Hex ↔ linear RGB
@@ -207,7 +207,7 @@ Useful when consuming colors from `getComputedStyle`, design tokens stored as CS
 ### Statistics helpers
 
 ```ts
-import { calcStatistics, rootMeanSquare, calcScore } from "@domphy/palette"
+import { calcStatistics, rootMeanSquare, calcScore } from "@domphy/theme"
 
 calcStatistics([0.90, 0.85, 0.88, 0.92])
 // { min: 0.85, max: 0.92, avg: 0.8875 }
@@ -222,7 +222,7 @@ calcScore([0.923, 0.951, 0.887, 0.942, 0.831])
 `calcScore` accepts any array of `[0, 1]` values and returns the geometric mean as a 0–100 number. You can use it to compose custom quality signals alongside the built-in ones:
 
 ```ts
-import { calcScore } from "@domphy/palette"
+import { calcScore } from "@domphy/theme"
 
 // Custom metric: fraction of steps that are not too dark for body text
 const usableSteps = ramp.swatches.filter(s => s.lightness > 30 && s.lightness < 85).length
@@ -241,7 +241,7 @@ const combined = calcScore([
 `createMonotone` builds a monotone cubic Hermite interpolator from `[x, y]` control points. It guarantees no overshoot between adjacent points (Fritsch–Carlson 1980), which is why `Ramp.chromaSmoothness` uses it to fit a reference chroma arc.
 
 ```ts
-import { createMonotone } from "@domphy/palette"
+import { createMonotone } from "@domphy/theme"
 
 // Control points: (step index, chroma value)
 const interp = createMonotone([[0, 10], [6, 133], [17, 5]])
@@ -265,7 +265,7 @@ Computes the **WCAG 2.1 contrast ratio** between two hex colors. Returns a value
 | ≥ 7:1 | Small text (WCAG AAA) |
 
 ```ts
-import { contrastRatio } from "@domphy/palette"
+import { contrastRatio } from "@domphy/theme"
 
 contrastRatio("#3b82f6", "#ffffff")  // ≈ 3.68  — AA fails for normal text
 contrastRatio("#1d4ed8", "#ffffff")  // ≈ 6.70  — AA (fails AAA)
@@ -286,7 +286,7 @@ Mixes two hex colors and returns the result as a hex string. `ratio` controls ho
 | `space` | `'oklab' \| 'lab' \| 'rgb'` | `'oklab'` | Color space for interpolation |
 
 ```ts
-import { mix } from "@domphy/palette"
+import { mix } from "@domphy/theme"
 
 mix("#ffffff", "#3b82f6")             // 50/50 blend in Oklab
 mix("#ffffff", "#3b82f6", 0.25)       // 25% toward blue
@@ -313,7 +313,7 @@ Generates a `steps`-step gradient across two or more anchor colors. Interpolatio
 | `steps` | `number` | Total number of output colors including both endpoints |
 
 ```ts
-import { scale } from "@domphy/palette"
+import { scale } from "@domphy/theme"
 
 // 5-step gradient from white to blue
 scale(["#ffffff", "#3b82f6"], 5)
@@ -324,7 +324,7 @@ scale(["#ffffff", "#3b82f6", "#000000"], 7)
 // ["#ffffff", "#bed7ff", "#7eaefd", "#3b82f6", "#1e498f", "#051634", "#000000"]
 
 // Use the output to construct a Ramp for quality analysis
-import { Ramp } from "@domphy/palette"
+import { Ramp } from "@domphy/theme"
 
 const hexes = scale(["#ffffff", "#2563eb", "#000000"], 18)
 const ramp = new Ramp(hexes, "blue")

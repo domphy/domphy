@@ -1,5 +1,12 @@
-import { cssRgbToRgb, hexToRgb, labToLch, rgbToLab } from "@domphy/palette";
-import { ElementTones, TONE_STEPS, ToneAliases } from "@domphy/theme";
+import {
+  cssRgbToRgb,
+  ElementTones,
+  hexToRgb,
+  labToLch,
+  rgbToLab,
+  TONE_STEPS,
+  ToneAliases,
+} from "@domphy/theme";
 import { findTag, isPlainObject, isRawHTML, SVG_ONLY, VOID } from "./shared.js";
 
 export type Severity = "error" | "warning" | "info";
@@ -441,7 +448,7 @@ function isValidTone(value: string): boolean {
 /**
  * Parses a CSS color literal (hex or rgb/rgba) into LCH [L, C, h].
  * Returns null if parsing fails or the format is unsupported (named colors, hsl).
- * Uses @domphy/palette math (CIELAB via D65 reference white).
+ * Uses @domphy/theme's palette math (CIELAB via D65 reference white).
  */
 function parseLiteralToLch(value: string): [number, number, number] | null {
   try {
@@ -489,9 +496,9 @@ function extractColorLiteral(value: string): string | null {
  * a perceptual description. The tone and color-family are approximations for the
  * default Domphy theme (light, 18-step tone ramps, base near mid-lightness).
  *
- * NOTE: this perceptual-match helper conceptually belongs in @domphy/palette
- * (it duplicates some of the chromametry stack's concerns); kept here for now
- * to avoid a cross-package refactor.
+ * NOTE: this perceptual-match helper conceptually belongs in @domphy/theme's
+ * palette engine (it duplicates some of the chromametry stack's concerns);
+ * kept here for now to avoid a cross-package refactor.
  */
 function buildColorHint(lch: [number, number, number]): string {
   const [L, C, h] = lch;

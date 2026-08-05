@@ -10,7 +10,7 @@ description: "The Ramp class: accessing raw data, step-by-step inspection, metri
 ## Constructor
 
 ```ts
-import { Ramp } from "@domphy/palette"
+import { Ramp } from "@domphy/theme"
 
 const ramp = new Ramp(hexColors, "blue")
 ```
@@ -160,8 +160,8 @@ ramp.apca[60].span   // min step gap to guarantee APCA Lc 60 everywhere
 `Palette` wraps multiple named ramps and aggregates every metric across them.
 
 ```ts
-import { Palette } from "@domphy/palette"
-import type { PaletteColors } from "@domphy/palette"
+import { Palette } from "@domphy/theme"
+import type { PaletteColors } from "@domphy/theme"
 
 const colors: PaletteColors = {
   blue:  blueHexes,
@@ -225,7 +225,7 @@ palette.wcag[45].value   // average ratio at that span across all ramps
 ## CI quality gate
 
 ```ts
-import { Palette } from "@domphy/palette"
+import { Palette } from "@domphy/theme"
 
 const palette = new Palette({ blue, red, green, yellow }, "brand")
 

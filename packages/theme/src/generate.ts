@@ -4,7 +4,7 @@ import {
   hexToRgb,
   normalizeHex,
   rgbToLab,
-} from "@domphy/palette";
+} from "./palette/index.js";
 import type { PartialThemeInput, ThemeInput } from "./types.js";
 
 export type GenerateThemeOptions = {
@@ -48,7 +48,7 @@ function nearestStepIndex(ramp: string[], baseHex: string): number {
 
 /**
  * Generate a complete `ThemeInput` from one base hex color per semantic role,
- * using `@domphy/palette`'s `generateRamp` (Oklab, WCAG-span-optimized) for
+ * using the built-in palette engine's `generateRamp` (Oklab, WCAG-span-optimized) for
  * every color family. Each family's `baseTones` entry is the step nearest
  * (CIEDE2000) to the caller's original input, so `themeColor(l, "base", name)`
  * still resolves to (approximately) the exact brand color that was passed in.
@@ -65,7 +65,7 @@ function nearestStepIndex(ramp: string[], baseHex: string): number {
  * `ThemeInput`/`PartialThemeInput` (e.g. spread over `light` from
  * `@domphy/theme`) to fill in the rest.
  *
- * Each base color is normalized via `@domphy/palette`'s `normalizeHex`, so
+ * Each base color is normalized via the palette engine's `normalizeHex`, so
  * shorthand (`#fff`) is accepted; invalid input throws an actionable error
  * naming the offending role.
  */

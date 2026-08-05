@@ -1,5 +1,5 @@
-import { Ramp, type ApcaContrasts, type WcagContrasts } from "./Ramp";
-import { calcScore, rootMeanSquare } from "./utils";
+import { Ramp, type ApcaContrasts, type WcagContrasts } from "./Ramp.js";
+import { calcScore, rootMeanSquare } from "./utils.js";
 
 export type PaletteColors = Record<string, string[]>;
 

@@ -25,7 +25,6 @@ Framework-agnostic, no JSX, no virtual DOM, no build step required — and the m
 **App layer & tools:**
 
 - `@domphy/dnd` — drag & drop / sortable lists
-- `@domphy/palette` — color-science toolkit (measure & validate palette quality, 5 CIELAB metrics); design-time companion to theme
 - `@domphy/app` — Next.js App Router-style framework (routes, layouts, loaders+SWR, metadata, middleware, parallel/intercepting routes, lazy code-split routes, SSR + streaming, API routes)
 - `@domphy/markdown` — Markdown → Domphy element trees for SSR/SSG (this docs site runs on it)
 - `@domphy/mermaid` — render Mermaid diagrams (build-time SVG + client patch)

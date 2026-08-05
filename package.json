@@ -28,7 +28,6 @@
     "publish:blocks": "cd packages/blocks && pnpm publish --access public --no-git-checks",
     "publish:chart": "cd packages/chart && pnpm publish --access public --no-git-checks",
     "publish:floating": "cd packages/floating && pnpm publish --access public --no-git-checks",
-    "publish:palette": "cd packages/palette && pnpm publish --access public --no-git-checks",
     "publish:doctor": "cd packages/doctor && pnpm publish --access public --no-git-checks",
     "publish:markdown": "cd packages/markdown && pnpm publish --access public --no-git-checks",
     "publish:mermaid": "cd packages/mermaid && pnpm publish --access public --no-git-checks",

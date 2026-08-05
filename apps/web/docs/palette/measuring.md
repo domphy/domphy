@@ -1,6 +1,6 @@
 # Paper I — Measuring Palette Quality
 
-A sequential color ramp (e.g. `blue-50` … `blue-900`) is good when it is **perceptually even**, **accessible**, and **artifact-free**. `@domphy/palette` makes that measurable with five metrics, all computed in the **CIELAB** color space (lightness, chroma, hue, and ΔE2000 all derived there).
+A sequential color ramp (e.g. `blue-50` … `blue-900`) is good when it is **perceptually even**, **accessible**, and **artifact-free**. The palette engine in `@domphy/theme` makes that measurable with five metrics, all computed in the **CIELAB** color space (lightness, chroma, hue, and ΔE2000 all derived there).
 
 ## The five metrics
 
@@ -13,7 +13,7 @@ Each metric normalizes to `[0, 1]`; `Ramp.score` is the geometric mean, scaled t
 5. **Spacing Uniformity** — consistency of perceptual spacing between adjacent steps, measured with **ΔE2000**. Evenly-spaced steps score high.
 
 ```ts
-import { Ramp } from "@domphy/palette"
+import { Ramp } from "@domphy/theme"
 
 const ramp = new Ramp(blueHexes, "blue")
 ramp.metrics   // { contrastEfficiency, lightnessLinearity, chromaSmoothness, hueStability, spacingUniformity }
@@ -40,10 +40,10 @@ Popular design systems, scored on these metrics (algorithmic sequential ramps on
 
 ## Where Domphy sits
 
-`@domphy/theme` builds on **Adobe Spectrum-derived 18-step ramps** — the top-scoring family in the benchmark — and `@domphy/palette` lets you *verify* that, or any palette you generate, before shipping:
+`@domphy/theme` builds on **Adobe Spectrum-derived 18-step ramps** — the top-scoring family in the benchmark — and its palette engine lets you *verify* that, or any palette you generate, before shipping:
 
 ```ts
-import { Palette } from "@domphy/palette"
+import { Palette } from "@domphy/theme"
 const score = new Palette({ blue, red, green }).score
 if (score < 80) console.warn("palette quality below target")
 ```

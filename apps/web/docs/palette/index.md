@@ -5,14 +5,14 @@ import Basic from "../demos/palette/basic.ts?raw"
 
 # Palette
 
-`@domphy/palette` is Domphy's color-palette quality engine: **measure and validate** sequential color ramps using five perceptual metrics in CIELAB. It is the design-time companion to `@domphy/theme` — theme ships the runtime tokens, palette validates the ramps behind them.
+The palette engine built into `@domphy/theme` is Domphy's color-palette quality toolkit: **measure and validate** sequential color ramps using five perceptual metrics in CIELAB, alongside the runtime theme tokens built on those ramps.
 
 Framework-agnostic, zero dependencies, pure color science. (Ported from the *Chromametry* research project, same author.)
 
 ## Install
 
 ```bash
-npm install @domphy/palette
+npm install @domphy/theme
 ```
 
 ## Live Example
@@ -26,7 +26,7 @@ Generate a WCAG-optimized 18-step ramp from any anchor color with `generateRamp`
 `Ramp` / `Palette` score a palette against five metrics (all in CIELAB):
 
 ```ts
-import { Ramp } from "@domphy/palette"
+import { Ramp } from "@domphy/theme"
 
 const ramp = new Ramp(blueHexes, "blue")
 ramp.metrics       // { contrastEfficiency, lightnessLinearity, chromaSmoothness, hueStability, spacingUniformity }
@@ -35,7 +35,7 @@ ramp.wcag[45].span // how many steps clear WCAG 4.5:1
 ```
 
 ```ts
-import { Palette } from "@domphy/palette"
+import { Palette } from "@domphy/theme"
 const palette = new Palette({ blue, red, green })
 palette.score // aggregate score across all ramps
 ```
@@ -45,7 +45,7 @@ palette.score // aggregate score across all ramps
 `generateRamp` builds a WCAG-optimized ramp from a base color, so you don't have to hand-pick steps to get a good score:
 
 ```ts
-import { generateRamp } from "@domphy/palette"
+import { generateRamp } from "@domphy/theme"
 
 const primary = generateRamp("#4a7ff4", 18)   // 18 hex strings, ready to use
 ```
@@ -54,7 +54,7 @@ See [**generateRamp**](./generator) for the full API and how it composes into `@
 
 ## Why this matters
 
-Most design systems hand-pick color steps; few can *prove* their palettes are perceptually even and accessible. `@domphy/palette` makes palette quality a measurable property — and `@domphy/theme` is built on top of it.
+Most design systems hand-pick color steps; few can *prove* their palettes are perceptually even and accessible. The palette engine makes palette quality a measurable property — and `@domphy/theme`'s runtime tokens are built on top of it.
 
 ## Paper
 

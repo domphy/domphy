@@ -47,7 +47,6 @@ Data & logic — framework-agnostic API at the main entry + a thin Domphy adapte
 
 App layer & tools:
 
-- `@domphy/palette` — color-science toolkit: measure & validate palette quality (5 CIELAB metrics); the design-time companion to `@domphy/theme`
 - `@domphy/chart` — WebGL + SVG chart engine: line, bar, pie, scatter, gauge… (`chart(option)` patch, ECharts-compatible type surface)
 - `@domphy/i18n` — i18next wrapper with Domphy reactivity: reactive `t(listener, key)` re-renders on `setLocale()`
 - `@domphy/press` — SSG docs engine: markdown, search, islands, routing (VitePress-baseline; built on `@domphy/app` + `@domphy/markdown`)
@@ -113,4 +112,4 @@ Full docs: [domphy.com](https://domphy.com) — [Core](https://domphy.com/docs/c
 
 ## Monorepo
 
-`packages/{core,theme,ui,blocks,query,table,router,virtual,form,dnd,palette,chart,doctor,mcp,floating,app,markdown,mermaid,three,editor,i18n,press,create-domphy}` + `apps/web` (`domphy-web` — docs site, DomphyPress) + `bench` (benchmarks).
+`packages/{core,theme,ui,blocks,query,table,router,virtual,form,dnd,chart,doctor,mcp,floating,app,markdown,mermaid,three,editor,i18n,press,create-domphy}` + `apps/web` (`domphy-web` — docs site, DomphyPress) + `bench` (benchmarks).

@@ -1,6 +1,5 @@
 import { type DomphyElement, toState } from "@domphy/core";
-import { generateRamp } from "@domphy/palette";
-import { themeSpacing } from "@domphy/theme";
+import { generateRamp, themeSpacing } from "@domphy/theme";
 import { heading, row, small, stack } from "@domphy/ui";
 
 const base = toState("#4a7ff4");

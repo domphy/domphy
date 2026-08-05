@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateRamp, Ramp } from "../src/index";
+import { generateRamp, Ramp } from "../../src/index";
 
 const HEX_RE = /^#[0-9a-f]{6}$/i;
 

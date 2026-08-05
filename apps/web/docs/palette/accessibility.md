@@ -10,7 +10,7 @@ Every `Ramp` automatically computes WCAG and APCA contrast tables across its ste
 ## Types
 
 ```ts
-import type { ContrastValue, WcagContrasts, ApcaContrasts } from "@domphy/palette"
+import type { ContrastValue, WcagContrasts, ApcaContrasts } from "@domphy/theme"
 
 type ContrastValue = {
   target:     number  // contrast target: ratio for WCAG, Lc value for APCA
@@ -37,7 +37,7 @@ type ApcaContrasts = Record<45 | 60 | 75, ContrastValue>
 | `70` | 7:1 | Small text — WCAG 2 AAA |
 
 ```ts
-import { Ramp } from "@domphy/palette"
+import { Ramp } from "@domphy/theme"
 
 const ramp = new Ramp(blueHexes, "blue")
 
@@ -150,7 +150,7 @@ if (lc60.value >= 60) {
 - **`efficiency`** — `span / (steps - 1)` using the palette's shared step count
 
 ```ts
-import { Palette } from "@domphy/palette"
+import { Palette } from "@domphy/theme"
 
 const palette = new Palette({ blue, red, green, yellow })
 
@@ -167,7 +167,7 @@ console.log("Worst Lc60 span:", palette.apca[60].span)
 ## Per-ramp accessibility report
 
 ```ts
-import { Palette, type Ramp } from "@domphy/palette"
+import { Palette, type Ramp } from "@domphy/theme"
 
 function contrastReport(ramp: Ramp) {
   const aa   = ramp.wcag[45]
@@ -193,7 +193,7 @@ palette.ramps.forEach(contrastReport)
 Combine quality score with contrast requirements in one check:
 
 ```ts
-import { Palette } from "@domphy/palette"
+import { Palette } from "@domphy/theme"
 
 const palette = new Palette({ blue, red, green, yellow }, "brand")
 const issues: string[] = []

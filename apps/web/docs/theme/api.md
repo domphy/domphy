@@ -137,7 +137,7 @@ const brand = getTheme("brand")
 ### `generateTheme(baseColors, options?)`
 
 Build a full `PartialThemeInput` from one base hex color per semantic role,
-using `@domphy/palette`'s `generateRamp` for every family — see
+using the built-in palette engine's `generateRamp` for every family — see
 [Theme Builder](./builder) for a live demo and [`DESIGN.md`](https://github.com/domphy/domphy/blob/main/DESIGN.md)
 for the math.
 

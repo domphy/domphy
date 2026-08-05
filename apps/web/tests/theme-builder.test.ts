@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { ElementNode } from "@domphy/core";
 import { diagnose, format } from "@domphy/doctor";
+import { contrastRatio, generateTheme } from "@domphy/theme";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 function flush(): Promise<void> {
@@ -17,7 +18,7 @@ async function mountFresh() {
   document.body.appendChild(host);
   const node = new ElementNode(mod.default);
   node.render(host);
-  return { host, node };
+  return { host, node, mod };
 }
 
 afterEach(() => {
@@ -27,13 +28,12 @@ afterEach(() => {
 
 // Suite-level timeout: every test re-imports the whole demo module graph
 // (vi.resetModules + dynamic import in mountFresh). The 20s config timeout
-// still flakes under parallel CI load (audit 04-web finding #6 / 18-router),
-// so this file gets a robust 60s budget.
+// still flakes under parallel CI load, so this file gets a robust 60s budget.
 describe("ThemeBuilder demo", { timeout: 60_000 }, () => {
   it("renders one color picker per semantic role", async () => {
     const { host } = await mountFresh();
     const pickers = host.querySelectorAll('input[type="color"]');
-    // 10 roles + 1 inputColor gallery item.
+    // 10 roles + gallery inputs if any.
     expect(pickers.length).toBeGreaterThanOrEqual(10);
   });
 
@@ -51,8 +51,6 @@ describe("ThemeBuilder demo", { timeout: 60_000 }, () => {
     expect(picker).toBeTruthy();
 
     const exportCode = host.querySelector("pre code") as HTMLElement;
-    // Each color field pairs the native picker with a hex text input bound
-    // to the same state.
     const hexInput = picker
       .closest("label")
       ?.querySelector('input[type="text"]') as HTMLInputElement;
@@ -62,10 +60,6 @@ describe("ThemeBuilder demo", { timeout: 60_000 }, () => {
     picker.dispatchEvent(new window.Event("input", { bubbles: true }));
     await flush();
 
-    // The picked hex isn't required to survive verbatim into the discretized
-    // 18-step ramp (it's a WCAG-optimized interpolation, not an identity
-    // passthrough) — assert on the raw-input mirror instead, and that the
-    // export panel (which reflects the regenerated theme) actually changed.
     expect(hexInput.value).toBe("#00ff00");
     expect(exportCode.textContent).not.toBe(before);
   });
@@ -77,31 +71,35 @@ describe("ThemeBuilder demo", { timeout: 60_000 }, () => {
     ).find((s) => s.textContent === "Size & density");
     expect(disclosure).toBeTruthy();
 
-    // The disclosure content is always in the DOM (closed = hidden), so the
-    // fields are queryable without opening it: 8 font sizes + 5 densities.
     const numberInputs = host.querySelectorAll('aside input[type="number"]');
-    expect(numberInputs.length).toBe(5); // one per density step
+    expect(numberInputs.length).toBe(5);
   });
 
-  it("switching the preview theme selector changes the gallery's dataTheme", async () => {
+  it("switching preview theme selects generated light and generated dark", async () => {
     const { host } = await mountFresh();
     const select = host.querySelector(
       'select[aria-label="Preview theme"]',
     ) as HTMLSelectElement;
-    // The preview root is the only dataTheme-scoped subtree; the sidebar
-    // follows the page theme.
     const gallery = host.querySelector("[data-theme]") as HTMLElement | null;
 
     expect(select).toBeTruthy();
     expect(gallery).toBeTruthy();
-    // Default is the generated "brand" theme, not "light".
-    expect(gallery?.getAttribute("data-theme")).not.toBe("light");
+    // Default is generated light, not built-in "light".
+    expect(gallery?.getAttribute("data-theme")).toBe("theme-builder-preview");
 
-    select.value = "Built-in light";
+    select.value = "generated-dark";
     select.dispatchEvent(new window.Event("input", { bubbles: true }));
     await flush();
 
-    expect(gallery?.getAttribute("data-theme")).toBe("light");
+    expect(gallery?.getAttribute("data-theme")).toBe(
+      "theme-builder-preview-dark",
+    );
+
+    select.value = "generated-light";
+    select.dispatchEvent(new window.Event("input", { bubbles: true }));
+    await flush();
+
+    expect(gallery?.getAttribute("data-theme")).toBe("theme-builder-preview");
   });
 
   it("changing a density field regenerates without throwing", async () => {
@@ -117,6 +115,129 @@ describe("ThemeBuilder demo", { timeout: 60_000 }, () => {
 
     const exportCode = host.querySelector("pre code") as HTMLElement;
     expect(exportCode.textContent).toContain("1.25");
+  });
+
+  it("surfaces live contrast checks wired to real contrastRatio values", async () => {
+    const { host, mod } = await mountFresh();
+    const panel = host.querySelector(
+      '[aria-label="Contrast checks"]',
+    ) as HTMLElement | null;
+    expect(panel).toBeTruthy();
+    // Pass/Fail tags or ratio text must appear — not a hardcoded empty shell.
+    expect(panel?.textContent).toMatch(/Pass|Fail/);
+    expect(panel?.textContent).toMatch(/\d+\.\d+:1/);
+
+    // Report ratios must match a real contrastRatio call on the same pairs
+    // the helper uses (neutral body: shift-9 on surface).
+    const theme = generateTheme(mod.defaultColors());
+    const report = mod.buildQualityReport(theme);
+    const body = report.contrasts.find((c: { id: string }) => c.id === "neutral-body");
+    expect(body).toBeTruthy();
+    const expected = contrastRatio(body!.foreground, body!.background);
+    expect(body!.ratio).toBeCloseTo(expected, 5);
+    expect(body!.pass).toBe(expected >= 4.5);
+  });
+
+  it("reset restores default colors and updates export content", async () => {
+    const { host } = await mountFresh();
+    const exportCode = host.querySelector("pre code") as HTMLElement;
+    const picker = host.querySelector(
+      'input[type="color"]',
+    ) as HTMLInputElement;
+    const initial = exportCode.textContent;
+
+    picker.value = "#112233";
+    picker.dispatchEvent(new window.Event("input", { bubbles: true }));
+    await flush();
+    expect(exportCode.textContent).not.toBe(initial);
+
+    const reset = host.querySelector(
+      'button[aria-label="Reset to default colors"]',
+    ) as HTMLButtonElement;
+    expect(reset).toBeTruthy();
+    reset.click();
+    await flush();
+
+    expect(exportCode.textContent).toBe(initial);
+  });
+
+  it("randomize mutates base colors and changes export content", async () => {
+    const { host } = await mountFresh();
+    const exportCode = host.querySelector("pre code") as HTMLElement;
+    const before = exportCode.textContent;
+
+    const randomize = host.querySelector(
+      'button[aria-label="Randomize base colors"]',
+    ) as HTMLButtonElement;
+    expect(randomize).toBeTruthy();
+    randomize.click();
+    await flush();
+
+    expect(exportCode.textContent).not.toBe(before);
+    expect(exportCode.textContent).toContain("setTheme(");
+  });
+
+  it("harmony-from-primary fills roles from the primary seed", async () => {
+    const { host, mod } = await mountFresh();
+    // Set primary via its hex field, then apply harmony.
+    const primaryHex = Array.from(
+      host.querySelectorAll('input[aria-label$="base color (hex)"]'),
+    ).find(
+      (el) =>
+        (el as HTMLInputElement).getAttribute("aria-label") ===
+        "primary base color (hex)",
+    ) as HTMLInputElement;
+    expect(primaryHex).toBeTruthy();
+    primaryHex.value = "#3366ff";
+    primaryHex.dispatchEvent(new window.Event("input", { bubbles: true }));
+    await flush();
+
+    const exportCode = host.querySelector("pre code") as HTMLElement;
+    const before = exportCode.textContent;
+
+    const harmony = host.querySelector(
+      'button[aria-label="Fill roles from primary harmony"]',
+    ) as HTMLButtonElement;
+    expect(harmony).toBeTruthy();
+    harmony.click();
+    await flush();
+
+    expect(exportCode.textContent).not.toBe(before);
+
+    // Pure helper must produce a primary matching the seed and distinct others.
+    const filled = mod.harmonyFromPrimary("#3366ff");
+    expect(filled.primary.toLowerCase()).toBe("#3366ff");
+    expect(filled.secondary.toLowerCase()).not.toBe("#3366ff");
+    expect(filled.neutral.toLowerCase()).not.toBe("#3366ff");
+  });
+
+  it("export snippet embeds the editable theme name", async () => {
+    const { host, mod } = await mountFresh();
+    const nameInput = host.querySelector(
+      'input[aria-label="Theme name"]',
+    ) as HTMLInputElement;
+    expect(nameInput).toBeTruthy();
+    nameInput.value = "acme";
+    nameInput.dispatchEvent(new window.Event("input", { bubbles: true }));
+    await flush();
+
+    const exportCode = host.querySelector("pre code") as HTMLElement;
+    expect(exportCode.textContent).toContain('setTheme("acme"');
+    expect(mod.buildExportSnippet("acme", '{"x":1}')).toBe(
+      'setTheme("acme", {"x":1})',
+    );
+  });
+
+  it("deriveDarkTheme reverses ramps and remaps base tones", async () => {
+    vi.resetModules();
+    const mod = await import("../docs/demos/theme/ThemeBuilder.ts");
+    const light = generateTheme({ primary: "#4a7ff4", neutral: "#888888" });
+    const dark = mod.deriveDarkTheme(light);
+    expect(dark.direction).toBe("lighten");
+    expect(dark.colors!.primary).toEqual([...light.colors!.primary].reverse());
+    const lightBase = light.baseTones!.primary;
+    const len = light.colors!.primary.length;
+    expect(dark.baseTones!.primary).toBe(len - 1 - lightBase);
   });
 
   it("passes @domphy/doctor's static checks (AGENTS.md self-check rule)", async () => {

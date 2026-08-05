@@ -1,4 +1,4 @@
-﻿# Building Domphy apps with AI
+# Building Domphy apps with AI
 
 Domphy publishes two machine-readable context files so any AI assistant can generate correct Domphy code without guessing:
 
@@ -111,7 +111,7 @@ The full dump contains, in order:
 2. **Quickstart** — install, hello world, reactive state.
 3. **Core docs** — syntax, reactivity, lifecycle, SSR, portal, patterns, API reference.
 4. **Theme docs** — palette, size, tone, API.
-5. **Package docs** — query, router, table, virtual, form, dnd, palette, app, markdown, mermaid, and doctor (`@domphy/*`).
+5. **Package docs** — query, router, table, virtual, form, dnd, palette (now part of `@domphy/theme`), app, markdown, mermaid, and doctor (`@domphy/*`).
 6. **Every patch source file** — the authoritative contract for each patch in `@domphy/ui`. AI reads the actual TypeScript source, not a paraphrase.
 
 Pair it with [`@domphy/doctor`](./doctor/) so the AI can verify and fix its own output.

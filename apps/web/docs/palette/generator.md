@@ -12,7 +12,7 @@ answers "build one that scores well, from a single brand color, with no
 manual tuning."
 
 ```ts
-import { generateRamp } from "@domphy/palette"
+import { generateRamp } from "@domphy/theme"
 
 const primary = generateRamp("#4a7ff4", 18)
 // 18 hex strings, lightest first: ["#ffffff", …, "#000000"]

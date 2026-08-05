@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Palette, Ramp, Swatch } from "../src/index";
+import { Palette, Ramp, Swatch } from "../../src/index";
 
 const inRange = (value: number, min = 0, max = 1) => {
   expect(Number.isFinite(value)).toBe(true);

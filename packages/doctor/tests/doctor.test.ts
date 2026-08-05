@@ -326,7 +326,7 @@ describe("diagnose", () => {
     const d = diagnose({ div: "x", style: { color: "#0070f3" } });
     const issue = d.find((i) => i.rule === "raw-theme-value");
     expect(issue).toBeDefined();
-    // hint should mention themeColor() with LCH description from @domphy/palette
+    // hint should mention themeColor() with LCH description from @domphy/theme's palette engine
     expect(issue!.hint).toContain("themeColor(");
     expect(issue!.hint).toContain("LCH");
     expect(issue!.hint).toContain("primary"); // #0070f3 is a saturated blue

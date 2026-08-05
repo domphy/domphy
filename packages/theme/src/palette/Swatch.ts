@@ -1,4 +1,4 @@
-import { hexToRgb, labToLch, rgbToLab, toLightnessEAL } from "./utils";
+import { hexToRgb, labToLch, rgbToLab, toLightnessEAL } from "./utils.js";
 
 export class Swatch {
     readonly hex: string;

@@ -19,7 +19,7 @@ import {
   rootMeanSquare,
   scale,
   toLightnessEAL,
-} from "../src/index";
+} from "../../src/index";
 
 const allFinite = (values: number[]) => values.every(Number.isFinite);
 

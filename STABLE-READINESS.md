@@ -19,7 +19,6 @@ Enterprise gate for the first **official stable** public cut of every publishabl
 | `@domphy/theme` | 0.20.2 | CSS vars / design tokens (no React peer) | none | Dark-mode OS sync docs | Token export helpers | solid-role ramps distinct (warning≠primary, error≠danger). |
 | `@domphy/ui` | 0.20.12 | Radix UI / shadcn/ui | none | Storybook-class docs; SR manual smoke each release | — | Interactive-patch axe matrix (critical/serious) + keyboard contracts (dialog/menu/tabs/selectBox Enter-open/combobox); dialog focus trap/restore. |
 | `@domphy/floating` | 0.18.1 | Floating UI | none | — | Size middleware parity | Zero-dep vendored positioning. |
-| `@domphy/palette` | 0.19.0 | chroma.js / culori (design tools) | none | — | CLI export | Ramp metrics + generateRamp. |
 | `@domphy/doctor` | 0.18.16 | eslint-plugin-jsx-a11y / Stylelint | none | Optional htmlhint/stylelint peers docs | Custom rule marketplace | diagnose/validate/fix API + tests. |
 | `@domphy/query` | 0.18.1 | TanStack Query | none | Devtools adapter; createQueries helper | Persist plugin | Core + `/domphy` adapter; `throwOnError` throws on reactive reads. |
 | `@domphy/table` | 0.19.0 | TanStack Table | none | Column virtualization recipes | — | Core + `/domphy` adapter. |
@@ -72,9 +71,8 @@ node scripts/verify-publish.mjs --all
 #    update create-domphy versions via its generate:versions script
 #    commit + tag v1.0.0
 
-# 3. Publish (order respects peers: core → palette/theme/floating → ui → rest)
+# 3. Publish (order respects peers: core → theme/floating → ui → rest)
 pnpm publish:core
-pnpm publish:palette
 pnpm publish:theme
 pnpm publish:floating
 pnpm publish:ui

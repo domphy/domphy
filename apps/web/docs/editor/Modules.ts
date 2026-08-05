@@ -18,7 +18,6 @@ import * as domphyMarkdown from "@domphy/markdown";
 // node:fs/node:crypto (build-time renderer), which cannot bundle for the
 // browser. The playground only ever renders client-side anyway.
 import * as domphyMermaid from "@domphy/mermaid/client";
-import * as domphyPalette from "@domphy/palette";
 import * as domphyQuery from "@domphy/query";
 import * as domphyQueryDomphy from "@domphy/query/domphy";
 import * as domphyRouter from "@domphy/router";
@@ -66,7 +65,6 @@ const moduleMap: Record<string, unknown> = {
   "@domphy/markdown": domphyMarkdown,
   "@domphy/mermaid": domphyMermaid,
   "@domphy/mermaid/client": domphyMermaid,
-  "@domphy/palette": domphyPalette,
   "@domphy/virtual/domphy": domphyVirtual,
   "@domphy/three": domphyThree,
   "@tanstack/query-core": queryCore,

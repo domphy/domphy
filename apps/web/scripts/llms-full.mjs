@@ -154,7 +154,7 @@ await includeFile(
 );
 await includeDir(
   resolve(ROOT, "docs/palette"),
-  "Palette docs (`@domphy/palette`)",
+  "Palette docs (`@domphy/theme`)",
 );
 await includeDir(resolve(ROOT, "docs/app"), "App docs (`@domphy/app`)");
 await includeDir(

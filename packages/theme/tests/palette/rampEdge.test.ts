@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Ramp } from "../src/index";
+import { Ramp } from "../../src/index";
 
 // Edge cases for the n<2 / n<3 early returns and a deliberately non-monotone
 // ramp. Values are characterization captures of the current implementation.

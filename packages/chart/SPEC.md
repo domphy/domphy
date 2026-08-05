@@ -903,7 +903,7 @@ ChartOption
   dep:  @domphy/floating  (tooltip positioning)
   dep:  @luma.gl/core | webgl | engine | shadertools  (WebGL series)
   — NO shapemetry
-  — NO chromametry (theme ramps live in @domphy/theme / @domphy/palette)
+  — NO chromametry (theme ramps live in @domphy/theme)
   — NO ECharts runtime
   — NO D3
 ```

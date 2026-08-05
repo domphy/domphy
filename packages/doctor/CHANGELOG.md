@@ -1,5 +1,9 @@
 # @domphy/doctor
 
+## 0.19.1
+
+- `@domphy/palette` dependency dropped — the palette package was folded into `@domphy/theme`; the `raw-theme-value` chromametry helpers (`cssRgbToRgb`/`hexToRgb`/`rgbToLab`/`labToLch`) are now imported from there.
+
 ## 0.18.15
 
 - `htmlhint`/`stylelint` moved from hard `dependencies` to optional `peerDependencies` (kept as devDependencies for the repo's own tests) — `auditOutput` already imports them lazily and silently returns `[]` when absent, so installing the CLI no longer drags in stylelint unless Layer 4 is actually used. Matches the long-documented "optional peer deps" contract.

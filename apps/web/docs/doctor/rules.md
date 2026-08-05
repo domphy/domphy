@@ -216,7 +216,7 @@ import { themeColor } from "@domphy/theme"
 { svg: null, style: { fill: "currentColor" } }
 ```
 
-**Hint quality:** For hex/rgb values the diagnostic hint includes a perceptual suggestion using CIELAB/LCH chromametry (via `@domphy/palette`). For example, a diagnostic on `color: "#0070f3"` produces:
+**Hint quality:** For hex/rgb values the diagnostic hint includes a perceptual suggestion using CIELAB/LCH chromametry (via `@domphy/theme`). For example, a diagnostic on `color: "#0070f3"` produces:
 
 ```
 → Prefer a theme token — (l) => themeColor(l, "base", "primary")

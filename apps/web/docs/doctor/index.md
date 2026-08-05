@@ -71,7 +71,7 @@ interface Diagnostic {
 | Rule | Severity | Catches |
 | --- | --- | --- |
 | `inline-typography` | warning | `fontSize` / `lineHeight` / `fontWeight` / `letterSpacing` / `fontFamily` / `textDecoration` literals in `style` — use a typography patch |
-| `raw-theme-value` | info | a literal hex/rgb/hsl color **or a CSS named color** (`"red"`, `"white"`, `"black"`, …) in a color style prop (`color`, `background`, `border`, `fill`, …). For hex/rgb values the hint uses **`@domphy/palette` chromametry** (CIELAB→LCH) to suggest the nearest `themeColor()` call with perceptual coordinates |
+| `raw-theme-value` | info | a literal hex/rgb/hsl color **or a CSS named color** (`"red"`, `"white"`, `"black"`, …) in a color style prop (`color`, `background`, `border`, `fill`, …). For hex/rgb values the hint uses **`@domphy/theme` chromametry** (CIELAB→LCH) to suggest the nearest `themeColor()` call with perceptual coordinates |
 | `raw-spacing-value` | info | a literal `rem`/`em`/`px` value in a layout spacing prop (`padding`, `paddingBlock`, `paddingInline`, `margin`, `marginBlock`, `marginInline`, `gap`, …) — suggests `themeSpacing(n)` for consistent theme density |
 | `low-opacity` | warning / info | `style.opacity` < 0.6 on a control is too dim for interactive elements to be discoverable; downgraded to info if a hover-restore pattern (`&:hover: { opacity: '1' }`) is detected |
 | `tone-background-inherit` | warning | `style.backgroundColor` resolves to a fixed shifted tone instead of `"inherit"` — use `dataTone` to shift the surface context, not `backgroundColor` directly |

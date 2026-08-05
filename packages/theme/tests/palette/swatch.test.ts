@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { Swatch, toLightnessEAL } from "../src/index";
+import { Swatch, toLightnessEAL } from "../../src/index";
 
 describe("Swatch known values", () => {
   const swatch = new Swatch("#3b82f6");

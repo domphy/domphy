@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calcDeltaE2000, hexToRgb, rgbToLab } from "../src/index";
+import { calcDeltaE2000, hexToRgb, rgbToLab } from "../../src/index";
 
 const lab = (hex: string) => rgbToLab(hexToRgb(hex));
 

@@ -15,6 +15,18 @@ Audit deferral-closure wave: 30 actionable fixes + 15 dependency migrations acro
 
 ---
 
+## `@domphy/palette` folded into `@domphy/theme` — Unreleased
+
+The standalone `@domphy/palette` package is removed from the monorepo; its source now lives in `packages/theme/src/palette/` and its full public API is re-exported as plain named exports from `@domphy/theme`'s existing main entry — no new subpath export. `import { generateRamp, Ramp, Palette, Swatch, isValidHex, normalizeHex, … } from "@domphy/theme"`.
+
+### `@domphy/theme` [0.22.0]
+- Absorbed `@domphy/palette`: `Ramp`/`Palette`/`Swatch` classes, `generateRamp`, `isValidHex`/`normalizeHex`, and the color-space utilities (`hexToRgb`/`rgbToHex`, `rgbToLab`/`labToRgb`, `rgbToOklab`/`oklabToRgb`, `labToLch`/`lchToLab`, `toLightnessEAL`/`fromLightnessEAL`, `calcDeltaE2000`, `cssRgbToRgb`, `contrastRatio`, `mix`, `scale`, `createMonotone`, `calcStatistics`/`rootMeanSquare`/`calcScore`) are now named exports of the main entry. The `@domphy/palette` dependency is gone.
+
+### `@domphy/doctor` [0.19.1]
+- `@domphy/palette` dependency dropped — the `raw-theme-value` hint's CIELAB/LCH chromametry (`cssRgbToRgb`/`hexToRgb`/`rgbToLab`/`labToLch`) is now imported from `@domphy/theme`.
+
+---
+
 ## Production-readiness pass (all packages) — 2026-07-30
 
 Repo-wide audit and hardening: every package was reviewed top-down (blocks → core) for correctness, reused-node lifecycle violations, error handling, security, and test coverage, then fixed with regression tests. Highlights per package:

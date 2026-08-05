@@ -1,5 +1,5 @@
-import { Swatch } from "./Swatch";
-import { calcDeltaE2000, calcScore, createMonotone } from "./utils";
+import { Swatch } from "./Swatch.js";
+import { calcDeltaE2000, calcScore, createMonotone } from "./utils.js";
 
 export type ContrastValue = {
     efficiency: number;

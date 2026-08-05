@@ -19,7 +19,7 @@ Domphy's design tokens split into two independent, formula-driven axes:
 
 | Axis | Package | Governs | Section |
 |---|---|---|---|
-| **Color** | `@domphy/palette` | 18-step tone ramps per semantic color | §2–§4 |
+| **Color** | `@domphy/theme` (palette engine) | 18-step tone ramps per semantic color | §2–§4 |
 | **Space** | `@domphy/theme` | spacing, density, size (typography + control geometry) | §5 |
 
 Both axes share the same design philosophy: pick a small number of
@@ -28,7 +28,7 @@ validate the result against a measurable target rather than eyeballing it.
 
 ## 2. Color axis: the evaluation framework
 
-Domphy's color science lives in `@domphy/palette`, a port of
+Domphy's color science lives in `@domphy/theme`'s palette engine, a port of
 [chromametry](https://github.com/chromametry/chromametry) — a published,
 open-source, peer-citable framework:
 
@@ -47,7 +47,7 @@ SCORE = 100 · [(η+ε)(𝓛+ε)(S_C+ε)(𝓗+ε)(U+ε)]^(1/5)     (ε = 1e-6, n
 ```
 
 (ε is added to *each* metric before the product — not once after — matching both
-`calcScore` in `packages/palette/src/utils.ts` and the chromametry paper's own
+`calcScore` in `packages/theme/src/palette/utils.ts` and the chromametry paper's own
 `SCORE = 100·[∏ₖ(Mₖ+ε)]^(1/5)`. For the tiny ε=1e-6 used here the two forms are
 numerically indistinguishable in practice, but only the per-term form is what the
 code and paper actually compute.)
@@ -93,7 +93,7 @@ saturated greens — so consumers should treat 9 as the typical span, not a
 worst-case guarantee. What *does* hold for 100% of probed ramps is strict
 luminance monotonicity along the ramp, the property the tone system actually
 relies on (pinned by the monotonicity test in
-`packages/palette/tests/generator.test.ts`); the built-in themes' K = 9
+`packages/theme/tests/palette/generator.test.ts`); the built-in themes' K = 9
 contrast contract is pinned by `packages/theme/tests/contrast.test.ts`.
 
 Efficiency is then the gap between the *observed* density `D = K/(N-1)` and
@@ -127,7 +127,7 @@ f_BY(h) = 0.1644 |sin((h - 90°)/2)| + 0.0603
 f_R(h)  = 0.1307 |cos(h)| + 0.0060    if h ∈ [0°,90°] ∪ [270°,360°], else 0
 ```
 
-`toLightnessEAL`/`fromLightnessEAL` in `packages/palette/src/utils.ts`
+`toLightnessEAL`/`fromLightnessEAL` in `packages/theme/src/palette/utils.ts`
 implement this exactly. A ramp is scored by fitting `L_EAL` against step
 index with ordinary least squares and normalizing the RMS residual by the
 fitted line's own range — 1.0 means perfectly linear perceived lightness,
@@ -144,7 +144,7 @@ agree at the seam — a `C¹` discontinuity that shows up as a visible chroma
 fit with a single **monotone cubic Hermite spline**
 (Fritsch & Carlson, 1980) through three anchors — start, peak, end — which
 guarantees `C¹` continuity and no overshoot (Runge's phenomenon) by
-construction. `createMonotone` in `packages/palette/src/utils.ts` is this
+construction. `createMonotone` in `packages/theme/src/palette/utils.ts` is this
 spline; it's also the same interpolator the generator (§3) uses for the `a`,
 `b` Oklab channels.
 
@@ -158,13 +158,13 @@ measures the coefficient of variation of consecutive **CIEDE2000** steps
 Euclidean CIELAB distance is not perceptually uniform, especially in blues),
 mapped to `(0,1]` via `U = 1/(1+CV)`.
 
-Both are implemented as getters on `Ramp` in `packages/palette/src/Ramp.ts` —
+Both are implemented as getters on `Ramp` in `packages/theme/src/palette/Ramp.ts` —
 `ramp.metrics` returns all five, `ramp.score` the composite.
 
 ## 3. Color axis: the generator (`generateRamp`)
 
 The evaluation framework (§2) answers "is this ramp good?" — `generateRamp`
-(`packages/palette/src/Generator.ts`) answers "build one that scores well,
+(`packages/theme/src/palette/Generator.ts`) answers "build one that scores well,
 from a single brand color, with no manual tuning."
 
 ### 3.1 Why a rational warp
@@ -213,7 +213,7 @@ Q = 0.685
 achieving ≈90.6 average `SCORE` (of 100), ≈95.9% coverage, and ≈88.5% exact
 `K = K_ideal` match across the 600-color validation set — i.e. for the vast
 majority of arbitrary brand colors, the generated 18-step ramp needs no
-manual accessibility pass at all. `packages/palette/tests/generator.test.ts`
+manual accessibility pass at all. `packages/theme/tests/palette/generator.test.ts`
 re-validates this end-to-end (generate → score with `Ramp` → assert `score >
 75` and `contrastEfficiency > 0.7`) for five colors spanning the hard hue
 regions, so a future change to either the generator or the evaluator that
@@ -251,7 +251,7 @@ Output is ordered light-to-dark (`ramp[0]` ≈ white, `ramp[N-1]` ≈ black),
 matching `ThemeInput.colors[name]`'s convention directly:
 
 ```ts
-import { generateRamp } from "@domphy/palette"
+import { generateRamp } from "@domphy/theme"
 const primary = generateRamp("#4a7ff4", 18)   // 18 hex strings, ready to assign
 ```
 
@@ -287,7 +287,7 @@ curve is shaped to hit. §2's evaluation framework and §3's generator are two
 halves of one falsifiable claim: give it any brand color, and the resulting
 18-step ramp will land at or near the §2.1 ideal span — measured `K` = 9 for
 17/30 probed hues, 10–11 for the most saturated ones (§2.1). That claim is
-testable (`packages/palette/tests/generator.test.ts` pins the span bound and
+testable (`packages/theme/tests/palette/generator.test.ts` pins the span bound and
 strict luminance monotonicity, `packages/theme/tests/contrast.test.ts` pins
 K = 9 for the built-in themes) and re-derivable from first principles (§2.1's
 `λ ≈ 0.501` is arithmetic, not a magic number).
