@@ -82,3 +82,4 @@ smoke/.tarballs/
 smoke/fixtures/*/node_modules/
 smoke/fixtures/*/package-lock.json
 smoke/fixtures/*/dist/
+bench-krausest/dist/
