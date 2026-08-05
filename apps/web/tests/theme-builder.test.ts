@@ -8,7 +8,7 @@ function flush(): Promise<void> {
 }
 
 // Each import gets a fresh copy of the module's top-level state (baseColors,
-// activeTab, ...), since the demo isn't designed to be mounted twice in one
+// themeName, ...), since the demo isn't designed to be mounted twice in one
 // process — force a fresh module instance per test via resetModules().
 async function mountFresh() {
   vi.resetModules();
@@ -51,9 +51,11 @@ describe("ThemeBuilder demo", { timeout: 60_000 }, () => {
     expect(picker).toBeTruthy();
 
     const exportCode = host.querySelector("pre code") as HTMLElement;
-    const hexMirror = picker
-      .closest("div")
-      ?.querySelector("code") as HTMLElement;
+    // Each color field pairs the native picker with a hex text input bound
+    // to the same state.
+    const hexInput = picker
+      .closest("label")
+      ?.querySelector('input[type="text"]') as HTMLInputElement;
     const before = exportCode.textContent;
 
     picker.value = "#00ff00";
@@ -64,64 +66,51 @@ describe("ThemeBuilder demo", { timeout: 60_000 }, () => {
     // 18-step ramp (it's a WCAG-optimized interpolation, not an identity
     // passthrough) — assert on the raw-input mirror instead, and that the
     // export panel (which reflects the regenerated theme) actually changed.
-    expect(hexMirror.textContent).toBe("#00ff00");
+    expect(hexInput.value).toBe("#00ff00");
     expect(exportCode.textContent).not.toBe(before);
   });
 
-  it("switching tabs shows the size/density fields instead of color pickers", async () => {
+  it("renders the size & density disclosure with one field per scale step", async () => {
     const { host } = await mountFresh();
-    const buttons = Array.from(host.querySelectorAll("aside button"));
-    const sizeTabButton = buttons.find(
-      (b) => b.textContent === "Size & Density",
-    ) as HTMLButtonElement;
-    expect(sizeTabButton).toBeTruthy();
+    const disclosure = Array.from(
+      host.querySelectorAll("aside details summary"),
+    ).find((s) => s.textContent === "Size & density");
+    expect(disclosure).toBeTruthy();
 
-    sizeTabButton.dispatchEvent(
-      new window.MouseEvent("click", { bubbles: true }),
-    );
-    await flush();
-
+    // The disclosure content is always in the DOM (closed = hidden), so the
+    // fields are queryable without opening it: 8 font sizes + 5 densities.
     const numberInputs = host.querySelectorAll('aside input[type="number"]');
     expect(numberInputs.length).toBe(5); // one per density step
   });
 
   it("switching the preview theme selector changes the gallery's dataTheme", async () => {
     const { host } = await mountFresh();
-    const select = host.querySelector("aside select") as HTMLSelectElement;
-    const galleryRoot = host.querySelector(
-      "[data-theme]:not(aside [data-theme])",
-    ) as HTMLElement | null;
-    const gallery = Array.from(host.querySelectorAll("[data-theme]")).find(
-      (el) => el !== host.querySelector("aside")?.closest("[data-theme]"),
-    ) as HTMLElement | undefined;
+    const select = host.querySelector(
+      'select[aria-label="Preview theme"]',
+    ) as HTMLSelectElement;
+    // The preview root is the only dataTheme-scoped subtree; the sidebar
+    // follows the page theme.
+    const gallery = host.querySelector("[data-theme]") as HTMLElement | null;
 
     expect(select).toBeTruthy();
+    expect(gallery).toBeTruthy();
     // Default is the generated "brand" theme, not "light".
-    const initialTheme = (gallery ?? galleryRoot)?.getAttribute("data-theme");
-    expect(initialTheme).not.toBe("light");
+    expect(gallery?.getAttribute("data-theme")).not.toBe("light");
 
     select.value = "Built-in light";
     select.dispatchEvent(new window.Event("input", { bubbles: true }));
     await flush();
 
-    const afterTheme = (gallery ?? galleryRoot)?.getAttribute("data-theme");
-    expect(afterTheme).toBe("light");
+    expect(gallery?.getAttribute("data-theme")).toBe("light");
   });
 
   it("changing a density field regenerates without throwing", async () => {
     const { host } = await mountFresh();
-    const buttons = Array.from(host.querySelectorAll("aside button"));
-    const sizeTabButton = buttons.find(
-      (b) => b.textContent === "Size & Density",
-    ) as HTMLButtonElement;
-    sizeTabButton.dispatchEvent(
-      new window.MouseEvent("click", { bubbles: true }),
-    );
-    await flush();
-
     const densityInput = host.querySelector(
       'aside input[type="number"]',
     ) as HTMLInputElement;
+    expect(densityInput).toBeTruthy();
+
     densityInput.value = "1.25";
     densityInput.dispatchEvent(new window.Event("input", { bubbles: true }));
     await flush();

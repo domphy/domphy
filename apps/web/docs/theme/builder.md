@@ -1,7 +1,10 @@
 ---
 title: "Theme Builder"
 description: "Generate a complete accessible Domphy theme from one base color per role — live, with a real component gallery."
+sidebar: false
 aside: false
+layout: page
+wide: true
 ---
 
 <script setup lang="ts">
@@ -9,27 +12,9 @@ aside: false
 import ThemeBuilder from "../demos/theme/ThemeBuilder.js"
 </script>
 
-# Theme Builder
+<DomphyPreview :element="ThemeBuilder" bare />
 
-A sidebar configurator + a live gallery of real `@domphy/ui` patches — judge
-a generated theme against actual components, not just color swatches.
-
-- **Colors tab** — one base color per semantic role. The 18-step ramp for
-  each role, its WCAG-checked contrast span, and the `baseTones` index are
-  all generated live by [`generateTheme`](../palette/generator)
-  (`@domphy/theme` + `@domphy/palette`). No manual tuning, no separate
-  accessibility pass.
-- **Size & Density tab** — the 8-step `fontSizes` scale and the 5-step
-  `densities` scale, the same arrays `themeSize()`/`themeDensity()` read.
-- **Preview theme switcher** — flip the gallery between your generated theme
-  and the built-in `light` theme instantly, via the same `dataTheme`
-  mechanism any Domphy app uses for light/dark switching.
-- **Export panel** — the exact `ThemeInput` JSON, ready for
-  `setTheme(name, json)`.
-
-<DomphyPreview :element="ThemeBuilder"/>
-
-## How it works
+::: details How it works
 
 Every keystroke in the sidebar runs the exact pipeline described in
 [**`DESIGN.md`**](https://github.com/domphy/domphy/blob/main/DESIGN.md):
@@ -45,21 +30,13 @@ Every keystroke in the sidebar runs the exact pipeline described in
    `themeSize()`/`themeDensity()` consume directly.
 3. `setTheme(name, theme)` + `themeApply()` register it as a live theme,
    scoped to its own theme name so it never touches the page's own
-   light/dark theme — the swatches and the entire component gallery below
-   update through real CSS custom properties.
+   light/dark theme — the swatches and the entire component gallery update
+   through real CSS custom properties.
 
-The **Export** panel is the exact `ThemeInput` object as JSON —
-copy-pasteable straight into `setTheme("brand", <paste>)`.
+The **Copy ThemeInput JSON** button copies the exact `ThemeInput` object,
+wrapped in the `setTheme("brand", …)` call you'd paste into your app.
 
-## Source
+Read next: [`generateRamp`](../palette/generator) · [Palette](./palette) ·
+[`DESIGN.md`](https://github.com/domphy/domphy/blob/main/DESIGN.md)
 
-<<< @/docs/demos/theme/ThemeBuilder.ts
-
-## What to read next
-
-1. [`generateRamp`](../palette/generator) — the generator API on its own
-2. [Palette](./palette) — the built-in `light` theme's ramps, and how to
-   register a custom one by hand
-3. [`DESIGN.md`](https://github.com/domphy/domphy/blob/main/DESIGN.md) — the
-   full math: the five quality metrics, the warp/unwarp derivation, and how
-   it all ties into the context-aware tone/spacing/size model
+:::

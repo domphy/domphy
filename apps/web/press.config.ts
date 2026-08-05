@@ -35,6 +35,7 @@ export const config = defineConfig({
       'Released under the MIT License. Made by <a href="https://khanhhuu.com" target="_blank" rel="noopener noreferrer">Nguyen Huu Khanh</a>.',
     nav: [
       { text: "Docs", link: "/docs/" },
+      { text: "Theme Builder", link: "/docs/theme/builder" },
       {
         text: "Packages",
         items: [
