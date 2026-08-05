@@ -122,6 +122,12 @@ export class StyleList {
 
     let rule = this.items.find((r) => r.selectorText === parentSelector);
     if (!rule) {
+      // Same empty guard as addCSS: with no flat properties and no existing
+      // rule there is nothing to reconcile. Creating the rule anyway inserted
+      // an empty `.x {}` into the live CSSOM — one per patched node per
+      // reconciliation pass (8,000 for a single 1,000-row swap) — each later
+      // scanned out of the sheet by StyleRule.remove() at dispose time.
+      if (Object.keys(basic).length === 0) return;
       rule = new StyleRule(parentSelector, this.parent);
       this.items.push(rule);
     }

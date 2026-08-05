@@ -1,8 +1,8 @@
 import { SvgTags, VoidTags } from "../constants.js";
 import { __DEV__ } from "../dev.js";
 import {
+  cloneDescriptor,
   collectCSSRules,
-  deepClone,
   ensureDomStyle,
   getTagName,
   mergePartial,
@@ -74,36 +74,48 @@ export class ElementNode {
   _metadata?: Record<string, any> = {};
   key?: string | number | null = null;
   nodeId: string;
+  // The RAW descriptor object this node was last constructed/patched from
+  // (before cloning), retained for exactly one purpose: patch()'s
+  // reference-equality fast path. Never read otherwise.
+  _descriptor: DomphyElement | null = null;
 
   constructor(
     domphyElement: DomphyElement,
     _parent: ElementNode | null = null,
     index = 0,
   ) {
-    domphyElement = deepClone(domphyElement);
     validate(domphyElement);
-    domphyElement.style = domphyElement.style || {};
+    this._descriptor = domphyElement;
     this.parent = _parent;
     this.tagName = getTagName(domphyElement) as TagName;
-    domphyElement = mergePartial(domphyElement) as DomphyElement;
+    // Clone for the node's own retained state, passing the children content
+    // through by reference — each child node clones its own descriptor (see
+    // cloneDescriptor), so deep-cloning the subtree here too would clone
+    // every descendant once per ancestor.
+    let element = cloneDescriptor(domphyElement, this.tagName);
+    element.style = element.style || {};
+    element = mergePartial(element) as DomphyElement;
 
-    this.key = (domphyElement as any)._key ?? null;
-    this._context = domphyElement._context || {};
-    this._metadata = domphyElement._metadata || {};
+    this.key = (element as any)._key ?? null;
+    this._context = element._context || {};
+    this._metadata = element._metadata || {};
 
     const tempPath = `${this.parent?.nodeId}.${index}`;
-    const str = JSON.stringify(domphyElement.style || {}, (_k, v) =>
-      typeof v === "function" ? tempPath : v,
-    );
+    // Only stringify the style block when one actually has properties — the
+    // JSON.stringify("{}") was pure per-node overhead on style-less nodes.
+    const str = Object.keys(element.style!).length
+      ? JSON.stringify(element.style, (_k, v) =>
+          typeof v === "function" ? tempPath : v,
+        )
+      : "";
     this.nodeId = hashString(tempPath + str);
 
     this.attributes!.addClass(`${this.tagName}_${this.nodeId}`);
-    if (domphyElement._onSchedule)
-      domphyElement._onSchedule(this, domphyElement);
+    if (element._onSchedule) element._onSchedule(this, element);
 
-    this.merge(domphyElement);
+    this.merge(element);
 
-    const children = (domphyElement as any)[this.tagName];
+    const children = (element as any)[this.tagName];
 
     if (
       __DEV__ &&
@@ -237,6 +249,7 @@ export class ElementNode {
     this._events = null;
     this._context = {};
     this._metadata = {};
+    this._descriptor = null;
     this.parent = null;
   }
   merge(part: PartialElement) {
@@ -318,7 +331,22 @@ export class ElementNode {
   // share structure; hooks already ran). Reactive content (a function child)
   // keeps its own listener and is left untouched.
   patch(rawElement: DomphyElement): void {
-    let element: any = deepClone(rawElement);
+    // Reference-equality fast path: re-patching with the EXACT same descriptor
+    // object is a no-op by construction — every attribute, event, style and
+    // child of this node already came from that object, and any reactive
+    // function inside it (children/attribute/style value) keeps its own state
+    // subscriptions and re-evaluates without a re-patch. This is what makes a
+    // list mutation that reuses memoized item descriptors (reorder/remove of
+    // siblings) O(changed) instead of re-rebuilding every surviving row.
+    //
+    // The one input pattern this deliberately does not observe: mutating a
+    // descriptor IN PLACE between renders and re-rendering the same object.
+    // Descriptors are one-way render snapshots — produce a fresh object (or
+    // use state) when the data changes; identity means "nothing changed".
+    if (rawElement === this._descriptor) return;
+    this._descriptor = rawElement;
+
+    let element: any = cloneDescriptor(rawElement, this.tagName);
     element.style = element.style || {};
     element = mergePartial(element);
 

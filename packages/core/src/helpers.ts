@@ -118,7 +118,7 @@ export function validate(
   for (let i = 0; i < keys.length; i++) {
     const key = keys[i];
     const val = element[key as keyof typeof element];
-    if (i === 0 && !HtmlTags.includes(key) && !asPartial) {
+    if (i === 0 && !HtmlTagSet.has(key) && !asPartial) {
       throw Error(`key ${key} is not valid HTML tag name`);
     } else if (
       key === "style" &&
@@ -395,10 +395,45 @@ export function toggleClass(element: PartialElement, className: string): void {
   }
 }
 
+// Set view of HtmlTags for O(1) membership checks — getTagName/validate run
+// per node per reconciliation pass, and HtmlTags.includes() was a linear scan
+// of the 138-entry array per key.
+const HtmlTagSet: Set<string> = new Set(HtmlTags);
+
 export function getTagName(element: DomphyElement): TagName | undefined {
-  return Object.keys(element).find((e) => HtmlTags.includes(e)) as
+  return Object.keys(element).find((e) => HtmlTagSet.has(e)) as
     | TagName
     | undefined;
+}
+
+// Clone an element descriptor for ElementNode construction/patch WITHOUT
+// deep-cloning the children content under the tag key. Children descriptors
+// are consumed by ElementList.update(), which hands each child element to a
+// child ElementNode constructor/patch that clones it again — deep-cloning the
+// whole subtree here would clone every descendant once per ancestor (O(depth)
+// clones per node). Everything the node itself RETAINS (attribute values,
+// style values, _context/_metadata, $ partials) is still deep-cloned, so
+// snapshot semantics against later caller mutation are unchanged for anything
+// the node actually keeps. Non-plain-object descriptors (class instances)
+// keep the old full deepClone behavior — deepClone passes those through by
+// reference, and the per-key loop below must not "upgrade" them to plain
+// objects.
+export function cloneDescriptor(
+  element: DomphyElement,
+  contentKey: string,
+): DomphyElement {
+  if (Object.getPrototypeOf(element) !== Object.prototype) {
+    return deepClone(element);
+  }
+  const seen = new WeakMap();
+  const clone: Record<string | symbol, any> = {};
+  for (const key of Reflect.ownKeys(element)) {
+    clone[key] =
+      key === contentKey
+        ? (element as any)[key]
+        : deepClone((element as any)[key], seen);
+  }
+  return clone as DomphyElement;
 }
 
 export function camelToKebab(str: string): string {

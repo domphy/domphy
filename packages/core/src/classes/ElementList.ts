@@ -156,6 +156,10 @@ export class ElementList {
 
     const oldSet = new Set<NodeItem>(oldItems);
     const claimed = new Set<NodeItem>();
+    // Set when any keyed reuse happened — gates the deferred minimal-move DOM
+    // placement pass at the end of update(). Lists without keyed matches keep
+    // the exact pre-existing behavior.
+    let keyedReused = false;
 
     // DEV-only footgun detection (warn-only — does NOT change reconciliation).
     // An unkeyed list that grows or shrinks may pair the wrong node with the
@@ -182,10 +186,17 @@ export class ElementList {
         const reused = keyed.get(key);
         if (reused instanceof ElementNode && reused.tagName === tag) {
           keyed.delete(key);
+          keyedReused = true;
           const cur = this.items.indexOf(reused);
           if (cur !== i && cur >= 0) {
-            const isPortal = !!reused._portal;
-            this.move(cur, i, isPortal ? false : updateDom, true);
+            // Logical order ONLY — DOM placement is deferred to the
+            // minimal-move pass after reconciliation (_placeKeyedDom).
+            // Moving the DOM eagerly here costs one insertBefore per shifted
+            // sibling (removing one row moved every following row), and each
+            // such move re-triggers style invalidation for the rest of the
+            // list (nth-of-type striping), turning O(1) data changes into
+            // O(n) DOM churn.
+            this.move(cur, i, false, true);
           }
           reused.parent = this.owner as any;
           reused.patch(input as DomphyElement);
@@ -245,6 +256,15 @@ export class ElementList {
     }
     keyed.forEach((node) => this.remove(node, updateDom, true));
 
+    // Deferred DOM placement for keyed reuse: the logical array is in the new
+    // order now, but reused nodes' DOM elements were left at their old
+    // positions. Apply the minimal set of DOM moves (LIS over old positions).
+    if (keyedReused && updateDom && this.owner.domElement) {
+      const oldPos = new Map<NodeItem, number>();
+      for (let i = 0; i < oldItems.length; i++) oldPos.set(oldItems[i], i);
+      this._placeKeyedDom(oldPos);
+    }
+
     // Warn (once per call-site) when an unkeyed list changes length — positional
     // reuse may pair the wrong DOM node with the wrong data slot (focus, scroll,
     // input value drift). A fixed-length unkeyed list never trips this.
@@ -264,6 +284,101 @@ export class ElementList {
     }
 
     if (!silent) this.owner._hooks?.Update?.(this.owner);
+  }
+
+  // Minimal-move DOM placement after a keyed reconciliation. `oldPos` maps
+  // each pre-update item to its old logical index. The nodes whose old
+  // positions form a longest increasing subsequence (LIS) are already in the
+  // correct relative DOM order and are left untouched; every other placeable
+  // node is re-inserted before the already-placed node that must follow it,
+  // walking right to left so the reference is always settled. A single row
+  // removal or a two-row swap therefore costs 0 and 2 insertBefores instead
+  // of O(n). Skipped entirely: imperative nodes (DOM managed by whoever
+  // inserted them), portals (no DOM slot under this owner), nodes whose async
+  // removal is in flight, and nodes with no DOM yet.
+  _placeKeyedDom(oldPos: Map<NodeItem, number>): void {
+    const dom = this.owner.domElement;
+    if (!dom) return;
+
+    // Old positions of placeable items in the NEW logical order (-1 = node
+    // inserted by this update — no old position, always (re)placed).
+    const seq: number[] = [];
+    const items = this.items;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (
+        item._imperative ||
+        (item instanceof ElementNode && item._beforeRemoveFired)
+      ) {
+        seq.push(-2); // excluded from placement AND from the LIS
+        continue;
+      }
+      if (item instanceof ElementNode && item._portal) {
+        seq.push(-2);
+        continue;
+      }
+      seq.push(oldPos.get(item) ?? -1);
+    }
+
+    // Patience LIS over the entries with a real old position; indices into
+    // `seq` that may stay put.
+    const stay = new Set<number>();
+    const lisPos: number[] = []; // seq indices participating in the LIS input
+    const values: number[] = [];
+    for (let k = 0; k < seq.length; k++) {
+      if (seq[k] >= 0) {
+        lisPos.push(k);
+        values.push(seq[k]);
+      }
+    }
+    if (values.length > 0) {
+      const tails: number[] = [];
+      const tailIdx: number[] = [];
+      const prev: number[] = new Array(values.length).fill(-1);
+      for (let j = 0; j < values.length; j++) {
+        let lo = 0;
+        let hi = tails.length;
+        while (lo < hi) {
+          const mid = (lo + hi) >> 1;
+          if (tails[mid] < values[j]) lo = mid + 1;
+          else hi = mid;
+        }
+        tails[lo] = values[j];
+        tailIdx[lo] = j;
+        if (lo > 0) prev[j] = tailIdx[lo - 1];
+      }
+      let j = tailIdx[tails.length - 1];
+      while (j !== undefined && j >= 0) {
+        stay.add(lisPos[j]);
+        j = prev[j];
+      }
+    }
+
+    let nextDom: Node | null = null;
+    for (let k = seq.length - 1; k >= 0; k--) {
+      if (seq[k] === -2) continue;
+      const item = items[k];
+      const nodes =
+        item instanceof ElementNode
+          ? item.domElement
+            ? [item.domElement]
+            : []
+          : item._allDomNodes();
+      if (nodes.length === 0) continue;
+      if (!stay.has(k)) {
+        // Place the (possibly multi-node) group directly before nextDom,
+        // preserving its internal order. The nextSibling check makes this a
+        // no-op when an insert() during reconciliation already landed the
+        // node in the right spot.
+        let ref: Node | null = nextDom;
+        for (let m = nodes.length - 1; m >= 0; m--) {
+          const el = nodes[m];
+          if (el.nextSibling !== ref) dom.insertBefore(el, ref);
+          ref = el;
+        }
+      }
+      nextDom = nodes[0];
+    }
   }
 
   insert(

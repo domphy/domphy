@@ -5,6 +5,11 @@ import { StyleProperty } from "./StyleProperty.js";
 export class StyleRule {
   selectorText: string;
   domRule: CSSRule | CSSMediaRule | CSSKeyframesRule | null = null;
+  // Hint: the index `domRule` had in its sheet's cssRules when render()
+  // inserted it. Any earlier insertRule/deleteRule shifts it, so remove()
+  // verifies identity at the hinted slot before trusting it and falls back
+  // to the identity scan otherwise. -1 = no hint (e.g. SSR-hydrated rules).
+  _domIndex = -1;
   styleList: StyleList | null;
   styleBlock: Record<string, StyleProperty> | null = {};
   parent: StyleRule | ElementNode | null;
@@ -82,15 +87,23 @@ export class StyleRule {
   }
 
   remove(): void {
-    if (this.domRule && this.domRule.parentStyleSheet) {
-      const sheet = this.domRule.parentStyleSheet;
+    const domRule = this.domRule;
+    const sheet = domRule?.parentStyleSheet;
+    if (domRule && sheet) {
       const rules = sheet.cssRules;
-      for (let i = 0; i < rules.length; i++) {
-        if (rules[i] === this.domRule) {
-          sheet.deleteRule(i);
-          break;
+      // Fast path: trust the insertion-index hint only after an identity
+      // check — earlier insertions/deletions shift every later rule's index.
+      let index = this._domIndex;
+      if (index < 0 || index >= rules.length || rules[index] !== domRule) {
+        index = -1;
+        for (let i = 0; i < rules.length; i++) {
+          if (rules[i] === domRule) {
+            index = i;
+            break;
+          }
         }
       }
+      if (index >= 0) sheet.deleteRule(index);
     }
     this._dispose();
   }
@@ -104,6 +117,7 @@ export class StyleRule {
       if (!this.selectorText.startsWith("@")) {
         const css = `${this.selectorText} { ${styleStr} }`;
         const index = domSheet.insertRule(css, domSheet.cssRules.length);
+        this._domIndex = index;
         const domRule = domSheet.cssRules[index];
         if (domRule && "selectorText" in domRule) {
           this.mount(domRule);
@@ -115,6 +129,7 @@ export class StyleRule {
           `${this.selectorText} {}`,
           domSheet.cssRules.length,
         );
+        this._domIndex = index;
         const domRule = domSheet.cssRules[index];
         if ("cssRules" in domRule) {
           this.mount(domRule as CSSGroupingRule);
@@ -126,6 +141,7 @@ export class StyleRule {
       ) {
         const css = this.cssText();
         const index = domSheet.insertRule(css, domSheet.cssRules.length);
+        this._domIndex = index;
         const domRule = domSheet.cssRules[index];
         this.mount(domRule);
       }
