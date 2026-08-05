@@ -1,0 +1,12 @@
+{
+  "name": "bench-krausest",
+  "version": "0.0.0",
+  "private": true,
+  "description": "js-framework-benchmark (krausest) style performance implementation + local timing harness for @domphy/core. Not part of the pnpm workspace; reuses repo tooling via createRequire.",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "bench": "node harness/run.mjs",
+    "profile": "node harness/profile.mjs"
+  }
+}
