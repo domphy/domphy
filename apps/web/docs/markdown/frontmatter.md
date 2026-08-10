@@ -1,11 +1,11 @@
 ---
 title: "Frontmatter"
-description: "Parse YAML frontmatter from markdown documents with @domphy/markdown."
+description: "Parse YAML frontmatter from markdown documents with @domphy/press."
 ---
 
 # Frontmatter
 
-A markdown file can begin with a YAML block called **frontmatter** — metadata such as a page title, description, publication date, or any custom fields your app needs. `@domphy/markdown` strips the block before markdown parsing and returns the parsed values alongside the document body.
+A markdown file can begin with a YAML block called **frontmatter** — metadata such as a page title, description, publication date, or any custom fields your app needs. `@domphy/press` strips the block before markdown parsing and returns the parsed values alongside the document body.
 
 ## Format
 
@@ -38,7 +38,7 @@ A leading `---` with no matching closing fence is treated as a thematic break, n
 `splitFrontmatter(markdown)` is the lowest-level helper. It splits the YAML block from the rest of the content without doing any markdown parsing:
 
 ```ts
-import { splitFrontmatter } from "@domphy/markdown"
+import { splitFrontmatter } from "@domphy/press"
 
 const source = `---
 title: My Page
@@ -69,7 +69,7 @@ content      // "\n# Body starts here\n"
 `parseMarkdown` calls `splitFrontmatter` internally. When using `parseMarkdown` you do not need to call `splitFrontmatter` yourself:
 
 ```ts
-import { parseMarkdown } from "@domphy/markdown"
+import { parseMarkdown } from "@domphy/press"
 
 const { frontmatter, body, toc } = parseMarkdown(`---
 title: My Page
@@ -106,7 +106,7 @@ For projects with many content fields, a schema validator like [Zod](https://zod
 
 ```ts
 import { z } from "zod"
-import { parseMarkdown } from "@domphy/markdown"
+import { parseMarkdown } from "@domphy/press"
 
 const PageSchema = z.object({
   title:       z.string(),
@@ -129,7 +129,7 @@ A common pattern for documentation sites: parse all source files up front, extra
 
 ```ts
 import { ElementNode } from "@domphy/core"
-import { parseMarkdown } from "@domphy/markdown"
+import { parseMarkdown } from "@domphy/press"
 
 // Assume these are loaded from the file system at build time.
 const sources: Record<string, string> = {
@@ -165,7 +165,7 @@ When you build your own remark pipeline (via `walkMdast`), call `splitFrontmatte
 ```ts
 import { remark } from "remark"
 import remarkGfm from "remark-gfm"
-import { splitFrontmatter, walkMdast, createUniqueSlugger, defaultSlugify } from "@domphy/markdown"
+import { splitFrontmatter, walkMdast, createUniqueSlugger, defaultSlugify } from "@domphy/press"
 
 const processor = remark().use(remarkGfm)
 
@@ -205,7 +205,7 @@ Frontmatter must be a **YAML mapping** (key-value pairs) at the top level. A top
 The return type of `splitFrontmatter` is exported:
 
 ```ts
-import type { FrontmatterSplit } from "@domphy/markdown"
+import type { FrontmatterSplit } from "@domphy/press"
 
 function stripHeaders(files: string[]): FrontmatterSplit[] {
   return files.map((source) => splitFrontmatter(source))

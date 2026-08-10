@@ -1,11 +1,11 @@
 ---
 title: "@domphy/press"
-description: "Static documentation site framework for Domphy — built on @domphy/app + @domphy/markdown, VitePress-compatible."
+description: "Static documentation site framework for Domphy — built on @domphy/app with the Markdown pipeline built in, VitePress-compatible."
 ---
 
 # @domphy/press
 
-A VitePress-baseline static documentation site framework built on `@domphy/app` and `@domphy/markdown`. Features the same Markdown authoring experience as VitePress plus Domphy-native CSS-in-JS theming — no separate stylesheet to maintain.
+A VitePress-baseline static documentation site framework built on `@domphy/app`, with the Markdown pipeline (`parseMarkdown`/`createMarkdown`) built in. Features the same Markdown authoring experience as VitePress plus Domphy-native CSS-in-JS theming — no separate stylesheet to maintain.
 
 ## Features
 

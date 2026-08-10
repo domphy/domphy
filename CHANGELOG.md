@@ -15,6 +15,17 @@ Audit deferral-closure wave: 30 actionable fixes + 15 dependency migrations acro
 
 ---
 
+## `@domphy/markdown` folded into `@domphy/press`, `@domphy/mermaid` folded into the docs site — Unreleased
+
+The standalone `@domphy/markdown` package is removed from the monorepo; its source now lives in `packages/press/src/markdown/` and its full public API is re-exported as plain named exports from `@domphy/press`'s existing main entry — no new subpath export, and deliberately NOT added to the `/browser` subpath (the remark pipeline stays build-side). `import { parseMarkdown, markdownToDomphy, createMarkdown, walkMdast, splitFrontmatter, transformOutsideCodeBlocks, createUniqueSlugger, defaultSlugify, … } from "@domphy/press"`.
+
+The standalone `@domphy/mermaid` package is also removed from the monorepo. Its only consumer was the docs site (`domphy-web`, not published to npm), so its source moved there as an internal module (`apps/web/mermaid/`) — nothing is re-exported from any public entry. The docs site's own Mermaid rendering is unaffected (client-side via the islands runtime + CDN).
+
+### `@domphy/press` [0.23.0]
+- Absorbed `@domphy/markdown`: `parseMarkdown`, `markdownToDomphy`, `createMarkdown`, `walkMdast`, `splitFrontmatter`, `transformOutsideCodeBlocks`, `createUniqueSlugger`, `defaultSlugify` and the markdown types (`ParseOptions`, `ParseResult`, `CreateMarkdownOptions`, `MarkdownInstance`, `RemarkPlugin`, `AnchorSlugify`, `Highlight`, `FrontmatterSplit`, `MdastWalkOptions`, `WalkHelper`) are now named exports of the main entry (`TocEntry` was already exported by press and is shared). The `@domphy/markdown` peer dependency is gone; `yaml` (frontmatter parsing) is now a direct dependency.
+
+---
+
 ## `@domphy/palette` folded into `@domphy/theme` — Unreleased
 
 The standalone `@domphy/palette` package is removed from the monorepo; its source now lives in `packages/theme/src/palette/` and its full public API is re-exported as plain named exports from `@domphy/theme`'s existing main entry — no new subpath export. `import { generateRamp, Ramp, Palette, Swatch, isValidHex, normalizeHex, … } from "@domphy/theme"`.

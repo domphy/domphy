@@ -25,7 +25,8 @@
       "!packages/virtual/src",
       "!packages/form/src",
       "!packages/floating/src",
-      "!packages/palette/src"
+      "!packages/palette/src",
+      "!packages/pages"
     ]
   },
   "formatter": {

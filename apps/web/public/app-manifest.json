@@ -410,14 +410,6 @@
   {
     "name": "App",
     "kind": "block",
-    "file": "apps/web/docs/demos/mermaid/basic.ts",
-    "signature": "App: DomphyElement<\"div\">",
-    "jsdoc": "",
-    "exportKind": "default"
-  },
-  {
-    "name": "App",
-    "kind": "block",
     "file": "apps/web/docs/demos/palette/basic.ts",
     "signature": "App: DomphyElement<\"div\">",
     "jsdoc": "",

@@ -82,16 +82,14 @@ List reconciliation REUSES DOM nodes (by `_key`, or by position for unkeyed list
 | `@domphy/app` | Next.js App Router-style framework: routes/layouts/loaders(SWR)/metadata/middleware/parallel+intercepting routes/**lazy code-split routes** (`lazy: () => import(...)`)/SSR+streaming/API routes/**i18n routing** (`createI18nMiddleware`+`getLocale`)/**cookies** (`cookies(headers?)`); also `optimizedImage`, `script`, `createMemoryHistory`/`createBrowserHistory`, `buildHref`, `DataCache`; SSR/streaming stamps `configure({cspNonce})` on injected inline `<style>`/`<script>` |
 | `@domphy/doctor` | static analyzer — `diagnose(element, opts?)` / `validate(element, opts?)` flag non-idiomatic trees; `format(diagnostics)` formats a `Diagnostic[]`; `fix(element)` applies lossless autofixes. Options: `only`/`exclude` (rule filtering), `rules` (custom rules), `runReactive` (default true). Inline suppression: `_doctorDisable: true | "rule-id" | string[]` on any element. CLI `domphy-doctor <path...>` scans files on disk (flags: `--only`/`--exclude`/`--no-reactive`/`--no-output`/`--format text\|json`; reports per-file import failures and exits 1); `auditOutput(node, opts?)` is an optional Layer 4 that lints the real generated HTML/CSS via `htmlhint`/`stylelint` (optional peer deps). Depends on `@domphy/theme` (single source for tone grammar/aliases). **Run it on your output and fix the report.** |
 | `@domphy/floating` | anchor positioning (vendored floating-ui, zero-dep; pinned core@1.7.5/dom@1.7.6 with a deviation list — see `packages/floating/UPSTREAM.md`) — powers `@domphy/ui` overlays, `@domphy/chart` tooltips, and `@domphy/editor` bubble menus; public surface: `computePosition`/`autoUpdate` + middleware (`offset`/`flip`/`shift`/`arrow`/`size`/`inline`/…), `VirtualElement` for anchoring to non-element rects |
-| `@domphy/markdown` | parse Markdown → Domphy element trees for SSR/SSG (`parseMarkdown`, `createMarkdown`, `walkMdast`, `splitFrontmatter`, `transformOutsideCodeBlocks`; remark/unified under the hood); powers this docs site |
-| `@domphy/mermaid` | render Mermaid diagrams (build-time `renderMermaidInTree` SVG + client `mermaidClient()` patch); browser-safe subpath `@domphy/mermaid/client` (main entry statically imports node: builtins — use the subpath in Vite/esbuild browser bundles) |
 | `@domphy/chart` | WebGL + SVG chart engine — `chart(option)` patch renders line/bar/pie/scatter/radar/heatmap/candlestick/etc. series (luma.gl WebGL) with SVG overlays for axes/legend/tooltip/layout series; `ChartEngine` for headless/advanced use; scale creators (`createLinearScale`, `createOrdinalScale`, `createTimeScale`, `createLogScale`), dataset transforms (`applyTransforms`, `resolveDataset`), color utilities (`seriesColor` — theme-aware var-ref default, recommended, `familyCss`, `cssColor`, `createColorResolver`, `hexToRgba`, `seriesHex`/`familyHex` — static light-theme design-time helpers, `seriesPaletteFamily`, `colorFromVisualMap`); theme-aware (colors follow `[data-theme]` at paint time + re-render on flips: SVG layers carry `var(--…)` refs, WebGL uniforms re-resolve); tooltip `formatter` may return a `DomphyElement`, tooltip positioning via `@domphy/floating`; ECharts-compatible type surface |
 | `@domphy/three` | declarative three.js scene graph — 1-1 functional port of `@react-three/fiber` core (reconciler, raycast pointer events, demand frameloop) on Domphy reactivity; `three(options)` patch mounts a canvas host and renders the scene graph, `extend(classes)` registers custom/version-agnostic tags for `resolve()`, `loadAsset`/`preloadAsset`/`clearAsset` for reactive asset loading (`AssetResult<T>`: `data`/`error`/`promise`); the `onCreated(root)` object is typed `CreatedRootState` (RootState + `setSize`); `diagnose(options)`/`validate(options)` — scene-level static analyzer (doctor's contract shape for the three() option object doctor cannot see): rules `unknown-tag`, `tag-not-first` (props-first description the reconciler's first-own-key tag read would throw on), `legacy-light-intensity`, `additive-blowout`, `camera-missing-lookat`; per-node suppression via `_doctorDisable` |
 | `@domphy/editor` | rich-text editor with a Tiptap-compatible API on a self-contained engine (no ProseMirror) — `Editor`, `Extension.create`/`Node.create`/`Mark.create` (incl. plain-DOM `addNodeView`), chainable commands (`chain()`/`can()`, `isActive`, `getJSON`/`getHTML`/`getText`), `starterKit(options?)` set (paragraph/heading/bold/italic/strike/code/underline/blockquote/lists/hardBreak/horizontalRule/link with autolink/codeBlock/undo-redo/trailingNode; per-extension `false` to disable) + `Table` subset (`insertTable`/`goToNextCell`/row-column ops, not in the kit), input rules (`# `, `**bold**`, `- `…) + keymap, view hooks `onPaste`/`onDrop`/`onKeyDown`, `onUpdate({ editor, transaction })`; positions are ProseMirror-style token positions; `getJSON()` omits default-valued attrs (Tiptap JSON loads unchanged). Domphy adapter at `@domphy/editor/domphy`: `createEditor`, `editorContent()` patch (host element must declare `null` children), `bubbleMenu()` patch (selection-anchored via `@domphy/floating`, shadow-root-safe), `editorState(editor)` reactive readers; `editor.stateVersion` is the reactivity bridge (a `State<number>` bumped per transaction) |
 | `@domphy/mcp` | MCP server exposing 10 tools: `domphy_list_patches`, `domphy_get_patch`, `domphy_list_packages`, `domphy_rules`, `domphy_tones`, `domphy_diagnose`, `domphy_validate`, `domphy_fix`, `domphy_list_app_blocks`, `domphy_get_app_block` — patches, packages, rules, tones, doctor, and app-block registry |
-| `@domphy/press` | VitePress-baseline static doc site framework — `defineConfig`, `buildSite`, `pressCSS`, CLI `domphy-press build / dev / preview`; built on `@domphy/app` + `@domphy/markdown`; CSS generated via `pressCSS()` + `themeCSS()` (no static .css file); supports VitePress containers (tip/warning/info/danger/details/code-group), `<<<` code imports, frontmatter hero/features/`fullBleed`, `--dp-font-sans`/`--dp-font-mono`/`--dp-font-display` font hooks, sidebar/nav/TOC, built-in local search (`SearchWidgetOptions.basePath` — base-aware); extras: line highlighting, code-group tabs, 14 admonition types, steps, task lists, mark/sub/sup, emoji, mermaid CDN, social links, edit link, last-updated, reading time, sidebar badges/collapsible, announcement bar, i18n, per-page head, heading anchor links, image lazy loading, `<Badge>` inline component; build fails when any page fails unless `continueOnError: true`; emits 404.html + a content-hashed islands bundle; `withBase(base, href)` base-prefixes emitted hrefs (nav/sidebar/hero links + canonical/sitemap/OG URLs auto-prefixed for non-root deploys); `SiteConfig.cspNonce` stamps a CSP nonce on all inline `<script>`/`<style>` + forwards to `@domphy/app` SSR |
+| `@domphy/press` | VitePress-baseline static doc site framework — `defineConfig`, `buildSite`, `pressCSS`, CLI `domphy-press build / dev / preview`; built on `@domphy/app`; the Markdown pipeline (formerly `@domphy/markdown` — `parseMarkdown`, `markdownToDomphy`, `createMarkdown`, `walkMdast`, `splitFrontmatter`, `transformOutsideCodeBlocks`, `createUniqueSlugger`/`defaultSlugify`; remark/unified under the hood) ships as named exports of the **main entry only** (not the `/browser` subpath); CSS generated via `pressCSS()` + `themeCSS()` (no static .css file); supports VitePress containers (tip/warning/info/danger/details/code-group), `<<<` code imports, frontmatter hero/features/`fullBleed`, `--dp-font-sans`/`--dp-font-mono`/`--dp-font-display` font hooks, sidebar/nav/TOC, built-in local search (`SearchWidgetOptions.basePath` — base-aware); extras: line highlighting, code-group tabs, 14 admonition types, steps, task lists, mark/sub/sup, emoji, mermaid CDN, social links, edit link, last-updated, reading time, sidebar badges/collapsible, announcement bar, i18n, per-page head, heading anchor links, image lazy loading, `<Badge>` inline component; build fails when any page fails unless `continueOnError: true`; emits 404.html + a content-hashed islands bundle; `withBase(base, href)` base-prefixes emitted hrefs (nav/sidebar/hero links + canonical/sitemap/OG URLs auto-prefixed for non-root deploys); `SiteConfig.cspNonce` stamps a CSP nonce on all inline `<script>`/`<style>` + forwards to `@domphy/app` SSR |
 | `@domphy/i18n` | generic i18next wrapper with Domphy reactivity — `createI18n<TLocale, TMessages>(options)` returns `{ t(listener?, key), locale, currentLocale, exists, setLocale, getLocale, detectLocale, initI18n }`; globalThis dedup survives Vite chunk splitting; reactive `t(listener, key)` overload re-renders on `setLocale()` |
 | `create-domphy` | scaffolder — `npm create domphy@latest <dir>` writes a runnable Vite + TS starter (themeApply + sample patches + AGENTS.md) |
-| `domphy-web` | docs website — built with `@domphy/press` on `@domphy/app` + `@domphy/markdown` (internal, not published to npm) |
+| `domphy-web` | docs website — built with `@domphy/press` on `@domphy/app`; renders Mermaid diagrams docs-site-internally (client-side via the islands runtime + CDN; the former `@domphy/mermaid` source lives in `apps/web/mermaid/`) (internal, not published to npm) |
 | `bench` | benchmarks (internal, not published) |
 
 `@domphy/query`/`table`/`virtual`/`form` each expose a framework-agnostic API at the main entry and a thin Domphy adapter at the `/domphy` subpath, with `@domphy/core` as a peer dependency. `@domphy/router` is the exception: its Domphy adapter (`createRouter`/`createRoute`/...) ships directly from the main entry, with no `/domphy` subpath and no `@domphy/core` dependency.
@@ -595,8 +593,7 @@ Framework-agnostic, no JSX, no virtual DOM, no build step required — and the m
 
 - `@domphy/dnd` — drag & drop / sortable lists
 - `@domphy/app` — Next.js App Router-style framework (routes, layouts, loaders+SWR, metadata, middleware, parallel/intercepting routes, lazy code-split routes, SSR + streaming, API routes)
-- `@domphy/markdown` — Markdown → Domphy element trees for SSR/SSG (this docs site runs on it)
-- `@domphy/mermaid` — render Mermaid diagrams (build-time SVG + client patch)
+- `@domphy/press` — static doc site framework; its built-in Markdown pipeline (`parseMarkdown`/`createMarkdown`) turns Markdown into Domphy element trees for SSR/SSG (this docs site runs on it)
 - `@domphy/doctor` — static analyzer that flags non-idiomatic code (`diagnose`/`validate`; powers AI self-correction)
 - `@domphy/mcp` — MCP server exposing patches/packages/rules + doctor + app-block registry to agents
 
@@ -28669,18 +28666,18 @@ for (const url of ["/", "/about", "/blog/hello"]) {
 ---
 
 
-## Markdown docs (`@domphy/markdown`)
+## Markdown docs (`@domphy/press`)
 
 ### frontmatter.md
 
 ---
 title: "Frontmatter"
-description: "Parse YAML frontmatter from markdown documents with @domphy/markdown."
+description: "Parse YAML frontmatter from markdown documents with @domphy/press."
 ---
 
 # Frontmatter
 
-A markdown file can begin with a YAML block called **frontmatter** — metadata such as a page title, description, publication date, or any custom fields your app needs. `@domphy/markdown` strips the block before markdown parsing and returns the parsed values alongside the document body.
+A markdown file can begin with a YAML block called **frontmatter** — metadata such as a page title, description, publication date, or any custom fields your app needs. `@domphy/press` strips the block before markdown parsing and returns the parsed values alongside the document body.
 
 ## Format
 
@@ -28704,15 +28701,12 @@ The actual document begins here.
 
 The closing delimiter may also be `...` (the YAML document-end marker). Leading or trailing whitespace on the closing line is ignored. Everything after the closing `---` or `...` line is the document body.
 
-
-
-
 ## splitFrontmatter
 
 `splitFrontmatter(markdown)` is the lowest-level helper. It splits the YAML block from the rest of the content without doing any markdown parsing:
 
 ```ts
-import { splitFrontmatter } from "@domphy/markdown"
+import { splitFrontmatter } from "@domphy/press"
 
 const source = `---
 title: My Page
@@ -28743,7 +28737,7 @@ content      // "\n# Body starts here\n"
 `parseMarkdown` calls `splitFrontmatter` internally. When using `parseMarkdown` you do not need to call `splitFrontmatter` yourself:
 
 ```ts
-import { parseMarkdown } from "@domphy/markdown"
+import { parseMarkdown } from "@domphy/press"
 
 const { frontmatter, body, toc } = parseMarkdown(`---
 title: My Page
@@ -28780,7 +28774,7 @@ For projects with many content fields, a schema validator like [Zod](https://zod
 
 ```ts
 import { z } from "zod"
-import { parseMarkdown } from "@domphy/markdown"
+import { parseMarkdown } from "@domphy/press"
 
 const PageSchema = z.object({
   title:       z.string(),
@@ -28803,7 +28797,7 @@ A common pattern for documentation sites: parse all source files up front, extra
 
 ```ts
 import { ElementNode } from "@domphy/core"
-import { parseMarkdown } from "@domphy/markdown"
+import { parseMarkdown } from "@domphy/press"
 
 // Assume these are loaded from the file system at build time.
 const sources: Record<string, string> = {
@@ -28839,7 +28833,7 @@ When you build your own remark pipeline (via `walkMdast`), call `splitFrontmatte
 ```ts
 import { remark } from "remark"
 import remarkGfm from "remark-gfm"
-import { splitFrontmatter, walkMdast, createUniqueSlugger, defaultSlugify } from "@domphy/markdown"
+import { splitFrontmatter, walkMdast, createUniqueSlugger, defaultSlugify } from "@domphy/press"
 
 const processor = remark().use(remarkGfm)
 
@@ -28879,7 +28873,7 @@ Frontmatter must be a **YAML mapping** (key-value pairs) at the top level. A top
 The return type of `splitFrontmatter` is exported:
 
 ```ts
-import type { FrontmatterSplit } from "@domphy/markdown"
+import type { FrontmatterSplit } from "@domphy/press"
 
 function stripHeaders(files: string[]): FrontmatterSplit[] {
   return files.map((source) => splitFrontmatter(source))
@@ -28890,7 +28884,7 @@ function stripHeaders(files: string[]): FrontmatterSplit[] {
 
 ---
 title: "Syntax Highlighting"
-description: "Use the highlight option to add syntax highlighting to fenced code blocks in @domphy/markdown."
+description: "Use the highlight option to add syntax highlighting to fenced code blocks in @domphy/press."
 ---
 
 # Syntax Highlighting
@@ -28919,10 +28913,10 @@ type Highlight = (
 
 ## String return — inner HTML
 
-Most highlighters emit HTML strings. Return the string and `@domphy/markdown` wraps it in `rawHtml()` (core's explicit HTML opt-in) as the content of the `<code>` element:
+Most highlighters emit HTML strings. Return the string and `@domphy/press` wraps it in `rawHtml()` (core's explicit HTML opt-in) as the content of the `<code>` element:
 
 ```ts
-import { parseMarkdown } from "@domphy/markdown"
+import { parseMarkdown } from "@domphy/press"
 
 const { body } = parseMarkdown("```ts\nconst x = 1\n```", {
   highlight(code, language) {
@@ -28942,7 +28936,7 @@ Return a `DomphyElement` when you want the highlighted output to remain as a Dom
 
 ```ts
 import type { DomphyElement } from "@domphy/core"
-import { parseMarkdown } from "@domphy/markdown"
+import { parseMarkdown } from "@domphy/press"
 
 const { body } = parseMarkdown("```js\nfoo()\n```", {
   highlight(code): DomphyElement {
@@ -28959,7 +28953,7 @@ const { body } = parseMarkdown("```js\nfoo()\n```", {
 Return `null` or `undefined` to skip highlighting for a specific block. The walker falls back to plain escaped text:
 
 ```ts
-import { parseMarkdown } from "@domphy/markdown"
+import { parseMarkdown } from "@domphy/press"
 
 const knownLanguages = new Set(["ts", "js", "css", "html", "sh"])
 
@@ -28977,7 +28971,7 @@ const { body } = parseMarkdown(source, {
 
 ```ts
 import { createHighlighter } from "shiki"
-import { parseMarkdown } from "@domphy/markdown"
+import { parseMarkdown } from "@domphy/press"
 
 // Initialise once at app startup or build time.
 const shiki = await createHighlighter({
@@ -29011,7 +29005,7 @@ highlight.js emits annotated HTML strings directly without the outer wrapper:
 
 ```ts
 import hljs from "highlight.js"
-import { parseMarkdown } from "@domphy/markdown"
+import { parseMarkdown } from "@domphy/press"
 
 const { body } = parseMarkdown(source, {
   highlight(code, language) {
@@ -29031,7 +29025,7 @@ Return a `DomphyElement` when you want full control over the output structure wi
 
 ```ts
 import type { DomphyElement } from "@domphy/core"
-import { parseMarkdown } from "@domphy/markdown"
+import { parseMarkdown } from "@domphy/press"
 
 // A tiny highlighter that wraps comment lines in a distinct span.
 function commentHighlight(code: string, language: string): DomphyElement {
@@ -29085,7 +29079,7 @@ The `highlight` option is also accepted by `walkMdast` when you build your own r
 
 ```ts
 import { remark } from "remark"
-import { splitFrontmatter, walkMdast, createUniqueSlugger, defaultSlugify } from "@domphy/markdown"
+import { splitFrontmatter, walkMdast, createUniqueSlugger, defaultSlugify } from "@domphy/press"
 
 const processor = remark()
 const { content } = splitFrontmatter(source)
@@ -29104,13 +29098,13 @@ const body = walkMdast(tree, {
 ### index.md
 
 ---
-title: "@domphy/markdown"
+title: "Markdown — @domphy/press"
 description: "Parse Markdown into Domphy element trees for SSR/SSG."
 ---
 
 # Markdown
 
-`@domphy/markdown` parses Markdown into **Domphy element trees** — plain objects like `{ h1: ... }`, `{ ul: [...] }`, `{ pre: [{ code: ... }] }` — so the result can be server-rendered by `@domphy/core` / `@domphy/app` with no client runtime.
+The Markdown pipeline built into `@domphy/press` parses Markdown into **Domphy element trees** — plain objects like `{ h1: ... }`, `{ ul: [...] }`, `{ pre: [{ code: ... }] }` — so the result can be server-rendered by `@domphy/core` / `@domphy/app` with no client runtime.
 
 It uses [remark](https://github.com/remarkjs/remark) (unified) to parse Markdown into an mdast AST, then walks the tree and emits **semantic tags only** — no inline typography styles. Styling stays the consumer's job, applied through patches and theme, exactly like hand-written Domphy.
 
@@ -29128,10 +29122,10 @@ It uses [remark](https://github.com/remarkjs/remark) (unified) to parse Markdown
 
 ## Install
 
-npm install @domphy/markdown @domphy/core
+npm install @domphy/press @domphy/core
 ```
 ```bash [pnpm]
-pnpm add @domphy/markdown @domphy/core
+pnpm add @domphy/press @domphy/core
 ```
 
 `@domphy/core` is a peer dependency.
@@ -29146,7 +29140,7 @@ Edit the Markdown source and watch `parseMarkdown` rebuild the element tree:
 
 ```ts
 import { ElementNode } from "@domphy/core"
-import { parseMarkdown } from "@domphy/markdown"
+import { parseMarkdown } from "@domphy/press"
 
 const source = `---
 title: Hello
@@ -29179,7 +29173,7 @@ const html = new ElementNode({ div: body }).generateHTML()
 A convenience wrapper when you only need the body element array:
 
 ```ts
-import { markdownToDomphy } from "@domphy/markdown"
+import { markdownToDomphy } from "@domphy/press"
 
 const body = markdownToDomphy("# Title\n\nText.")
 ```
@@ -29222,7 +29216,7 @@ parseMarkdown(md, {
 `createMarkdown(options?)` builds a reusable `MarkdownInstance` with a shared remark processor. Use it when you parse many documents (saves processor setup cost per document) or need to pass it to a pipeline:
 
 ```ts
-import { createMarkdown } from "@domphy/markdown"
+import { createMarkdown } from "@domphy/press"
 
 const parser = createMarkdown({
   highlight: (code, info) => myHighlighter(code, info),
@@ -29261,7 +29255,7 @@ The raw LaTeX is preserved in the element content as plain text — so a CDN-loa
 
 ```ts
 import remarkDirective from "remark-directive"
-import { createMarkdown } from "@domphy/markdown"
+import { createMarkdown } from "@domphy/press"
 
 const parser = createMarkdown({
   plugins: [remarkDirective],
@@ -29284,8 +29278,8 @@ For maximum control — running your own remark instance and converting the mdas
 import { remark } from "remark"
 import remarkGfm from "remark-gfm"
 import remarkMath from "remark-math"
-import { splitFrontmatter, walkMdast } from "@domphy/markdown"
-import { createUniqueSlugger, defaultSlugify } from "@domphy/markdown"
+import { splitFrontmatter, walkMdast } from "@domphy/press"
+import { createUniqueSlugger, defaultSlugify } from "@domphy/press"
 
 const { frontmatter, content } = splitFrontmatter(source)
 
@@ -29316,12 +29310,12 @@ This is how `@domphy/press` works: it wires its own remark pipeline (custom cont
 
 ---
 title: "Syntax Reference"
-description: "How every markdown construct maps to Domphy elements in @domphy/markdown."
+description: "How every markdown construct maps to Domphy elements in @domphy/press."
 ---
 
 # Syntax Reference
 
-This page documents every markdown syntax construct and the exact Domphy element shape `@domphy/markdown` produces for each one. Use it to understand what `body` contains and how to write patches or styles that target specific elements.
+This page documents every markdown syntax construct and the exact Domphy element shape `@domphy/press` produces for each one. Use it to understand what `body` contains and how to write patches or styles that target specific elements.
 
 ## Headings
 
@@ -29669,7 +29663,7 @@ The `checked` property is present only on checked items; it is absent (not `fals
 
 ```ts
 import remarkMath from "remark-math"
-import { createMarkdown } from "@domphy/markdown"
+import { createMarkdown } from "@domphy/press"
 
 const parser = createMarkdown({
   plugins: [remarkMath],
@@ -29758,7 +29752,7 @@ For content that needs inline styling, prefer standard markdown emphasis syntax.
 
 ---
 title: "Table of Contents"
-description: "Use the toc array from parseMarkdown to build navigation in @domphy/markdown."
+description: "Use the toc array from parseMarkdown to build navigation in @domphy/press."
 ---
 
 # Table of Contents
@@ -29814,7 +29808,7 @@ So `toc[i].slug` can always be used as an `href` anchor target for `body[i]`.
 `TocEntry` is exported from the package:
 
 ```ts
-import type { TocEntry } from "@domphy/markdown"
+import type { TocEntry } from "@domphy/press"
 ```
 
 ## Rendering a flat anchor list
@@ -29823,7 +29817,7 @@ Emit a simple `nav > a` list from the toc array:
 
 ```ts
 import { ElementNode } from "@domphy/core"
-import { parseMarkdown } from "@domphy/markdown"
+import { parseMarkdown } from "@domphy/press"
 
 const { body, toc } = parseMarkdown(source)
 
@@ -29859,7 +29853,7 @@ const chapters = toc.filter((entry) => entry.level === 1)
 Convert the flat array into a parent-children hierarchy for an indented sidebar:
 
 ```ts
-import type { TocEntry } from "@domphy/markdown"
+import type { TocEntry } from "@domphy/press"
 import type { DomphyElement } from "@domphy/core"
 
 interface TocNode {
@@ -29907,7 +29901,7 @@ Usage:
 
 ```ts
 import { ElementNode } from "@domphy/core"
-import { parseMarkdown } from "@domphy/markdown"
+import { parseMarkdown } from "@domphy/press"
 
 const { body, toc } = parseMarkdown(source)
 const tree = buildTocTree(toc)
@@ -29928,7 +29922,7 @@ Track which heading is currently in the viewport and highlight the corresponding
 
 ```ts
 import { toState } from "@domphy/core"
-import { parseMarkdown } from "@domphy/markdown"
+import { parseMarkdown } from "@domphy/press"
 
 const { body, toc } = parseMarkdown(source)
 
@@ -29964,7 +29958,7 @@ const tocItems = {
 The toc array serialises cleanly to JSON — useful for search indexes or pre-rendered navigation:
 
 ```ts
-import { parseMarkdown } from "@domphy/markdown"
+import { parseMarkdown } from "@domphy/press"
 
 const pages = sources.map((source) => {
   const { frontmatter, toc } = parseMarkdown(source)
@@ -29984,7 +29978,7 @@ When using `walkMdast` in a custom pipeline, pass an empty array as `toc` — th
 
 ```ts
 import { remark } from "remark"
-import { splitFrontmatter, walkMdast, createUniqueSlugger, defaultSlugify } from "@domphy/markdown"
+import { splitFrontmatter, walkMdast, createUniqueSlugger, defaultSlugify } from "@domphy/press"
 
 const processor = remark()
 const { content } = splitFrontmatter(source)
@@ -29996,2317 +29990,6 @@ const body = walkMdast(tree, { slug: createUniqueSlugger(defaultSlugify), toc })
 
 // toc is populated the same way as with parseMarkdown.
 console.log(toc.map((entry) => `${entry.level}: ${entry.text} -> #${entry.slug}`))
-```
-
-
-
----
-
-
-## Mermaid docs (`@domphy/mermaid`)
-
-### build.md
-
----
-title: "Build-Time Integration"
-description: "Integrate @domphy/mermaid into SSG and Vite build pipelines — cache management, markdown tree rendering, custom renderers, and CI configuration."
----
-
-# Build-Time Integration
-
-The build-time path renders each diagram to inline SVG during your build using a headless browser (via `@mermaid-js/mermaid-cli`). The browser ships no Mermaid runtime — diagrams are plain SVG in your HTML.
-
-## How it works
-
-Three functions cover the build-time path:
-
-| Function | Purpose |
-|----------|---------|
-| `renderMermaidToSvg(code, options?)` | Render one diagram, no caching |
-| `renderMermaidCached(code, options?)` | Render with on-disk cache |
-| `renderMermaidInTree(elements, options?)` | Render all Mermaid blocks in a `@domphy/markdown` tree |
-
-`@mermaid-js/mermaid-cli` is a direct dependency — it manages Puppeteer (Chrome headless) internally. You do not install or configure Puppeteer yourself.
-
-## Rendering a single diagram
-
-```ts
-import { renderMermaidToSvg } from "@domphy/mermaid"
-
-const svg = await renderMermaidToSvg(`flowchart LR
-  A --> B --> C`, {
-  theme: "neutral",
-  background: "transparent",
-})
-// svg === "<svg xmlns=...>...</svg>"
-```
-
-Syntax errors throw an `Error` that includes the diagram source — they are never silently swallowed:
-
-```
-@domphy/mermaid: failed to render diagram.
-Parse error on line 1: ...
---- source ---
-flowchart LR; INVALID NODE
-```
-
-## Source normalization
-
-`renderMermaidToSvg` (and all other render functions) call `normalizeMermaidSource` before rendering. You can call it directly to strip leading/trailing whitespace and normalize line endings before storing or comparing sources:
-
-```ts
-import { normalizeMermaidSource } from "@domphy/mermaid"
-
-const source = normalizeMermaidSource(`
-  flowchart LR
-    A --> B  
-`)
-// "flowchart LR\n  A --> B"
-```
-
-This normalization is also applied inside `cacheKey`, so cache lookups are consistent regardless of incidental whitespace differences.
-
-## On-disk cache
-
-Use `renderMermaidCached` in build scripts to avoid re-rendering diagrams that have not changed between builds:
-
-```ts
-import { renderMermaidCached, DEFAULT_CACHE_DIR } from "@domphy/mermaid"
-
-const svg = await renderMermaidCached(source, {
-  theme: "neutral",
-  cacheDir: DEFAULT_CACHE_DIR, // node_modules/.cache/domphy-mermaid
-})
-```
-
-The cache key is a stable SHA-256 hash of the normalized source plus the output-affecting options (`theme`, `background`, `mermaidConfig`, `css`). Options that do not affect the output (`cacheDir`, `cache`, `puppeteer`) are excluded from the hash, so changing them does not invalidate cached SVGs.
-
-Bypassing the cache for a fresh render:
-
-```ts
-const svg = await renderMermaidCached(source, { cache: false })
-```
-
-Changing the cache directory (e.g. in a monorepo with a shared cache):
-
-```ts
-const svg = await renderMermaidCached(source, {
-  cacheDir: "../../.cache/mermaid",
-})
-```
-
-### Computing cache keys manually
-
-The `cacheKey` function lets you check whether a diagram is already cached before invoking the renderer:
-
-```ts
-import { cacheKey, DEFAULT_CACHE_DIR } from "@domphy/mermaid"
-import { readFile } from "node:fs/promises"
-import { join } from "node:path"
-
-const key = cacheKey(source, { theme: "dark" })
-const cachePath = join(DEFAULT_CACHE_DIR, `${key}.svg`)
-
-try {
-  const cached = await readFile(cachePath, "utf8")
-  console.log("Cache hit:", key)
-} catch {
-  console.log("Cache miss — will render")
-}
-```
-
-## Markdown tree integration
-
-When using `@domphy/markdown` to parse Markdown content, `renderMermaidInTree` walks the resulting element tree, finds every fenced ` ```mermaid ` block, renders each to SVG, and replaces the code block node with an SVG-wrapping element:
-
-**Input** (what `@domphy/markdown` emits for a ` ```mermaid ` fence):
-```js
-{ pre: [{ code: "<escaped source>", dataLanguage: "mermaid", class: "language-mermaid" }] }
-```
-
-**Output** (what `renderMermaidInTree` replaces it with):
-```js
-{ div: "<svg ...>...</svg>", class: "mermaid", ariaLabel: "diagram" }
-```
-
-```ts
-import { parseMarkdown } from "@domphy/markdown"
-import { renderMermaidInTree } from "@domphy/mermaid"
-
-const markdown = `
-# Architecture
-
-\`\`\`mermaid
-flowchart LR
-  Browser --> CDN --> Origin
-\`\`\`
-
-The CDN sits in front of every request.
-`
-
-const { body } = parseMarkdown(markdown)
-const rendered = await renderMermaidInTree(body, { theme: "neutral" })
-
-// rendered is a DomphyElement[] — the mermaid block is now a div with inline SVG.
-// All other nodes (h1, p, other code blocks) are unchanged.
-```
-
-Identical diagram sources across a document are rendered only once. All distinct diagrams render concurrently with `Promise.all`.
-
-### Options for `renderMermaidInTree`
-
-`TreeOptions` extends `CacheOptions` with two additional fields:
-
-| Option | Type | Default |
-|--------|------|---------|
-| `renderer` | `(code, options?) => Promise<string>` | `renderMermaidCached` |
-| `className` | `string` | `"mermaid"` |
-| `ariaLabel` | `string` | `"diagram"` |
-
-Customize the wrapper element class and accessibility label:
-
-```ts
-const rendered = await renderMermaidInTree(body, {
-  theme: "dark",
-  className: "diagram-block",
-  ariaLabel: "architecture diagram",
-})
-```
-
-## Custom renderer for testing
-
-Inject a custom `renderer` to test your tree integration without launching a headless browser:
-
-```ts
-import { renderMermaidInTree } from "@domphy/mermaid"
-import { describe, it, expect } from "vitest"
-
-describe("renderMermaidInTree", () => {
-  it("replaces mermaid blocks and preserves other nodes", async () => {
-    const input = [
-      { h1: "Docs" },
-      { pre: [
-        { code: "flowchart LR; A-->B", dataLanguage: "mermaid", class: "language-mermaid" },
-      ]},
-      { p: "Below the diagram." },
-    ]
-
-    const output = await renderMermaidInTree(input, {
-      renderer: async (code) => `<svg data-testid="mermaid">${code}</svg>`,
-    })
-
-    expect(output[0]).toEqual({ h1: "Docs" })
-    expect(output[1]).toMatchObject({ div: expect.stringContaining("<svg"), class: "mermaid" })
-    expect(output[2]).toEqual({ p: "Below the diagram." })
-  })
-})
-```
-
-Using a custom renderer avoids the `@mermaid-js/mermaid-cli` dependency in test environments entirely.
-
-## CI / headless browser configuration
-
-On CI, Chrome may need extra sandbox flags. Pass them via the `puppeteer` option:
-
-```ts
-import { renderMermaidToSvg } from "@domphy/mermaid"
-
-const isCI = process.env.CI === "true"
-
-const svg = await renderMermaidToSvg(source, {
-  theme: "default",
-  puppeteer: isCI
-    ? { args: ["--no-sandbox", "--disable-setuid-sandbox"] }
-    : {},
-})
-```
-
-To use a specific Chrome binary instead of the one bundled with `@mermaid-js/mermaid-cli`:
-
-```ts
-const svg = await renderMermaidToSvg(source, {
-  puppeteer: {
-    executablePath: "/usr/bin/google-chrome-stable",
-    args: ["--no-sandbox"],
-  },
-})
-```
-
-## Build script example
-
-A typical Vite / SSG build step that pre-renders all diagrams in a content directory:
-
-```ts
-// scripts/render-diagrams.ts
-import { readFile, writeFile, readdir } from "node:fs/promises"
-import { join } from "node:path"
-import { parseMarkdown } from "@domphy/markdown"
-import { renderMermaidInTree } from "@domphy/mermaid"
-
-const contentDir = "content"
-const outputDir = "src/generated"
-
-const files = await readdir(contentDir)
-const markdownFiles = files.filter((f) => f.endsWith(".md"))
-
-for (const file of markdownFiles) {
-  const raw = await readFile(join(contentDir, file), "utf8")
-  const { body } = parseMarkdown(raw)
-  const rendered = await renderMermaidInTree(body, {
-    theme: "neutral",
-    cacheDir: "node_modules/.cache/domphy-mermaid",
-  })
-
-  const outputFile = join(outputDir, file.replace(".md", ".json"))
-  await writeFile(outputFile, JSON.stringify(rendered), "utf8")
-  console.log(`Rendered: ${file}`)
-}
-```
-
-Because the cache is keyed by content hash, only diagrams that changed since the last build are re-rendered.
-
-### class-diagram.md
-
----
-title: "Class & State Diagrams"
-description: "Complete Mermaid class and state diagram syntax — members, visibility, relationships, annotations, namespaces, and composite states."
----
-
-# Class & State Diagrams
-
-## Class diagrams
-
-Class diagrams model the static structure of a system: its types, members, and the relationships between them.
-
-### Basic class syntax
-
-```mermaid
-classDiagram
-  class Animal {
-    +String name
-    +int age
-    +makeSound() void
-    +move(distance int) bool
-  }
-```
-
-Members are listed inside `{ }`. Fields list type then name; methods add parentheses and an optional return type.
-
-### Member visibility
-
-| Symbol | Visibility |
-|--------|------------|
-| `+` | Public |
-| `-` | Private |
-| `#` | Protected |
-| `~` | Package / internal |
-
-Append `$` to mark a member as **static**, or `*` to mark it as **abstract**:
-
-```mermaid
-classDiagram
-  class Repository {
-    -String connectionString
-    +$getInstance() Repository
-    +*findById(id int) Entity
-    #validate(entity Entity) bool
-  }
-```
-
-### Relationships
-
-```mermaid
-classDiagram
-  Animal <|-- Dog : Inheritance
-  Car *-- Engine : Composition
-  Car o-- Wheel : Aggregation
-  Driver --> Car : Association
-  Order ..> Product : Dependency
-  Service ..|> IService : Realization
-```
-
-| Syntax | Relationship |
-|--------|--------------|
-| `A <\|-- B` | B inherits from A (generalization) |
-| `A *-- B` | A is composed of B (composition) |
-| `A o-- B` | A aggregates B (aggregation) |
-| `A --> B` | A has an association to B |
-| `A -- B` | Link (undirected) |
-| `A ..> B` | A depends on B |
-| `A ..*` | Composition via dotted |
-| `A ..\|> B` | A realizes interface B |
-
-All relationships can be reversed by swapping the symbols.
-
-### Cardinality labels
-
-Add cardinality to either end of a relationship:
-
-```mermaid
-classDiagram
-  class Customer {
-    +String name
-  }
-  class Order {
-    +Date placedAt
-  }
-  class LineItem {
-    +int quantity
-  }
-
-  Customer "1" --> "0..*" Order : places
-  Order "1" *-- "1..*" LineItem : contains
-```
-
-Common cardinality strings: `1`, `0..*`, `1..*`, `0..1`, `n`, `1..n`.
-
-### Relationship labels
-
-Add a label after the relationship using `:` with a quoted or unquoted string:
-
-```mermaid
-classDiagram
-  User "1" --> "0..*" Session : has
-  Session --> Token : carries
-```
-
-### Annotations
-
-Annotations mark the stereotype of a class. Place them inside the class body with `<<...>>`:
-
-```mermaid
-classDiagram
-  class IRepository {
-    <<Interface>>
-    +findById(id int) Entity
-    +save(entity Entity) void
-  }
-
-  class BaseService {
-    <<Abstract>>
-    +#validate() bool
-  }
-
-  class Status {
-    <<Enumeration>>
-    PENDING
-    ACTIVE
-    CLOSED
-  }
-
-  class UserService {
-    <<Service>>
-  }
-```
-
-Common annotations: `<<Interface>>`, `<<Abstract>>`, `<<Enumeration>>`, `<<Service>>`, `<<Repository>>`, `<<Component>>`.
-
-### Namespaces
-
-Group related classes inside a named namespace:
-
-```mermaid
-classDiagram
-  namespace Domain {
-    class User {
-      +String email
-    }
-    class Order {
-      +Date createdAt
-    }
-  }
-
-  namespace Infrastructure {
-    class UserRepository {
-      +findByEmail(email String) User
-    }
-  }
-
-  UserRepository --> User : returns
-```
-
-### Class diagram direction
-
-Control layout with a leading `direction` declaration:
-
-```mermaid
-classDiagram
-  direction LR
-  class A
-  class B
-  A --> B
-```
-
-Accepted values: `TB`, `BT`, `LR`, `RL`.
-
----
-
-## State diagrams
-
-State diagrams model the lifecycle of an object — which states it can be in and the transitions between them.
-
-### Basic transitions
-
-```mermaid
-stateDiagram-v2
-  [*] --> Idle
-  Idle --> Loading : fetch()
-  Loading --> Success : ok
-  Loading --> Error : fail
-  Error --> Idle : reset()
-  Success --> [*]
-```
-
-`[*]` is the special initial / final state marker. A transition out of `[*]` is the entry; a transition into `[*]` is the exit.
-
-### State descriptions
-
-Add a description to a state using `state_id : description`:
-
-```mermaid
-stateDiagram-v2
-  Idle : Waiting for user input
-  Loading : Request in flight
-  Success : Data received
-  Error : Render error boundary
-
-  [*] --> Idle
-  Idle --> Loading
-  Loading --> Success
-  Loading --> Error
-```
-
-### Named states
-
-Give a long-form display name to a state using `state "label" as id`:
-
-```mermaid
-stateDiagram-v2
-  state "Fetching data" as loading
-  state "Render complete" as done
-
-  [*] --> loading
-  loading --> done : ok
-  loading --> [*] : error
-```
-
-### Composite (nested) states
-
-A composite state groups sub-states inside `state id { ... }`:
-
-```mermaid
-stateDiagram-v2
-  [*] --> Auth
-
-  state Auth {
-    [*] --> Unauthenticated
-    Unauthenticated --> Authenticating : login()
-    Authenticating --> Authenticated : success
-    Authenticating --> Unauthenticated : failure
-    Authenticated --> [*]
-  }
-
-  Auth --> App
-```
-
-### Fork and join
-
-Model parallel execution with `<<fork>>` and `<<join>>`:
-
-```mermaid
-stateDiagram-v2
-  [*] --> fork
-  state fork <<fork>>
-  fork --> Logging
-  fork --> Notifying
-  Logging --> join
-  Notifying --> join
-  state join <<join>>
-  join --> [*]
-```
-
-### Choice (conditional)
-
-Branch based on a condition with `<<choice>>`:
-
-```mermaid
-stateDiagram-v2
-  [*] --> Validate
-  Validate --> check
-  state check <<choice>>
-  check --> Success : valid
-  check --> Error : invalid
-  Success --> [*]
-  Error --> [*]
-```
-
-### Concurrency
-
-Split a composite state into concurrent regions with `--`:
-
-```mermaid
-stateDiagram-v2
-  [*] --> Active
-
-  state Active {
-    [*] --> UI
-    UI --> UI : interaction
-    --
-    [*] --> Sync
-    Sync --> Syncing : timer
-    Syncing --> Sync : done
-  }
-
-  Active --> [*] : logout
-```
-
-### Notes
-
-Annotate a state with a free-form note:
-
-```mermaid
-stateDiagram-v2
-  [*] --> Idle
-  note right of Idle
-    Default state on startup.
-    Re-entered after any reset.
-  end note
-  Idle --> Running
-```
-
-### Direction
-
-```mermaid
-stateDiagram-v2
-  direction LR
-  [*] --> A --> B --> [*]
-```
-
-## Rendering with @domphy/mermaid
-
-```ts
-import { renderMermaidToSvg } from "@domphy/mermaid"
-
-const classSvg = await renderMermaidToSvg(`classDiagram
-  class IStore {
-    <<Interface>>
-    +get(key String) T
-    +set(key String, value T) void
-  }
-  class RecordState {
-    +get(key String) T
-    +set(key String, value T) void
-  }
-  IStore <|.. RecordState : implements`, { theme: "neutral" })
-
-const stateSvg = await renderMermaidToSvg(`stateDiagram-v2
-  [*] --> Idle
-  Idle --> Loading : query.fetch()
-  Loading --> Success : data received
-  Loading --> Error : network fail
-  Error --> Idle : retry()
-  Success --> [*]`, { theme: "neutral" })
-```
-
-### client.md
-
----
-title: "Client-Side Rendering"
-description: "Patterns for rendering Mermaid diagrams in the browser with @domphy/mermaid — static mount, reactive source, CDN loading, and error handling."
----
-
-# Client-Side Rendering
-
-The `mermaidClient()` function returns a Domphy patch that renders a Mermaid diagram in the browser at mount time. Apply it to any element whose text content is valid Mermaid source.
-
-
-The main `@domphy/mermaid` entry statically imports Node built-ins for the build-time renderer. In a browser bundle (Vite, esbuild, webpack), import from the browser-safe subpath: `import { mermaidClient } from "@domphy/mermaid/client"`.
-
-
-## Basic usage
-
-```ts
-import { mermaidClient } from "@domphy/mermaid"
-
-const DiagramView = {
-  pre: [{ code: `flowchart LR
-  A[User] --> B{Auth?}
-  B -->|yes| C[Dashboard]
-  B -->|no| D[Login]` }],
-  $: [mermaidClient()],
-}
-```
-
-On mount the patch:
-1. Reads the source from the element (preferring an inner `<code>` element, falling back to the element's own `textContent`)
-2. Calls `mermaid.initialize()` with your options
-3. Calls `mermaid.render()` to produce SVG
-4. Replaces the element's `innerHTML` with the SVG
-5. Adds class `"mermaid"` and sets `aria-label="diagram"`
-
-`mermaid` is an **optional** peer dependency. Install it alongside `@domphy/mermaid`:
-
-```bash
-pnpm add mermaid
-```
-
-## Options
-
-```ts
-import { mermaidClient } from "@domphy/mermaid"
-
-const DiagramView = {
-  pre: [{ code: "graph TD; A-->B;" }],
-  $: [mermaidClient({
-    theme: "dark",
-    mermaidConfig: {
-      fontFamily: "monospace",
-      fontSize: 14,
-      startOnLoad: false,
-    },
-  })],
-}
-```
-
-| Option | Type | Default |
-|--------|------|---------|
-| `theme` | `"default" \| "dark" \| "neutral" \| "forest" \| "base"` | `"default"` |
-| `mermaidConfig` | `Record<string, unknown>` | — |
-| `loadMermaid` | `() => MermaidBrowserModule \| Promise<MermaidBrowserModule>` | dynamic `import("mermaid")` |
-
-`mermaidConfig` is passed directly to `mermaid.initialize()`, so any option the Mermaid library accepts works here.
-
-`background`, `css`, and `puppeteer` are build-time-only options (see [Build-time integration](/docs/mermaid/build)) — `mermaidClient()` does not accept them, since the browser `mermaid.render()` call has no equivalent for a baked-in SVG background, injected page CSS, or a headless-browser launch config.
-
-## Reactive theme switching
-
-To switch the diagram theme when the page theme changes, use `toState` and pass the theme reactively. Because `mermaidClient()` options are read once at mount time, the element must be remounted to pick up a new theme.
-
-Force a remount by using `_key` in a list — Domphy removes and re-adds an element when its `_key` changes:
-
-```ts
-import { toState } from "@domphy/core"
-import { mermaidClient } from "@domphy/mermaid"
-
-const isDark = toState(false)
-
-const source = `sequenceDiagram
-  A->>B: Request
-  B-->>A: Response`
-
-// Changing isDark updates the _key, forcing the element to remount and
-// the patch to re-read the theme.
-const App = {
-  div: (l) => [
-    {
-      pre: [{ code: source }],
-      $: [mermaidClient({ theme: isDark.get(l) ? "dark" : "default" })],
-      _key: isDark.get(l) ? "dark" : "light",
-    },
-  ],
-  onClick: () => isDark.set(!isDark.get()),
-}
-```
-
-## Dynamic diagram source
-
-To render different diagram source strings at runtime, update `_key` to the source string itself. Domphy remounts the element whenever the key changes, giving the patch a fresh `_onMount` call with the new content:
-
-```ts
-import { toState } from "@domphy/core"
-import { mermaidClient } from "@domphy/mermaid"
-
-const source = toState(`flowchart LR
-  A --> B`)
-
-const LiveDiagram = {
-  div: (l) => [
-    {
-      pre: [{ code: source.get(l) }],
-      $: [mermaidClient()],
-      _key: source.get(l),
-    },
-  ],
-}
-```
-
-The `_key` approach works reliably for lists. For a single element outside a list, wrap it in a single-item array as shown above.
-
-## Error handling
-
-When the Mermaid library fails to render (for example, due to a syntax error), the patch logs the failure with `console.error` and leaves the element's existing content unchanged. It never throws from a lifecycle hook.
-
-The console output includes both the error message and the diagram source:
-
-```
-@domphy/mermaid: client render failed.
-Parse error on line 2: ...
---- source ---
-flowchart LR; BAD SYNTAX
-```
-
-If you want to surface errors to users, listen for them via a wrapper:
-
-```ts
-import { toState } from "@domphy/core"
-import { mermaidClient } from "@domphy/mermaid"
-
-const hasError = toState(false)
-
-// Override loadMermaid to intercept failures.
-const DiagramWithFeedback = (source: string) => ({
-  div: [
-    {
-      pre: [{ code: source }],
-      $: [mermaidClient({
-        loadMermaid: async () => {
-          const mermaid = (await import("mermaid")).default
-          const originalRender = mermaid.render.bind(mermaid)
-          mermaid.render = async (...args) => {
-            try {
-              const result = await originalRender(...args)
-              hasError.set(false)
-              return result
-            } catch (error) {
-              hasError.set(true)
-              throw error
-            }
-          }
-          return mermaid
-        },
-      })],
-    },
-    (l) => hasError.get(l)
-      ? { p: "Diagram syntax error — check your Mermaid source.", class: "error" }
-      : null,
-  ],
-})
-```
-
-## Custom loader (`loadMermaid`)
-
-By default the patch loads `mermaid` with a dynamic `import("mermaid")`. Override `loadMermaid` to use a pre-loaded instance or a specific version:
-
-```ts
-import { mermaidClient } from "@domphy/mermaid"
-
-// Use a globally loaded copy (e.g. from a <script> tag)
-const DiagramView = {
-  pre: [{ code: "graph TD; A-->B;" }],
-  $: [mermaidClient({
-    loadMermaid: () => (window as unknown as { mermaid: unknown }).mermaid,
-  })],
-}
-```
-
-## Loading from CDN (IIFE global build)
-
-If you load Domphy from a CDN script tag without a bundler, use the `@domphy/mermaid` global build alongside the Mermaid CDN script:
-
-```html
-<!-- Load Mermaid from CDN first -->
-<script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
-<!-- Then load the Domphy mermaid global build -->
-<script src="https://cdn.jsdelivr.net/npm/@domphy/mermaid/dist/mermaid.global.js"></script>
-
-<script>
-  // mermaidClient is available on window.Domphy
-  const { mermaidClient } = window.Domphy
-
-  const App = {
-    pre: [{ code: "graph TD; A-->B;" }],
-    $: [mermaidClient({ theme: "neutral" })],
-  }
-</script>
-```
-
-The global build reads `window.mermaid` by default, so the Mermaid CDN script must be loaded before any Domphy element mounts.
-
-## When to use client-side vs build-time
-
-| Situation | Recommended path |
-|-----------|------------------|
-| Static docs site / SSG | `renderMermaidInTree` (build-time) — SVG in HTML, no runtime |
-| Diagram source is dynamic (user input) | `mermaidClient()` |
-| Live preview editor | `mermaidClient()` with `_key` on source |
-| Serverless build host without Chrome | `mermaidClient()` |
-| Best first-paint performance | Build-time (no layout shift, no JS) |
-
-See the [Build-time integration](/docs/mermaid/build) page for the SSG pipeline.
-
-### configuration.md
-
----
-title: "Configuration & Themes"
-description: "Customize diagram appearance with Mermaid themes, fontFamily, and per-diagram directives."
----
-
-# Configuration & Themes
-
-## Global configuration
-
-Pass options to `mermaidClient` to apply settings to all diagrams on the page. The `theme` key is top-level; anything else that Mermaid accepts goes inside `mermaidConfig`:
-
-```ts
-import { mermaidClient } from "@domphy/mermaid"
-
-const DiagramPage = {
-  div: DiagramContent,
-  $: [mermaidClient({
-    theme: "default",
-    mermaidConfig: {
-      fontFamily: "Inter, sans-serif",
-      fontSize: 14,
-      startOnLoad: false,
-    },
-  })],
-}
-```
-
-## Built-in themes
-
-Mermaid ships five built-in themes:
-
-| Theme | Description |
-|-------|-------------|
-| `"default"` | Light blue palette — works on light backgrounds |
-| `"neutral"` | Gray tones — subtle, professional |
-| `"dark"` | Dark background — for dark mode |
-| `"forest"` | Green tones |
-| `"base"` | Minimal — best base for custom theming |
-
-```ts
-import { mermaidClient } from "@domphy/mermaid"
-
-const DiagramBlock = {
-  div: null,
-  $: [mermaidClient({ theme: "dark" })],
-}
-```
-
-## Theme variables (custom theme)
-
-Use the `"base"` theme with `themeVariables` inside `mermaidConfig` for full control:
-
-```ts
-import { mermaidClient } from "@domphy/mermaid"
-
-const DiagramBlock = {
-  div: null,
-  $: [mermaidClient({
-    theme: "base",
-    mermaidConfig: {
-      themeVariables: {
-        primaryColor: "#7c3aed",        // node fill
-        primaryTextColor: "#ffffff",    // node text
-        primaryBorderColor: "#5b21b6",  // node border
-        lineColor: "#6b7280",           // edge color
-        secondaryColor: "#f3f4f6",      // secondary node fill
-        tertiaryColor: "#fef3c7",       // tertiary node fill
-        background: "#ffffff",          // diagram background
-        mainBkg: "#ede9fe",             // main node background
-        nodeBorder: "#7c3aed",
-        clusterBkg: "#f5f3ff",
-        titleColor: "#1f2937",
-        edgeLabelBackground: "#ffffff",
-        fontFamily: "Inter, sans-serif",
-      },
-    },
-  })],
-}
-```
-
-## Per-diagram directives
-
-Embed configuration directly in the diagram source using `%%{init: ...}%%`:
-
-```markdown
-```mermaid
-%%{init: {"theme": "forest", "themeVariables": {"primaryColor": "#34d399"}}}%%
-flowchart LR
-  A --> B --> C
-```
-```
-
-Directives override global config for that single diagram.
-
-## Flowchart direction
-
-```markdown
-```mermaid
-%%{init: {"flowchart": {"curve": "basis"}}}%%
-flowchart TD
-  A[Start] --> B{Decision}
-  B -->|Yes| C[Do thing]
-  B -->|No| D[Skip]
-  C --> E[End]
-  D --> E
-```
-```
-
-Curve options: `"basis"`, `"linear"`, `"cardinal"`, `"step"`, `"stepBefore"`, `"stepAfter"`.
-
-## Sequence diagram config
-
-```markdown
-```mermaid
-%%{init: {"sequence": {
-  "diagramMarginX": 50,
-  "actorMargin": 80,
-  "boxTextMargin": 5,
-  "messageMargin": 35,
-  "mirrorActors": false,
-  "useMaxWidth": true
-}}}%%
-sequenceDiagram
-  Alice->>Bob: Hello
-  Bob-->>Alice: Hi!
-```
-```
-
-## Dark mode integration
-
-Reactively switch diagram theme when the Domphy theme changes:
-
-```ts
-import { mermaidClient } from "@domphy/mermaid"
-import { themeName } from "@domphy/theme"
-import { toState } from "@domphy/core"
-
-const diagramTheme = toState<"default" | "dark">("default")
-
-const DiagramBlock = {
-  div: null,
-  $: [(l) => mermaidClient({ theme: diagramTheme.get(l) })],
-}
-
-// Update diagramTheme whenever the page theme changes
-function syncTheme(node: ElementNode) {
-  const name = themeName(node)
-  diagramTheme.set(name === "dark" ? "dark" : "default")
-}
-```
-
-## Render options
-
-```ts
-import { mermaidClient } from "@domphy/mermaid"
-
-const DiagramBlock = {
-  div: null,
-  $: [mermaidClient({
-    mermaidConfig: {
-      securityLevel: "strict",    // or "loose" for trusted HTML in labels
-      maxTextSize: 50_000,        // max characters — raise for large diagrams
-      maxEdges: 500,              // max edges before truncation warning
-      logLevel: "error",          // "fatal"|"error"|"warn"|"info"|"debug"
-    },
-  })],
-}
-```
-
-## Accessibility
-
-Mermaid generates `<title>` and `<desc>` elements inside each SVG — screen readers pick these up automatically. Add them with the `accTitle` and `accDescr` directives:
-
-```markdown
-```mermaid
----
-title: Deployment flow
----
-accTitle: Deployment pipeline diagram
-accDescr: Shows stages from commit to production
-flowchart LR
-  Commit --> CI --> Staging --> Production
-```
-```
-
-### diagrams.md
-
----
-title: "Supported Diagrams"
-description: "All diagram types supported by @domphy/mermaid and Mermaid.js syntax reference."
----
-
-# Supported Diagrams
-
-`@domphy/mermaid` renders any diagram type that [Mermaid.js](https://mermaid.js.org) supports. Below is a quick reference for the most commonly used types with Domphy usage examples.
-
-## Flowchart
-
-```mermaid
-flowchart LR
-  A[Start] --> B{Decision}
-  B -- Yes --> C[Do it]
-  B -- No --> D[Skip it]
-  C --> E[End]
-  D --> E
-```
-
-```ts
-import { renderMermaidInTree } from "@domphy/mermaid"
-
-const diagram = await renderMermaidInTree([{
-  pre: [{ code: `flowchart LR
-  A[Start] --> B{Decision}
-  B -- Yes --> C[Do it]
-  B -- No --> D[Skip it]` }],
-}])
-```
-
-Flowchart directions: `TB` (top→bottom), `LR` (left→right), `BT`, `RL`.
-
-## Sequence diagram
-
-```mermaid
-sequenceDiagram
-  participant Browser
-  participant Server
-  Browser->>Server: GET /api/user
-  Server-->>Browser: 200 { user }
-  Browser->>Server: POST /api/login
-  Server-->>Browser: 401 Unauthorized
-```
-
-```ts
-const source = `sequenceDiagram
-  participant Browser
-  participant Server
-  Browser->>Server: GET /api/user
-  Server-->>Browser: 200 { user }`
-```
-
-## Class diagram
-
-```mermaid
-classDiagram
-  class Animal {
-    +String name
-    +makeSound() void
-  }
-  class Dog {
-    +fetch() void
-  }
-  Animal <|-- Dog
-```
-
-## State diagram
-
-```mermaid
-stateDiagram-v2
-  [*] --> Idle
-  Idle --> Loading : fetch()
-  Loading --> Success : ok
-  Loading --> Error : fail
-  Error --> Idle : reset()
-  Success --> [*]
-```
-
-Useful for documenting `@domphy/query` state transitions.
-
-## Entity-relationship (ERD)
-
-```mermaid
-erDiagram
-  USER ||--o{ ORDER : places
-  ORDER ||--|{ LINE-ITEM : contains
-  PRODUCT }|..|{ LINE-ITEM : includes
-```
-
-## Gantt chart
-
-```mermaid
-gantt
-  title Project Timeline
-  dateFormat YYYY-MM-DD
-  section Design
-    Wireframes     :done,    w1, 2025-01-01, 7d
-    Prototypes     :active,  p1, 2025-01-08, 14d
-  section Development
-    Core           :         c1, after p1, 21d
-    UI             :         u1, after c1, 14d
-```
-
-## Pie chart
-
-```mermaid
-pie title Browser Share
-  "Chrome"  : 65.2
-  "Safari"  : 18.9
-  "Firefox" : 4.0
-  "Other"   : 11.9
-```
-
-## Git graph
-
-```mermaid
-gitGraph
-  commit
-  branch feature
-  checkout feature
-  commit
-  commit
-  checkout main
-  merge feature
-  commit
-```
-
-## Mind map
-
-```mermaid
-mindmap
-  root((Domphy))
-    Core
-      State
-      Computed
-      Patches
-    Packages
-      Query
-      Router
-      Table
-      Virtual
-    Tooling
-      Doctor
-      Audit
-      MCP
-```
-
-## Timeline
-
-```mermaid
-timeline
-  title History of Domphy
-  2023 : Initial concept
-  2024 : First public release
-       : Query adapter
-  2025 : VitePress-grade docs site
-       : MCP server
-```
-
-## Block diagram
-
-```mermaid
-block-beta
-  columns 3
-  A["Browser"] space B["Server"]
-  A-- "HTTP" -->B
-  B-- "JSON" -->A
-```
-
-## Quadrant chart
-
-```mermaid
-quadrantChart
-  title Performance vs Complexity
-  x-axis Low Complexity --> High Complexity
-  y-axis Low Performance --> High Performance
-  quadrant-1 Optimize
-  quadrant-2 Keep
-  quadrant-3 Reconsider
-  quadrant-4 Migrate
-  React: [0.7, 0.6]
-  Domphy: [0.3, 0.85]
-  Angular: [0.9, 0.5]
-```
-
-## XY Chart
-
-```mermaid
-xychart-beta
-  title "Monthly Users"
-  x-axis [Jan, Feb, Mar, Apr, May, Jun]
-  y-axis "Users (k)" 0 --> 100
-  bar [20, 35, 48, 62, 75, 90]
-  line [20, 35, 48, 62, 75, 90]
-```
-
-## Kanban
-
-```mermaid
-kanban
-  Todo
-    id1[Write tests]
-    id2[Fix bug #42]
-  In Progress
-    id3[Implement search]
-  Done
-    id4[Deploy v2.0]
-```
-
-## Theming diagrams
-
-Override the Mermaid theme per diagram using `%%{init: ...}%%`:
-
-```ts
-const source = `%%{init: {'theme': 'dark', 'themeVariables': {'primaryColor': '#6366f1'}}}%%
-flowchart LR
-  A --> B`
-
-const svg = await renderMermaidToSvg(source, { theme: "dark" })
-```
-
-Available themes: `default`, `dark`, `neutral`, `forest`, `base` (most customizable).
-
-## Build-time vs client-side
-
-| Method | When to use |
-|--------|-------------|
-| `renderMermaidInTree()` | Static docs, SSG — SVG in HTML, no runtime |
-| `mermaidClient()` patch | Dynamic diagrams, user input, live preview |
-
-Build-time is recommended for most docs: smaller page weight, no layout shift, works without JavaScript.
-
-## All supported types
-
-Every Mermaid diagram type works with `@domphy/mermaid`:
-
-flowchart, sequenceDiagram, classDiagram, stateDiagram-v2, erDiagram, gantt, pie, gitGraph, mindmap, timeline, xychart-beta, block-beta, quadrantChart, requirementDiagram, C4Context, sankey-beta, kanban, architecture-beta, packet-beta, radar, treemap, eventModel, wardleyMap, vennDiagram, ZenUML
-
-See [mermaid.js.org](https://mermaid.js.org) for full syntax documentation for each type.
-
-### er-gantt-pie.md
-
----
-title: "ER, Gantt, Pie & Git Graphs"
-description: "Complete Mermaid syntax for entity-relationship diagrams, Gantt charts, pie charts, and git graphs."
----
-
-# ER, Gantt, Pie & Git Graphs
-
-## Entity-relationship diagrams
-
-ER diagrams model the data structure of a system — entities, their attributes, and how they relate.
-
-### Basic syntax
-
-```mermaid
-erDiagram
-  USER ||--o{ ORDER : places
-  ORDER ||--|{ LINE_ITEM : contains
-  PRODUCT }|..|{ LINE_ITEM : "included in"
-```
-
-### Cardinality notation
-
-Cardinality is written on both sides of the `--` connector:
-
-| Symbol | Meaning |
-|--------|---------|
-| `\|\|` | Exactly one |
-| `o\|` | Zero or one |
-| `}\|` | One or more |
-| `}o` | Zero or more |
-
-Combine left and right sides with `--` (identifying) or `..` (non-identifying):
-
-```mermaid
-erDiagram
-  PERSON ||--|| PASSPORT : "has one"
-  CUSTOMER ||--o{ ADDRESS : "can have"
-  ORDER ||--|{ LINE_ITEM : "must have"
-  AUTHOR }|..|{ BOOK : "writes"
-```
-
-### Entity attributes
-
-List attributes inside `{ }`. Each attribute declares a type, a name, and optional key / comment:
-
-```mermaid
-erDiagram
-  USER {
-    int id PK
-    string email UK
-    string name
-    date createdAt
-  }
-  SESSION {
-    int id PK
-    int userId FK
-    string token UK
-    datetime expiresAt
-  }
-  ORDER {
-    int id PK
-    int userId FK
-    decimal total
-    string status
-  }
-
-  USER ||--o{ SESSION : "authenticated by"
-  USER ||--o{ ORDER : places
-```
-
-Key markers: `PK` (primary key), `FK` (foreign key), `UK` (unique key). You can append a comment string after the key marker:
-
-```text
-USER {
-  int id PK "Auto-increment"
-  string email UK "Normalized lowercase"
-}
-```
-
----
-
-## Gantt charts
-
-Gantt charts display project schedules with tasks laid out on a time axis.
-
-### Basic syntax
-
-```mermaid
-gantt
-  title Release 2.0
-  dateFormat YYYY-MM-DD
-
-  section Design
-    Wireframes   :done,    w1, 2025-01-06, 7d
-    Prototypes   :active,  p1, 2025-01-13, 14d
-
-  section Development
-    Core API     :         c1, after p1, 21d
-    UI components:         u1, after c1, 14d
-
-  section Release
-    QA           :crit,    q1, after u1, 7d
-    Deploy       :milestone, m1, after q1, 0d
-```
-
-### Date formats
-
-The `dateFormat` directive controls how dates are parsed in task definitions:
-
-| Format token | Example |
-|--------------|---------|
-| `YYYY-MM-DD` | `2025-03-15` |
-| `DD/MM/YYYY` | `15/03/2025` |
-| `MM/DD/YYYY` | `03/15/2025` |
-| `X` | Unix timestamp (seconds) |
-
-Control the display format on the axis with `axisFormat`:
-
-```text
-axisFormat %Y-%m
-```
-
-Common `axisFormat` tokens: `%Y` year, `%m` month (0-padded), `%b` abbreviated month name, `%d` day.
-
-### Task syntax
-
-```text
-Task label  :status, taskId, startDate, duration
-Task label  :status, taskId, after otherTaskId, duration
-```
-
-- **startDate** — absolute date matching `dateFormat`, or `after taskId` for a dependency
-- **duration** — number followed by `d` (days), `w` (weeks), `h` (hours), or `m` (minutes)
-- **taskId** — optional identifier used by `after` references
-- **status** — optional comma-separated flags
-
-### Task status flags
-
-| Flag | Meaning |
-|------|---------|
-| `done` | Completed task (gray fill) |
-| `active` | In progress (blue fill) |
-| `crit` | Critical path (red fill) |
-| `milestone` | Zero-duration diamond marker |
-
-Flags are combinable: `:done, crit,` renders a completed critical task.
-
-### Sections
-
-Group tasks under a named section with the `section` keyword. Each section is a horizontal band:
-
-```mermaid
-gantt
-  title Feature timeline
-  dateFormat YYYY-MM-DD
-
-  section Research
-    Competitor analysis :done, r1, 2025-01-01, 5d
-    User interviews     :done, r2, after r1, 3d
-
-  section Implementation
-    Backend            :active, i1, after r2, 14d
-    Frontend           :       i2, after i1, 10d
-
-  section Launch
-    Beta release       :crit, milestone, l1, after i2, 0d
-```
-
-### Exclude weekends and specific days
-
-```text
-excludes weekends
-excludes monday wednesday 2025-12-25
-```
-
-Place `excludes` before the first section.
-
-### Today marker
-
-Show a vertical line at the current date:
-
-```text
-todayMarker on
-```
-
----
-
-## Pie charts
-
-Simple proportional charts with labeled slices.
-
-### Basic syntax
-
-```mermaid
-pie title Browser market share
-  "Chrome"  : 65.2
-  "Safari"  : 18.9
-  "Firefox" : 4.0
-  "Edge"    : 4.1
-  "Other"   : 7.8
-```
-
-### Show raw values
-
-Append `showData` after `pie` to display numeric values alongside percentages:
-
-```mermaid
-pie showData title Weekly active users
-  "Mon" : 8200
-  "Tue" : 9100
-  "Wed" : 9400
-  "Thu" : 8800
-  "Fri" : 7600
-  "Sat" : 4300
-  "Sun" : 3900
-```
-
-Values are proportional (not percentages) — Mermaid normalizes them.
-
----
-
-## Git graphs
-
-Git graphs visualize branch and merge history.
-
-### Basic syntax
-
-```mermaid
-gitGraph
-  commit
-  commit
-  branch feature
-  checkout feature
-  commit
-  commit
-  checkout main
-  merge feature
-  commit
-```
-
-### Commit metadata
-
-Add an `id` label, a `tag`, or a `type` to a commit:
-
-```mermaid
-gitGraph
-  commit id: "init"
-  commit id: "feat: add auth"
-  branch release
-  checkout release
-  commit id: "v1.0.0" tag: "v1.0.0" type: HIGHLIGHT
-  checkout main
-  merge release id: "merge v1.0.0"
-  commit id: "feat: next" type: REVERSE
-```
-
-Commit types: `NORMAL` (default), `REVERSE` (dotted border), `HIGHLIGHT` (filled).
-
-### Multiple branches
-
-```mermaid
-gitGraph
-  commit
-  branch develop
-  checkout develop
-  commit
-  commit
-  branch feature/login
-  checkout feature/login
-  commit
-  commit
-  checkout develop
-  merge feature/login
-  checkout main
-  merge develop tag: "v2.0.0"
-```
-
-### Cherry-pick
-
-Copy a specific commit to the current branch:
-
-```mermaid
-gitGraph
-  commit id: "A"
-  branch hotfix
-  checkout hotfix
-  commit id: "fix"
-  checkout main
-  cherry-pick id: "fix"
-  commit id: "B"
-```
-
-### Orientation
-
-Switch from the default left-to-right to top-to-bottom with `LR` → `TB`:
-
-```mermaid
-gitGraph TB
-  commit
-  branch develop
-  checkout develop
-  commit
-  checkout main
-  merge develop
-```
-
-## Rendering with @domphy/mermaid
-
-All four diagram types use the same API. Build-time with cache:
-
-```ts
-import { renderMermaidCached } from "@domphy/mermaid"
-
-const erSvg = await renderMermaidCached(`erDiagram
-  USER ||--o{ ORDER : places
-  ORDER ||--|{ LINE_ITEM : contains`, { theme: "neutral" })
-
-const ganttSvg = await renderMermaidCached(`gantt
-  title Sprint 12
-  dateFormat YYYY-MM-DD
-  section Backend
-    Auth refactor :done, a1, 2025-06-01, 5d
-    API v2        :active, a2, after a1, 10d`, { theme: "default" })
-
-const pieSvg = await renderMermaidCached(`pie title Errors by type
-  "Validation" : 42
-  "Network"    : 28
-  "Auth"       : 18
-  "Other"      : 12`, { theme: "neutral" })
-```
-
-Embed the resulting SVG strings in Domphy elements:
-
-```ts
-const DiagramRow = {
-  div: [
-    { div: erSvg, class: "mermaid", ariaLabel: "Entity relationships" },
-    { div: ganttSvg, class: "mermaid", ariaLabel: "Sprint timeline" },
-    { div: pieSvg, class: "mermaid", ariaLabel: "Error breakdown" },
-  ],
-  style: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1.5rem" },
-}
-```
-
-Client-side for any of these types:
-
-```ts
-import { mermaidClient } from "@domphy/mermaid"
-
-const PieChart = {
-  pre: [{ code: `pie title Q1 Revenue\n  "Product A" : 40\n  "Product B" : 35\n  "Other" : 25` }],
-  $: [mermaidClient({ theme: "neutral" })],
-}
-```
-
-### flowchart.md
-
----
-title: "Flowchart"
-description: "Complete Mermaid flowchart syntax for @domphy/mermaid — node shapes, edges, subgraphs, styling, and click interactions."
----
-
-# Flowchart
-
-Flowcharts model processes, decision trees, and data flows. Use `flowchart` (alias: `graph`) followed by a direction keyword.
-
-## Direction
-
-```mermaid
-flowchart LR
-  Start --> Process --> End
-```
-
-| Keyword | Direction |
-|---------|-----------|
-| `TB` or `TD` | Top → bottom |
-| `BT` | Bottom → top |
-| `LR` | Left → right |
-| `RL` | Right → left |
-
-## Node shapes
-
-The characters surrounding the label choose the shape.
-
-```mermaid
-flowchart LR
-  rect[Rectangle]
-  rnd(Rounded)
-  stad([Stadium])
-  sub[[Subroutine]]
-  cyl[(Cylinder)]
-  circ((Circle))
-  asym>Asymmetric]
-  diam{Diamond}
-  hex{{Hexagon}}
-  para[/Parallelogram/]
-  trap[/Trapezoid\]
-```
-
-| Shape | Syntax |
-|-------|--------|
-| Rectangle | `id[text]` |
-| Rounded | `id(text)` |
-| Stadium / pill | `id([text])` |
-| Subroutine | `id[[text]]` |
-| Cylinder / database | `id[(text)]` |
-| Circle | `id((text))` |
-| Asymmetric | `id>text]` |
-| Diamond / decision | `id{text}` |
-| Hexagon | `id{{text}}` |
-| Parallelogram | `id[/text/]` |
-| Alt parallelogram | `id[\text\]` |
-| Trapezoid | `id[/text\]` |
-| Alt trapezoid | `id[\text/]` |
-
-## Edge types
-
-```mermaid
-flowchart LR
-  A --> B
-  C --- D
-  E -.-> F
-  G ==> H
-  I --o J
-  K --x L
-  M <--> N
-```
-
-| Syntax | Renders as |
-|--------|-----------|
-| `-->` | Arrow |
-| `---` | Open line |
-| `-.->` | Dotted arrow |
-| `-.-` | Dotted line |
-| `==>` | Thick arrow |
-| `===` | Thick line |
-| `--o` | Circle arrowhead |
-| `--x` | Cross arrowhead |
-| `<-->` | Bidirectional arrow |
-| `o--o` | Bidirectional circles |
-| `x--x` | Bidirectional crosses |
-
-## Edge labels
-
-Place a label inline with the edge definition. Both syntaxes work:
-
-```mermaid
-flowchart LR
-  A -- success --> B
-  A -->|failure| C
-  B -. retry .-> A
-  C == abort ==> D
-```
-
-Use double quotes when the label contains spaces or special characters:
-
-```text
-A -- "user signed in" --> B
-```
-
-## Multi-target shorthand
-
-Fan out or fan in multiple connections with `&`:
-
-```mermaid
-flowchart LR
-  Fetch --> Parse & Validate
-  Parse & Validate --> Emit
-```
-
-This is shorthand for four individual edges: `Fetch --> Parse`, `Fetch --> Validate`, `Parse --> Emit`, `Validate --> Emit`.
-
-## Subgraphs
-
-Group related nodes in a labeled box:
-
-```mermaid
-flowchart TB
-  subgraph client["Client"]
-    UI --> LocalCache
-  end
-  subgraph backend["API Server"]
-    Handler --> DB
-  end
-  LocalCache --> Handler
-```
-
-```text
-subgraph id["Display title"]
-  ...nodes and edges...
-end
-```
-
-Subgraphs nest freely. Give a subgraph its own direction with a nested `direction` declaration:
-
-```mermaid
-flowchart LR
-  subgraph pipeline
-    direction TB
-    Fetch --> Parse --> Emit
-  end
-  pipeline --> Output
-```
-
-## Special characters in labels
-
-Wrap labels in quotes to use spaces, hyphens, or Unicode. Use HTML entities for `<` (`&lt;`) and `>` (`&gt;`):
-
-```mermaid
-flowchart LR
-  A["User submits form"]
-  B{"Valid? &lt;input&gt;"}
-  C["Redirect → /dashboard"]
-  A --> B -->|yes| C
-```
-
-## Inline styling
-
-Define reusable CSS classes with `classDef` and apply them using `:::` after the node ID:
-
-```mermaid
-flowchart LR
-  Login
-  Auth -->|pass| Dashboard
-
-  classDef step     fill:#f0f9ff,stroke:#0ea5e9,color:#0c4a6e
-  classDef decision fill:#fefce8,stroke:#ca8a04,color:#713f12
-  classDef success  fill:#f0fdf4,stroke:#16a34a,color:#14532d
-  classDef danger   fill:#fff1f2,stroke:#e11d48,color:#881337
-```
-
-Apply a class to several nodes at once with:
-```text
-class A,B,C stepClass
-```
-
-Set defaults for all unlabelled nodes:
-```text
-classDef default fill:#f9f9f9,stroke:#d1d5db
-```
-
-## Click interactions
-
-Attach a URL or a JavaScript callback to a node:
-
-```text
-flowchart LR
-  Docs --> API --> Code
-
-  click Docs "https://domphy.com/docs" "Open docs"
-  click API callback "Invoke JS callback"
-```
-
-Click interactions are only active in the browser rendering path. For callback-based clicks, pass `securityLevel: "loose"` in `mermaidConfig`:
-
-```ts
-import { mermaidClient } from "@domphy/mermaid"
-
-const DiagramWithClicks = {
-  pre: [{ code: `flowchart LR
-  A --> B
-  click A callback` }],
-  $: [mermaidClient({ mermaidConfig: { securityLevel: "loose" } })],
-}
-```
-
-## Build-time rendering
-
-Render a flowchart to inline SVG at build time:
-
-```ts
-import { rawHtml } from "@domphy/core"
-import { renderMermaidToSvg } from "@domphy/mermaid"
-
-const source = `flowchart LR
-  A[Client] --> B{Cache hit?}
-  B -->|yes| C[Return cached]
-  B -->|no| D[Fetch from API]
-  D --> E[Store in cache]
-  E --> C`
-
-const svg = await renderMermaidToSvg(source, { theme: "neutral" })
-
-// A string child is text by default — opt the single-root SVG into the HTML
-// path with rawHtml() (this is what renderMermaidInTree does internally).
-const DiagramBlock = {
-  div: rawHtml(svg),
-  class: "mermaid",
-  ariaLabel: "Cache lookup flowchart",
-}
-```
-
-Use `renderMermaidCached` in build scripts to skip re-rendering unchanged diagrams:
-
-```ts
-import { renderMermaidCached } from "@domphy/mermaid"
-
-const svg = await renderMermaidCached(source, { theme: "neutral" })
-```
-
-## Client-side rendering
-
-Mount a flowchart in the browser at element mount time:
-
-```ts
-import { mermaidClient } from "@domphy/mermaid"
-
-const source = `flowchart TD
-  Login --> Auth{Authenticated?}
-  Auth -->|yes| Dashboard
-  Auth -->|no| LoginForm`
-
-const DiagramView = {
-  pre: [{ code: source }],
-  $: [mermaidClient({ theme: "default" })],
-}
-```
-
-The patch reads the `<code>` element's text at mount time and replaces the element's content with the SVG. See the [Client-side rendering](/docs/mermaid/client) page for reactive and dynamic usage patterns.
-
-### index.md
-
-# Mermaid
-
-`@domphy/mermaid` renders [Mermaid](https://mermaid.js.org/) diagrams for Domphy. It has two complementary paths:
-
-- **Build-time / SSG** — render each diagram to inline SVG with a headless browser, with an on-disk cache and a tree integration for [`@domphy/markdown`](/docs/markdown/). The browser ships **no Mermaid runtime** — diagrams are just SVG in your HTML.
-- **Client-side** — the `mermaidClient()` patch renders a diagram in the browser at mount time, using the `mermaid` library (an optional peer dependency).
-
-Like the rest of this docs site (see the tip below), the diagram below is rendered client-side by a small islands-runtime script rather than through `@domphy/mermaid`'s build-time path — it illustrates that pipeline without being produced by it:
-
-```mermaid
-graph TD
-  MD["Markdown source"] --> P["@domphy/markdown<br/>parseMarkdown"]
-  P --> T["Domphy tree<br/>(pre &gt; code.language-mermaid)"]
-  T --> M["@domphy/mermaid<br/>renderMermaidInTree"]
-  M --> SVG["Inline SVG in HTML"]
-```
-
-## Install
-
-pnpm add @domphy/mermaid
-```
-```bash [NPM]
-npm install @domphy/mermaid
-```
-
-`@domphy/core` is a peer dependency. `@mermaid-js/mermaid-cli` is a **direct** dependency that powers the build-time path; it manages its own headless browser (Puppeteer / Chrome) internally, so you do not install or configure Puppeteer yourself. `mermaid` is an **optional** peer dependency, needed only for the client-side patch.
-
-## Live Example
-
-Client-side rendering with the `mermaidClient()` patch — pick a diagram to re-render:
-
-## Build-time rendering
-
-`renderMermaidToSvg(code, options?)` renders a single diagram to an SVG string:
-
-```ts
-import { renderMermaidToSvg } from "@domphy/mermaid"
-
-const svg = await renderMermaidToSvg("graph TD; A-->B;", {
-  theme: "dark",
-  background: "transparent",
-})
-// svg === "<svg ...>...</svg>"
-```
-
-Mermaid syntax errors are thrown as an `Error` that includes the diagram source — they are never silently swallowed.
-
-### Options
-
-| Option | Type | Default |
-| --- | --- | --- |
-| `theme` | `"default" \| "dark" \| "neutral" \| "forest" \| "base"` | `"default"` |
-| `background` | `string` (`"transparent"` for none) | `"transparent"` |
-| `mermaidConfig` | `Record<string, unknown>` | — |
-| `css` | `string` (injected into the render page) | — |
-| `puppeteer` | `Record<string, unknown>` (launch options) | — |
-
-## Render cache
-
-`renderMermaidCached(code, options?)` renders once and reads the SVG back from disk on later calls with the same source and options:
-
-```ts
-import { renderMermaidCached } from "@domphy/mermaid"
-
-const svg = await renderMermaidCached("graph TD; A-->B;", {
-  cacheDir: "node_modules/.cache/domphy-mermaid", // default
-})
-```
-
-The cache key is a stable SHA-256 hash of the normalized source plus the output-affecting options (no time or randomness), so repeated builds are fast. Pass `cache: false` to bypass it.
-
-## Markdown integration
-
-`@domphy/markdown` emits a fenced ` ```mermaid ` block as a regular code node:
-
-```js
-{ pre: [{ code: "<escaped source>", dataLanguage: "mermaid", class: "language-mermaid" }] }
-```
-
-`renderMermaidInTree(elements, options?)` finds those blocks anywhere in the tree, renders each to SVG (through the cache), and replaces the node with an SVG-wrapping element:
-
-```js
-{ div: "<svg ...>...</svg>", class: "mermaid", ariaLabel: "diagram" }
-```
-
-```ts
-import { parseMarkdown } from "@domphy/markdown"
-import { renderMermaidInTree } from "@domphy/mermaid"
-
-const { body } = parseMarkdown(markdownSource)
-const rendered = await renderMermaidInTree(body, { theme: "neutral" })
-```
-
-All other nodes — siblings, nesting, attributes — are left untouched. Identical diagram sources are rendered only once, and distinct diagrams render concurrently. Inject a custom `renderer` to test the tree walk without a browser:
-
-```ts
-await renderMermaidInTree(body, {
-  renderer: async (code) => `<svg data-src="${code}"></svg>`,
-})
-```
-
-`TreeOptions` extends the cache options, plus `renderer` and a `className` for the wrapping element (default `"mermaid"`).
-
-## Client-side patch
-
-To render in the browser at mount time instead of at build time, attach `mermaidClient()` with `$`:
-
-```ts
-import { mermaidClient } from "@domphy/mermaid"
-
-const App = {
-  pre: [{ code: "graph TD; A-->B;" }],
-  $: [mermaidClient({ theme: "dark" })],
-}
-```
-
-The main `@domphy/mermaid` entry statically imports Node built-ins (`node:fs`, `node:crypto`) for the build-time renderer. In a browser bundle (Vite, esbuild, webpack), import the client patch from the browser-safe subpath instead — it is identical, minus the Node-only exports:
-
-```ts
-import { mermaidClient } from "@domphy/mermaid/client"
-```
-
-On mount the patch reads the source from the element (preferring an inner `<code>`), renders it with the `mermaid` library, and swaps in the SVG. Install `mermaid` to use this path:
-
-```bash
-pnpm add mermaid
-```
-
-### sequence.md
-
----
-title: "Sequence Diagrams"
-description: "Complete Mermaid sequence diagram syntax — participants, message types, activation, loops, conditionals, and grouping."
----
-
-# Sequence Diagrams
-
-Sequence diagrams show how components communicate over time. Each actor is laid out as a vertical lifeline; messages pass between lifelines horizontally.
-
-## Basic syntax
-
-```mermaid
-sequenceDiagram
-  Alice->>Bob: Hello!
-  Bob-->>Alice: Hi there
-  Alice->>Bob: How are you?
-  Bob-->>Alice: All good, thanks.
-```
-
-## Participants
-
-Declare participants explicitly to fix their order and give them readable labels:
-
-```mermaid
-sequenceDiagram
-  participant B as Browser
-  participant S as API Server
-  participant D as Database
-
-  B->>S: GET /users/42
-  S->>D: SELECT * FROM users WHERE id=42
-  D-->>S: user row
-  S-->>B: 200 { id: 42, name: "Alice" }
-```
-
-Use `actor` instead of `participant` to render a stick-person icon:
-
-```mermaid
-sequenceDiagram
-  actor User
-  participant App
-
-  User->>App: Click "Sign in"
-  App-->>User: Show login form
-```
-
-## Message arrow types
-
-```mermaid
-sequenceDiagram
-  A->>B: Solid arrowhead (sync request)
-  A-->>B: Dotted arrowhead (sync response)
-  A->B: Solid, no arrowhead
-  A-->B: Dotted, no arrowhead
-  A-xB: Solid with cross (lost message)
-  A--xB: Dotted with cross
-  A-)B: Async (open arrowhead)
-  A--)B: Async dotted
-```
-
-| Syntax | Meaning |
-|--------|---------|
-| `->>` | Synchronous call (solid arrowhead) |
-| `-->>` | Synchronous response (dotted arrowhead) |
-| `->` | Solid, no arrowhead |
-| `-->` | Dotted, no arrowhead |
-| `-x` | Lost / dropped message |
-| `--x` | Lost / dropped dotted |
-| `-)` | Asynchronous (open arrowhead) |
-| `--)` | Asynchronous dotted |
-
-## Activation boxes
-
-Activation boxes indicate when a participant is actively processing. Use the `+`/`-` shorthand directly on the message:
-
-```mermaid
-sequenceDiagram
-  Browser->>+Server: POST /login
-  Server->>+DB: SELECT user
-  DB-->>-Server: user row
-  Server-->>-Browser: 200 { token }
-```
-
-Or use explicit `activate` / `deactivate`:
-
-```mermaid
-sequenceDiagram
-  A->>B: Request
-  activate B
-  B->>C: Forward
-  activate C
-  C-->>B: Result
-  deactivate C
-  B-->>A: Response
-  deactivate B
-```
-
-Nested `+`/`-` on the same participant creates stacked boxes to show re-entrant calls:
-
-```mermaid
-sequenceDiagram
-  A->>+B: Call 1
-  A->>+B: Call 2
-  B-->>-A: Reply 2
-  B-->>-A: Reply 1
-```
-
-## Notes
-
-Annotate the diagram with free-form notes:
-
-```mermaid
-sequenceDiagram
-  participant A
-  participant B
-
-  Note right of A: Waiting for user input
-  Note left of B: Validates on every request
-  A->>B: Submit
-  Note over A,B: Both sides log this event
-```
-
-| Syntax | Position |
-|--------|----------|
-| `Note right of X` | Right of X |
-| `Note left of X` | Left of X |
-| `Note over X` | Centred above X |
-| `Note over X,Y` | Spanning X to Y |
-
-## Loop
-
-Repeat a block of messages:
-
-```mermaid
-sequenceDiagram
-  Client->>Server: Subscribe to events
-  loop Every 30 seconds
-    Server->>Client: Heartbeat ping
-    Client-->>Server: Pong
-  end
-  Client->>Server: Unsubscribe
-```
-
-## Alt / else
-
-Model branching flows — `alt` with one or more `else` clauses:
-
-```mermaid
-sequenceDiagram
-  Browser->>API: GET /resource
-  alt Found
-    API-->>Browser: 200 { data }
-  else Not found
-    API-->>Browser: 404 Not Found
-  else Server error
-    API-->>Browser: 500 Internal Error
-  end
-```
-
-## Opt
-
-An optional block (shown only when the condition holds):
-
-```mermaid
-sequenceDiagram
-  User->>App: Submit form
-  App->>Validator: Validate fields
-  opt Invalid input
-    Validator-->>App: Validation errors
-    App-->>User: Show error messages
-  end
-  App->>DB: Persist record
-  DB-->>App: OK
-  App-->>User: Success
-```
-
-## Par
-
-Show parallel concurrent activity:
-
-```mermaid
-sequenceDiagram
-  Server->>Server: Receive request
-  par Notify user
-    Server->>Email: Send confirmation
-  and Log event
-    Server->>Logger: Write audit log
-  and Update metrics
-    Server->>Metrics: Increment counter
-  end
-  Server-->>Client: 200 OK
-```
-
-## Critical
-
-A `critical` block marks a section that must succeed, with `option` branches for alternative outcomes:
-
-```mermaid
-sequenceDiagram
-  Client->>Server: Open connection
-  critical Establish TLS
-    Server->>CA: Verify certificate
-    CA-->>Server: Certificate valid
-  option Timeout
-    Server-->>Client: 503 Unavailable
-  option Invalid cert
-    Server-->>Client: 495 SSL Error
-  end
-```
-
-## Break
-
-Model an early exit from a sequence:
-
-```mermaid
-sequenceDiagram
-  User->>App: Upload file
-  break File too large
-    App-->>User: 413 Payload Too Large
-  end
-  App->>Storage: Store file
-  Storage-->>App: URL
-  App-->>User: 200 { url }
-```
-
-## Autonumber
-
-Prefix every message with an incrementing sequence number:
-
-```mermaid
-sequenceDiagram
-  autonumber
-  Browser->>Server: GET /api/data
-  Server->>DB: Query
-  DB-->>Server: Rows
-  Server-->>Browser: JSON response
-```
-
-## Box grouping
-
-Group participants in a colored background box:
-
-```mermaid
-sequenceDiagram
-  box "Front-end" #e0f2fe
-    participant UI
-    participant Store
-  end
-  box "Back-end"
-    participant API
-    participant DB
-  end
-  UI->>API: Fetch
-  API->>DB: Query
-  DB-->>API: Rows
-  API-->>Store: Update state
-  Store-->>UI: Re-render
-```
-
-## Rendering with @domphy/mermaid
-
-Build-time:
-
-```ts
-import { renderMermaidToSvg } from "@domphy/mermaid"
-
-const svg = await renderMermaidToSvg(`sequenceDiagram
-  autonumber
-  actor User
-  participant App
-  participant Auth
-
-  User->>App: Sign in
-  App->>+Auth: Verify credentials
-  Auth-->>-App: JWT token
-  App-->>User: Redirect to /dashboard`, { theme: "default" })
-```
-
-Client-side (for dynamic or user-authored diagrams):
-
-```ts
-import { mermaidClient } from "@domphy/mermaid"
-
-const SequenceView = {
-  pre: [{ code: `sequenceDiagram
-  A->>B: Hello
-  B-->>A: Hi` }],
-  $: [mermaidClient({ theme: "neutral" })],
-}
 ```
 
 
@@ -35320,6 +33003,10 @@ interface TocEntry {
 }
 ```
 
+## Markdown pipeline
+
+The Markdown API (formerly the standalone `@domphy/markdown` package) is exported from the main entry: `parseMarkdown`, `markdownToDomphy`, `createMarkdown`, `walkMdast`, `splitFrontmatter`, `transformOutsideCodeBlocks`, `createUniqueSlugger`, `defaultSlugify`. Main entry only — not available from `@domphy/press/browser`. See [Markdown](/docs/markdown/) for the full reference.
+
 ## LayoutContext
 
 ```ts
@@ -36203,12 +33890,12 @@ See the [`@domphy/i18n`](/docs/i18n/) package docs for the full API.
 
 ---
 title: "@domphy/press"
-description: "Static documentation site framework for Domphy — built on @domphy/app + @domphy/markdown, VitePress-compatible."
+description: "Static documentation site framework for Domphy — built on @domphy/app with the Markdown pipeline built in, VitePress-compatible."
 ---
 
 # @domphy/press
 
-A VitePress-baseline static documentation site framework built on `@domphy/app` and `@domphy/markdown`. Features the same Markdown authoring experience as VitePress plus Domphy-native CSS-in-JS theming — no separate stylesheet to maintain.
+A VitePress-baseline static documentation site framework built on `@domphy/app`, with the Markdown pipeline (`parseMarkdown`/`createMarkdown`) built in. Features the same Markdown authoring experience as VitePress plus Domphy-native CSS-in-JS theming — no separate stylesheet to maintain.
 
 ## Features
 

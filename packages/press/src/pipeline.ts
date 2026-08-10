@@ -4,20 +4,20 @@
 import { readFileSync } from "node:fs";
 import { dirname, extname, isAbsolute, resolve } from "node:path";
 import type { DomphyElement, RawHTML } from "@domphy/core";
-import type { WalkHelper } from "@domphy/markdown";
-import {
-  createUniqueSlugger,
-  defaultSlugify,
-  splitFrontmatter,
-  transformOutsideCodeBlocks,
-  walkMdast,
-} from "@domphy/markdown";
 import type { Code, Html, Nodes, Parent, Root } from "mdast";
 import { remark } from "remark";
 import remarkDirective from "remark-directive";
 import remarkGfm from "remark-gfm";
 import { visit } from "unist-util-visit";
 import { escapeHtml, renderFence } from "./highlight.js";
+import type { WalkHelper } from "./markdown/index.js";
+import {
+  createUniqueSlugger,
+  defaultSlugify,
+  splitFrontmatter,
+  transformOutsideCodeBlocks,
+  walkMdast,
+} from "./markdown/index.js";
 import type { RenderDocOptions, RenderedDoc, TocEntry } from "./types.js";
 
 // --- <<< code imports --------------------------------------------------------

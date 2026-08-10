@@ -8,7 +8,10 @@
     "start": "node main.mjs"
   },
   "dependencies": {
+    "@domphy/app": "file:../../.tarballs/domphy-app.tgz",
     "@domphy/core": "file:../../.tarballs/domphy-core.tgz",
-    "@domphy/markdown": "file:../../.tarballs/domphy-markdown.tgz"
+    "@domphy/press": "file:../../.tarballs/domphy-press.tgz",
+    "@domphy/theme": "file:../../.tarballs/domphy-theme.tgz",
+    "@domphy/ui": "file:../../.tarballs/domphy-ui.tgz"
   }
 }

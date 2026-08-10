@@ -60,7 +60,6 @@ export const config = defineConfig({
           { text: "Palette", link: "/docs/palette/" },
           { text: "i18n", link: "/docs/i18n/" },
           { text: "Markdown", link: "/docs/markdown/" },
-          { text: "Mermaid", link: "/docs/mermaid/" },
         ],
       },
       { text: "AI", link: "/docs/ai" },
@@ -402,20 +401,6 @@ export const config = defineConfig({
         { text: "Syntax Reference", link: "/docs/markdown/syntax-reference" },
         { text: "Syntax Highlighting", link: "/docs/markdown/highlighting" },
         { text: "Table of Contents", link: "/docs/markdown/table-of-contents" },
-      ],
-      "/docs/mermaid/": [
-        { text: "Overview", link: "/docs/mermaid/" },
-        { text: "Supported Diagrams", link: "/docs/mermaid/diagrams" },
-        { text: "Configuration & Themes", link: "/docs/mermaid/configuration" },
-        { text: "Flowchart", link: "/docs/mermaid/flowchart" },
-        { text: "Sequence Diagrams", link: "/docs/mermaid/sequence" },
-        { text: "Class & State Diagrams", link: "/docs/mermaid/class-diagram" },
-        {
-          text: "ER, Gantt, Pie & Git Graphs",
-          link: "/docs/mermaid/er-gantt-pie",
-        },
-        { text: "Client-Side Rendering", link: "/docs/mermaid/client" },
-        { text: "Build-Time Integration", link: "/docs/mermaid/build" },
       ],
       "/docs/floating/": [
         { text: "Getting Started", link: "/docs/floating" },

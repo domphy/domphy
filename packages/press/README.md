@@ -2,7 +2,7 @@
 
 **[domphy.com](https://domphy.com)** · [Docs](https://domphy.com/docs/press/) · [npm](https://www.npmjs.com/package/@domphy/press)
 
-A VitePress-baseline static documentation site framework built on `@domphy/app` and `@domphy/markdown`. Write docs in Markdown, get a fast static site with Domphy-native CSS-in-JS theming — no separate stylesheet to maintain.
+A VitePress-baseline static documentation site framework built on `@domphy/app`, with the Markdown pipeline (`parseMarkdown`/`createMarkdown`) built in. Write docs in Markdown, get a fast static site with Domphy-native CSS-in-JS theming — no separate stylesheet to maintain.
 
 ## Features
 
@@ -19,7 +19,7 @@ A VitePress-baseline static documentation site framework built on `@domphy/app` 
 npm install @domphy/press
 ```
 
-Peer dependencies: `@domphy/app`, `@domphy/core`, `@domphy/markdown`, `@domphy/theme`, `@domphy/ui`.
+Peer dependencies: `@domphy/app`, `@domphy/core`, `@domphy/theme`, `@domphy/ui`.
 
 ## Quickstart
 

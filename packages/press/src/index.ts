@@ -5,6 +5,31 @@ export type { FenceMeta } from "./highlight.js";
 export { createHighlighter, parseFenceInfo, renderFence } from "./highlight.js";
 export type { LayoutContext } from "./layout.js";
 export { homeShell, pageShell } from "./layout.js";
+export type {
+  AnchorSlugify,
+  CreateMarkdownOptions,
+  FrontmatterSplit,
+  Highlight,
+  MarkdownInstance,
+  MdastWalkOptions,
+  ParseOptions,
+  ParseResult,
+  RemarkPlugin,
+  WalkHelper,
+} from "./markdown/index.js";
+// Markdown API (folded in from the former @domphy/markdown package). Main
+// entry only — the browser entrypoint stays free of the remark pipeline.
+// `TocEntry` is shared with ./types.js and re-exported from there.
+export {
+  createMarkdown,
+  createUniqueSlugger,
+  defaultSlugify,
+  markdownToDomphy,
+  parseMarkdown,
+  splitFrontmatter,
+  transformOutsideCodeBlocks,
+  walkMdast,
+} from "./markdown/index.js";
 export { renderDoc } from "./pipeline.js";
 export {
   discoverPages,

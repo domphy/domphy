@@ -1,11 +1,11 @@
 ---
 title: "Syntax Reference"
-description: "How every markdown construct maps to Domphy elements in @domphy/markdown."
+description: "How every markdown construct maps to Domphy elements in @domphy/press."
 ---
 
 # Syntax Reference
 
-This page documents every markdown syntax construct and the exact Domphy element shape `@domphy/markdown` produces for each one. Use it to understand what `body` contains and how to write patches or styles that target specific elements.
+This page documents every markdown syntax construct and the exact Domphy element shape `@domphy/press` produces for each one. Use it to understand what `body` contains and how to write patches or styles that target specific elements.
 
 ## Headings
 
@@ -353,7 +353,7 @@ The `checked` property is present only on checked items; it is absent (not `fals
 
 ```ts
 import remarkMath from "remark-math"
-import { createMarkdown } from "@domphy/markdown"
+import { createMarkdown } from "@domphy/press"
 
 const parser = createMarkdown({
   plugins: [remarkMath],

@@ -5,14 +5,9 @@ import { fileURLToPath } from "node:url";
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, "../..");
 
-const requireFromMarkdownPkg = createRequire(
-  resolve(repoRoot, "packages/markdown/src/index.ts"),
-);
 const requireFromWeb = createRequire(resolve(here, "package.json"));
 
-const markdownItPkg = requireFromMarkdownPkg.resolve(
-  "markdown-it/package.json",
-);
+const markdownItPkg = requireFromWeb.resolve("markdown-it/package.json");
 // markdown-it 15 ships dist/markdown-it.mjs as its ESM entry (the old
 // package-root index.mjs no longer exists).
 const markdownItEsm = resolve(dirname(markdownItPkg), "dist/markdown-it.mjs");
@@ -30,6 +25,12 @@ export default {
       "tests/playground-layout.test.ts",
       "tests/playground-payloads.test.ts",
       "tests/mermaid-islands.test.ts",
+      "tests/mermaid/tree.test.ts",
+      "tests/mermaid/tree-variants.test.ts",
+      "tests/mermaid/client.test.ts",
+      "tests/mermaid/cache.test.ts",
+      "tests/mermaid/renderer.test.ts",
+      "tests/mermaid/renderer-config.test.ts",
     ],
     environment: "node",
     // theme-builder.test.ts re-imports the whole demo module graph per test
@@ -46,10 +47,6 @@ export default {
       {
         find: "@domphy/press",
         replacement: resolve(repoRoot, "packages/press/src/index.ts"),
-      },
-      {
-        find: "@domphy/markdown",
-        replacement: resolve(repoRoot, "packages/markdown/src/index.ts"),
       },
       {
         find: "@domphy/core",

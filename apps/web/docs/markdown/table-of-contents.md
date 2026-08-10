@@ -1,6 +1,6 @@
 ---
 title: "Table of Contents"
-description: "Use the toc array from parseMarkdown to build navigation in @domphy/markdown."
+description: "Use the toc array from parseMarkdown to build navigation in @domphy/press."
 ---
 
 # Table of Contents
@@ -56,7 +56,7 @@ So `toc[i].slug` can always be used as an `href` anchor target for `body[i]`.
 `TocEntry` is exported from the package:
 
 ```ts
-import type { TocEntry } from "@domphy/markdown"
+import type { TocEntry } from "@domphy/press"
 ```
 
 ## Rendering a flat anchor list
@@ -65,7 +65,7 @@ Emit a simple `nav > a` list from the toc array:
 
 ```ts
 import { ElementNode } from "@domphy/core"
-import { parseMarkdown } from "@domphy/markdown"
+import { parseMarkdown } from "@domphy/press"
 
 const { body, toc } = parseMarkdown(source)
 
@@ -101,7 +101,7 @@ const chapters = toc.filter((entry) => entry.level === 1)
 Convert the flat array into a parent-children hierarchy for an indented sidebar:
 
 ```ts
-import type { TocEntry } from "@domphy/markdown"
+import type { TocEntry } from "@domphy/press"
 import type { DomphyElement } from "@domphy/core"
 
 interface TocNode {
@@ -149,7 +149,7 @@ Usage:
 
 ```ts
 import { ElementNode } from "@domphy/core"
-import { parseMarkdown } from "@domphy/markdown"
+import { parseMarkdown } from "@domphy/press"
 
 const { body, toc } = parseMarkdown(source)
 const tree = buildTocTree(toc)
@@ -170,7 +170,7 @@ Track which heading is currently in the viewport and highlight the corresponding
 
 ```ts
 import { toState } from "@domphy/core"
-import { parseMarkdown } from "@domphy/markdown"
+import { parseMarkdown } from "@domphy/press"
 
 const { body, toc } = parseMarkdown(source)
 
@@ -206,7 +206,7 @@ const tocItems = {
 The toc array serialises cleanly to JSON — useful for search indexes or pre-rendered navigation:
 
 ```ts
-import { parseMarkdown } from "@domphy/markdown"
+import { parseMarkdown } from "@domphy/press"
 
 const pages = sources.map((source) => {
   const { frontmatter, toc } = parseMarkdown(source)
@@ -226,7 +226,7 @@ When using `walkMdast` in a custom pipeline, pass an empty array as `toc` — th
 
 ```ts
 import { remark } from "remark"
-import { splitFrontmatter, walkMdast, createUniqueSlugger, defaultSlugify } from "@domphy/markdown"
+import { splitFrontmatter, walkMdast, createUniqueSlugger, defaultSlugify } from "@domphy/press"
 
 const processor = remark()
 const { content } = splitFrontmatter(source)

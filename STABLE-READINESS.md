@@ -31,8 +31,6 @@ Enterprise gate for the first **official stable** public cut of every publishabl
 | `@domphy/chart` | 0.2.3 | ECharts / Recharts | none | SSR canvas snapshot tests; percent stack | More series demos | Canvas engine + theme; unsupported custom/toolbox/brush warn. |
 | `@domphy/three` | 0.2.1 | @react-three/fiber | none | Asset loader error-boundary recipes; pointer container offset | — | R3F-class reconciler port + doctor. |
 | `@domphy/editor` | 0.2.1 | Tiptap / ProseMirror | none | IME stress suite across browsers; collaborative-editing story | Merged-cell table map; image extension; NodeSelection | Tiptap-compatible API on a self-contained engine; StarterKit + underline/table/node views/autolink; 27-scenario real-browser pass. |
-| `@domphy/markdown` | 0.19.2 | react-markdown / MDX | none | MDX component map docs; CDN global entry | — | remark pipeline → Domphy trees. |
-| `@domphy/mermaid` | 0.18.2 | mermaid + React wrappers | none | Client hydrate stress tests | — | Build-time SVG via optional mermaid-cli; client patch. |
 | `@domphy/press` | 0.21.10 | VitePress | none | Search backend pluggability | Theme marketplace | CLI build/dev/preview. |
 | `@domphy/i18n` | 0.19.2 | react-i18next | none | ICU messageformat | — | Reactive `t(listener,key)` + singleton tests. |
 | `@domphy/mcp` | 0.19.2 | (no React peer; MCP SDK) | none | Offline/local manifest fallback; more tools | — | Agent tools over doctor/patches; SERVER_VERSION synced. |
@@ -50,7 +48,7 @@ Enterprise gate for the first **official stable** public cut of every publishabl
 | P0-QUERY-THROW | query | `throwOnError` documented but adapter never threw | reactive field reads throw when errored; tests |
 | P0-FORM-SUBMIT | form | docs claimed throw→`state.errors`; invalid path untested | docs + tests: `setErrorMap`, `onSubmitInvalid`, rethrow contract |
 | P0-CHART-SURFACE | chart | typed/docs `custom`/`toolbox`/`brush` silent no-op | console warn + README honesty |
-| P0-MERMAID-CLI | mermaid | hard dependency on mermaid-cli/Chromium | `optionalDependencies` + clearer install error |
+| P0-MERMAID-CLI | mermaid | hard dependency on mermaid-cli/Chromium | `optionalDependencies` + clearer install error (package later folded into apps/web as an internal module) |
 | P0-MCP-VERSION | mcp | SERVER_VERSION lagged package.json | synced to 0.19.2 |
 | P0-DIALOG-FOCUS | ui | focus trap/restore untested vs Radix contract | overlay tests for restore + Tab trap |
 | P0-ROUTER-SSR | router | `./ssr/server` shipped with zero package tests | `tests/ssr-server.test.ts` createRequestHandler smoke |

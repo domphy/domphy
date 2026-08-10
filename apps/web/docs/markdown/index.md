@@ -1,5 +1,5 @@
 ---
-title: "@domphy/markdown"
+title: "Markdown — @domphy/press"
 description: "Parse Markdown into Domphy element trees for SSR/SSG."
 ---
 
@@ -10,12 +10,12 @@ import Basic from "../demos/markdown/basic.ts?raw"
 
 # Markdown
 
-`@domphy/markdown` parses Markdown into **Domphy element trees** — plain objects like `{ h1: ... }`, `{ ul: [...] }`, `{ pre: [{ code: ... }] }` — so the result can be server-rendered by `@domphy/core` / `@domphy/app` with no client runtime.
+The Markdown pipeline built into `@domphy/press` parses Markdown into **Domphy element trees** — plain objects like `{ h1: ... }`, `{ ul: [...] }`, `{ pre: [{ code: ... }] }` — so the result can be server-rendered by `@domphy/core` / `@domphy/app` with no client runtime.
 
 It uses [remark](https://github.com/remarkjs/remark) (unified) to parse Markdown into an mdast AST, then walks the tree and emits **semantic tags only** — no inline typography styles. Styling stays the consumer's job, applied through patches and theme, exactly like hand-written Domphy.
 
 ::: tip
-This docs site is built on `@domphy/markdown`. The `@domphy/press` engine passes custom remark plugins (containers, includes) to `createMarkdown`, then renders the resulting Domphy tree to static HTML via `@domphy/app`.
+This docs site is built on this pipeline. The `@domphy/press` engine passes custom remark plugins (containers, includes) to `createMarkdown`, then renders the resulting Domphy tree to static HTML via `@domphy/app`. (The standalone `@domphy/markdown` package was folded into `@domphy/press` — same API, new import specifier.)
 :::
 
 ## What you get
@@ -34,10 +34,10 @@ This docs site is built on `@domphy/markdown`. The `@domphy/press` engine passes
 
 ::: code-group
 ```bash [NPM]
-npm install @domphy/markdown @domphy/core
+npm install @domphy/press @domphy/core
 ```
 ```bash [pnpm]
-pnpm add @domphy/markdown @domphy/core
+pnpm add @domphy/press @domphy/core
 ```
 :::
 
@@ -55,7 +55,7 @@ Edit the Markdown source and watch `parseMarkdown` rebuild the element tree:
 
 ```ts
 import { ElementNode } from "@domphy/core"
-import { parseMarkdown } from "@domphy/markdown"
+import { parseMarkdown } from "@domphy/press"
 
 const source = `---
 title: Hello
@@ -88,7 +88,7 @@ const html = new ElementNode({ div: body }).generateHTML()
 A convenience wrapper when you only need the body element array:
 
 ```ts
-import { markdownToDomphy } from "@domphy/markdown"
+import { markdownToDomphy } from "@domphy/press"
 
 const body = markdownToDomphy("# Title\n\nText.")
 ```
@@ -131,7 +131,7 @@ parseMarkdown(md, {
 `createMarkdown(options?)` builds a reusable `MarkdownInstance` with a shared remark processor. Use it when you parse many documents (saves processor setup cost per document) or need to pass it to a pipeline:
 
 ```ts
-import { createMarkdown } from "@domphy/markdown"
+import { createMarkdown } from "@domphy/press"
 
 const parser = createMarkdown({
   highlight: (code, info) => myHighlighter(code, info),
@@ -170,7 +170,7 @@ The raw LaTeX is preserved in the element content as plain text — so a CDN-loa
 
 ```ts
 import remarkDirective from "remark-directive"
-import { createMarkdown } from "@domphy/markdown"
+import { createMarkdown } from "@domphy/press"
 
 const parser = createMarkdown({
   plugins: [remarkDirective],
@@ -193,8 +193,8 @@ For maximum control — running your own remark instance and converting the mdas
 import { remark } from "remark"
 import remarkGfm from "remark-gfm"
 import remarkMath from "remark-math"
-import { splitFrontmatter, walkMdast } from "@domphy/markdown"
-import { createUniqueSlugger, defaultSlugify } from "@domphy/markdown"
+import { splitFrontmatter, walkMdast } from "@domphy/press"
+import { createUniqueSlugger, defaultSlugify } from "@domphy/press"
 
 const { frontmatter, content } = splitFrontmatter(source)
 

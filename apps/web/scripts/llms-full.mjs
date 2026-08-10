@@ -159,11 +159,7 @@ await includeDir(
 await includeDir(resolve(ROOT, "docs/app"), "App docs (`@domphy/app`)");
 await includeDir(
   resolve(ROOT, "docs/markdown"),
-  "Markdown docs (`@domphy/markdown`)",
-);
-await includeDir(
-  resolve(ROOT, "docs/mermaid"),
-  "Mermaid docs (`@domphy/mermaid`)",
+  "Markdown docs (`@domphy/press`)",
 );
 await includeDir(
   resolve(ROOT, "docs/doctor"),

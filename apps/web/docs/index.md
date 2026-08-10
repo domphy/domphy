@@ -26,8 +26,7 @@ Framework-agnostic, no JSX, no virtual DOM, no build step required — and the m
 
 - `@domphy/dnd` — drag & drop / sortable lists
 - `@domphy/app` — Next.js App Router-style framework (routes, layouts, loaders+SWR, metadata, middleware, parallel/intercepting routes, lazy code-split routes, SSR + streaming, API routes)
-- `@domphy/markdown` — Markdown → Domphy element trees for SSR/SSG (this docs site runs on it)
-- `@domphy/mermaid` — render Mermaid diagrams (build-time SVG + client patch)
+- `@domphy/press` — static doc site framework; its built-in Markdown pipeline (`parseMarkdown`/`createMarkdown`) turns Markdown into Domphy element trees for SSR/SSG (this docs site runs on it)
 - `@domphy/doctor` — static analyzer that flags non-idiomatic code (`diagnose`/`validate`; powers AI self-correction)
 - `@domphy/mcp` — MCP server exposing patches/packages/rules + doctor + app-block registry to agents
 

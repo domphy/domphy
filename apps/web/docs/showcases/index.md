@@ -10,12 +10,10 @@ This documentation site is itself the primary showcase — a full SSG docs engin
 
 | | |
 |---|---|
-| **Markdown → Domphy** | `@domphy/markdown` |
 | **Docs engine (SSG + routing)** | `@domphy/press` |
 | **SSR + streaming** | `@domphy/app` |
 | **Code editor islands** | `@domphy/core` + CodeMirror |
 | **Live demos** | `@domphy/core` client-side hydration |
-| **Diagrams** | `@domphy/mermaid` |
 | **Search** | `@domphy/core` + custom inverted index |
 | **UI** | `@domphy/ui`, `@domphy/theme` |
 | **Link** | [domphy.com](https://domphy.com) |

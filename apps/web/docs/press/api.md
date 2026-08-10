@@ -171,6 +171,10 @@ interface TocEntry {
 }
 ```
 
+## Markdown pipeline
+
+The Markdown API (formerly the standalone `@domphy/markdown` package) is exported from the main entry: `parseMarkdown`, `markdownToDomphy`, `createMarkdown`, `walkMdast`, `splitFrontmatter`, `transformOutsideCodeBlocks`, `createUniqueSlugger`, `defaultSlugify`. Main entry only — not available from `@domphy/press/browser`. See [Markdown](/docs/markdown/) for the full reference.
+
 ## LayoutContext
 
 ```ts

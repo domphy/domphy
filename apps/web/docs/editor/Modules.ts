@@ -13,11 +13,6 @@ import * as domphyEditorDomphy from "@domphy/editor/domphy";
 import * as domphyFloating from "@domphy/floating";
 import * as domphyForm from "@domphy/form/domphy";
 import * as domphyI18n from "@domphy/i18n";
-import * as domphyMarkdown from "@domphy/markdown";
-// Browser-safe subpath: the main `@domphy/mermaid` entry statically imports
-// node:fs/node:crypto (build-time renderer), which cannot bundle for the
-// browser. The playground only ever renders client-side anyway.
-import * as domphyMermaid from "@domphy/mermaid/client";
 import * as domphyQuery from "@domphy/query";
 import * as domphyQueryDomphy from "@domphy/query/domphy";
 import * as domphyRouter from "@domphy/router";
@@ -37,6 +32,12 @@ import * as threeEffectComposer from "three/addons/postprocessing/EffectComposer
 import * as threeRenderPass from "three/addons/postprocessing/RenderPass.js";
 import * as threeUnrealBloomPass from "three/addons/postprocessing/UnrealBloomPass.js";
 import * as zod from "zod";
+// The markdown API moved to @domphy/press, but the press main entry statically
+// imports Node.js built-ins (build pipeline) and its browser subpath does not
+// re-export the markdown functions. The playground only needs the browser-safe
+// markdown module, so bundle its source directly and expose it under
+// "@domphy/press" in the module map below.
+import * as domphyMarkdown from "../../../../packages/press/src/markdown/index.js";
 // GeoJSON asset for the geo/map chart demos ("world" is not built into
 // @domphy/chart — demos must registerMap() it, see docs/chart/geo.md).
 // Converted from world-atlas@2 countries-110m (TopoJSON → GeoJSON, 2-decimal
@@ -62,9 +63,7 @@ const moduleMap: Record<string, unknown> = {
   "@domphy/editor/domphy": domphyEditorDomphy,
   "@domphy/floating": domphyFloating,
   "@domphy/form/domphy": domphyForm,
-  "@domphy/markdown": domphyMarkdown,
-  "@domphy/mermaid": domphyMermaid,
-  "@domphy/mermaid/client": domphyMermaid,
+  "@domphy/press": domphyMarkdown,
   "@domphy/virtual/domphy": domphyVirtual,
   "@domphy/three": domphyThree,
   "@tanstack/query-core": queryCore,

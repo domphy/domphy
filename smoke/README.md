@@ -11,7 +11,7 @@ pnpm's strict layout).
 ## What it does
 
 1. Discovers every publishable package — `packages/*/package.json` without
-   `"private": true` (currently 23) — and packs each into
+   `"private": true` (currently 20) — and packs each into
    `smoke/.tarballs/` (gitignored), renaming the tarball to a stable
    version-free name (e.g. `domphy-core.tgz`) so fixtures can reference it
    with fixed `file:` paths. Packing uses **`pnpm pack`**, not `npm pack`:
@@ -28,7 +28,9 @@ pnpm's strict layout).
      must succeed (exercises the packed runtime **and** the packed type
      declarations).
    - **`ssr-app/`** — a plain Node ESM script. Installs `@domphy/core` and
-     `@domphy/markdown` from the tarballs, SSR-renders a small tree (plus a
+     `@domphy/press` (plus press's `@domphy/*` peer closure — app/theme/ui —
+     the local versions are ahead of the npm registry, so peers must come
+     from tarballs too) from the tarballs, SSR-renders a small tree (plus a
      Markdown-parsed tree) to an HTML string via `generateHTML()`, and
      asserts expected substrings. Runs with plain `node`.
    Each fixture gets a **fresh** install: `node_modules/`,

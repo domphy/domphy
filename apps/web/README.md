@@ -2,7 +2,7 @@
 
 This app is the Domphy documentation website, built with **DomphyPress**
 (`@domphy/press`, `packages/press/`) — a static-site generator that runs on
-`@domphy/app` + `@domphy/markdown` (it replaced VitePress).
+`@domphy/app` + `@domphy/press` (it replaced VitePress).
 
 - `pnpm build` — the real production build (`build.press.ts`): rebuilds every
   `@domphy/*` package, regenerates the manifests/llms-full.txt, then renders

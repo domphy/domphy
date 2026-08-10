@@ -58,8 +58,6 @@ Live, right here on the page:
 | [`@domphy/editor`](/docs/editor/) | Rich-text editor — Tiptap-compatible API, self-contained engine |
 | [`@domphy/floating`](/docs/floating/) | Anchor positioning — floating-ui core, zero-dep, powers overlays |
 | [`@domphy/press`](/docs/press/) | SSG docs engine — markdown, search, islands, routing |
-| [`@domphy/markdown`](/docs/markdown/) | Markdown → Domphy elements (SSR/SSG pipelines) |
-| [`@domphy/mermaid`](/docs/mermaid/) | Mermaid diagrams — build-time SVG + client render |
 | [`@domphy/i18n`](/docs/i18n/) | i18next wrapper with reactive `t(listener, key)` |
 | [`@domphy/doctor`](/docs/doctor/) | Static analyzer — flags non-idiomatic code, auto-fixes |
 | [`@domphy/mcp`](/docs/mcp/) | MCP server — 10 tools for AI agents to explore the framework |

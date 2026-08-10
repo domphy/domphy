@@ -29,8 +29,6 @@
     "publish:chart": "cd packages/chart && pnpm publish --access public --no-git-checks",
     "publish:floating": "cd packages/floating && pnpm publish --access public --no-git-checks",
     "publish:doctor": "cd packages/doctor && pnpm publish --access public --no-git-checks",
-    "publish:markdown": "cd packages/markdown && pnpm publish --access public --no-git-checks",
-    "publish:mermaid": "cd packages/mermaid && pnpm publish --access public --no-git-checks",
     "publish:mcp": "cd packages/mcp && pnpm publish --access public --no-git-checks",
     "publish:i18n": "cd packages/i18n && pnpm publish --access public --no-git-checks",
     "publish:press": "cd packages/press && pnpm publish --access public --no-git-checks",

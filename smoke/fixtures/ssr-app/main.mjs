@@ -5,7 +5,7 @@
  */
 import assert from "node:assert/strict";
 import { ElementNode, toState } from "@domphy/core";
-import { parseMarkdown } from "@domphy/markdown";
+import { parseMarkdown } from "@domphy/press";
 
 // A small declarative tree with reactive content, SSR-rendered via
 // ElementNode.generateHTML() — the same path @domphy/app uses server-side.
@@ -20,8 +20,8 @@ assert.ok(html.includes("SSR smoke"), "expected the heading text");
 assert.ok(html.includes("<p"), "expected a <p> in the SSR output");
 assert.ok(html.includes("Count: 42"), "expected the reactive text");
 
-// Markdown → Domphy tree → SSR HTML (exercises @domphy/markdown's deps:
-// remark/unified must resolve from the tarball install).
+// Markdown → Domphy tree → SSR HTML (exercises @domphy/press's markdown
+// pipeline deps: remark/unified must resolve from the tarball install).
 const { body } = parseMarkdown("# Hello Markdown\n\nSome **bold** text.");
 const markdownHtml = new ElementNode({ div: body }).generateHTML();
 

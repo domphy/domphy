@@ -40,12 +40,13 @@ jobs:
 
       # Test
       #
-      # Note: @domphy/mermaid's two real-headless E2E tests (real Chromium +
-      # @mermaid-js/mermaid-cli) are OPT-IN via MERMAID_E2E=1 and skip by
+      # Note: the docs site's two real-headless mermaid E2E tests (real
+      # Chromium + @mermaid-js/mermaid-cli; apps/web/tests/mermaid/) are
+      # OPT-IN via MERMAID_E2E=1 and skip by
       # default — this job deliberately stays hermetic (no browser downloads,
       # no network-dependent renders). Run them manually with
-      # `MERMAID_E2E=1 pnpm --filter @domphy/mermaid test` when touching
-      # packages/mermaid's render path. Do not enable the flag here without
+      # `MERMAID_E2E=1 pnpm --filter domphy-web test` when touching
+      # apps/web/mermaid's render path. Do not enable the flag here without
       # also provisioning chrome-headless-shell.
       #
       # Note: the 7 Playwright visual lanes (visual, visual:responsive,

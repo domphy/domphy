@@ -49,11 +49,9 @@ App layer & tools:
 
 - `@domphy/chart` — WebGL + SVG chart engine: line, bar, pie, scatter, gauge… (`chart(option)` patch, ECharts-compatible type surface)
 - `@domphy/i18n` — i18next wrapper with Domphy reactivity: reactive `t(listener, key)` re-renders on `setLocale()`
-- `@domphy/press` — SSG docs engine: markdown, search, islands, routing (VitePress-baseline; built on `@domphy/app` + `@domphy/markdown`)
+- `@domphy/press` — SSG docs engine: markdown (`parseMarkdown`/`createMarkdown` built in), search, islands, routing (VitePress-baseline; built on `@domphy/app`)
 - `@domphy/dnd` — drag & drop / sortable lists (`dragDrop`, wraps `@formkit/drag-and-drop`)
 - `@domphy/app` — Next.js App Router-style framework: nested routes/layouts, loaders with stale-while-revalidate, metadata, middleware, parallel + intercepting routes, lazy code-split routes, SSR + streaming, API routes
-- `@domphy/markdown` — parse Markdown into Domphy element trees for SSR/SSG (remark/unified under the hood; frontmatter, TOC, anchors). This docs site is built on it.
-- `@domphy/mermaid` — render Mermaid diagrams (build-time inline SVG via mermaid-cli + a client patch)
 - `@domphy/doctor` — static analyzer that flags non-idiomatic element trees (`diagnose`/`validate`) and applies lossless autofixes (`fix`); powers AI self-correction
 - `@domphy/mcp` — MCP server exposing patches/packages/rules + the doctor + the app-block registry to AI agents
 - `@domphy/floating` — anchor positioning (vendored [floating-ui](https://github.com/floating-ui/floating-ui), zero-dependency); powers the `@domphy/ui` overlays so it has no third-party runtime dependency
@@ -108,8 +106,8 @@ npm install -D @domphy/doctor # validate Domphy code (AI/CI)
 
 ## Documentation
 
-Full docs: [domphy.com](https://domphy.com) — [Core](https://domphy.com/docs/core/) · [Theme](https://domphy.com/docs/theme/) · [UI](https://domphy.com/docs/ui/) · [Query](https://domphy.com/docs/query/) · [Router](https://domphy.com/docs/router/) · [Table](https://domphy.com/docs/table/) · [Virtual](https://domphy.com/docs/virtual/) · [Form](https://domphy.com/docs/form/) · [DnD](https://domphy.com/docs/dnd/) · [Palette](https://domphy.com/docs/palette/) · [App](https://domphy.com/docs/app/) · [Markdown](https://domphy.com/docs/markdown/) · [Mermaid](https://domphy.com/docs/mermaid/) · [Doctor](https://domphy.com/docs/doctor/) · [Integrations](https://domphy.com/docs/integrations/)
+Full docs: [domphy.com](https://domphy.com) — [Core](https://domphy.com/docs/core/) · [Theme](https://domphy.com/docs/theme/) · [UI](https://domphy.com/docs/ui/) · [Query](https://domphy.com/docs/query/) · [Router](https://domphy.com/docs/router/) · [Table](https://domphy.com/docs/table/) · [Virtual](https://domphy.com/docs/virtual/) · [Form](https://domphy.com/docs/form/) · [DnD](https://domphy.com/docs/dnd/) · [Palette](https://domphy.com/docs/palette/) · [App](https://domphy.com/docs/app/) · [Markdown](https://domphy.com/docs/markdown/) · [Doctor](https://domphy.com/docs/doctor/) · [Integrations](https://domphy.com/docs/integrations/)
 
 ## Monorepo
 
-`packages/{core,theme,ui,blocks,query,table,router,virtual,form,dnd,chart,doctor,mcp,floating,app,markdown,mermaid,three,editor,i18n,press,create-domphy}` + `apps/web` (`domphy-web` — docs site, DomphyPress) + `bench` (benchmarks).
+`packages/{core,theme,ui,blocks,query,table,router,virtual,form,dnd,chart,doctor,mcp,floating,app,three,editor,i18n,press,create-domphy}` + `apps/web` (`domphy-web` — docs site, DomphyPress) + `bench` (benchmarks).

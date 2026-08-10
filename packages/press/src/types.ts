@@ -1,5 +1,5 @@
 import type { DomphyElement } from "@domphy/core";
-import type { TocEntry } from "@domphy/markdown";
+import type { TocEntry } from "./markdown/index.js";
 export type { DomphyElement };
 
 export type { TocEntry };

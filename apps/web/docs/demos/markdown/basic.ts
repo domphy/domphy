@@ -1,5 +1,5 @@
 import { type DomphyElement, toState } from "@domphy/core";
-import { parseMarkdown } from "@domphy/markdown";
+import { parseMarkdown } from "@domphy/press";
 import { themeColor, themeSpacing } from "@domphy/theme";
 import { heading, small, stack, textarea } from "@domphy/ui";
 

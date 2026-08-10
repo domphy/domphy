@@ -105,7 +105,8 @@ export interface MermaidBrowserModule {
  * IntersectionObserver so the ~2MB mermaid library is only loaded when a diagram
  * is actually scrolled into view (200px lookahead).
  *
- * Hardened to match `@domphy/mermaid`'s client patch: `securityLevel` is
+ * Hardened to match the internal mermaid module's client patch
+ * (apps/web/mermaid/client.ts): `securityLevel` is
  * pinned to "strict" at every initialize, the rendered SVG is sanitized with
  * core's `sanitizeHTMLString` before the `innerHTML` write, and rendered
  * diagrams re-render when `[data-theme]` flips. `loadMermaid` is injectable

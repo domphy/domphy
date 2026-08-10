@@ -1,5 +1,8 @@
 # @domphy/press Changelog
 
+## 0.23.0
+- Absorbed `@domphy/markdown`: the standalone package is gone from the monorepo; its source now lives in `src/markdown/` and its full public API (`parseMarkdown`, `markdownToDomphy`, `createMarkdown`, `walkMdast`, `splitFrontmatter`, `transformOutsideCodeBlocks`, `createUniqueSlugger`, `defaultSlugify` + types) is re-exported as plain named exports from the main entry — no new subpath export, and deliberately NOT added to the browser entrypoint (the remark pipeline stays Node/build-side). `TocEntry` was already exported by press and is shared. The `@domphy/markdown` peer dependency is gone; `yaml` (frontmatter parsing) is now a direct dependency.
+
 ## 0.21.10
 - fix(layout): `themeConfig.footerMessage` is wrapped in `rawHtml()` again — after the core 0.20.0 "string children are text" flip, the footer rendered its `<a>` markup as literal text on every page.
 

@@ -1,6 +1,6 @@
 ---
 title: "Syntax Highlighting"
-description: "Use the highlight option to add syntax highlighting to fenced code blocks in @domphy/markdown."
+description: "Use the highlight option to add syntax highlighting to fenced code blocks in @domphy/press."
 ---
 
 # Syntax Highlighting
@@ -29,10 +29,10 @@ type Highlight = (
 
 ## String return — inner HTML
 
-Most highlighters emit HTML strings. Return the string and `@domphy/markdown` wraps it in `rawHtml()` (core's explicit HTML opt-in) as the content of the `<code>` element:
+Most highlighters emit HTML strings. Return the string and `@domphy/press` wraps it in `rawHtml()` (core's explicit HTML opt-in) as the content of the `<code>` element:
 
 ```ts
-import { parseMarkdown } from "@domphy/markdown"
+import { parseMarkdown } from "@domphy/press"
 
 const { body } = parseMarkdown("```ts\nconst x = 1\n```", {
   highlight(code, language) {
@@ -52,7 +52,7 @@ Return a `DomphyElement` when you want the highlighted output to remain as a Dom
 
 ```ts
 import type { DomphyElement } from "@domphy/core"
-import { parseMarkdown } from "@domphy/markdown"
+import { parseMarkdown } from "@domphy/press"
 
 const { body } = parseMarkdown("```js\nfoo()\n```", {
   highlight(code): DomphyElement {
@@ -69,7 +69,7 @@ const { body } = parseMarkdown("```js\nfoo()\n```", {
 Return `null` or `undefined` to skip highlighting for a specific block. The walker falls back to plain escaped text:
 
 ```ts
-import { parseMarkdown } from "@domphy/markdown"
+import { parseMarkdown } from "@domphy/press"
 
 const knownLanguages = new Set(["ts", "js", "css", "html", "sh"])
 
@@ -87,7 +87,7 @@ const { body } = parseMarkdown(source, {
 
 ```ts
 import { createHighlighter } from "shiki"
-import { parseMarkdown } from "@domphy/markdown"
+import { parseMarkdown } from "@domphy/press"
 
 // Initialise once at app startup or build time.
 const shiki = await createHighlighter({
@@ -121,7 +121,7 @@ highlight.js emits annotated HTML strings directly without the outer wrapper:
 
 ```ts
 import hljs from "highlight.js"
-import { parseMarkdown } from "@domphy/markdown"
+import { parseMarkdown } from "@domphy/press"
 
 const { body } = parseMarkdown(source, {
   highlight(code, language) {
@@ -141,7 +141,7 @@ Return a `DomphyElement` when you want full control over the output structure wi
 
 ```ts
 import type { DomphyElement } from "@domphy/core"
-import { parseMarkdown } from "@domphy/markdown"
+import { parseMarkdown } from "@domphy/press"
 
 // A tiny highlighter that wraps comment lines in a distinct span.
 function commentHighlight(code: string, language: string): DomphyElement {
@@ -195,7 +195,7 @@ The `highlight` option is also accepted by `walkMdast` when you build your own r
 
 ```ts
 import { remark } from "remark"
-import { splitFrontmatter, walkMdast, createUniqueSlugger, defaultSlugify } from "@domphy/markdown"
+import { splitFrontmatter, walkMdast, createUniqueSlugger, defaultSlugify } from "@domphy/press"
 
 const processor = remark()
 const { content } = splitFrontmatter(source)
