@@ -1,5 +1,9 @@
 # @domphy/editor Changelog
 
+## 0.2.3
+
+- Peer range widened: `@domphy/theme` now accepts `^0.21.0 || ^0.22.0` — theme 0.22.0 is additive (palette re-export), and every theme API editor uses (`themeColor`/`themeSpacing`) is unchanged. Removes the peer warning for consumers on theme 0.22.x.
+
 ## 0.2.0
 
 - Node views: `addNodeView` on `Node.create` — plain-DOM `{ dom, contentDOM?, update?, selectNode?, deselectNode?, destroy? }` instances that survive re-renders (path+type identity; `update()` returning false rebuilds), with `updateAttributes`/`getPos`/`selected`.

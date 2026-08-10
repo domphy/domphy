@@ -6,6 +6,18 @@ Packages are versioned independently — each package has its own version number
 
 ---
 
+## Peer-range widening wave — 2026-08-10
+
+`@domphy/theme` 0.22.0 is additive (the `@domphy/palette` re-export); every theme API the dependents use is unchanged. The two packages that declared `^0.21.0` peers get a widened range so consumers on theme 0.22.x stop seeing peer warnings. No runtime change.
+
+### `@domphy/ui` [0.21.1]
+- `@domphy/theme` peer widened to `^0.21.0 || ^0.22.0` (ui uses `themeColor`/`themeDensity`/`themeSpacing`/`themeSize` only).
+
+### `@domphy/editor` [0.2.3]
+- `@domphy/theme` peer widened to `^0.21.0 || ^0.22.0` (editor uses `themeColor`/`themeSpacing` only).
+
+---
+
 ## Unreleased
 
 Audit deferral-closure wave: 30 actionable fixes + 15 dependency migrations across the monorepo (landed on `main`, not yet version-bumped/published).

@@ -1,6 +1,6 @@
 {
   "name": "@domphy/editor",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Domphy Editor - headless rich-text editor with a Tiptap-compatible API, self-contained engine (no ProseMirror), Domphy adapter with bubble menu",
   "type": "module",
   "sideEffects": false,
@@ -60,7 +60,7 @@
   },
   "peerDependencies": {
     "@domphy/core": "workspace:^",
-    "@domphy/theme": "workspace:^"
+    "@domphy/theme": "^0.21.0 || ^0.22.0"
   },
   "dependencies": {
     "@domphy/floating": "workspace:^"

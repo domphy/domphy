@@ -1,5 +1,9 @@
 # @domphy/ui Changelog
 
+## 0.21.1
+
+- Peer range widened: `@domphy/theme` now accepts `^0.21.0 || ^0.22.0` — theme 0.22.0 is additive (palette re-export), and every theme API ui uses (`themeColor`/`themeDensity`/`themeSpacing`/`themeSize`) is unchanged. Removes the peer warning for consumers on theme 0.22.x.
+
 ## 0.20.12
 - fix(a11y): `selectBox` opens via Enter/Space/ArrowDown on the focused trigger (not click-only); `role=button` + `aria-haspopup=listbox` + reactive `aria-expanded`. Keyboard contract test drives keydown (no `.click()`).
 
