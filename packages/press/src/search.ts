@@ -227,6 +227,11 @@ function optionId(widgetId: number, resultIndex: number): string {
 
 let widgetCounter = 0;
 
+// In-flight/settled index fetches keyed by URL. Shared across widgets so two
+// search inputs on one page (e.g. header + mobile drawer) fetch the index once,
+// and an island re-mounted by client navigation reuses it instead of refetching.
+const indexRequests = new Map<string, Promise<string>>();
+
 function resultRow(
   result: SearchResult,
   resultIndex: number,
@@ -307,6 +312,32 @@ export function searchWidget(options: SearchWidgetOptions = {}): DomphyElement {
     active: -1,
   });
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+  let indexRequested = false;
+
+  // The index is the largest asset on a docs page and most visitors never
+  // search, so it is fetched on the first search intent (focus, first
+  // keystroke) instead of on mount. Repeated intents are no-ops; a failed fetch
+  // is forgotten so the next intent retries.
+  function loadIndex(): void {
+    if (indexRequested) return;
+    indexRequested = true;
+    let pending = indexRequests.get(indexUrl);
+    if (!pending) {
+      pending = fetch(indexUrl).then((r) => r.text());
+      indexRequests.set(indexUrl, pending);
+    }
+    pending
+      .then((text) => {
+        state.set("index", text);
+        // A query typed while the fetch was in flight scored against no index
+        // and produced nothing — replay it now that the index is here.
+        if (state.get("query").trim()) runQuery(state, limit, basePath);
+      })
+      .catch(() => {
+        indexRequested = false;
+        indexRequests.delete(indexUrl);
+      });
+  }
 
   function navigate(result: SearchResult | undefined): void {
     if (!result) return;
@@ -329,11 +360,13 @@ export function searchWidget(options: SearchWidgetOptions = {}): DomphyElement {
     },
     value: (l) => state.get("query", l),
     onInput: (e) => {
+      loadIndex();
       state.set("query", (e.target as HTMLInputElement).value);
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => runQuery(state, limit, basePath), 120);
     },
     onFocus: () => {
+      loadIndex();
       if (state.get("results").length > 0) state.set("open", true);
     },
     onKeyDown: (e: KeyboardEvent) => {
@@ -398,13 +431,6 @@ export function searchWidget(options: SearchWidgetOptions = {}): DomphyElement {
     role: "search",
     style: { position: "relative", display: "block", width: "100%" },
     _onMount: (node) => {
-      fetch(indexUrl)
-        .then((r) => r.text())
-        .then((text) => {
-          state.set("index", text);
-          if (state.get("query").trim()) runQuery(state, limit, basePath);
-        })
-        .catch(() => {});
       const host = node.domElement as HTMLElement;
       const handler = (e: Event) => {
         if (!host.contains(e.target as Node)) state.set("open", false);

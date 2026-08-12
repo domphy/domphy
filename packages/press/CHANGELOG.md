@@ -1,5 +1,8 @@
 # @domphy/press Changelog
 
+## Unreleased
+- perf(search): the search index is fetched on the first search intent (input focus or first keystroke, including the Ctrl/Cmd+K path) instead of on mount. It was the largest asset on a docs page — measured on the shapemetry docs site at 573,534 B of a 693,468 B cold page load, paid by every visitor whether or not they ever searched. A query typed while the fetch is in flight is replayed once the index resolves, so nothing is dropped; requests are shared per index URL, so two widgets on a page (or a re-mounted island) fetch once, and a failed fetch is forgotten so the next intent retries.
+
 ## 0.23.0
 - Absorbed `@domphy/markdown`: the standalone package is gone from the monorepo; its source now lives in `src/markdown/` and its full public API (`parseMarkdown`, `markdownToDomphy`, `createMarkdown`, `walkMdast`, `splitFrontmatter`, `transformOutsideCodeBlocks`, `createUniqueSlugger`, `defaultSlugify` + types) is re-exported as plain named exports from the main entry — no new subpath export, and deliberately NOT added to the browser entrypoint (the remark pipeline stays Node/build-side). `TocEntry` was already exported by press and is shared. The `@domphy/markdown` peer dependency is gone; `yaml` (frontmatter parsing) is now a direct dependency.
 

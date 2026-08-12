@@ -30,8 +30,8 @@ themeConfig: {
 
 ## How it works
 
-1. **Build time** — `buildSite()` calls `buildSearchIndex(docs)` which tokenizes all page titles, body text, and TOC heading text into an inverted index stored in `/assets/search-index.json`.
-2. **Runtime** — The search widget lazy-loads the index on first focus, runs tokenized prefix queries client-side, and displays results with section links.
+1. **Build time** — `buildSite()` calls `buildSearchIndex(docs)` which tokenizes all page titles, body text, and TOC heading text into an inverted index stored in `/search-index.json`.
+2. **Runtime** — The search widget loads the index on the first search intent — focusing the input or the first keystroke (so the Ctrl/Cmd+K path is covered) — not on page load, so a visitor who never searches never downloads it. A query typed while the index is still in flight is replayed as soon as it arrives. Queries are tokenized prefix matches run client-side, and results are shown with section links.
 3. **Highlighting** — Results show the matched page title, section heading, and route. The current query terms are highlighted in the result list.
 
 ## Programmatic API

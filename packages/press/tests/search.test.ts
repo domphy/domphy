@@ -121,7 +121,75 @@ describe("searchWidget base handling", () => {
   });
 
   it("keeps root-relative hrefs when no basePath is given", async () => {
-    const { host } = await mountAndQuery({ indexUrl: "/search-index.json" });
+    // Distinct URL per test: index fetches are cached per URL across widgets,
+    // so reusing one URL would let an earlier test satisfy this one's fetch.
+    const { host } = await mountAndQuery({ indexUrl: "/no-base-index.json" });
+    const hrefs = [...host.querySelectorAll("a")].map((a) =>
+      a.getAttribute("href"),
+    );
+    expect(hrefs).toContain("/core");
+  });
+});
+
+describe("searchWidget lazy index loading", () => {
+  function mountWith(
+    fetchMock: ReturnType<typeof vi.fn>,
+    indexUrl?: string,
+  ): HTMLElement {
+    vi.stubGlobal("fetch", fetchMock);
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    new ElementNode(searchWidget(indexUrl ? { indexUrl } : {})).render(host);
+    return host;
+  }
+
+  it("does not fetch the index on mount", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      text: () => Promise.resolve(buildSearchIndex(docs)),
+    });
+    mountWith(fetchMock);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("fetches once on focus and never again", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      text: () => Promise.resolve(buildSearchIndex(docs)),
+    });
+    const host = mountWith(fetchMock);
+    const input = host.querySelector("input")!;
+    input.dispatchEvent(new Event("focus"));
+    input.dispatchEvent(new Event("focus"));
+    input.value = "core";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith("/search-index.json");
+
+    // A second widget on the same page shares the in-flight/settled request.
+    const secondHost = mountWith(fetchMock);
+    secondHost.querySelector("input")!.dispatchEvent(new Event("focus"));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("replays a query typed while the index fetch is still in flight", async () => {
+    let release!: (text: string) => void;
+    const pending = new Promise<string>((resolve) => {
+      release = resolve;
+    });
+    const fetchMock = vi.fn().mockResolvedValue({ text: () => pending });
+    const host = mountWith(fetchMock, "/pending-index.json");
+    const input = host.querySelector("input")!;
+    // Keyboard-only path: no focus event, typing alone must trigger the load.
+    input.value = "core";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(host.querySelectorAll("a").length).toBe(0);
+
+    release(buildSearchIndex(docs));
+    await new Promise((resolve) => setTimeout(resolve, 20));
     const hrefs = [...host.querySelectorAll("a")].map((a) =>
       a.getAttribute("href"),
     );
@@ -159,7 +227,9 @@ describe("searchWidget combobox aria contract", () => {
     );
     const host = document.createElement("div");
     document.body.appendChild(host);
-    const node = new ElementNode(searchWidget({}));
+    const node = new ElementNode(
+      searchWidget({ indexUrl: "/aria-index.json" }),
+    );
     node.render(host);
     await new Promise((resolve) => setTimeout(resolve, 20));
     const input = host.querySelector("input")!;
@@ -232,7 +302,9 @@ describe("searchWidget Ctrl+K / Cmd+K shortcut", () => {
     );
     const host = document.createElement("div");
     document.body.appendChild(host);
-    const node = new ElementNode(searchWidget({}));
+    const node = new ElementNode(
+      searchWidget({ indexUrl: "/hotkey-index.json" }),
+    );
     node.render(host);
     await new Promise((resolve) => setTimeout(resolve, 20));
     return { host, node };
