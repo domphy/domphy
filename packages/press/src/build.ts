@@ -308,6 +308,26 @@ function buildSitemap(
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"${xmlns}>\n${urls.join("\n")}\n</urlset>`;
 }
 
+// Primary subtags that default to RTL. Variants like he-IL / ar-SA inherit
+// via the tag before the first '-' or '_'.
+const RTL_LANGS = new Set([
+  "ar",
+  "fa",
+  "he",
+  "ur",
+  "yi",
+  "ps",
+  "dv",
+  "ckb",
+  "ug",
+  "sd",
+]);
+
+function htmlDir(lang: string): "rtl" | "ltr" {
+  const primary = lang.split(/[-_]/)[0]?.toLowerCase() ?? "";
+  return RTL_LANGS.has(primary) ? "rtl" : "ltr";
+}
+
 // --- HTML document -----------------------------------------------------------
 
 export const RUNTIME_SCRIPT = `(function(){
@@ -416,14 +436,26 @@ return match;
 return html;
 }`;
 
-function mermaidHeadScript(
+const DEFAULT_MERMAID_CDN =
+  "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+
+function isHttpUrl(value: string): boolean {
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "https:" || parsed.protocol === "http:";
+  } catch {
+    return false;
+  }
+}
+
+export function mermaidHeadScript(
   mermaid: boolean | { cdn?: string },
   nonceAttr: string,
 ): string {
+  const requested =
+    typeof mermaid === "object" && mermaid.cdn ? mermaid.cdn : "";
   const cdn =
-    typeof mermaid === "object" && mermaid.cdn
-      ? mermaid.cdn
-      : "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+    requested && isHttpUrl(requested) ? requested : DEFAULT_MERMAID_CDN;
   return `<script type="module"${nonceAttr}>(async()=>{
 const blocks=[...document.querySelectorAll('.dp-mermaid')];
 if(!blocks.length)return;
@@ -436,7 +468,7 @@ const rendered=[];
 let queue=Promise.resolve();
 const enqueue=(task)=>{const result=queue.then(task);queue=result.catch(()=>{});return result;};
 const currentTheme=()=>document.documentElement.getAttribute('data-theme')==='dark'?'dark':'default';
-const load=async()=>{if(mermaid)return;const mod=await import('${cdn}');mermaid=mod.default;};
+const load=async()=>{if(mermaid)return;const mod=await import(${JSON.stringify(cdn)});mermaid=mod.default;};
 const renderSource=async(source)=>{
 await load();
 // Pin strict: diagram source is author-supplied text and the rendered SVG is
@@ -483,8 +515,9 @@ function htmlDocument(
   const mermaidScript = config.themeConfig.mermaid
     ? mermaidHeadScript(config.themeConfig.mermaid, nonceAttr)
     : "";
+  const dir = htmlDir(lang);
   return `<!DOCTYPE html>
-<html lang="${lang}" data-theme="light">
+<html lang="${lang}" dir="${dir}" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -556,8 +589,22 @@ export async function buildSite(options: BuildOptions): Promise<void> {
     mkdirSync(outDir, { recursive: true });
   }
 
-  // Discover pages: root + locales
-  const pages = discoverPages(srcDir);
+  // Discover pages: root (excluding locale dirs) + each locale dir.
+  // discoverPages(srcDir) would otherwise also pick up files under locale
+  // folders (e.g. vi/guide.md → /vi/guide) and then the locale pass would
+  // add the same route again — first write wins with localeKey "/", so
+  // Vietnamese pages render as the default locale.
+  const localeDirNames = new Set<string>();
+  if (config.locales) {
+    for (const key of Object.keys(config.locales)) {
+      if (key === "/") continue;
+      localeDirNames.add(key.replace(/^\//, "").replace(/\/$/, ""));
+    }
+  }
+  const pages = discoverPages(srcDir).filter((page) => {
+    const rel = relative(srcDir, page.filePath).replace(/\\/g, "/");
+    return !localeDirNames.has(rel.split("/")[0] ?? "");
+  });
   const localePages: Array<{
     filePath: string;
     route: string;

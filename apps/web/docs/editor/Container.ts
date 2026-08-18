@@ -10,9 +10,7 @@ import { Console } from "./Console";
 import { Editor } from "./Editor";
 import { ErrorOverlay } from "./ErrorOverlay";
 import { lockScrollOnFullscreen } from "./fullscreenLock";
-import { moduleMap } from "./Modules";
 import { Preview } from "./Preview";
-import { stringify } from "./stringify";
 import { type PlaygroundPane, Toolbar } from "./Toolbar";
 import { transformCode } from "./transformCode";
 
@@ -68,10 +66,19 @@ function previewSurface(
   error: State<string>,
   shadowHost: HTMLElement,
   previewContainer: HTMLElement,
+  onLog: (line: string) => void,
 ): DomphyElement<"div"> {
   return {
     div: [
-      Preview(code, isDark, hasGrid, error, shadowHost, previewContainer),
+      Preview(
+        code,
+        isDark,
+        hasGrid,
+        error,
+        shadowHost,
+        previewContainer,
+        onLog,
+      ),
       ErrorOverlay(error),
     ],
     style: {
@@ -237,29 +244,24 @@ export function Container(
     _isState: true as const,
   } as unknown as State<PlaygroundPane>;
 
+  const onLog = (line: string) => {
+    const next = [...logs.get(), line];
+    logs.set(next);
+    logCount.set(next.length);
+    // Auto-open console when the demo prints something.
+    if (next.length === 1) consoleOpen.set(true);
+  };
+
   const update = (val: string) => {
     error.set("");
     logs.set([]);
     logCount.set(0);
-
-    const originalLog = console.log;
-    console.log = (...args) => {
-      const next = [...logs.get(), args.map((a) => stringify(a)).join(" ")];
-      logs.set(next);
-      logCount.set(next.length);
-      // Auto-open console when the demo prints something.
-      if (next.length === 1) consoleOpen.set(true);
-      originalLog(...args);
-    };
-
     try {
-      const fn = new Function("__modules__", transformCode(val));
-      const el = fn(moduleMap);
-      if (!el) throw new Error("Code must have export default");
+      // Construct only — executing user code here would run it in the parent
+      // document. Preview evaluates inside a sandboxed iframe.
+      new Function("__modules__", transformCode(val));
     } catch (e: any) {
       error.set(e.message);
-    } finally {
-      console.log = originalLog;
     }
   };
 
@@ -298,6 +300,7 @@ export function Container(
         error,
         shadowHost,
         previewContainer,
+        onLog,
       );
 
       let main: DomphyElement;

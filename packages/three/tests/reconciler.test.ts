@@ -731,6 +731,29 @@ describe("reconciler — createSceneNode error unwinding", () => {
     expect((object as any).__domphy).toBeUndefined();
   });
 
+  it("disposes earlier created siblings when a later sibling's instantiate throws", () => {
+    expect(() =>
+      reconcileChildren(
+        rootNode,
+        [
+          {
+            mesh: [
+              { boxGeometry: null, args: [1, 1, 1] },
+              { meshBasicMaterial: null },
+            ],
+          },
+          { notARealThing: null } as any,
+        ],
+        root,
+      ),
+    ).toThrow(
+      '@domphy/three: "notARealThing" is not part of the THREE namespace!',
+    );
+
+    expect(rootNode.children).toHaveLength(0);
+    expect(root.scene.children).toHaveLength(0);
+  });
+
   it("detaches and disposes a non-primitive whose child reconciliation throws after attach", () => {
     let captured: SizedGroup | null = null;
     class CapturingGroup extends SizedGroup {

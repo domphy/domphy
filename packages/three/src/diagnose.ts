@@ -255,9 +255,15 @@ function checkCamera(options: ThreeOptions, out: SceneDiagnostic[]): void {
   if (!Array.isArray(position)) return;
   const [x, y] = position as number[];
   const offAxis = Math.abs(x ?? 0) > 0.001 || Math.abs(y ?? 0) > 0.001;
-  // Exemptions: onCreated can aim imperatively (lookAt), and an explicit
-  // `rotation` prop aims the camera declaratively — neither needs lookAt.
-  if (!offAxis || options.onCreated || camera.rotation !== undefined) return;
+  // Exemptions: onCreated can aim imperatively, and an explicit `rotation`
+  // or `lookAt` prop aims the camera declaratively.
+  if (
+    !offAxis ||
+    options.onCreated ||
+    camera.rotation !== undefined ||
+    camera.lookAt !== undefined
+  )
+    return;
   out.push({
     rule: "camera-missing-lookat",
     severity: "warning",

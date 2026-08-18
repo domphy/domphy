@@ -206,7 +206,7 @@ export function renderFence(
   ]
     .filter(Boolean)
     .join(" ");
-  const langClass = lang ? `language-${lang}` : "";
+  const langClass = lang ? `language-${escapeHtml(lang)}` : "";
   // tabindex=0: scrollable <pre> regions must be keyboard-reachable (axe scrollable-region-focusable).
   return `<div class="code-block ${langClass}">${titleHtml}<div class="code-block-inner"><pre class="${preClass}" tabindex="0"><code>${annotated}</code></pre><button class="code-copy-btn" type="button" aria-label="Copy code" data-copy>⎘</button></div></div>`;
 }

@@ -76,7 +76,9 @@ await initI18n(detectLocale({ pathSegment: true, storageKey: "locale" }))
 
 ## globalThis dedup
 
-`createI18n` registers the i18next instance on `globalThis[globalKey]`. This ensures a single instance across Vite code-split chunks and SSR + client hydration — multiple calls with the same `globalKey` return the same instance.
+`createI18n` registers the i18next instance on `globalThis[globalKey]`. This ensures a single instance across Vite code-split chunks — multiple calls with the same `globalKey` return the same instance.
+
+On the server, resources stay on that shared store, but the **locale** is request-scoped (`AsyncLocalStorage`). Two concurrent `initI18n("en")` and `initI18n("vi")` calls do not clobber each other. Use `runWithI18n()` to wrap a request when the runtime does not already isolate async context (Node HTTP does). See [Lazy Loading & Backend — SSR](./backend#ssr-considerations).
 
 ## i18next plugin integration
 

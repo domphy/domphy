@@ -291,13 +291,15 @@ const route = {
 
 ```ts
 // @domphy/query
+import { QueryClient } from "@domphy/query"
 import { createQuery } from "@domphy/query/domphy"
 
-const query = createQuery(() => ({
+const queryClient = new QueryClient()
+const query = createQuery(queryClient, {
   queryKey: ["user"],
   queryFn: fetchUser,
-}))
-// read: (l) => query.get(l).data
+})
+// read: (l) => query.data(l)
 ```
 
 `createQuery` returns reactive accessors — read with a listener to subscribe. Options: `queryKey`, `queryFn`, `staleTime`, `gcTime`, and all standard query options.

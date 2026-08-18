@@ -30,10 +30,59 @@ export function isPlainObject(
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-/** Returns the element's tag key (the first key that names a valid tag). */
+/**
+ * Keys that are never a tag: patches/partials put these before the host
+ * tag (`type`, `_behaviors`, `style`, …). A later valid tag still counts
+ * after these. A typo like `dvi` is a tag candidate and stops the walk
+ * (`{ dvi, div }` has no tag — same spirit as core `validate()`).
+ */
+const TAG_SKIP = new Set([
+  "$",
+  "style",
+  "_key",
+  "_portal",
+  "_context",
+  "_metadata",
+  "_behaviors",
+  "_doctorDisable",
+  "class",
+  "id",
+  "type",
+  "role",
+  "href",
+  "src",
+  "alt",
+  "value",
+  "name",
+  "disabled",
+  "readonly",
+  "required",
+  "checked",
+  "selected",
+  "hidden",
+  "tabindex",
+  "autocomplete",
+  "placeholder",
+]);
+
+function isTagSkip(key: string): boolean {
+  return (
+    TAG_SKIP.has(key) ||
+    key.startsWith("_on") ||
+    key.startsWith("on") ||
+    key.startsWith("data") ||
+    key.startsWith("aria")
+  );
+}
+
+/**
+ * The element's tag: first own key that is a tag candidate.
+ * `{ dvi: "typo", div: "ok" }` → no tag. `{ type: "button", button: "Go" }` → button.
+ */
 export function findTag(element: Record<string, unknown>): string | undefined {
-  for (const key in element) {
-    if (TAGS.has(key)) return key;
+  for (const key of Object.keys(element)) {
+    if (isTagSkip(key)) continue;
+    return TAGS.has(key) ? key : undefined;
   }
   return undefined;
 }

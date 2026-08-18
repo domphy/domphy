@@ -24,9 +24,9 @@ const IMPL = process.argv[3] ?? "fine";
 const REPEATS = Number(process.env.REPEATS ?? 5);
 
 const { url, close } = await serve(4191);
-const browser = await chromium.launch();
-
+let browser;
 try {
+  browser = await chromium.launch();
   const page = await browser.newPage();
   // Swap in the unminified profile build.
   const profileJs = await readFile(path.join(dir, "dist", "main.profile.js"));
@@ -144,6 +144,6 @@ try {
     );
   }
 } finally {
-  await browser.close();
-  close();
+  if (browser) await browser.close();
+  await close();
 }

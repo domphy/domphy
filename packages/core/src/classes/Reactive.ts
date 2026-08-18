@@ -293,15 +293,17 @@ export function computed<T>(fn: () => T): Computed<T> {
   // is immediate (so a synchronous read after the change recomputes); the
   // observed-path recompute+notify is deferred to the drain so multiple changing
   // dependencies (and a batch) collapse into one recompute.
+  let disposed = false;
+
   const job = (): void => {
-    if (!dirty) return;
+    if (disposed || !dirty) return;
     // If nothing is observing this computed, stay lazy — the next read recomputes.
     // If there ARE downstream listeners, recompute now to apply the equality
     // short-circuit and push the new value through this computed's own Notifier.
     if (notifier.listenerCount(EVENT) > 0) recomputeAndNotify();
   };
   const collector = new Collector(() => {
-    if (dirty) return;
+    if (disposed) return;
     dirty = true;
     scheduleReaction(job);
   });
@@ -319,7 +321,14 @@ export function computed<T>(fn: () => T): Computed<T> {
 
   const recompute = (): void => {
     collector.reset();
-    cachedValue = runWithCollector(collector, fn);
+    try {
+      cachedValue = runWithCollector(collector, fn);
+    } catch (error) {
+      // Stay dirty so a later get() retries. Do not bump version / hasValue —
+      // downstream still holds the last good value until a successful run.
+      dirty = true;
+      throw error;
+    }
     version++;
     notifier._version = version;
     dirty = false;
@@ -336,6 +345,10 @@ export function computed<T>(fn: () => T): Computed<T> {
   };
 
   const get = (listener?: ValueListener<T>): T => {
+    // Dispose locks the computed: do not re-subscribe upstream or accept
+    // new downstream listeners. Return the last cached value (undefined
+    // if never computed).
+    if (disposed) return cachedValue;
     // The collector reading us (when read inside an effect/computed), so the
     // consumed version can be recorded after any recompute below.
     let outer: Collector | null = null;
@@ -370,6 +383,8 @@ export function computed<T>(fn: () => T): Computed<T> {
   };
 
   const dispose = (): void => {
+    if (disposed) return;
+    disposed = true;
     collector.reset();
     REACTION_QUEUE.delete(job);
     notifier._dispose();
@@ -460,8 +475,15 @@ export function watch<T>(
 export function nextTick(): Promise<void>;
 export function nextTick(fn: () => void): Promise<void>;
 export function nextTick(fn?: () => void): Promise<void> {
-  // A resolved Promise's `.then` schedules a microtask via the same checkpoint
-  // that `_microtask` uses internally, so it runs in the same microtask queue
-  // position as scheduled effect re-runs — after them when called synchronously.
-  return fn ? Promise.resolve().then(fn) : Promise.resolve();
+  // One microtask so already-scheduled notifier flushes run first, then
+  // flushSync drains any reaction jobs those flushes queued. Promise.resolve()
+  // alone resolves in the same checkpoint as the notifier flush — before
+  // effects have actually re-run.
+  const settled = new Promise<void>((resolve) => {
+    _microtask(() => {
+      flushSync();
+      resolve();
+    });
+  });
+  return fn ? settled.then(fn) : settled;
 }

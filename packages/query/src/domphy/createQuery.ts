@@ -128,8 +128,13 @@ export function createQuery<
           "above that subtree from reading it afterwards.",
       )
     }
+    // Subscribe first so a later recover (reset/refetch) notifies this
+    // render. Throwing before field() leaves the listener unsubscribed —
+    // recover then has no one to wake, matching TanStack React Query's
+    // useSyncExternalStore-then-throw order.
+    const value = field(key, listener)
     throwOnErrorIfNeeded(observer, listener)
-    return field(key, listener)
+    return value
   }
 
   return {

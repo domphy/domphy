@@ -29,8 +29,8 @@
 // matching the spec's own domSketch ("PolarGrid (svg polygon grid lines) …
 // Radar (single svg path/polygon with fill+stroke)").
 
-import type { DomphyElement, Listener } from "@domphy/core";
-import { type State, toState } from "@domphy/core";
+import type { DomphyElement, ElementNode, Listener } from "@domphy/core";
+import { behavior, type State, toState } from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
@@ -798,6 +798,33 @@ export interface RadarChartProps {
   plotRadius?: number;
 }
 
+type RadarPlotBehaviorProps = {
+  tooltip: RadarTooltipController;
+};
+
+type RadarPlotBehavior = {
+  element: HTMLElement;
+  update: (next: RadarPlotBehaviorProps) => void;
+  destroy: () => void;
+};
+
+function attachRadarPlot(
+  node: ElementNode,
+  props: RadarPlotBehaviorProps,
+): RadarPlotBehavior {
+  const element = node.domElement as HTMLElement;
+  props.tooltip.bindContainer(element);
+  return {
+    element,
+    update: (next: RadarPlotBehaviorProps) => {
+      next.tooltip.bindContainer(element);
+    },
+    destroy: () => {
+      props.tooltip.bindContainer(null);
+    },
+  };
+}
+
 /** The `svg` + tooltip overlay (+ optional legend) shared by every radar recipe. */
 export function renderRadarChart(props: RadarChartProps): DomphyElement<"div"> {
   const {
@@ -882,8 +909,9 @@ export function renderRadarChart(props: RadarChartProps): DomphyElement<"div"> {
     }),
   );
 
-  let containerElement: HTMLElement | null = null;
-  const handleHover = (event: MouseEvent) => {
+  const handleHover = (event: MouseEvent, node: ElementNode) => {
+    const containerElement =
+      node.getBehavior<RadarPlotBehavior>("radar-plot")?.element;
     if (!containerElement) return;
     const rect = containerElement.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return;
@@ -939,16 +967,13 @@ export function renderRadarChart(props: RadarChartProps): DomphyElement<"div"> {
       }),
     ],
     style: plotBoxStyle,
-    onMouseMove: (event) => handleHover(event as MouseEvent),
+    onMouseMove: (event, node) => handleHover(event as MouseEvent, node),
     onMouseLeave: () => tooltip.hide(),
-    _onMount(node) {
-      containerElement = node.domElement as HTMLElement;
-      tooltip.bindContainer(containerElement);
-    },
-    _onRemove() {
-      containerElement = null;
-      tooltip.bindContainer(null);
-    },
+    // Persist the plot element on the node. `_onMount` would leave
+    // generation 2's factory-local container null so handleHover no-ops.
+    ...behavior<RadarPlotBehaviorProps>("radar-plot", attachRadarPlot, {
+      tooltip,
+    }),
   } as DomphyElement<"div">;
 
   if (!legend) return plotBox;

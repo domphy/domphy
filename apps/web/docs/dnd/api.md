@@ -22,9 +22,7 @@ const App = {
 }
 ```
 
-`dragDrop` calls `dragAndDrop()` from `@formkit/drag-and-drop` under the hood and patches:
-- `_onMount(node)` — registers the container with animations plugin included
-- `_onRemove()` — tears down listeners automatically
+`dragDrop` registers the container via a per-node `behavior()` instance (`@domphy/core`): `attach` runs `dragAndDrop()` once per real DOM node (animations plugin included by default), later factory re-runs on a reused node route the new `state`/`config` into that same instance via `update()`, and `destroy` tears down listeners, disconnects FormKit's setup MutationObserver, and drops the parent from FormKit's `parents` registry. Do not wire FormKit from `_onMount`/`_onRemove` — those hooks fire only for generation 1 on a reused node.
 
 ### `state` argument
 

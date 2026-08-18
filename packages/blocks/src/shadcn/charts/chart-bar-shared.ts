@@ -849,8 +849,8 @@ export function chartBarHorizontalHoverOverlay(
         }
 
         tooltip.innerHTML = showCategoryTitle
-          ? `<strong>${categories[nearestIndex]}</strong><br>${valueLabel(nearestIndex)}`
-          : valueLabel(nearestIndex);
+          ? `<strong>${escapeHtml(categories[nearestIndex])}</strong><br>${escapeHtml(valueLabel(nearestIndex))}`
+          : escapeHtml(valueLabel(nearestIndex));
         tooltip.style.opacity = "1";
 
         let left = mouseX + 14;

@@ -1,7 +1,6 @@
 /**
  * pageElement (pageElement.ts) — the live Domphy runtime over the pages[]
- * lane (v33: an `element`/`text` NodeJSON tree — see
- * @parashape/parametric's schema/model.ts module doc). Invariants:
+ * lane (v33: an `element`/`text` NodeJSON tree — see engine/types.ts). Invariants:
  *  1. Expression-valued args render as REACTIVE values: a state.set()
  *     updates exactly the DOM that read that key (fine-grained, RecordState).
  *  2. A declared event arg dispatches through the event law: object return
@@ -24,7 +23,7 @@
 // @vitest-environment jsdom
 
 import { ElementNode, flushSync } from "@domphy/core"
-import type { NodeJSON, OperationJSON, PageJSON } from "@parashape/parametric"
+import type { NodeJSON, OperationJSON, PageJSON } from "../../engine/index.js"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { type PageError, pageElement } from "../pageElement.js"
 
@@ -236,6 +235,21 @@ describe("pageElement — reactive expressions", () => {
         const host = mount(pageElement(page, { scope }))
         expect(host.querySelector("script")).toBeNull()
         expect(host.textContent).toContain("safe")
+    })
+
+    it("a generated raw object without method is dropped (no script/on* passthrough)", () => {
+        const page: PageJSON = {
+            key: "p",
+            operations: [el("div", {
+                args: {
+                    children: "[{ script: 'alert(1)', onClick: () => {} }, { method: 'pageText', args: [{ key: 'value', value: 'safe' }] }]",
+                },
+            })],
+        }
+        const host = mount(pageElement(page, { scope }))
+        expect(host.querySelector("script")).toBeNull()
+        expect(host.textContent).toContain("safe")
+        expect(host.querySelector("[onclick]")).toBeNull()
     })
 })
 

@@ -183,6 +183,68 @@ describe("renderToStream", () => {
     expect(body).toContain("</body></html>");
   });
 
+  it("reports a loader redirect instead of flushing a pending 200", async () => {
+    const routes = defineRoutes([
+      {
+        path: "/",
+        children: [
+          {
+            path: "private",
+            loader: () => redirect("/about"),
+            page: () => ({ h1: "Private" }),
+          },
+          { path: "about", page: () => ({ h1: "About" }) },
+        ],
+      },
+    ]);
+    const app = createApp(routes, { history: null });
+    const {
+      stream,
+      status,
+      redirect: target,
+    } = await app.renderToStream("/private");
+    expect(status).toBe(307);
+    expect(target).toBe("/about");
+
+    const body = (await collect(stream)).join("");
+    expect(body).not.toContain("Private");
+    expect(body).not.toContain("Loading");
+  });
+
+  it("reports a slot loader redirect instead of a pending 200", async () => {
+    const routes = defineRoutes([
+      {
+        path: "dash",
+        layout: (children, _context, slots) => ({
+          div: [slots.panel ?? { span: "" }, children],
+        }),
+        slots: {
+          panel: [
+            {
+              path: "",
+              loader: () => redirect("/about"),
+              page: () => ({ span: "panel" }),
+            },
+          ],
+        },
+        children: [{ path: "", page: () => ({ h1: "Dash" }) }],
+      },
+      { path: "about", page: () => ({ h1: "About" }) },
+    ]);
+    const app = createApp(routes, { history: null });
+    const {
+      stream,
+      status,
+      redirect: target,
+    } = await app.renderToStream("/dash");
+    expect(status).toBe(307);
+    expect(target).toBe("/about");
+
+    const body = (await collect(stream)).join("");
+    expect(body).not.toContain("Dash");
+    expect(body).not.toContain("panel");
+  });
+
   it("fails with an actionable error on route-middleware rewrite loops", async () => {
     const routes = defineRoutes([
       {

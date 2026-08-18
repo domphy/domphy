@@ -5,54 +5,36 @@ description: "Virtualize content that scrolls with the browser window rather tha
 
 # Window Virtualizer
 
-By default, `createVirtualizer` virtualizes items inside a fixed-height scrollable `div`. When your content should scroll with the browser window (the whole page scrolls), use the window-specific helpers instead.
+By default, `createVirtualizer` virtualizes items inside a fixed-height scrollable `div`. When your content should scroll with the browser window (the whole page scrolls), use `createWindowVirtualizer` — same handle contract with `TScroll` fixed to `Window` and the window observers / `windowScroll` defaults filled in. No `as any` casts.
 
 ## Setup
 
-Import the window observers and scroll function from `@domphy/virtual`:
-
 ```ts
-import {
-  observeWindowRect,
-  observeWindowOffset,
-  windowScroll,
-} from "@domphy/virtual"
-import { createVirtualizer } from "@domphy/virtual/domphy"
-```
+import { createWindowVirtualizer } from "@domphy/virtual/domphy"
 
-Pass them as options, then wire `window` as the scroll element from `_onMount`:
-
-```ts
-const list = createVirtualizer({
+const list = createWindowVirtualizer<HTMLDivElement>({
   count: rows.length,
   estimateSize: () => 50,
-  observeElementRect: observeWindowRect as any,
-  observeElementOffset: observeWindowOffset as any,
-  scrollToFn: windowScroll as any,
   overscan: 5,
 })
 
 // In the container element:
-_onMount: () => list.setScrollElement(window as any)
+_onMount: () => list.setScrollElement(window)
 ```
 
-The `as any` casts are needed because the `createVirtualizer` generic constrains `TScroll extends Element`, while `window` is a `Window`. The runtime behaviour is correct — the `Window` overloads in the virtualizer core handle all window-specific reads.
+The factory touches no DOM globals at construction, so it is SSR-safe; `window` is only passed once the tree mounts client-side.
 
 ## Full example
 
 ```ts
-import { observeWindowRect, observeWindowOffset, windowScroll } from "@domphy/virtual"
-import { createVirtualizer } from "@domphy/virtual/domphy"
+import { createWindowVirtualizer } from "@domphy/virtual/domphy"
 import { themeColor, themeSpacing } from "@domphy/theme"
 
 const rows = Array.from({ length: 10_000 }, (_, i) => `Row ${i + 1}`)
 
-const list = createVirtualizer({
+const list = createWindowVirtualizer<HTMLDivElement>({
   count: rows.length,
   estimateSize: () => 52,
-  observeElementRect: observeWindowRect as any,
-  observeElementOffset: observeWindowOffset as any,
-  scrollToFn: windowScroll as any,
   overscan: 5,
 })
 
@@ -84,7 +66,7 @@ const App = {
       },
     },
   ],
-  _onMount: () => list.setScrollElement(window as any),
+  _onMount: () => list.setScrollElement(window),
   _onRemove: () => list.destroy(),
 }
 ```
@@ -106,13 +88,10 @@ When the virtual list starts below the top of the page (e.g. after a fixed heade
 ```ts
 const HEADER_HEIGHT = 64
 
-const list = createVirtualizer({
+const list = createWindowVirtualizer<HTMLDivElement>({
   count: rows.length,
   estimateSize: () => 52,
   scrollMargin: HEADER_HEIGHT,  // items begin 64px from the document top
-  observeElementRect: observeWindowRect as any,
-  observeElementOffset: observeWindowOffset as any,
-  scrollToFn: windowScroll as any,
 })
 
 const App = {
@@ -158,7 +137,7 @@ const App = {
           },
         },
       ],
-      _onMount: () => list.setScrollElement(window as any),
+      _onMount: () => list.setScrollElement(window),
       _onRemove: () => list.destroy(),
     },
   ],
@@ -170,12 +149,9 @@ const App = {
 `measureElement` works identically with window scroll:
 
 ```ts
-const list = createVirtualizer({
+const list = createWindowVirtualizer<HTMLElement>({
   count: posts.length,
   estimateSize: () => 80,
-  observeElementRect: observeWindowRect as any,
-  observeElementOffset: observeWindowOffset as any,
-  scrollToFn: windowScroll as any,
 })
 
 // Attach measureElement to each item:
@@ -185,6 +161,7 @@ const PostItem = (item: VirtualItem) => ({
   article: PostContent(posts[item.index]),
   _onMount: (node) =>
     list.measureElement(node.domElement as HTMLElement),
+  _onRemove: () => list.measureElement(null),
   style: {
     position: "absolute",
     top: 0,

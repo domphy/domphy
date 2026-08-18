@@ -23,25 +23,26 @@ type Highlight = (
 
 | Return value | What happens |
 | --- | --- |
-| Non-empty string | Used as the **inner HTML** of the `<code>` element. Markup is preserved verbatim. |
+| Non-empty string | Wrapped in `rawHtml()` as the content of the `<code>` element. `TextNode` then runs `sanitizeHTMLString` (strips `<script>`, `on*` handlers, `javascript:` URLs) — defense in depth, not a sanitizer for untrusted input. |
 | `DomphyElement` | Replaces the **entire block** — no `pre > code` wrapper is added around it. |
 | Falsy (`null`, `undefined`, empty string) | Falls back to plain escaped text. |
 
-## String return — inner HTML
+## String return — `rawHtml` + sanitize
 
-Most highlighters emit HTML strings. Return the string and `@domphy/press` wraps it in `rawHtml()` (core's explicit HTML opt-in) as the content of the `<code>` element:
+Most highlighters emit token markup as an HTML string. Return that string and `@domphy/press` wraps it in `rawHtml()` (core's explicit HTML opt-in). Do **not** interpolate raw `code` into an HTML string yourself — pass the source to a highlighter (Shiki, highlight.js, …) and return its output:
 
 ```ts
 import { parseMarkdown } from "@domphy/press"
 
 const { body } = parseMarkdown("```ts\nconst x = 1\n```", {
   highlight(code, language) {
-    return `<span class="hl-${language}">${code}</span>`
+    // Highlighter output only — never `...${code}...` as HTML.
+    return myHighlighter(code, language)
   },
 })
 
 // body[0] ->
-// { pre: [{ code: rawHtml('<span class="hl-ts">const x = 1\n</span>'), dataLanguage: "ts", class: "language-ts" }] }
+// { pre: [{ code: rawHtml('…token markup…'), dataLanguage: "ts", class: "language-ts" }] }
 ```
 
 The `dataLanguage` and `class` properties on the `<code>` element are always emitted by the walker when a language identifier is present, regardless of whether a highlighter is supplied.

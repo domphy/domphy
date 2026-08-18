@@ -180,4 +180,13 @@ describe("chart() patch behavior lifecycle", () => {
 
     expect(setOptionSpy).not.toHaveBeenCalled();
   });
+
+  // Regression: overflow:hidden on the host clipped the absolutely-positioned
+  // tooltip (and overflowing SVG chrome). The host stays position:relative
+  // for the overlay stack; overflow is visible so the tooltip can extend.
+  it("does not clip overflowing tooltip chrome with overflow:hidden", () => {
+    const patch = chart(makeOption([1, 2]));
+    expect(patch.style?.overflow).toBe("visible");
+    expect(patch.style?.position).toBe("relative");
+  });
 });

@@ -1,6 +1,10 @@
 import {
+  behavior,
   type DomphyElement,
+  type ElementNode,
+  isState,
   type PartialElement,
+  type State,
   toState,
   type ValueOrState,
 } from "@domphy/core";
@@ -25,6 +29,33 @@ function getPages(current: number, total: number): (number | "...")[] {
   return pages;
 }
 
+function persistValue<T>(
+  node: ElementNode,
+  key: string,
+  incoming: ValueOrState<T> | undefined,
+  fallback: T,
+): State<T> {
+  if (isState(incoming)) {
+    node.setMetadata(key, incoming);
+    return incoming as State<T>;
+  }
+  let stored = node.getMetadata(key) as State<T> | undefined;
+  if (!stored) {
+    stored = toState((incoming as T | undefined) ?? fallback);
+    node.setMetadata(key, stored);
+  }
+  return stored;
+}
+
+function persistTotal(node: ElementNode, total: number): State<number> {
+  let stored = node.getMetadata("paginationTotal") as State<number> | undefined;
+  if (!stored) {
+    stored = toState(total);
+    node.setMetadata("paginationTotal", stored);
+  }
+  return stored;
+}
+
 /**
  * Themed pagination control. Renders previous/next buttons plus truncated page
  * numbers (with ellipses), tracks the current page in a `State`, and updates it
@@ -45,7 +76,6 @@ function pagination(props: {
   accentColor?: ThemeColor;
 }): PartialElement {
   const { total, color = "neutral", accentColor = "primary" } = props;
-  const state = toState(props.value ?? 1);
 
   const btnBase = {
     display: "inline-flex",
@@ -100,9 +130,12 @@ function pagination(props: {
         console.warn('"pagination" patch must use div tag');
     },
     _onInit: (node) => {
+      const state = persistValue(node, "paginationPage", props.value, 1);
+      const totalState = persistTotal(node, total);
       const content: DomphyElement<"div"> = {
         div: (listener) => {
           const page = state.get(listener);
+          const pageCount = totalState.get(listener);
           const items: DomphyElement[] = [];
 
           // Prev button
@@ -120,7 +153,7 @@ function pagination(props: {
           // there can be up to two "..." spans) so the list survives length
           // changes across pages without the unkeyed-reuse footgun.
           let ellipsisIndex = 0;
-          for (const p of getPages(page, total)) {
+          for (const p of getPages(page, pageCount)) {
             if (p === "...") {
               items.push({
                 span: "…",
@@ -156,8 +189,8 @@ function pagination(props: {
             _key: "next",
             type: "button",
             ariaLabel: "Next page",
-            disabled: page >= total,
-            onClick: () => page < total && state.set(page + 1),
+            disabled: page >= pageCount,
+            onClick: () => page < pageCount && state.set(page + 1),
             style: btnBase,
           });
 
@@ -171,6 +204,15 @@ function pagination(props: {
       };
       node.children.insert(content);
     },
+    ...behavior<{ total: number }>(
+      "pagination-total",
+      (node) => ({
+        update(snapshot) {
+          persistTotal(node, snapshot.total).set(snapshot.total);
+        },
+      }),
+      { total },
+    ),
     style: {
       display: "inline-flex",
     },

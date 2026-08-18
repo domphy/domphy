@@ -2,6 +2,7 @@ import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
+  themeDensity,
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
@@ -35,9 +36,9 @@ function mark(
         themeColor(listener, "text", accentColor.get(listener)),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", accentColor.get(listener)),
-      height: themeSpacing(6),
-      borderRadius: themeSpacing(1),
-      paddingInline: themeSpacing(1.5),
+      height: (listener) => themeSpacing(themeDensity(listener) * 6),
+      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
+      paddingInline: (listener) => themeSpacing(themeDensity(listener) * 1.5),
     },
   };
 }

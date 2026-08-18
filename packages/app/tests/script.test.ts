@@ -1,15 +1,14 @@
 // @vitest-environment jsdom
+import { ElementNode } from "@domphy/core";
 import { describe, expect, it } from "vitest";
 import { script } from "../src/script";
 
 const tick = (ms = 0) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
- * Drives a `script()` block's lifecycle directly: `script()` returns an element
- * whose tag is `script` (intentionally absent from core's renderable HtmlTags
- * allowlist, so it cannot be rendered through `ElementNode`). The strategy and
- * dedupe logic all live in `_onMount`, which we invoke against a real jsdom
- * `<script>` element wrapped in a minimal node stub.
+ * Drives a `script()` block's lifecycle directly against a real jsdom
+ * `<script>` element. `_onMount` owns strategy + dedupe; we also assert
+ * `ElementNode` accepts the `{ script }` tag (core HtmlTags allowlist).
  */
 function runMount(part: ReturnType<typeof script>): HTMLScriptElement {
   const element = document.createElement("script");
@@ -19,6 +18,12 @@ function runMount(part: ReturnType<typeof script>): HTMLScriptElement {
 }
 
 describe("script", () => {
+  it("constructs an ElementNode without throwing", () => {
+    expect(
+      () => new ElementNode(script({ src: "https://example.test/node.js" })),
+    ).not.toThrow();
+  });
+
   it("carries async and id onto the element part", () => {
     const part = script({
       src: "https://example.test/with-id.js",

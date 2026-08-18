@@ -186,4 +186,110 @@ describe("createFloating", () => {
     referenceB.remove();
     floatingB.remove();
   });
+
+  it("surfaces a computePosition rejection to onError and does not call onUpdate", async () => {
+    const reference = document.createElement("div");
+    const floating = document.createElement("div");
+    document.body.append(reference, floating);
+
+    const failure = new Error("rects failed");
+    const handle = createFloating({
+      platform: {
+        getElementRects: () => Promise.reject(failure),
+        getClippingRect: async () => ({ x: 0, y: 0, width: 2000, height: 2000 }),
+        getDimensions: async () => ({ width: 0, height: 0 }),
+      },
+    });
+    const positions: Array<number> = [];
+    const errors: Array<unknown> = [];
+    handle.onUpdate((position) => {
+      positions.push(position.x);
+    });
+    handle.onError((error) => {
+      errors.push(error);
+    });
+
+    handle.connect(reference, floating);
+    await flush();
+
+    expect(positions).toEqual([]);
+    expect(handle.position).toBeNull();
+    expect(errors.length).toBeGreaterThan(0);
+    expect(errors.every((error) => error === failure)).toBe(true);
+
+    handle.disconnect();
+    reference.remove();
+    floating.remove();
+  });
+
+  it("onError returns an unsubscribe function that removes the listener", async () => {
+    const reference = document.createElement("div");
+    const floating = document.createElement("div");
+    document.body.append(reference, floating);
+
+    const handle = createFloating({
+      platform: {
+        getElementRects: () => Promise.reject(new Error("rects failed")),
+        getClippingRect: async () => ({ x: 0, y: 0, width: 2000, height: 2000 }),
+        getDimensions: async () => ({ width: 0, height: 0 }),
+      },
+    });
+    let calls = 0;
+    const unsubscribe = handle.onError(() => {
+      calls++;
+    });
+
+    handle.connect(reference, floating);
+    await flush();
+    expect(calls).toBeGreaterThan(0);
+
+    unsubscribe();
+    const callsAfterUnsubscribe = calls;
+    // Keep a no-op listener so the second rejection is observed (not
+    // console.error'd) while still proving the first listener is gone.
+    handle.onError(() => {});
+    handle.connect(reference, floating);
+    await flush();
+    expect(calls).toBe(callsAfterUnsubscribe);
+
+    handle.disconnect();
+    reference.remove();
+    floating.remove();
+  });
+
+  it("does not deliver a late computePosition rejection after disconnect()", async () => {
+    const reference = document.createElement("div");
+    const floating = document.createElement("div");
+    document.body.append(reference, floating);
+
+    const rejectors: Array<(error: Error) => void> = [];
+    const handle = createFloating({
+      platform: {
+        getElementRects: () =>
+          new Promise((_, reject) => {
+            rejectors.push(reject);
+          }),
+        getClippingRect: async () => ({ x: 0, y: 0, width: 2000, height: 2000 }),
+        getDimensions: async () => ({ width: 0, height: 0 }),
+      },
+    });
+    const errors: Array<unknown> = [];
+    handle.onError((error) => {
+      errors.push(error);
+    });
+
+    handle.connect(reference, floating);
+    await flush();
+    expect(rejectors.length).toBeGreaterThan(0);
+
+    handle.disconnect();
+    for (const reject of rejectors) {
+      reject(new Error("late failure"));
+    }
+    await flush();
+    expect(errors).toEqual([]);
+
+    reference.remove();
+    floating.remove();
+  });
 });

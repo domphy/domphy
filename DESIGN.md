@@ -226,15 +226,20 @@ breaks this relationship fails CI, not a design review.
    generation step specifically because Oklab's hue lines stay closer to
    perceptually constant hue under lightness changes, which matters when
    interpolating rather than just measuring.
-2. Sort anchors by Oklab lightness; walk the resulting polyline and compute
-   **cumulative Euclidean arc length** — this is the *unwarped* parameter
-   space, proportional to how much the color actually changes, not to index.
+2. Keep the caller-supplied waypoint order (do **not** sort by lightness);
+   walk the polyline black → waypoints → white and compute **cumulative
+   Euclidean arc length** — this is the *unwarped* parameter space,
+   proportional to how much the color actually changes, not to index. The
+   interpolator walks dark-to-light and the output is reversed, so input
+   order is restored as light-to-dark.
 3. `unwarp` each anchor's normalized cumulative distance into warped
    parameter space (§3.1) — this is where the anchor sits once the output
-   grid is built by `warp`.
+   grid is built by `warp`. Mid-anchor positions are **not** remapped
+   through a second warp (that displaced them off their own hex).
 4. For each of the `N` output steps, compute its position in the anchor
    polyline (linear between neighboring anchor indices), then `warp` that
-   position and map it back into the arc-length parameter range.
+   sampling parameter once. Each user hex is pinned onto its nearest
+   output step so mid-anchors round-trip exactly.
 5. Interpolate: `L` linearly per Oklab segment; `a`/`b` (the two chroma
    channels) through the same **monotone cubic spline** as §2.3, evaluated
    across *all* anchors at once — a smooth single-peak chroma trajectory,
@@ -243,9 +248,10 @@ breaks this relationship fails CI, not a design review.
 6. Convert back Oklab → linear sRGB → hex.
 
 Passing more than one anchor color pins each as a fixed waypoint the ramp
-must pass through (e.g. a specific existing brand color at a specific
-position), still connected by the same warped interpolation — the ramp is
-not required to be generated from a single color.
+must pass through in the given order (e.g. a specific existing brand color
+at a specific position), still connected by the same warped interpolation —
+the ramp is not required to be generated from a single color, and each
+input hex is present unchanged on the output.
 
 Output is ordered light-to-dark (`ramp[0]` ≈ white, `ramp[N-1]` ≈ black),
 matching `ThemeInput.colors[name]`'s convention directly:

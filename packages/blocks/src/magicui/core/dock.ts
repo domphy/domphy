@@ -17,7 +17,8 @@
 // damped spring, not a literal one. The proximity falloff is piecewise-linear,
 // matching motion's `useTransform` 3-point range [-distance, 0, distance].
 
-import type { DomphyElement, ElementNode, Listener } from "@domphy/core";
+import type { BehaviorInstance, DomphyElement, Listener } from "@domphy/core";
+import { behavior, ElementNode } from "@domphy/core";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import { tooltip } from "@domphy/ui";
 
@@ -144,11 +145,106 @@ function dockSeparator(index: number): DomphyElement<"div"> {
   return element as DomphyElement<"div">;
 }
 
+const DOCK_BEHAVIOR_KEY = "magicui-dock";
+const DOCK_ICON_BEHAVIOR_KEY = "magicui-dock-icon";
+
 interface DockIconRef {
   element: HTMLElement;
   /** Natural rest width (px), captured on the first magnify frame while the
    * inline width is still empty; the base for the pixel width/height interp. */
   baseSize: number;
+}
+
+interface DockBehaviorProps {
+  iconRefs: DockIconRef[];
+  magnification: number;
+  proximityMultiplier: number;
+  disableMagnification: boolean;
+}
+
+interface DockBehavior extends BehaviorInstance<DockBehaviorProps> {
+  iconRefs: DockIconRef[];
+}
+
+function attachDockIcon(node: ElementNode, props: { iconRefs: DockIconRef[] }) {
+  const element = node.domElement as HTMLElement | null;
+  if (!element) return { update() {}, destroy() {} };
+  const parent = node.parent;
+  const dock = parent?.getBehavior<DockBehavior>(DOCK_BEHAVIOR_KEY);
+  const refs = dock?.iconRefs ?? props.iconRefs;
+  const ref: DockIconRef = { element, baseSize: 0 };
+  refs.push(ref);
+  return {
+    update() {},
+    destroy() {
+      const index = refs.findIndex((item) => item.element === element);
+      if (index >= 0) refs.splice(index, 1);
+    },
+  };
+}
+
+function attachDock(node: ElementNode, initialProps: DockBehaviorProps) {
+  let props = initialProps;
+  const iconRefs = initialProps.iconRefs;
+  const container = node.domElement as HTMLElement | null;
+  if (!container) {
+    return { iconRefs, update() {}, destroy() {} };
+  }
+
+  let animationFrame: number | null = null;
+  let pointerX: number | null = null;
+
+  const applyMagnification = () => {
+    animationFrame = null;
+    for (const ref of iconRefs) {
+      if (pointerX === null || props.disableMagnification) {
+        ref.element.style.width = "";
+        ref.element.style.height = "";
+        continue;
+      }
+      const rect = ref.element.getBoundingClientRect();
+      if (rect.width === 0) continue;
+      if (!ref.element.style.width) ref.baseSize = rect.width;
+      const baseSize = ref.baseSize || rect.width;
+      const center = rect.left + rect.width / 2;
+      const distance = Math.abs(pointerX - center);
+      const threshold = baseSize * props.proximityMultiplier;
+      const falloff =
+        threshold > 0 ? 1 - Math.min(distance, threshold) / threshold : 0;
+      const size = baseSize + baseSize * (props.magnification - 1) * falloff;
+      ref.element.style.width = `${size.toFixed(2)}px`;
+      ref.element.style.height = `${size.toFixed(2)}px`;
+    }
+  };
+
+  const scheduleUpdate = () => {
+    if (animationFrame === null)
+      animationFrame = requestAnimationFrame(applyMagnification);
+  };
+
+  const handlePointerMove = (event: PointerEvent) => {
+    pointerX = event.clientX;
+    scheduleUpdate();
+  };
+  const handlePointerLeave = () => {
+    pointerX = null;
+    scheduleUpdate();
+  };
+
+  container.addEventListener("pointermove", handlePointerMove);
+  container.addEventListener("pointerleave", handlePointerLeave);
+
+  return {
+    iconRefs,
+    update(next: DockBehaviorProps) {
+      props = { ...next, iconRefs };
+    },
+    destroy() {
+      container.removeEventListener("pointermove", handlePointerMove);
+      container.removeEventListener("pointerleave", handlePointerLeave);
+      if (animationFrame !== null) cancelAnimationFrame(animationFrame);
+    },
+  };
 }
 
 function dockIconButton(
@@ -198,15 +294,7 @@ function dockIconButton(
         : {}),
     },
     $: [tooltip({ content: item.label, placement: tooltipPlacement })],
-    _onMount: (node: ElementNode) => {
-      const element = node.domElement as HTMLElement | null;
-      if (element) iconRefs.push({ element, baseSize: 0 });
-    },
-    _onRemove: (node: ElementNode) => {
-      const element = node.domElement as HTMLElement | null;
-      const index_ = iconRefs.findIndex((ref) => ref.element === element);
-      if (index_ >= 0) iconRefs.splice(index_, 1);
-    },
+    ...behavior(DOCK_ICON_BEHAVIOR_KEY, attachDockIcon, { iconRefs }),
   };
   // Only attach the event handler prop when a click handler was actually
   // provided — Domphy's event validation rejects an explicit `onClick:
@@ -229,45 +317,6 @@ function dock(props: DockProps = {}): DomphyElement<"nav"> {
   const disableMagnification = props.disableMagnification ?? false;
 
   const iconRefs: DockIconRef[] = [];
-  let animationFrame: number | null = null;
-  let pointerX: number | null = null;
-
-  const applyMagnification = () => {
-    animationFrame = null;
-    for (const ref of iconRefs) {
-      if (pointerX === null || disableMagnification) {
-        // Clear inline sizes so the base themeSpacing width/height (and the
-        // CSS transition) take back over and the icon eases to rest.
-        ref.element.style.width = "";
-        ref.element.style.height = "";
-        continue;
-      }
-      const rect = ref.element.getBoundingClientRect();
-      if (rect.width === 0) continue;
-      // Capture the natural size only while no inline width is applied yet
-      // (i.e. the first frame of a hover session); afterwards rect.width
-      // reflects the magnified size and must not be mistaken for the base.
-      if (!ref.element.style.width) ref.baseSize = rect.width;
-      const baseSize = ref.baseSize || rect.width;
-      const center = rect.left + rect.width / 2;
-      const distance = Math.abs(pointerX - center);
-      const threshold = baseSize * proximityMultiplier;
-      // Piecewise-linear falloff — matches motion useTransform's 3-point
-      // range [-distance, 0, distance] -> [base, target, base].
-      const falloff =
-        threshold > 0 ? 1 - Math.min(distance, threshold) / threshold : 0;
-      // Interpolate the size in PIXELS (a layout property), not a transform,
-      // so the flex row reflows and neighbouring icons spread apart.
-      const size = baseSize + baseSize * (magnification - 1) * falloff;
-      ref.element.style.width = `${size.toFixed(2)}px`;
-      ref.element.style.height = `${size.toFixed(2)}px`;
-    }
-  };
-
-  const scheduleUpdate = () => {
-    if (animationFrame === null)
-      animationFrame = requestAnimationFrame(applyMagnification);
-  };
 
   const children: DomphyElement[] = entries.map((entry, index) =>
     "separator" in entry
@@ -334,28 +383,12 @@ function dock(props: DockProps = {}): DomphyElement<"nav"> {
         `0 ${themeSpacing(2)} ${themeSpacing(10)} color-mix(in srgb, ${themeColor(listener, "shift-9")} 18%, transparent)`,
       backdropFilter: (_listener: Listener) => `blur(${themeSpacing(4)})`,
     },
-    _onMount: (node: ElementNode) => {
-      const container = node.domElement as HTMLElement | null;
-      if (!container) return;
-
-      const handlePointerMove = (event: PointerEvent) => {
-        pointerX = event.clientX;
-        scheduleUpdate();
-      };
-      const handlePointerLeave = () => {
-        pointerX = null;
-        scheduleUpdate();
-      };
-
-      container.addEventListener("pointermove", handlePointerMove);
-      container.addEventListener("pointerleave", handlePointerLeave);
-
-      node.addHook("Remove", () => {
-        container.removeEventListener("pointermove", handlePointerMove);
-        container.removeEventListener("pointerleave", handlePointerLeave);
-        if (animationFrame !== null) cancelAnimationFrame(animationFrame);
-      });
-    },
+    ...behavior<DockBehaviorProps>(DOCK_BEHAVIOR_KEY, attachDock, {
+      iconRefs,
+      magnification,
+      proximityMultiplier,
+      disableMagnification,
+    }),
   };
 }
 

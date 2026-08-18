@@ -388,3 +388,77 @@ describe("MatchSupersededError sentinel (explicit stale-load abort)", () => {
     }
   });
 });
+
+describe("SWR background redirect (handleLoader IIFE)", () => {
+  function createSwrRedirectSetup() {
+    let loadCount = 0;
+    const background = deferred<never>();
+    const rootRoute = createRootRoute();
+    const indexRoute = createRoute({
+      getParentRoute: () => rootRoute,
+      path: "/",
+    });
+    const pageRoute = createRoute({
+      getParentRoute: () => rootRoute,
+      path: "/page",
+      loader: () => {
+        loadCount += 1;
+        if (loadCount === 1) return { page: "ok" };
+        return background.promise;
+      },
+    });
+    const otherRoute = createRoute({
+      getParentRoute: () => rootRoute,
+      path: "/other",
+      loader: () => ({ page: "other" }),
+    });
+    const hijackRoute = createRoute({
+      getParentRoute: () => rootRoute,
+      path: "/hijack",
+    });
+    const router = createRouter({
+      routeTree: rootRoute.addChildren([
+        indexRoute,
+        pageRoute,
+        otherRoute,
+        hijackRoute,
+      ]),
+      history: createMemoryHistory({ initialEntries: ["/"] }),
+    });
+    return { router, background, pageRoute };
+  }
+
+  it("does not follow a SWR background redirect after the location is superseded", async () => {
+    const { router, background } = createSwrRedirectSetup();
+    await router.load();
+    await router.navigate({ to: "/page" });
+    expect(router.state.location.pathname).toBe("/page");
+
+    // invalidate() reloads the successful match in the background IIFE
+    // (status === 'success' && invalid && staleReloadMode !== 'blocking').
+    const invalidatePromise = router.invalidate();
+    await invalidatePromise;
+    await router.navigate({ to: "/other" });
+    expect(router.state.location.pathname).toBe("/other");
+
+    background.reject(redirect({ to: "/hijack" }));
+    await sleep(30);
+
+    expect(router.state.location.pathname).toBe("/other");
+    expect(
+      router.state.matches.some((match) => match.fullPath === "/hijack"),
+    ).toBe(false);
+  });
+
+  it("follows a SWR background redirect while the location is still current", async () => {
+    const { router, background } = createSwrRedirectSetup();
+    await router.load();
+    await router.navigate({ to: "/page" });
+
+    await router.invalidate();
+    background.reject(redirect({ to: "/hijack" }));
+    await sleep(30);
+
+    expect(router.state.location.pathname).toBe("/hijack");
+  });
+});

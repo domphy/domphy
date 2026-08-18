@@ -109,6 +109,7 @@ const SaveButton: DomphyElement<"button"> = {
 - `mutate(variables, options?)` is fire-and-forget — rejections are swallowed, read them via `save.error(l)`.
 - `mutateAsync(variables, options?)` returns the promise so you can `await`/`catch`.
 - Accessors: `data`, `error`, `variables`, `status`, `isPending`, `isSuccess`, `isError`, `isIdle`. Plus `reset()` and `destroy()`.
+- When `throwOnError` is true (or a function that returns true), reading any field **with a listener** throws `result.error` — same contract as TanStack `useMutation`. Imperative reads without a listener never throw.
 
 ## createInfiniteQuery
 
@@ -141,7 +142,7 @@ const Feed: DomphyElement<"div"> = {
 }
 ```
 
-InfiniteQueryHandle accessors: `data`, `error`, `status`, `isPending`, `isFetching`, `isSuccess`, `isError`, `hasNextPage`, `hasPreviousPage`, `isFetchingNextPage`, `isFetchingPreviousPage`; methods: `fetchNextPage`, `fetchPreviousPage`, `refetch`, `destroy`. Note: `fetchStatus`, `isLoading`, `isRefetching`, `isStale`, and `setOptions` are not available on the infinite variant.
+InfiniteQueryHandle accessors: `data`, `error`, `status`, `fetchStatus`, `isPending` / `isLoading`, `isFetching` / `isRefetching`, `isSuccess` / `isError`, `isStale`, `isPlaceholderData`, `hasNextPage`, `hasPreviousPage`, `isFetchingNextPage`, `isFetchingPreviousPage`. Methods: `fetchNextPage`, `fetchPreviousPage`, `refetch`, `destroy`. There is no `setOptions` on the infinite variant.
 
 ## When to use the bridge directly
 

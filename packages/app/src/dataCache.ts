@@ -46,6 +46,7 @@ export class DataCache {
     if (prefix === undefined) {
       this.entries.clear();
       this.pending.clear();
+      this.inflight.clear();
       return;
     }
     for (const key of this.entries.keys()) {
@@ -57,6 +58,11 @@ export class DataCache {
     // plus a spurious onRevalidated render).
     for (const key of this.pending.keys()) {
       if (key.startsWith(prefix)) this.pending.delete(key);
+    }
+    // Drop in-flight promises so a later load() does not reuse a loader
+    // invocation that started before this invalidation.
+    for (const key of this.inflight.keys()) {
+      if (key.startsWith(prefix)) this.inflight.delete(key);
     }
   }
 
@@ -92,18 +98,22 @@ export class DataCache {
 
     const promise = Promise.resolve(loader(context)).then(
       (data) => {
-        this.inflight.delete(key);
-        if (revalidate !== undefined && revalidate > 0) {
-          this.entries.set(key, {
-            data,
-            timestamp: Date.now(),
-            consumable: false,
-          });
+        // Skip write-back when invalidate() dropped this promise — a later
+        // load must not inherit the pre-invalidation result or its cache entry.
+        if (this.inflight.get(key) === promise) {
+          this.inflight.delete(key);
+          if (revalidate !== undefined && revalidate > 0) {
+            this.entries.set(key, {
+              data,
+              timestamp: Date.now(),
+              consumable: false,
+            });
+          }
         }
         return data;
       },
       (error) => {
-        this.inflight.delete(key);
+        if (this.inflight.get(key) === promise) this.inflight.delete(key);
         throw error;
       },
     );
@@ -172,16 +182,18 @@ export class DataCache {
     // same key (and a concurrent `load()`) share one loader invocation.
     const promise = Promise.resolve(loader(context)).then(
       (data) => {
-        this.inflight.delete(key);
-        this.entries.set(key, {
-          data,
-          timestamp: Date.now(),
-          consumable: true,
-        });
+        if (this.inflight.get(key) === promise) {
+          this.inflight.delete(key);
+          this.entries.set(key, {
+            data,
+            timestamp: Date.now(),
+            consumable: true,
+          });
+        }
         return data;
       },
       (error) => {
-        this.inflight.delete(key);
+        if (this.inflight.get(key) === promise) this.inflight.delete(key);
         throw error;
       },
     );

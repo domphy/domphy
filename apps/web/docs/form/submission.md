@@ -229,4 +229,4 @@ const SendButton = {
 }
 ```
 
-No extra debounce or lock needed — the form state handles it.
+No extra debounce or lock needed — the form state handles it. A second `handleSubmit()` while a previous submit is still in flight is ignored (`onSubmit` is not called again). Sequential re-submit after the previous run finishes still re-validates.

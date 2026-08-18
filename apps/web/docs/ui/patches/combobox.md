@@ -10,6 +10,8 @@ Use `combobox` on a `div` element. It displays selected values as removable tags
 
 `combobox` gives the dropdown panel a default surface (background, `"border-strong"` outline, density-scaled radius, medium `elevation()` shadow) so it's usable without the caller styling `content` itself — `selectList`/`selectItem` (or any custom content) render on top of that surface.
 
+The default filter input is `role="combobox"` with `aria-expanded`, `aria-controls` (the floating list id), and `aria-haspopup="listbox"`. Typed filter text is kept — the input is not forced back to `""`.
+
 ## Props
 
 | Prop | Type | Default | Description |

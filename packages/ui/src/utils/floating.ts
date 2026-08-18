@@ -42,6 +42,7 @@ function floatingPanelId(kind: string, node: ElementNode): string {
 type FloatingInstance = BehaviorInstance<FloatingProps> & {
   show: () => void;
   hide: () => void;
+  panelId: string;
 };
 
 // The per-anchor persistent state a floating component needs (position
@@ -118,6 +119,26 @@ function attachFloating(
       }
     },
     _portal: (rNode) => {
+      // showModal() puts the dialog in the top layer, above every z-index.
+      // A panel portaled to the root overlay (z-index 20) would paint UNDER
+      // an open dialog — drop it into the ancestor dialog instead so it
+      // shares the top layer.
+      const dialogHost = reference.closest("dialog");
+      if (dialogHost) {
+        let overlay = dialogHost.querySelector(":scope > #domphy-floating");
+        if (!overlay) {
+          overlay = dialogHost.ownerDocument.createElement("div");
+          overlay.id = "domphy-floating";
+          Object.assign((overlay as HTMLElement).style, {
+            position: "fixed",
+            inset: "0",
+            zIndex: "20",
+            pointerEvents: "none",
+          });
+          dialogHost.appendChild(overlay);
+        }
+        return overlay;
+      }
       let overlay = rNode.domElement!.querySelector(`#domphy-floating`);
       if (!overlay) {
         const overlayEle: DomphyElement<"div"> = {
@@ -160,6 +181,16 @@ function attachFloating(
   };
 
   const instantShow = () => {
+    // A re-render can detach the panel DOM without going through
+    // instantHide (overlay reconcile, in-place patch). If we still think
+    // we are mounted, skip insert and the panel never comes back.
+    if (mounted && (!floating || !floating.isConnected)) {
+      cleanup?.();
+      cleanup = null;
+      floatingNode = null;
+      floating = null;
+      mounted = false;
+    }
     ensureMounted();
     if (reference && floating) {
       cleanup?.();
@@ -236,29 +267,87 @@ function attachFloating(
     rootNode.domElement?.ownerDocument ?? rootNode.domElement ?? null;
   escapeTarget?.addEventListener("keydown", handleEscape);
 
-  const instance: FloatingInstance = {
+  // Caller-driven open (open.set(true) / open:true) must insert the panel —
+  // show()/hide() are only the trigger-event path. Guard with `mounted` so
+  // instantShow/instantHide's own openState.set() does not recurse (State.set
+  // notifies even when the value is unchanged).
+  const onOpen = (val: boolean) => {
+    if (val) {
+      if (!mounted) instantShow();
+    } else if (mounted) {
+      instantHide();
+    }
+  };
+  let release = openState.addListener(onOpen);
+  let destroyed = false;
+  let updating = false;
+  let instance: FloatingInstance;
+
+  // Stamped after `instance` exists. The panel is patched in place on every
+  // generation; patch() prunes _behaviorInstances keys absent from the new
+  // descriptor and destroy()s them. The instance is SHARED with the anchor —
+  // pruning it unmounts the live panel. Declaring the key on the content
+  // keeps prune from treating it as leftover.
+  const stampPanelBehavior = (target: DomphyElement) => {
+    target._behaviors = {
+      ...(target._behaviors ?? {}),
+      [behaviorKey]: { attach: () => instance, props: {} },
+    };
+  };
+
+  instance = {
     show,
     hide,
+    panelId,
     update(props) {
-      openState = props.openState;
+      if (updating) return;
+      if (props.openState !== openState) {
+        release();
+        openState = props.openState;
+        release = openState.addListener(onOpen);
+        // Show if the new object is already true (open:true / caller-owned).
+        // Do NOT hide on a fresh toState(false) — that is the uncontrolled
+        // default of a reused node, not a caller close.
+        if (openState.get()) instantShow();
+      }
       placement = props.placement;
       content = props.content;
       keepOpenOnContentHover = props.keepOpenOnContentHover;
       wireContent(content);
+      stampPanelBehavior(content);
       // Reflect the new generation's declared content into the already-
       // mounted panel in place (same DOM node, no flicker/teardown) — the
       // ordinary reused-node "patch, don't recreate" contract, applied to
       // the imperatively-inserted panel too.
-      if (floatingNode) floatingNode.patch(content);
+      if (floatingNode) {
+        updating = true;
+        try {
+          floatingNode.patch(content);
+        } finally {
+          updating = false;
+        }
+      }
     },
     destroy() {
+      if (destroyed) return;
+      destroyed = true;
       if (timer) clearTimeout(timer);
+      timer = null;
       cleanup?.();
+      cleanup = null;
       floatingNode?.remove();
+      floatingNode = null;
+      floating = null;
+      mounted = false;
+      release();
+      release = () => {};
       rootNode.domElement?.removeEventListener("click", handleOutside);
       escapeTarget?.removeEventListener("keydown", handleEscape);
     },
   };
+  stampPanelBehavior(content);
+  // After `instance` exists: ensureMounted registers it on the panel node.
+  onOpen(openState.get());
   return instance;
 }
 

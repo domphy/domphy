@@ -1,6 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import { createDomphyTable } from "../src/domphy/index";
-import type { Cell, CellEdit, EditingCellId } from "../src/index";
+import type {
+  Cell,
+  CellEdit,
+  CellEditingCell,
+  CellEditingInstance,
+  EditingCellId,
+  Table,
+} from "../src/index";
 import { CellEditing, createColumnHelper, getCoreRowModel } from "../src/index";
 
 // State notifications are microtask-batched; flush before asserting on listeners.
@@ -37,13 +44,22 @@ function cellAt(
   dTable: ReturnType<typeof setup>,
   rowIndex: number,
   columnIndex: number,
-) {
-  return dTable.table.getRowModel().rows[rowIndex].getAllCells()[columnIndex];
+): Cell<Person, unknown> & CellEditingCell {
+  const cell = dTable.table.getRowModel().rows[rowIndex].getAllCells()[columnIndex];
+  if (!cell.beginEdit) throw new Error("CellEditing is not installed");
+  return cell as Cell<Person, unknown> & CellEditingCell;
+}
+
+function editingTable(
+  table: Table<Person>,
+): Table<Person> & CellEditingInstance<Person> {
+  if (!table.getEditingCell) throw new Error("CellEditing is not installed");
+  return table as Table<Person> & CellEditingInstance<Person>;
 }
 
 describe("CellEditing feature (opt-in via _features)", () => {
   it("starts with cellEditing: null", () => {
-    const { table } = setup();
+    const table = editingTable(setup().table);
     expect(table.getState().cellEditing).toBeNull();
     expect(table.getEditingCell()).toBeNull();
   });
@@ -77,7 +93,7 @@ describe("CellEditing feature (opt-in via _features)", () => {
       rowId: "0",
       columnId: "name",
     });
-    expect(dTable.table.getEditingCell()).toEqual({
+    expect(editingTable(dTable.table).getEditingCell()).toEqual({
       rowId: "0",
       columnId: "name",
     });
@@ -88,7 +104,7 @@ describe("CellEditing feature (opt-in via _features)", () => {
   });
 
   it("setEditingCell accepts an updater function", () => {
-    const { table } = setup();
+    const table = editingTable(setup().table);
     table.setEditingCell({ rowId: "1", columnId: "age" });
     expect(table.getEditingCell()).toEqual({ rowId: "1", columnId: "age" });
 
@@ -115,7 +131,7 @@ describe("CellEditing feature (opt-in via _features)", () => {
 
     cell.beginEdit();
     expect(cell.getIsEditing()).toBe(false);
-    expect(dTable.table.getEditingCell()).toBeNull();
+    expect(editingTable(dTable.table).getEditingCell()).toBeNull();
   });
 
   it("enableCellEditing as a function gates per cell", () => {
@@ -129,10 +145,10 @@ describe("CellEditing feature (opt-in via _features)", () => {
     expect(ageCell.getCanEdit()).toBe(false);
 
     ageCell.beginEdit();
-    expect(dTable.table.getEditingCell()).toBeNull();
+    expect(editingTable(dTable.table).getEditingCell()).toBeNull();
 
     nameCell.beginEdit();
-    expect(dTable.table.getEditingCell()).toEqual({
+    expect(editingTable(dTable.table).getEditingCell()).toEqual({
       rowId: "0",
       columnId: "name",
     });
@@ -153,7 +169,7 @@ describe("CellEditing feature (opt-in via _features)", () => {
       value: "Alicia",
     });
     expect(onCellEdit.mock.calls[0][0].cell).toBe(cell);
-    expect(dTable.table.getEditingCell()).toBeNull();
+    expect(editingTable(dTable.table).getEditingCell()).toBeNull();
     expect(cell.getIsEditing()).toBe(false);
   });
 
@@ -167,7 +183,7 @@ describe("CellEditing feature (opt-in via _features)", () => {
 
     cell.cancelEdit();
     expect(onCellEdit).not.toHaveBeenCalled();
-    expect(dTable.table.getEditingCell()).toBeNull();
+    expect(editingTable(dTable.table).getEditingCell()).toBeNull();
   });
 
   it("only one cell edits at a time — beginEdit on another cell moves the state", () => {
@@ -181,19 +197,73 @@ describe("CellEditing feature (opt-in via _features)", () => {
     second.beginEdit();
     expect(first.getIsEditing()).toBe(false);
     expect(second.getIsEditing()).toBe(true);
-    expect(dTable.table.getEditingCell()).toEqual({
+    expect(editingTable(dTable.table).getEditingCell()).toEqual({
       rowId: "1",
       columnId: "age",
     });
   });
 
-  it("resetEditingCell restores the initial state", () => {
-    const dTable = setup();
+  it("resetEditingCell() without true restores initialState; true forces null", () => {
+    const dTable = createDomphyTable<Person>({
+      data: people,
+      columns,
+      getCoreRowModel: getCoreRowModel(),
+      _features: [CellEditing],
+      initialState: { cellEditing: { rowId: "0", columnId: "name" } },
+    });
+    const table = editingTable(dTable.table);
+    const cell = cellAt(dTable, 1, 0);
+
+    cell.beginEdit();
+    expect(table.getEditingCell()).toEqual({ rowId: "1", columnId: "name" });
+
+    table.resetEditingCell();
+    expect(table.getEditingCell()).toEqual({ rowId: "0", columnId: "name" });
+
+    cell.beginEdit();
+    table.resetEditingCell(true);
+    expect(table.getEditingCell()).toBeNull();
+  });
+
+  it("commitEdit exits edit mode even when initialState.cellEditing is set", () => {
+    const dTable = createDomphyTable<Person>({
+      data: people,
+      columns,
+      getCoreRowModel: getCoreRowModel(),
+      _features: [CellEditing],
+      initialState: { cellEditing: { rowId: "0", columnId: "name" } },
+    });
+    const cell = cellAt(dTable, 1, 0);
+    cell.beginEdit();
+    cell.commitEdit("Alicia");
+    expect(editingTable(dTable.table).getEditingCell()).toBeNull();
+    expect(cell.getIsEditing()).toBe(false);
+  });
+
+  it("cancelEdit exits edit mode even when initialState.cellEditing is set", () => {
+    const dTable = createDomphyTable<Person>({
+      data: people,
+      columns,
+      getCoreRowModel: getCoreRowModel(),
+      _features: [CellEditing],
+      initialState: { cellEditing: { rowId: "0", columnId: "name" } },
+    });
+    const cell = cellAt(dTable, 1, 0);
+    cell.beginEdit();
+    cell.cancelEdit();
+    expect(editingTable(dTable.table).getEditingCell()).toBeNull();
+  });
+
+  it("commitEdit still exits edit mode when onCellEdit throws", () => {
+    const onCellEdit = vi.fn(() => {
+      throw new Error("persist failed");
+    });
+    const dTable = setup({ onCellEdit });
     const cell = cellAt(dTable, 0, 0);
     cell.beginEdit();
-    expect(dTable.table.getEditingCell()).not.toBeNull();
 
-    dTable.table.resetEditingCell();
-    expect(dTable.table.getEditingCell()).toBeNull();
+    expect(() => cell.commitEdit("x")).toThrow("persist failed");
+    expect(editingTable(dTable.table).getEditingCell()).toBeNull();
+    expect(cell.getIsEditing()).toBe(false);
   });
 });

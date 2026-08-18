@@ -156,7 +156,8 @@ export interface Table<TData extends RowData>
     ExpandedInstance<TData>,
     PaginationInstance<TData>,
     RowSelectionInstance<TData>,
-    CellEditingInstance<TData> {}
+    // CellEditing is opt-in (`_features: [CellEditing]`), not in builtInFeatures.
+    Partial<CellEditingInstance<TData>> {}
 
 interface FeatureOptions<TData extends RowData>
   extends VisibilityOptions,
@@ -198,7 +199,7 @@ export interface TableState
     ColumnSizingTableState,
     PaginationTableState,
     RowSelectionTableState,
-    CellEditingTableState {}
+    Partial<CellEditingTableState> {}
 
 interface CompleteInitialTableState
   extends CoreTableState,
@@ -214,7 +215,7 @@ interface CompleteInitialTableState
     ColumnSizingTableState,
     PaginationInitialTableState,
     RowSelectionTableState,
-    CellEditingTableState {}
+    Partial<CellEditingTableState> {}
 
 export interface InitialTableState extends Partial<CompleteInitialTableState> {}
 
@@ -362,7 +363,8 @@ export interface Column<TData extends RowData, TValue = unknown>
 export interface Cell<TData extends RowData, TValue>
   extends CoreCell<TData, TValue>,
     GroupingCell,
-    CellEditingCell {}
+    // Present only when `_features` includes `CellEditing`.
+    Partial<CellEditingCell> {}
 
 export interface Header<TData extends RowData, TValue>
   extends CoreHeader<TData, TValue>,

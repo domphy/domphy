@@ -47,6 +47,7 @@ const App: DomphyElement<"div"> = {
           _key: item.key,
           "data-index": item.index,
           _onMount: (node) => list.measureElement(node.domElement),
+          _onRemove: () => list.measureElement(null),
         })),
       style: {
         position: "relative",
@@ -70,11 +71,11 @@ const App: DomphyElement<"div"> = {
 | `getVirtualItems(l)` | Reactive list of visible `VirtualItem`s — read with the listener inside the items function. |
 | `getTotalSize(l)` | Reactive total scroll size, for the spacer's height/width. |
 | `setScrollElement(el)` | Wire the scroll container DOM node; call from its `_onMount`. |
-| `measureElement(el)` | Dynamic measurement ref; call from each item's `_onMount`. The item element must carry `"data-index": item.index` — the virtualizer reads the index from that attribute and skips measurement (with a console warning) when it is missing. |
+| `measureElement(el)` | Dynamic measurement ref; call from each item's `_onMount`, and `measureElement(null)` from `_onRemove` so disconnected nodes are unobserved. The item element must carry `"data-index": item.index` — the virtualizer reads the index from that attribute and skips measurement (with a console warning) when it is missing. |
 | `scrollToIndex(index, opts?)` / `scrollToOffset(offset, opts?)` | Imperative scrolling. |
 | `scrollBy(delta, opts?)` | Relative scroll by a pixel delta. |
 | `scrollToEnd(opts?)` | Scroll to the last item. |
-| `setOptions(opts)` | Update `count` and other options, then re-measure. |
+| `setOptions(opts)` | Update `count` and other options. Preserves measured sizes; call `virtualizer.measure()` to force a full remeasure. |
 | `virtualizer` | The underlying `Virtualizer` — the full virtual-core API. |
 | `version(l)` | Raw reactive change counter. |
 | `destroy()` | Detach observers; call from `_onRemove`. |

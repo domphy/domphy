@@ -25,7 +25,27 @@ Same signature as `themeColor` but returns the resolved token **value** (e.g. `"
 const hex = themeColorToken(null, "shift-9", "primary") // e.g. "#4a7ff4"
 ```
 
-`object` may be `null` — resolves against the `light` theme with no node context.
+`object` may be `null` — that form silently resolves against the `"light"` theme with no node context. The value is baked at call time and will **not** follow a later theme switch. Prefer `resolveThemeColor({ theme, tone, color })` when you mean a specific named theme.
+
+### `resolveThemeColor({ theme?, tone?, color? })`
+
+Explicit non-reactive token resolution — the supported form of `themeColorToken(null, …)`. Returns the resolved token value (e.g. `"#4a7ff4"`) for a **named** theme, with no `ElementNode` / listener context.
+
+```ts
+import { resolveThemeColor } from "@domphy/theme"
+
+const hex = resolveThemeColor({ theme: "light", tone: "shift-9", color: "primary" })
+const darkSurface = resolveThemeColor({ theme: "dark", tone: "inherit" })
+const muted = resolveThemeColor({ tone: "muted" }) // defaults: theme "light", color "inherit" → "neutral"
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `theme` | `string` | `"light"` | Theme name registered via `setTheme()` (`"light"`, `"dark"`, …). |
+| `tone` | `ElementTone` | `"inherit"` | Tone to resolve. Starts from context tone 0 (the theme's own edge) — no `dataTone` / `dataTheme` inheritance. `"base"` uses that role's `baseTones` entry. Semantic aliases (`"muted"`, `"text"`, …) work. |
+| `color` | `string` | `"inherit"` | Color role. `"inherit"` maps to `"neutral"`. |
+
+The returned value is baked at call time — it does **not** follow later theme switches. For reactive, context-aware colors use `themeColor()` with a listener. Throws if the theme name or color role is unknown.
 
 ### `themeSize(object, size?)`
 

@@ -135,6 +135,16 @@ function dataExtentFromSeries(
   return [Number.isFinite(min) ? min : 0, Number.isFinite(max) ? max : 1];
 }
 
+function applyZoomWindow(
+  min: number,
+  max: number,
+  zoom?: ZoomWindow,
+): [number, number] {
+  if (!zoom || (zoom.start === 0 && zoom.end === 100)) return [min, max];
+  const span = max - min;
+  return [min + (zoom.start / 100) * span, min + (zoom.end / 100) * span];
+}
+
 function buildScale(
   axis: AxisOption,
   pixelRange: [number, number],
@@ -160,17 +170,26 @@ function buildScale(
     return createOrdinalScale(domain, [pMin, pMax]);
   }
   if (type === "time") {
-    const [min, max] = [
+    let [min, max] = [
       axis.min !== undefined ? Number(axis.min) : extent[0],
       axis.max !== undefined ? Number(axis.max) : extent[1],
     ];
+    [min, max] = applyZoomWindow(min, max, zoom);
     return createTimeScale([new Date(min), new Date(max)], [pMin, pMax]);
   }
   if (type === "log") {
-    const [min, max] = [
-      typeof axis.min === "number" ? axis.min : Math.max(extent[0], 1),
+    // Do not force min to 1 — that clips (0, 1) data. Use the positive
+    // data min when the extent is already above zero; otherwise keep the
+    // historical floor of 1 (zeros/negatives cannot sit on a log axis).
+    let [min, max] = [
+      typeof axis.min === "number"
+        ? axis.min
+        : extent[0] > 0
+          ? extent[0]
+          : 1,
       typeof axis.max === "number" ? axis.max : extent[1],
     ];
+    [min, max] = applyZoomWindow(min, max, zoom);
     return createLogScale([min, max], [pMin, pMax], axis.logBase ?? 10);
   }
   // Default: value (linear)
@@ -178,14 +197,7 @@ function buildScale(
     typeof axis.min === "number" ? axis.min : extent[0],
     typeof axis.max === "number" ? axis.max : extent[1],
   ];
-  // Apply zoom window for linear/time/log axes
-  if (zoom && (zoom.start !== 0 || zoom.end !== 100)) {
-    const span = rawMax - rawMin;
-    const zoomMin = rawMin + (zoom.start / 100) * span;
-    const zoomMax = rawMin + (zoom.end / 100) * span;
-    rawMin = zoomMin;
-    rawMax = zoomMax;
-  }
+  [rawMin, rawMax] = applyZoomWindow(rawMin, rawMax, zoom);
   // Expand by 5% for aesthetics if no explicit bounds set and range is not zero
   const span = rawMax - rawMin;
   const padMin = axis.min !== undefined ? rawMin : rawMin - span * 0.02;

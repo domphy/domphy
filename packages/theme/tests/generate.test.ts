@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { generateTheme } from "../src/generate.ts";
-import { setTheme, themeTokens } from "../src/theme.ts";
+import { setTheme, themeTokens, TONE_STEPS } from "../src/theme.ts";
 
 const HEX_RE = /^#[0-9a-f]{6}$/i;
 
@@ -108,5 +108,20 @@ describe("generateTheme", () => {
     expect(() =>
       generateTheme({ primary: undefined as unknown as string }),
     ).toThrow(/baseColors\.primary/);
+  });
+
+  it("rejects steps other than TONE_STEPS (a short ramp cannot be passed to setTheme)", () => {
+    expect(() => generateTheme({ primary: "#4a7ff4" }, { steps: 10 })).toThrow(
+      new RegExp(`steps must be ${TONE_STEPS}`),
+    );
+    expect(() => generateTheme({ primary: "#4a7ff4" }, { steps: 19 })).toThrow(
+      /got 19/,
+    );
+  });
+
+  it("accepts an explicit steps: TONE_STEPS and the result passes setTheme", () => {
+    const theme = generateTheme({ primary: "#4a7ff4" }, { steps: TONE_STEPS });
+    expect(theme.colors!.primary).toHaveLength(TONE_STEPS);
+    expect(() => setTheme("generated-steps-ok", theme)).not.toThrow();
   });
 });

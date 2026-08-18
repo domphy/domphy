@@ -78,11 +78,21 @@ export class ElementAttribute {
     return value;
   }
 
+  // Boolean attributes accept a keyword string (download="file.pdf",
+  // hidden="until-found") — Boolean() would flatten those to `true` and
+  // drop the value. Only coerce non-strings.
+  private resolve(value: any): any {
+    if (this.isBoolean && typeof value !== "string") return Boolean(value);
+    return this.normalize(value);
+  }
+
   render(): void {
     if (!this.parent || !this.parent.domElement) return;
     const domElement = this.parent.domElement;
 
-    const mutateAttrs = ["value"];
+    // IDL properties the user can dirty independently of the content attribute.
+    // setAttribute() will not retick a user-unchecked box / unselected option.
+    const mutateAttrs = ["value", "checked", "selected"];
     if (this.isBoolean) {
       if (this.value === false || this.value == null) {
         domElement.removeAttribute(this.name);
@@ -91,6 +101,9 @@ export class ElementAttribute {
           this.name,
           this.value === true ? "" : this.value,
         );
+      }
+      if (mutateAttrs.includes(this.name)) {
+        (domElement as any)[this.name] = !!this.value;
       }
     } else if (this.value == null) {
       domElement.removeAttribute(this.name);
@@ -116,14 +129,16 @@ export class ElementAttribute {
     } else if (typeof value === "function") {
       let listener: any = () => {
         if (!this.parent || this.parent._disposed) return;
-        const p = this.value;
-        // Re-pass `listener` so states read only on a later run (conditional
-        // dependencies) get subscribed too — matching children/style paths.
-        this.value = this.isBoolean
-          ? Boolean((value as Function)(listener))
-          : this.normalize((value as Function)(listener));
-        this.render();
-        if (p !== this.value) this._notifier.notify(this.name, this.value);
+        try {
+          const p = this.value;
+          // Re-pass `listener` so states read only on a later run (conditional
+          // dependencies) get subscribed too — matching children/style paths.
+          this.value = this.resolve((value as Function)(listener));
+          this.render();
+          if (p !== this.value) this._notifier.notify(this.name, this.value);
+        } catch (error) {
+          this.parent?._handleError(error);
+        }
       };
 
       listener.elementNode = this.parent!;
@@ -146,11 +161,13 @@ export class ElementAttribute {
         }
       };
 
-      this.value = this.isBoolean
-        ? Boolean(value(listener))
-        : this.normalize(value(listener));
+      try {
+        this.value = this.resolve(value(listener));
+      } catch (error) {
+        this.parent?._handleError(error);
+      }
     } else {
-      this.value = this.isBoolean ? Boolean(value) : this.normalize(value);
+      this.value = this.resolve(value);
     }
 
     this.render();
@@ -198,7 +215,9 @@ export class ElementAttribute {
   generateHTML(): string {
     const { name, value } = this;
     if (this.isBoolean) {
-      return value ? `${name}` : "";
+      if (value === false || value == null) return "";
+      if (value === true) return name;
+      return `${name}="${escapeHTML(String(value))}"`;
     }
     // Match render()'s live-DOM behavior (removeAttribute on null/undefined):
     // an attribute whose reactive value resolves to null/undefined is OMITTED,

@@ -21,6 +21,7 @@
 // integration, not a copy of any UI framework's component source.
 
 import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
+import { behavior } from "@domphy/core";
 import {
   type ElementTone,
   type ThemeColor,
@@ -125,112 +126,134 @@ function textHighlighter(
       background: "transparent",
       ...(props.style ?? {}),
     } as StyleObject,
-    _onMount: (node: ElementNode) => {
-      if (typeof window === "undefined" || typeof document === "undefined")
-        return;
-      const targetElement = node.domElement as HTMLElement | null;
-      if (!targetElement) return;
-
-      let colorToken = "currentColor";
-      try {
-        colorToken = themeColorToken(node, tone, colorRole);
-      } catch {
-        // Falls back to the text's own current color if the theme lookup fails.
-        colorToken = "currentColor";
-      }
-
-      let annotation: ReturnType<typeof annotate> | null = null;
-      try {
-        annotation = annotate(targetElement, {
-          type,
-          color: colorToken,
-          strokeWidth,
-          animationDuration: duration,
-          iterations,
-          padding,
-          multiline,
-          brackets,
-          animate: true,
-        });
-      } catch {
-        annotation = null;
-      }
-      if (!annotation) return;
-
-      // Some environments (older browsers, certain test/DOM-shim runtimes)
-      // ship an incomplete SVGGeometryElement (e.g. no `getTotalLength()`),
-      // which the draw-in animation depends on. Fail open rather than throw.
-      let hasShown = false;
-      const play = () => {
-        try {
-          annotation?.show();
-          hasShown = true;
-        } catch {
-          // ignore — see above
-        }
-      };
-
-      // rough-notation paints an absolutely-positioned SVG sized to the target
-      // at draw time; a later reflow (responsive resize, font load, sibling
-      // layout shift) leaves that overlay misaligned. Redraw it on resize —
-      // matching upstream, which observes both the target and the document
-      // body. Only after the first draw, so a "view"-triggered annotation
-      // isn't shown early.
-      let resizeObserver: ResizeObserver | null = null;
-      if (typeof ResizeObserver !== "undefined") {
-        resizeObserver = new ResizeObserver(() => {
-          if (!hasShown) return;
-          try {
-            annotation?.hide();
-            annotation?.show();
-          } catch {
-            // ignore — see above
-          }
-        });
-        resizeObserver.observe(targetElement);
-        if (document.body) resizeObserver.observe(document.body);
-      }
-
-      let mountTimer: ReturnType<typeof setTimeout> | null = null;
-      let observer: IntersectionObserver | null = null;
-
-      if (trigger === "view") {
-        if (typeof IntersectionObserver !== "function") {
-          // No IntersectionObserver support — fail open and draw immediately
-          // rather than never playing.
-          play();
-        } else {
-          observer = new IntersectionObserver(
-            (entries) => {
-              if (entries.some((entry) => entry.isIntersecting)) {
-                play();
-                observer?.disconnect();
-                observer = null;
-              }
-            },
-            { rootMargin: viewMargin },
-          );
-          observer.observe(targetElement);
-        }
-      } else if (mountDelay > 0) {
-        mountTimer = setTimeout(play, mountDelay);
-      } else {
-        // Upstream draws synchronously in useLayoutEffect — no timer.
-        play();
-      }
-
-      node.addHook("Remove", () => {
-        if (mountTimer) clearTimeout(mountTimer);
-        observer?.disconnect();
-        resizeObserver?.disconnect();
-        try {
-          annotation?.remove();
-        } catch {
-          // ignore
-        }
-      });
-    },
+    ...behavior<TextHighlighterProps>(
+      "magicui-text-highlighter",
+      attachTextHighlighter,
+      props,
+    ),
   } as DomphyElement<"span">;
+}
+
+function attachTextHighlighter(
+  node: ElementNode,
+  initialProps: TextHighlighterProps,
+) {
+  const type = initialProps.type ?? "highlight";
+  const colorRole = initialProps.color ?? "highlight";
+  const tone =
+    initialProps.tone ?? (type === "highlight" ? "shift-3" : "shift-9");
+  const strokeWidth = initialProps.strokeWidth ?? 1.5;
+  const duration = initialProps.duration ?? 600;
+  const iterations = initialProps.iterations ?? 2;
+  const padding = initialProps.padding ?? 2;
+  const multiline = initialProps.multiline ?? true;
+  const brackets = initialProps.brackets ?? "right";
+  const trigger = initialProps.trigger ?? "mount";
+  const mountDelay = initialProps.mountDelay ?? 0;
+  const viewMargin = initialProps.viewMargin ?? "-10%";
+
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return { update() {}, destroy() {} };
+  }
+  const targetElement = node.domElement as HTMLElement | null;
+  if (!targetElement) return { update() {}, destroy() {} };
+
+  let colorToken = "currentColor";
+  try {
+    colorToken = themeColorToken(node, tone, colorRole);
+  } catch {
+    colorToken = "currentColor";
+  }
+
+  let annotation: ReturnType<typeof annotate> | null = null;
+  try {
+    annotation = annotate(targetElement, {
+      type,
+      color: colorToken,
+      strokeWidth,
+      animationDuration: duration,
+      iterations,
+      padding,
+      multiline,
+      brackets,
+      animate: true,
+    });
+  } catch {
+    annotation = null;
+  }
+  if (!annotation) return { update() {}, destroy() {} };
+
+  let hasShown = false;
+  const play = () => {
+    try {
+      annotation?.show();
+      hasShown = true;
+    } catch {
+      // ignore — incomplete SVGGeometryElement
+    }
+  };
+
+  let resizeObserver: ResizeObserver | null = null;
+  if (typeof ResizeObserver !== "undefined") {
+    let redrawing = false;
+    resizeObserver = new ResizeObserver(() => {
+      if (!hasShown || redrawing) return;
+      redrawing = true;
+      try {
+        annotation?.hide();
+        annotation?.show();
+      } catch {
+        // ignore
+      } finally {
+        // Defer so a ResizeObserver notification caused by hide/show
+        // cannot re-enter this callback in a tight loop (jsdom).
+        setTimeout(() => {
+          redrawing = false;
+        }, 0);
+      }
+    });
+    resizeObserver.observe(targetElement);
+    if (document.body) resizeObserver.observe(document.body);
+  }
+
+  let mountTimer: ReturnType<typeof setTimeout> | null = null;
+  let observer: IntersectionObserver | null = null;
+
+  if (trigger === "view") {
+    if (typeof IntersectionObserver !== "function") {
+      play();
+    } else {
+      observer = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((entry) => entry.isIntersecting)) {
+            play();
+            observer?.disconnect();
+            observer = null;
+          }
+        },
+        { rootMargin: viewMargin },
+      );
+      observer.observe(targetElement);
+    }
+  } else if (mountDelay > 0) {
+    mountTimer = setTimeout(play, mountDelay);
+  } else {
+    play();
+  }
+
+  return {
+    update() {},
+    destroy() {
+      if (mountTimer) clearTimeout(mountTimer);
+      observer?.disconnect();
+      resizeObserver?.disconnect();
+      try {
+        annotation?.remove();
+      } catch {
+        // ignore
+      }
+    },
+  };
 }
 
 export { textHighlighter };

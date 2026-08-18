@@ -3,6 +3,8 @@
 ## 0.19.1
 
 - `@domphy/palette` dependency dropped — the palette package was folded into `@domphy/theme`; the `raw-theme-value` chromametry helpers (`cssRgbToRgb`/`hexToRgb`/`rgbToLab`/`labToLch`) are now imported from there.
+- `findTag` / `unknown-tag` now use the first own key as the tag (same contract as core `validate()`). `{ dvi, div }` fires `unknown-tag` instead of treating the later `div` as the tag.
+- CLI `--no-factory-exec` also skips Layer 4 `new ElementNode` construction so `_onInit` is not executed.
 
 ## 0.18.15
 

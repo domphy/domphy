@@ -13,6 +13,7 @@ When every item has the same height, set `estimateSize: () => 40` and you are do
 2. After an item's DOM node mounts, you call `list.measureElement(node.domElement)` from its `_onMount`.
 3. A `ResizeObserver` watches that element. When the browser reports its rendered size, the virtualizer stores the real value and re-lays out.
 4. If the item later resizes (e.g. expanded/collapsed content), the `ResizeObserver` fires again automatically — no extra code needed.
+5. When the item unmounts (scrolled out of view), call `list.measureElement(null)` from `_onRemove` so the observer drops disconnected nodes.
 
 ## Basic variable-height list
 
@@ -46,6 +47,7 @@ const App = {
           // Call measureElement — actual height replaces the estimate
           _onMount: (node) =>
             list.measureElement(node.domElement as HTMLDivElement),
+          _onRemove: () => list.measureElement(null),
           style: {
             position: "absolute",
             top: 0,
@@ -234,6 +236,7 @@ const App = {
           div: items[item.index].title,
           _onMount: (node) =>
             list.measureElement(node.domElement as HTMLDivElement),
+          _onRemove: () => list.measureElement(null),
           style: {
             position: "absolute",
             top: 0,

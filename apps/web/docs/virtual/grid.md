@@ -203,6 +203,7 @@ const Row = (virtualRow: VirtualItem) => ({
   "data-index": virtualRow.index,
   _onMount: (node) =>
     rowVirtualizer.measureElement(node.domElement as HTMLElement),
+  _onRemove: () => rowVirtualizer.measureElement(null),
   _key: virtualRow.key,
   style: {
     position: "absolute",

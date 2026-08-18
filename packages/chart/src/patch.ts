@@ -31,7 +31,10 @@ function chart(
   return {
     style: {
       position: "relative",
-      overflow: "hidden",
+      // Visible so the absolutely-positioned tooltip (and overflowing SVG
+      // chrome) is not clipped. Use tooltip.appendToBody to also escape
+      // overflow:hidden on an ancestor of this host.
+      overflow: "visible",
     },
     // The engine, its subscriptions, and its observers are imperative,
     // cross-generation state: a reactive parent re-running chart() with an

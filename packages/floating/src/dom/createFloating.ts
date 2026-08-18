@@ -50,6 +50,7 @@ export interface FloatingPosition {
  * - `connect(reference, floating)` → `createPopper(reference, popper, options)`
  * - `disconnect()`                 → `popper.destroy()`
  * - `onUpdate(callback)`           → subscribe to position state changes
+ * - `onError(callback)`            → observe a `computePosition` rejection
  * - `position`                     → equivalent of `popper.state`
  */
 export interface FloatingHandle {
@@ -84,6 +85,16 @@ export interface FloatingHandle {
    * to the floating element's style inside the callback.
    */
   onUpdate(callback: (position: FloatingPosition) => void): () => void;
+  /**
+   * Subscribe to `computePosition` failures. The callback is called
+   * synchronously when a positioning pass rejects. Returns an unsubscribe
+   * function — call it to remove the listener.
+   *
+   * Without a listener, failures are still written to `console.error` so they
+   * are not silent. A late rejection after `disconnect()` (or after
+   * `connect()` retargets to a different pair) is dropped.
+   */
+  onError(callback: (error: unknown) => void): () => void;
 }
 
 /**
@@ -105,6 +116,9 @@ export interface FloatingHandle {
  * handle.onUpdate(({ x, y }) => {
  *   Object.assign(floatingEl.style, { left: `${x}px`, top: `${y}px` })
  * })
+ * handle.onError((error) => {
+ *   console.error(error)
+ * })
  *
  * // In _onBeforeRemove:
  * handle.disconnect()
@@ -118,6 +132,21 @@ export function createFloating(
   let currentFloating: FloatingElement | null = null;
   let position: FloatingPosition | null = null;
   const listeners = new Set<(position: FloatingPosition) => void>();
+  const errorListeners = new Set<(error: unknown) => void>();
+
+  function notifyError(error: unknown): void {
+    if (errorListeners.size === 0) {
+      console.error(error);
+      return;
+    }
+    for (const listener of errorListeners) {
+      try {
+        listener(error);
+      } catch (listenerError) {
+        console.error(listenerError);
+      }
+    }
+  }
 
   function runUpdate(): void {
     if (!currentReference || !currentFloating) return;
@@ -154,7 +183,12 @@ export function createFloating(
         }
       })
       .catch((error) => {
-        console.error(error);
+        // Same identity guard as the resolve path: a rejection for a pair
+        // that is no longer current (disconnect / retarget) must not surface.
+        if (currentReference !== reference || currentFloating !== floating) {
+          return;
+        }
+        notifyError(error);
       });
   }
 
@@ -188,6 +222,13 @@ export function createFloating(
       listeners.add(callback);
       return () => {
         listeners.delete(callback);
+      };
+    },
+
+    onError(callback) {
+      errorListeners.add(callback);
+      return () => {
+        errorListeners.delete(callback);
       };
     },
   };

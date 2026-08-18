@@ -11,7 +11,7 @@ import { focusRing } from "../utils/focusRing.js";
 /**
  * Styles a native file input with a themed upload button, border, hover, focus
  * and disabled states. Apply to an `<input>` element of type `file` (the patch
- * sets `type: "file"`).
+ * default is `type: "file"`; a native `type` wins).
  *
  * @hostTag input
  * @param props.color - Optional theme color tone for text/border and the upload button (`ValueOrState<ThemeColor>`). Defaults to `"neutral"`.
@@ -28,12 +28,13 @@ function inputFile(
   const accentColor = toState(props.accentColor ?? "primary", "accentColor");
 
   return {
+    // Declared like any other attribute — the native element still wins over
+    // this patch default if the host declares its own `type`.
     type: "file",
-    _onSchedule: (node, element) => {
+    _onInsert: (node) => {
       if (node.tagName !== "input") {
         console.warn(`"inputFile" primitive patch must use input tag`);
       }
-      (element as any).type = "file";
     },
     style: {
       display: "inline-flex",

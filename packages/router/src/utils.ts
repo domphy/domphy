@@ -565,16 +565,26 @@ export const DEFAULT_PROTOCOL_ALLOWLIST = [
   'tel:',
 ]
 
+// WHATWG scheme name: ALPHA *( ALPHA / DIGIT / "+" / "-" / "." )
+const SCHEME_NAME_PATTERN = /^[a-zA-Z][a-zA-Z+\-.]*:/
+
 /**
  * Check if a URL string uses a protocol that is not in the allowlist.
  * Returns true for blocked protocols like javascript:, blob:, data:, etc.
+ *
+ * Also returns true for:
+ * - Protocol-relative URLs (`//evil.com`) — browsers resolve `Location: //host`
+ *   against the current scheme, so they are open redirects. `new URL('//host')`
+ *   without a base throws, which used to be treated as safe.
+ * - Scheme-like strings that fail the URL constructor (`http://[`, obfuscated
+ *   `javascript:`). A ctor failure is not evidence the value is a relative path.
  *
  * The URL constructor correctly normalizes:
  * - Mixed case (JavaScript: → javascript:)
  * - Whitespace/control characters (java\nscript: → javascript:)
  * - Leading whitespace
  *
- * For relative URLs (no protocol), returns false (safe).
+ * For relative paths (no protocol, not protocol-relative), returns false (safe).
  *
  * @param url - The URL string to check
  * @param allowlist - Set of protocols to allow
@@ -586,15 +596,24 @@ export function isDangerousProtocol(
 ): boolean {
   if (!url) return false
 
+  // Strip ASCII whitespace/control so `java\nscript:` / `  //host` cannot
+  // hide behind a URL-ctor failure.
+  // eslint-disable-next-line no-control-regex
+  const normalized = url.trim().replace(/[\x00-\x1f\x7f]/g, '')
+  if (!normalized) return false
+
+  // Protocol-relative is an open redirect (`Location: //evil.com`).
+  if (normalized.startsWith('//')) return true
+
   try {
     // Use the URL constructor - it correctly normalizes protocols
     // per WHATWG URL spec, handling all bypass attempts automatically
-    const parsed = new URL(url)
+    const parsed = new URL(normalized)
     return !allowlist.has(parsed.protocol)
   } catch {
-    // URL constructor throws for relative URLs (no protocol)
-    // These are safe - they can't execute scripts
-    return false
+    // Relative paths (`/foo`, `./bar`) are safe. A ctor failure that still
+    // looks scheme-like is treated as dangerous rather than silently allowed.
+    return SCHEME_NAME_PATTERN.test(normalized)
   }
 }
 

@@ -283,4 +283,25 @@ describe("server isError behavior (functional round-trip)", () => {
     await client.close();
     await server.close();
   });
+
+  it("invalid JSON on a doctor tool is isError through the MCP client", async () => {
+    const [clientTransport, serverTransport] =
+      InMemoryTransport.createLinkedPair();
+    const server = buildTestServer();
+    const client = new Client({ name: "test", version: "0.0.0" });
+    await Promise.all([
+      server.connect(serverTransport),
+      client.connect(clientTransport),
+    ]);
+
+    const result = (await client.callTool({
+      name: "domphy_diagnose",
+      arguments: { element: "{not json" },
+    })) as { isError?: boolean; content: { text: string }[] };
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain("Invalid JSON");
+
+    await client.close();
+    await server.close();
+  });
 });

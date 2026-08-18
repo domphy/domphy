@@ -53,7 +53,11 @@ export interface VirtualizerHandle<
   version(listener?: Listener): number
   /** Wire the scroll container's DOM element — call from its `_onMount`. */
   setScrollElement(element: TScroll | null): void
-  /** Dynamic item measurement — call from each item's `_onMount` with `node.domElement`. */
+  /**
+   * Dynamic item measurement — call from each item's `_onMount` with
+   * `node.domElement`, and from `_onRemove` with `null` so disconnected
+   * nodes are unobserved (items scrolled out of view).
+   */
   measureElement(element: TItem | null): void
   scrollToIndex: Virtualizer<TScroll, TItem>["scrollToIndex"]
   scrollToOffset: Virtualizer<TScroll, TItem>["scrollToOffset"]
@@ -61,7 +65,11 @@ export interface VirtualizerHandle<
   scrollBy: Virtualizer<TScroll, TItem>["scrollBy"]
   /** Scroll to the last item (equivalent to scrollToIndex(count - 1, { align: "end" })). */
   scrollToEnd: Virtualizer<TScroll, TItem>["scrollToEnd"]
-  /** Update options (e.g. `count`) and re-measure. */
+  /**
+   * Update options (e.g. `count`). Preserves `itemSizeCache` — a count-only
+   * change does not remeasure. Call `virtualizer.measure()` to force a full
+   * remeasure after a layout-wide size invalidation.
+   */
   setOptions(options: Partial<VirtualizerOptions<TScroll, TItem>>): void
   destroy(): void
 }
@@ -152,7 +160,11 @@ export function createVirtualizerWithDefaults<
     setOptions: (next) => {
       virtualizer.setOptions({ ...virtualizer.options, ...next })
       virtualizer._willUpdate()
-      virtualizer.measure()
+      // Do not call measure() — that wipes itemSizeCache. Count-only
+      // updates (infinite-scroll append) must keep measured sizes; the
+      // core rebuilds measurements from the cache + estimates. Call
+      // virtualizer.measure() to force a full remeasure.
+      if (!destroyed) version.set(version.get() + 1)
     },
     destroy: () => {
       destroyed = true

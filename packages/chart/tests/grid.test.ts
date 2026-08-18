@@ -117,4 +117,34 @@ describe("resolveGrid", () => {
     const { yScales } = resolveGrid([{}], [], [yAxis], [], 800, 400);
     expect(yScales[0].domain).toEqual([-0.02, 1.05]);
   });
+
+  it("applies a zoom window to a time axis domain", () => {
+    const start = Date.parse("2024-01-01T00:00:00Z");
+    const end = Date.parse("2024-01-11T00:00:00Z");
+    const xAxis: AxisOption = { type: "time", min: start, max: end };
+    const zoom = new Map([[0, { start: 0, end: 50 }]]);
+    const { xScales } = resolveGrid([{}], [xAxis], [], [], 800, 400, zoom);
+    const domain = xScales[0].domain as [Date, Date];
+    expect(domain[0].getTime()).toBe(start);
+    expect(domain[1].getTime()).toBe(start + (end - start) * 0.5);
+  });
+
+  it("applies a zoom window to a log axis domain", () => {
+    const yAxis: AxisOption = { type: "log", min: 1, max: 100 };
+    const zoom = new Map([[0, { start: 0, end: 50 }]]);
+    const { yScales } = resolveGrid([{}], [], [yAxis], [], 800, 400, undefined, zoom);
+    const [lo, hi] = yScales[0].domain as [number, number];
+    expect(lo).toBeCloseTo(1);
+    expect(hi).toBeCloseTo(50.5);
+  });
+
+  it("keeps a log domain that includes (0, 1) data instead of clipping at 1", () => {
+    const yAxis: AxisOption = { type: "log" };
+    const series = [{ yAxisIndex: 0, data: [0.1, 0.5, 0.2] }];
+    const { yScales } = resolveGrid([{}], [], [yAxis], series, 800, 400);
+    const [lo, hi] = yScales[0].domain as [number, number];
+    expect(lo).toBeLessThanOrEqual(0.1);
+    expect(hi).toBeGreaterThanOrEqual(0.5);
+    expect(lo).toBeLessThan(1);
+  });
 });

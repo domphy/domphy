@@ -17,7 +17,7 @@ A context menu is not a patch — it is a composition of existing patches and Do
 
 **Menu element** is declared in the tree alongside the trigger area. `position: fixed` with reactive `left`/`top` places it at the cursor. `display: none` when closed keeps it out of pointer events.
 
-**Close on outside click** is registered imperatively in `_onMount` via `document.addEventListener("click", ...)` and cleaned up with `addHook("Remove", ...)`.
+**Close on outside click** is a document-level listener declared with `behavior("context-menu-dismiss", attach, {})`. `attach` runs once for the real DOM node; `destroy()` removes the listener. A raw `_onMount` + `addHook("Remove", …)` listener would stay bound to the first generation's closure if a reactive parent reused the node.
 
 **Trigger** uses `onContextMenu` to capture cursor position, then sets `open` to `true`.
 
@@ -27,6 +27,6 @@ A context menu is not a patch — it is a composition of existing patches and Do
 | --- | --- |
 | Declare in tree + hide | `open` state controls `display` and `pointerEvents` |
 | Reactive style | `left`/`top` update without re-render |
-| `_onMount` + `addHook` | Register and clean up document click listener |
+| `behavior()` | Register and clean up the document click listener |
 | `menu({ items })` | Styled menu list out of the box |
 

@@ -12,7 +12,7 @@ import { focusRing } from "../utils/focusRing.js";
 /**
  * Styles a native color picker swatch with themed padding, rounded swatch and
  * disabled styling. Apply to an `<input>` element of type `color` (the patch
- * sets `type: "color"`).
+ * default is `type: "color"`; a native `type` wins).
  *
  * @hostTag input
  * @param props.color - Optional theme color tone used for the disabled state (`ValueOrState<ThemeColor>`). Defaults to `"neutral"`.
@@ -27,12 +27,13 @@ function inputColor(
 ): PartialElement {
   const color = toState(props.color ?? "neutral", "color");
   return {
+    // Declared like any other attribute — the native element still wins over
+    // this patch default if the host declares its own `type`.
     type: "color",
-    _onSchedule: (node, element) => {
+    _onInsert: (node) => {
       if (node.tagName !== "input") {
         console.warn(`"inputColor" primitive patch must use input tag`);
       }
-      (element as any).type = "color";
     },
     style: {
       appearance: "none",

@@ -1,5 +1,6 @@
 import { themeColor } from "@domphy/theme";
 import { cssColor } from "../gl/color.js";
+import { computePieSlices } from "../gl/PieRenderer.js";
 import type { AnyScale } from "../scale/index.js";
 import type {
   BarSeriesOption,
@@ -8,6 +9,7 @@ import type {
   ScatterSeriesOption,
   SeriesOption,
 } from "../types.js";
+import { closeOverlayPass } from "./groups.js";
 
 function svgNS(tag: string): Element {
   return document.createElementNS("http://www.w3.org/2000/svg", tag);
@@ -225,45 +227,18 @@ function renderPieLabels(
   height: number,
   hiddenSeries: Set<string>,
 ): void {
-  const minSize = Math.min(width, height);
   const labelColor = themeColor(null, "shift-9", "neutral");
-  const PI2 = Math.PI * 2;
 
   for (const s of series) {
     if (!s.label?.show && s.label?.show !== undefined) continue;
     if (s.name && hiddenSeries.has(s.name)) continue;
 
-    const center = s.center ?? ["50%", "50%"];
-    const cx =
-      typeof center[0] === "number"
-        ? center[0]
-        : (parseFloat(center[0]) / 100) * width;
-    const cy =
-      typeof center[1] === "number"
-        ? center[1]
-        : (parseFloat(center[1]) / 100) * height;
-    const halfMin = minSize / 2;
-    let outerR = halfMin * 0.7;
-    if (s.radius) {
-      const r = s.radius;
-      if (Array.isArray(r))
-        outerR =
-          typeof r[1] === "number" ? r[1] : (parseFloat(r[1]) / 100) * halfMin;
-      else outerR = typeof r === "number" ? r : (parseFloat(r) / 100) * halfMin;
-    }
+    const slices = computePieSlices(s, width, height, hiddenSeries);
+    for (const slice of slices) {
+      if (slice.fraction < 0.02) continue;
 
-    const data = (s.data ?? []) as Array<{ value?: number; name?: string }>;
-    const total = data.reduce((sum, item) => sum + (item.value ?? 0), 0) || 1;
-    let currentAngle = -Math.PI / 2;
-
-    data.forEach((item, index) => {
-      const fraction = (item.value ?? 0) / total;
-      const sweepAngle = fraction * PI2;
-      const midAngle = currentAngle + sweepAngle / 2;
-      currentAngle += sweepAngle;
-
-      if (fraction < 0.02) return; // skip tiny slices
-
+      const midAngle = (slice.startAngle + slice.endAngle) / 2;
+      const { cx, cy, outerR } = slice;
       const labelR = outerR * 1.25;
       const lx = cx + labelR * Math.cos(midAngle);
       const ly = cy + labelR * Math.sin(midAngle);
@@ -293,21 +268,21 @@ function renderPieLabels(
       group.appendChild(polyline);
 
       // Label: name + percentage
-      const pct = `${(fraction * 100).toFixed(1)}%`;
-      const name = item.name ?? String(index);
+      const pct = `${(slice.fraction * 100).toFixed(1)}%`;
+      const name = slice.item.name ?? String(slice.dataIndex);
       const label = s.label?.formatter
         ? typeof s.label.formatter === "function"
           ? s.label.formatter({
               name,
-              value: item.value ?? 0,
-              percent: fraction * 100,
-              dataIndex: index,
+              value: slice.item.value ?? 0,
+              percent: slice.fraction * 100,
+              dataIndex: slice.dataIndex,
               seriesIndex: 0,
               seriesName: s.name ?? "",
             })
           : String(s.label.formatter)
               .replace("{b}", name)
-              .replace("{c}", String(item.value))
+              .replace("{c}", String(slice.item.value))
               .replace("{d}", pct)
         : `${name} ${pct}`;
 
@@ -320,7 +295,7 @@ function renderPieLabels(
           "pointer-events": "none",
         }),
       );
-    });
+    }
   }
 }
 
@@ -394,6 +369,9 @@ export function renderSeriesSymbols(
   opts: SeriesLabelOptions,
   seriesOffset = 0,
 ): void {
+  // Engine always reaches here after title/legend; close the chrome pass so
+  // the next render() restarts auto-indices at 0 instead of appending.
+  closeOverlayPass(svg);
   const old = svg.querySelector(".dc-symbols");
   if (old) old.remove();
 

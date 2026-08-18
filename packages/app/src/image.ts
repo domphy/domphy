@@ -28,6 +28,15 @@ export interface OptimizedImageProps {
 
 const DEFAULT_DEVICE_SIZES = [640, 750, 828, 1080, 1200, 1920, 2048, 3840];
 
+/** Escape a value embedded in CSS `url("…")` so quotes and `</style>` cannot break out. */
+function escapeCssUrl(value: string): string {
+  return value
+    .replace(/\\/g, "\\\\")
+    .replace(/"/g, '\\"')
+    .replace(/</g, "\\3c ")
+    .replace(/>/g, "\\3e ");
+}
+
 /**
  * Patch for `img` elements, the equivalent of `next/image`: lazy loading,
  * async decoding, fetch priority, `srcset` through a custom loader, fill
@@ -91,7 +100,7 @@ export function optimizedImage(
   if (placeholder === "blur" && blurDataURL) {
     part.style = {
       ...part.style,
-      backgroundImage: `url("${blurDataURL}")`,
+      backgroundImage: `url("${escapeCssUrl(blurDataURL)}")`,
       backgroundSize: "cover",
       backgroundPosition: "center",
     };

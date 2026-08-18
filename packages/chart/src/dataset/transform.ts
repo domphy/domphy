@@ -1,4 +1,9 @@
-import type { DatasetOption, TransformOption } from "../types.js";
+import type {
+  DatasetOption,
+  EncodeOption,
+  SeriesOption,
+  TransformOption,
+} from "../types.js";
 
 type Row = Record<string, any> | any[];
 
@@ -13,12 +18,12 @@ function getField(row: Row, dim: string | number): any {
 function applyFilter(source: Row[], config: Record<string, any>): Row[] {
   const dimension = config.dimension;
   const _value = config.value;
-  const gte = config[">="];
-  const lte = config["<="];
-  const gt = config[">"];
-  const lt = config["<"];
-  const eq = config["="];
-  const ne = config["!="];
+  const gte = config[">="] ?? config.gte;
+  const lte = config["<="] ?? config.lte;
+  const gt = config[">"] ?? config.gt;
+  const lt = config["<"] ?? config.lt;
+  const eq = config["="] ?? config.eq;
+  const ne = config["!="] ?? config.ne;
   const inside = config.range;
   const outside = config.outside;
   const method = config.method ?? "AND";
@@ -127,9 +132,189 @@ export function resolveDataset(dataset: DatasetOption): Row[] {
     }
   }
 
-  if (dataset.transform) {
-    source = applyTransforms(source, dataset.transform);
+  const transforms = dataset.transform
+    ? Array.isArray(dataset.transform)
+      ? dataset.transform
+      : [dataset.transform]
+    : [];
+  if (transforms.length > 0) {
+    source = applyTransforms(source, transforms);
   }
 
   return source;
+}
+
+function encodeField(
+  encode: EncodeOption | undefined,
+  key: keyof EncodeOption,
+): string | number | undefined {
+  const raw = encode?.[key];
+  if (Array.isArray(raw)) return raw[0];
+  return raw as string | number | undefined;
+}
+
+function rowField(row: Row, key: string | number | undefined): unknown {
+  if (key === undefined) return undefined;
+  if (Array.isArray(row)) {
+    const index = typeof key === "number" ? key : Number(key);
+    if (Number.isFinite(index)) return row[index];
+    return undefined;
+  }
+  return (row as Record<string, unknown>)[String(key)];
+}
+
+function objectKeys(row: Row): string[] {
+  if (row === null || row === undefined || Array.isArray(row)) return [];
+  return Object.keys(row as Record<string, unknown>);
+}
+
+function resolveDatasetList(
+  dataset: DatasetOption | DatasetOption[] | undefined,
+): Row[][] {
+  if (dataset == null) return [];
+  const list = Array.isArray(dataset) ? dataset : [dataset];
+  const resolved: Row[][] = [];
+  const idToIndex = new Map<string, number>();
+  for (let index = 0; index < list.length; index++) {
+    const entry = list[index];
+    if (entry.id) idToIndex.set(entry.id, index);
+    let source = entry.source;
+    if (source == null) {
+      const fromIndex =
+        entry.fromDatasetIndex ??
+        (entry.fromDatasetId != null
+          ? idToIndex.get(entry.fromDatasetId)
+          : undefined);
+      if (fromIndex != null) source = resolved[fromIndex] as typeof source;
+    }
+    resolved.push(resolveDataset({ ...entry, source }));
+  }
+  return resolved;
+}
+
+function defaultDimension(
+  row: Row,
+  offset: number,
+): string | number | undefined {
+  if (Array.isArray(row)) return offset;
+  const keys = objectKeys(row);
+  return keys[offset];
+}
+
+function encodeCartesianRow(
+  row: Row,
+  encode: EncodeOption | undefined,
+  xFallback: string | number | undefined,
+  yFallback: string | number | undefined,
+): [unknown, unknown] {
+  const xKey = encodeField(encode, "x") ?? xFallback;
+  const yKey = encodeField(encode, "y") ?? yFallback;
+  return [rowField(row, xKey), rowField(row, yKey)];
+}
+
+function encodePieRow(
+  row: Row,
+  encode: EncodeOption | undefined,
+): { name: string; value: number } {
+  const nameKey =
+    encodeField(encode, "itemName") ??
+    encodeField(encode, "seriesName") ??
+    encodeField(encode, "x") ??
+    defaultDimension(row, 0);
+  const valueKey =
+    encodeField(encode, "value") ??
+    encodeField(encode, "y") ??
+    defaultDimension(row, 1);
+  const name = rowField(row, nameKey);
+  const value = rowField(row, valueKey);
+  return {
+    name: name == null ? "" : String(name),
+    value: typeof value === "number" ? value : Number(value) || 0,
+  };
+}
+
+function seriesHasOwnData(series: SeriesOption): boolean {
+  const data = (series as { data?: unknown }).data;
+  return Array.isArray(data) && data.length > 0;
+}
+
+/**
+ * Join `option.dataset` onto series that have no own `data`. Honors
+ * `datasetIndex` / `datasetId` and `encode` (x/y/value/itemName).
+ */
+export function applyDatasetToSeries<T extends SeriesOption>(
+  series: T[],
+  dataset: DatasetOption | DatasetOption[] | undefined,
+): T[] {
+  if (dataset == null) return series;
+  const resolved = resolveDatasetList(dataset);
+  if (resolved.length === 0) return series;
+  const list = Array.isArray(dataset) ? dataset : [dataset];
+
+  const datasetIndexOf = (entry: T): number => {
+    const id = (entry as { datasetId?: string }).datasetId;
+    if (id != null) {
+      const byId = list.findIndex((item) => item.id === id);
+      if (byId >= 0) return byId;
+    }
+    return (entry as { datasetIndex?: number }).datasetIndex ?? 0;
+  };
+
+  const rankByDataset = new Map<number, number>();
+  return series.map((entry) => {
+    if (seriesHasOwnData(entry)) return entry;
+    const datasetIndex = datasetIndexOf(entry);
+    const rows = resolved[datasetIndex];
+    if (!rows || rows.length === 0) return entry;
+    const encode = (entry as { encode?: EncodeOption }).encode;
+    const rank = rankByDataset.get(datasetIndex) ?? 0;
+    rankByDataset.set(datasetIndex, rank + 1);
+    const sample = rows[0];
+    if (entry.type === "pie") {
+      return {
+        ...entry,
+        data: rows.map((row) => encodePieRow(row, encode)),
+      };
+    }
+    const xFallback = defaultDimension(sample, 0);
+    const yFallback = defaultDimension(sample, rank + 1) ?? defaultDimension(sample, 1);
+    return {
+      ...entry,
+      data: rows.map((row) => encodeCartesianRow(row, encode, xFallback, yFallback)),
+    };
+  });
+}
+
+function categoryValue(item: unknown, dim: "x" | "y"): unknown {
+  if (Array.isArray(item)) return dim === "x" ? item[0] : item[1];
+  if (item && typeof item === "object" && "name" in (item as object)) {
+    return (item as { name?: unknown }).name;
+  }
+  return undefined;
+}
+
+/** Fill empty category-axis `data` from encoded series values. */
+export function fillCategoryAxes<T extends { type?: string; data?: unknown[] }>(
+  axes: T[],
+  series: SeriesOption[],
+  dim: "x" | "y",
+): T[] {
+  return axes.map((axis) => {
+    const type = axis.type ?? (dim === "x" ? "category" : "value");
+    if (type !== "category") return axis;
+    if (Array.isArray(axis.data) && axis.data.length > 0) return axis;
+    const seen = new Set<string>();
+    const categories: unknown[] = [];
+    for (const entry of series) {
+      for (const item of ((entry as { data?: unknown[] }).data ?? [])) {
+        const value = categoryValue(item, dim);
+        if (value === undefined || value === null) continue;
+        const key = String(value);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        categories.push(value);
+      }
+    }
+    return categories.length > 0 ? { ...axis, data: categories } : axis;
+  });
 }

@@ -215,6 +215,9 @@ const App = {
 
 - **Plain objects keyed by tag.** First key = HTML tag; value = content
   (string | number | array | \`(listener) => value\` | \`null\` for void tags).
+- **A string child is TEXT, always.** Markup inside it is escaped, never
+  parsed. Rendering a string as HTML is an explicit opt-in:
+  \`rawHtml("<b>x</b>")\` from \`@domphy/core\`.
 - **Patches via \`$\`**, never wrapper components. Compose multiple:
   \`$: [button(), tooltip({ content: "..." })]\`. The native element always wins
   over patch defaults.
@@ -241,6 +244,9 @@ const App = {
   (\`onClick\`, \`onInput\`).
 - **Comments in code: English only.** Names: descriptive, no abbreviations
   (\`index\` not \`i\` except loops; listener \`l\`, event \`e\`, node \`node\`).
+- **Self-check:** run \`@domphy/doctor\` \`diagnose(element)\` (or
+  \`validate(element)\`) on what you produce and fix every reported issue
+  before finishing.
 - **Removed APIs:** the \`form()\`/\`field()\` patches and \`FormState\`/
   \`FieldState\` no longer exist — use \`@domphy/form\` (\`createForm\`) for forms.
 

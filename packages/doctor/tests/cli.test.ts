@@ -190,6 +190,24 @@ describe("domphy-doctor CLI", () => {
     expect(result.stdout).toContain("1 file(s) checked");
   }, 30000);
 
+  it("does not run _onInit via Layer 4 with --no-factory-exec", async () => {
+    // Layer 4 constructs ElementNode, which fires _onInit. The flag must
+    // skip that construct (or skip Init) while Layers 1–3 still run.
+    const result = await runCli([
+      "--no-factory-exec",
+      fixture("cli-on-init.mjs"),
+    ]);
+    expect(result.code).toBe(1);
+    expect(result.stdout).toContain("void-content");
+    expect(result.stdout).not.toContain("INIT_RAN");
+  }, 30000);
+
+  it("runs _onInit via Layer 4 when factory-exec is on", async () => {
+    const result = await runCli([fixture("cli-on-init.mjs")]);
+    expect(result.stdout).toContain("INIT_RAN");
+    expect(result.stdout).toContain("void-content");
+  }, 30000);
+
   it("rejects an unknown --format value with exit 2", async () => {
     const result = await runCli(["--format", "yaml", fixture("cli-ok.mjs")]);
     expect(result.code).toBe(2);

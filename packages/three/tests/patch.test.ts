@@ -93,7 +93,7 @@ describe("three() — mount", () => {
       $: [
         three({
           scene: null,
-          camera: { fov: 50, position: [1, 2, 3] },
+          camera: { fov: 50, position: [1, 2, 3], lookAt: [0, 0, 0] },
           createRenderer: () => createStubRenderer(),
           onCreated: (root) => {
             capturedRoot = root;
@@ -104,6 +104,13 @@ describe("three() — mount", () => {
 
     expect(capturedRoot!.camera.fov).toBe(50);
     expect(capturedRoot!.camera.position.toArray()).toEqual([1, 2, 3]);
+    expect(typeof capturedRoot!.camera.lookAt).toBe("function");
+    const direction = new THREE.Vector3();
+    capturedRoot!.camera.getWorldDirection(direction);
+    const expected = new THREE.Vector3(-1, -2, -3).normalize();
+    expect(direction.x).toBeCloseTo(expected.x);
+    expect(direction.y).toBeCloseTo(expected.y);
+    expect(direction.z).toBeCloseTo(expected.z);
   });
 
   it("adopts a user camera instance verbatim, applying no props on top", () => {
@@ -468,6 +475,36 @@ describe("three() — loop activation and options-state updates", () => {
 
     expect(stub.calls.dispose).toBe(1);
     expect(capturedRoot!.internal.active).toBe(false);
+  });
+
+  it("disposes the renderer when applyScene/instantiate throws (teardown registered before applyScene)", () => {
+    const stub = createStubRenderer();
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const node = new ElementNode({
+      div: null,
+      $: [
+        three({
+          scene: [{ notARealThing: null } as any],
+          createRenderer: () => stub,
+        }),
+      ],
+    } as DomphyElement);
+
+    expect(() => node.render(host)).toThrow(
+      '@domphy/three: "notARealThing" is not part of the THREE namespace!',
+    );
+
+    // Throw path itself must dispose — the caller never gets a mounted
+    // root to remove, so waiting for node.remove() would leak the GL
+    // context for the life of the page.
+    expect(stub.calls.forceContextLoss).toBe(1);
+    expect(stub.calls.dispose).toBe(1);
+
+    node.remove();
+    // Teardown is idempotent: a later Remove hook must not dispose twice.
+    expect(stub.calls.dispose).toBe(1);
+    expect(stub.calls.forceContextLoss).toBe(1);
   });
 });
 

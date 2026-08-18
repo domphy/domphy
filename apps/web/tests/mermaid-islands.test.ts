@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  MERMAID_BLOCK_SELECTOR,
   type MermaidBrowserModule,
   renderMermaidBlocks,
 } from "../islands-runtime.ts";
@@ -50,6 +51,12 @@ beforeEach(() => {
 });
 
 describe("renderMermaidBlocks", () => {
+  it("selects press .dp-mermaid / div.language-mermaid as well as pre>code", () => {
+    expect(MERMAID_BLOCK_SELECTOR).toContain(".dp-mermaid");
+    expect(MERMAID_BLOCK_SELECTOR).toContain("div.language-mermaid");
+    expect(MERMAID_BLOCK_SELECTOR).toContain("pre > code.language-mermaid");
+  });
+
   it("pins securityLevel strict and sanitizes the rendered SVG before innerHTML", async () => {
     document.body.innerHTML =
       '<pre><code class="language-mermaid">graph TD; A--&gt;B;</code></pre>';
@@ -102,6 +109,25 @@ describe("renderMermaidBlocks", () => {
       securityLevel: "strict",
       theme: "dark",
     });
+  });
+
+  it("selects press .dp-mermaid and div.language-mermaid blocks, not only pre>code", async () => {
+    document.body.innerHTML = [
+      '<div class="dp-mermaid">graph TD; A--&gt;C;</div>',
+      '<div class="language-mermaid">graph TD; A--&gt;D;</div>',
+    ].join("");
+    const { lib, sources } = fakeMermaid(
+      (call) => `<svg data-render="${call}"></svg>`,
+    );
+
+    await renderMermaidBlocks(async () => lib);
+    await flush();
+    await flush();
+
+    expect(sources).toEqual(["graph TD; A-->C;", "graph TD; A-->D;"]);
+    expect(document.querySelectorAll("div.mermaid")).toHaveLength(2);
+    expect(document.querySelector(".dp-mermaid")).toBeNull();
+    expect(document.querySelector("div.language-mermaid")).toBeNull();
   });
 
   it("leaves the source block in place when rendering fails", async () => {

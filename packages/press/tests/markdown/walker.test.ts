@@ -51,12 +51,9 @@ describe("raw HTML passthrough", () => {
 describe("line breaks", () => {
   it("normalises soft newlines inside paragraphs to spaces", () => {
     const body = markdownToDomphy("line one\nline two");
-    const children = asRecord(body[0]).p as unknown[];
-    // With remark, the two words appear in a single text value; soft newlines
-    // in MDAST text values are normalised to spaces by the walker.
-    const joined = children.join("");
-    expect(joined).toContain("line one");
-    expect(joined).toContain("line two");
+    // remark keeps the soft break as a literal \\n in one text node; the
+    // walker replaces it in-place so the paragraph is a single string.
+    expect(asRecord(body[0]).p).toEqual(["line one line two"]);
   });
 
   it("renders a hardbreak (two trailing spaces) as a void br element", () => {
@@ -102,5 +99,180 @@ describe("GFM task lists (remark-gfm)", () => {
     const liChildren = item.li as unknown[];
     const checkbox = asRecord(liChildren[0]);
     expect(checkbox.checked).toBeUndefined();
+  });
+});
+
+describe("reference-style links and images", () => {
+  it("resolves a full link reference to the same shape as an inline link", () => {
+    const body = markdownToDomphy(
+      '[Domphy][home]\n\n[home]: https://domphy.dev "Homepage"',
+    );
+    expect(body).toHaveLength(1);
+    const link = asRecord((asRecord(body[0]).p as unknown[])[0]);
+    expect(link.a).toEqual(["Domphy"]);
+    expect(link.href).toBe("https://domphy.dev");
+    expect(link.title).toBe("Homepage");
+    expect(link.target).toBe("_blank");
+    expect(link.rel).toBe("noopener noreferrer");
+  });
+
+  it("resolves shortcut and collapsed link references", () => {
+    const body = markdownToDomphy(
+      "[foo] and [bar][]\n\n[foo]: /foo\n[bar]: /bar",
+    );
+    const children = asRecord(body[0]).p as unknown[];
+    const first = asRecord(children[0]);
+    const second = asRecord(children[2]);
+    expect(first.a).toEqual(["foo"]);
+    expect(first.href).toBe("/foo");
+    expect(first.target).toBeUndefined();
+    expect(second.a).toEqual(["bar"]);
+    expect(second.href).toBe("/bar");
+  });
+
+  it("matches reference identifiers case-insensitively", () => {
+    const body = markdownToDomphy("[X][FOO]\n\n[foo]: https://example.com");
+    const link = asRecord((asRecord(body[0]).p as unknown[])[0]);
+    expect(link.href).toBe("https://example.com");
+  });
+
+  it("resolves an image reference to the same shape as an inline image", () => {
+    const body = markdownToDomphy(
+      '![A diagram][pic]\n\n[pic]: /img/diagram.png "Figure 1"',
+    );
+    const img = asRecord((asRecord(body[0]).p as unknown[])[0]);
+    expect(img.img).toBeNull();
+    expect(img.src).toBe("/img/diagram.png");
+    expect(img.alt).toBe("A diagram");
+    expect(img.title).toBe("Figure 1");
+    expect(img.loading).toBe("lazy");
+  });
+
+  it("does not emit definition nodes into the body", () => {
+    const body = markdownToDomphy("hello\n\n[unused]: https://example.com");
+    expect(body).toHaveLength(1);
+    expect(asRecord(body[0]).p).toEqual(["hello"]);
+  });
+
+  it("neutralizes script-capable URL schemes on resolved references", () => {
+    const body = markdownToDomphy("[x][bad]\n\n[bad]: javascript:alert(1)");
+    const link = asRecord((asRecord(body[0]).p as unknown[])[0]);
+    expect(link.href).toBe("#");
+  });
+});
+
+describe("GFM footnotes", () => {
+  it("renders a footnote reference as a numbered superscript link", () => {
+    const body = markdownToDomphy("See note.[^1]\n\n[^1]: The note.");
+    const children = asRecord(body[0]).p as unknown[];
+    expect(children[0]).toBe("See note.");
+    const sup = asRecord(children[1]);
+    const link = asRecord((sup.sup as unknown[])[0]);
+    expect(link.a).toBe("1");
+    expect(link.href).toBe("#user-content-fn-1");
+    expect(link.id).toBe("user-content-fnref-1");
+    expect(link.dataFootnoteRef).toBe(true);
+    expect(link["aria-describedby"]).toBe("footnote-label");
+  });
+
+  it("reuses the same number when a footnote is referenced twice", () => {
+    const body = markdownToDomphy(
+      "First.[^1] Again.[^1]\n\n[^1]: Shared.",
+    );
+    const children = asRecord(body[0]).p as unknown[];
+    const first = asRecord((asRecord(children[1]).sup as unknown[])[0]);
+    const second = asRecord((asRecord(children[3]).sup as unknown[])[0]);
+    expect(first.a).toBe("1");
+    expect(second.a).toBe("1");
+    expect(first.id).toBe("user-content-fnref-1");
+    expect(second.id).toBe("user-content-fnref-1-2");
+  });
+
+  it("numbers footnotes by first-reference order, not definition order", () => {
+    const body = markdownToDomphy(
+      "A.[^note] B.[^1]\n\n[^1]: First defined.\n\n[^note]: Second defined.",
+    );
+    const children = asRecord(body[0]).p as unknown[];
+    const first = asRecord((asRecord(children[1]).sup as unknown[])[0]);
+    const second = asRecord((asRecord(children[3]).sup as unknown[])[0]);
+    expect(first.a).toBe("1");
+    expect(first.href).toBe("#user-content-fn-note");
+    expect(second.a).toBe("2");
+    expect(second.href).toBe("#user-content-fn-1");
+  });
+
+  it("appends a footnotes section and does not leak definitions into the body", () => {
+    const body = markdownToDomphy(
+      "See note.[^1]\n\n[^1]: First footnote with **bold**.",
+    );
+    expect(body).toHaveLength(2);
+    expect(asRecord(body[0]).p).toBeDefined();
+
+    const section = asRecord(body[1]);
+    expect(section.class).toBe("footnotes");
+    expect(section.dataFootnotes).toBe(true);
+    const sectionChildren = section.section as unknown[];
+
+    const heading = asRecord(sectionChildren[0]);
+    expect(heading.h2).toBe("Footnotes");
+    expect(heading.id).toBe("footnote-label");
+    expect(heading.class).toBe("sr-only");
+
+    const list = asRecord(sectionChildren[1]);
+    const item = asRecord((list.ol as unknown[])[0]);
+    expect(item.id).toBe("user-content-fn-1");
+    const itemChildren = item.li as unknown[];
+    const paragraph = asRecord(itemChildren[0]);
+    const pChildren = paragraph.p as unknown[];
+    expect(pChildren[0]).toBe("First footnote with ");
+    expect(asRecord(pChildren[1]).strong).toEqual(["bold"]);
+    expect(pChildren[2]).toBe(".");
+    expect(pChildren[3]).toBe(" ");
+    const backref = asRecord(pChildren[4]);
+    expect(backref.a).toBe("↩");
+    expect(backref.href).toBe("#user-content-fnref-1");
+    expect(backref.dataFootnoteBackref).toBe(true);
+    expect(backref.class).toBe("data-footnote-backref");
+    expect(backref.ariaLabel).toBe("Back to reference 1");
+  });
+
+  it("adds a numbered backref for each additional reference of the same note", () => {
+    const body = markdownToDomphy("A.[^1] B.[^1]\n\n[^1]: Shared.");
+    const section = asRecord(body[1]);
+    const item = asRecord(
+      (asRecord((section.section as unknown[])[1]).ol as unknown[])[0],
+    );
+    const pChildren = asRecord((item.li as unknown[])[0]).p as unknown[];
+    const firstBack = asRecord(pChildren[pChildren.length - 3]);
+    const secondBack = asRecord(pChildren[pChildren.length - 1]);
+    expect(firstBack.href).toBe("#user-content-fnref-1");
+    expect(firstBack.a).toBe("↩");
+    expect(secondBack.href).toBe("#user-content-fnref-1-2");
+    expect(secondBack.a).toEqual(["↩", { sup: "2" }]);
+    expect(secondBack.ariaLabel).toBe("Back to reference 1-2");
+  });
+
+  it("omits unused footnote definitions and emits no footer without refs", () => {
+    const body = markdownToDomphy("No refs.\n\n[^orphan]: Unused.");
+    expect(body).toHaveLength(1);
+    expect(asRecord(body[0]).p).toEqual(["No refs."]);
+  });
+});
+
+describe("heading anchors", () => {
+  it("appends a header-anchor child matching the heading slug", () => {
+    const body = markdownToDomphy("# Level 1");
+    const heading = asRecord(body[0]);
+    expect(heading.id).toBe("level-1");
+    expect(heading.h1).toEqual([
+      "Level 1",
+      {
+        a: "#",
+        href: "#level-1",
+        class: "header-anchor",
+        ariaHidden: "true",
+        tabIndex: -1,
+      },
+    ]);
   });
 });

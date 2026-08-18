@@ -80,14 +80,14 @@ List reconciliation REUSES DOM nodes (by `_key`, or by position for unkeyed list
 | `@domphy/dnd` | drag & drop — `dragDrop(state, config?)`, `multiList(options)`, `multiListGroup(group, states, config?)` (wraps `@formkit/drag-and-drop`) |
 | `@domphy/blocks` | 173 composed blocks/effect components — sidebar layouts, auth pages, a dashboard, `@domphy/chart` recipes (from shadcn/ui), and marketing/effect components (from Magic UI). Every export is a **factory function** `name(props?) => DomphyElement` returning a full mountable tree (not a `$`-patch). Subpaths: `@domphy/blocks/shadcn`, `@domphy/blocks/magicui` (family barrels for smaller bundles). Clean-room reimplemented — see `packages/blocks/SOURCES.md` |
 | `@domphy/app` | Next.js App Router-style framework: routes/layouts/loaders(SWR)/metadata/middleware/parallel+intercepting routes/**lazy code-split routes** (`lazy: () => import(...)`)/SSR+streaming/API routes/**i18n routing** (`createI18nMiddleware`+`getLocale`)/**cookies** (`cookies(headers?)`); also `optimizedImage`, `script`, `createMemoryHistory`/`createBrowserHistory`, `buildHref`, `DataCache`; SSR/streaming stamps `configure({cspNonce})` on injected inline `<style>`/`<script>` |
-| `@domphy/doctor` | static analyzer — `diagnose(element, opts?)` / `validate(element, opts?)` flag non-idiomatic trees; `format(diagnostics)` formats a `Diagnostic[]`; `fix(element)` applies lossless autofixes. Options: `only`/`exclude` (rule filtering), `rules` (custom rules), `runReactive` (default true). Inline suppression: `_doctorDisable: true | "rule-id" | string[]` on any element. CLI `domphy-doctor <path...>` scans files on disk (flags: `--only`/`--exclude`/`--no-reactive`/`--no-output`/`--format text\|json`; reports per-file import failures and exits 1); `auditOutput(node, opts?)` is an optional Layer 4 that lints the real generated HTML/CSS via `htmlhint`/`stylelint` (optional peer deps). Depends on `@domphy/theme` (single source for tone grammar/aliases). **Run it on your output and fix the report.** |
-| `@domphy/floating` | anchor positioning (vendored floating-ui, zero-dep; pinned core@1.7.5/dom@1.7.6 with a deviation list — see `packages/floating/UPSTREAM.md`) — powers `@domphy/ui` overlays, `@domphy/chart` tooltips, and `@domphy/editor` bubble menus; public surface: `computePosition`/`autoUpdate` + middleware (`offset`/`flip`/`shift`/`arrow`/`size`/`inline`/…), `VirtualElement` for anchoring to non-element rects |
+| `@domphy/doctor` | static analyzer — `diagnose(element, opts?)` / `validate(element, opts?)` flag non-idiomatic trees; `format(diagnostics)` formats a `Diagnostic[]`; `fix(element)` applies lossless autofixes. Options: `only`/`exclude` (rule filtering), `rules` (custom rules), `runReactive` (default true). Inline suppression: `_doctorDisable: true | "rule-id" | string[]` on any element. CLI `domphy-doctor <path...>` scans files on disk (flags: `--only`/`--exclude`/`--no-reactive`/`--no-output`/`--no-factory-exec`/`--format text\|json`; reports per-file import failures and exits 1); `auditOutput(node, opts?)` is an optional Layer 4 that lints the real generated HTML/CSS via `htmlhint`/`stylelint` (optional peer deps). Depends on `@domphy/theme` (single source for tone grammar/aliases). **Run it on your output and fix the report.** |
+| `@domphy/floating` | anchor positioning (vendored floating-ui, zero-dep; pinned core@1.8.0/dom@1.8.0 with a deviation list — see `packages/floating/UPSTREAM.md`) — powers `@domphy/ui` overlays, `@domphy/chart` tooltips, and `@domphy/editor` bubble menus; public surface: `computePosition`/`autoUpdate` + middleware (`offset`/`flip`/`shift`/`arrow`/`size`/`inline`/…), `VirtualElement` for anchoring to non-element rects |
 | `@domphy/chart` | WebGL + SVG chart engine — `chart(option)` patch renders line/bar/pie/scatter/radar/heatmap/candlestick/etc. series (luma.gl WebGL) with SVG overlays for axes/legend/tooltip/layout series; `ChartEngine` for headless/advanced use; scale creators (`createLinearScale`, `createOrdinalScale`, `createTimeScale`, `createLogScale`), dataset transforms (`applyTransforms`, `resolveDataset`), color utilities (`seriesColor` — theme-aware var-ref default, recommended, `familyCss`, `cssColor`, `createColorResolver`, `hexToRgba`, `seriesHex`/`familyHex` — static light-theme design-time helpers, `seriesPaletteFamily`, `colorFromVisualMap`); theme-aware (colors follow `[data-theme]` at paint time + re-render on flips: SVG layers carry `var(--…)` refs, WebGL uniforms re-resolve); tooltip `formatter` may return a `DomphyElement`, tooltip positioning via `@domphy/floating`; ECharts-compatible type surface |
 | `@domphy/three` | declarative three.js scene graph — 1-1 functional port of `@react-three/fiber` core (reconciler, raycast pointer events, demand frameloop) on Domphy reactivity; `three(options)` patch mounts a canvas host and renders the scene graph, `extend(classes)` registers custom/version-agnostic tags for `resolve()`, `loadAsset`/`preloadAsset`/`clearAsset` for reactive asset loading (`AssetResult<T>`: `data`/`error`/`promise`); the `onCreated(root)` object is typed `CreatedRootState` (RootState + `setSize`); `diagnose(options)`/`validate(options)` — scene-level static analyzer (doctor's contract shape for the three() option object doctor cannot see): rules `unknown-tag`, `tag-not-first` (props-first description the reconciler's first-own-key tag read would throw on), `legacy-light-intensity`, `additive-blowout`, `camera-missing-lookat`; per-node suppression via `_doctorDisable` |
 | `@domphy/editor` | rich-text editor with a Tiptap-compatible API on a self-contained engine (no ProseMirror) — `Editor`, `Extension.create`/`Node.create`/`Mark.create` (incl. plain-DOM `addNodeView`), chainable commands (`chain()`/`can()`, `isActive`, `getJSON`/`getHTML`/`getText`), `starterKit(options?)` set (paragraph/heading/bold/italic/strike/code/underline/blockquote/lists/hardBreak/horizontalRule/link with autolink/codeBlock/undo-redo/trailingNode; per-extension `false` to disable) + `Table` subset (`insertTable`/`goToNextCell`/row-column ops, not in the kit), input rules (`# `, `**bold**`, `- `…) + keymap, view hooks `onPaste`/`onDrop`/`onKeyDown`, `onUpdate({ editor, transaction })`; positions are ProseMirror-style token positions; `getJSON()` omits default-valued attrs (Tiptap JSON loads unchanged). Domphy adapter at `@domphy/editor/domphy`: `createEditor`, `editorContent()` patch (host element must declare `null` children), `bubbleMenu()` patch (selection-anchored via `@domphy/floating`, shadow-root-safe), `editorState(editor)` reactive readers; `editor.stateVersion` is the reactivity bridge (a `State<number>` bumped per transaction) |
 | `@domphy/mcp` | MCP server exposing 10 tools: `domphy_list_patches`, `domphy_get_patch`, `domphy_list_packages`, `domphy_rules`, `domphy_tones`, `domphy_diagnose`, `domphy_validate`, `domphy_fix`, `domphy_list_app_blocks`, `domphy_get_app_block` — patches, packages, rules, tones, doctor, and app-block registry |
 | `@domphy/press` | VitePress-baseline static doc site framework — `defineConfig`, `buildSite`, `pressCSS`, CLI `domphy-press build / dev / preview`; built on `@domphy/app`; the Markdown pipeline (formerly `@domphy/markdown` — `parseMarkdown`, `markdownToDomphy`, `createMarkdown`, `walkMdast`, `splitFrontmatter`, `transformOutsideCodeBlocks`, `createUniqueSlugger`/`defaultSlugify`; remark/unified under the hood) ships as named exports of the **main entry only** (not the `/browser` subpath); CSS generated via `pressCSS()` + `themeCSS()` (no static .css file); supports VitePress containers (tip/warning/info/danger/details/code-group), `<<<` code imports, frontmatter hero/features/`fullBleed`, `--dp-font-sans`/`--dp-font-mono`/`--dp-font-display` font hooks, sidebar/nav/TOC, built-in local search (`SearchWidgetOptions.basePath` — base-aware); extras: line highlighting, code-group tabs, 14 admonition types, steps, task lists, mark/sub/sup, emoji, mermaid CDN, social links, edit link, last-updated, reading time, sidebar badges/collapsible, announcement bar, i18n, per-page head, heading anchor links, image lazy loading, `<Badge>` inline component; build fails when any page fails unless `continueOnError: true`; emits 404.html + a content-hashed islands bundle; `withBase(base, href)` base-prefixes emitted hrefs (nav/sidebar/hero links + canonical/sitemap/OG URLs auto-prefixed for non-root deploys); `SiteConfig.cspNonce` stamps a CSP nonce on all inline `<script>`/`<style>` + forwards to `@domphy/app` SSR |
-| `@domphy/i18n` | generic i18next wrapper with Domphy reactivity — `createI18n<TLocale, TMessages>(options)` returns `{ t(listener?, key), locale, currentLocale, exists, setLocale, getLocale, detectLocale, initI18n }`; globalThis dedup survives Vite chunk splitting; reactive `t(listener, key)` overload re-renders on `setLocale()` |
+| `@domphy/i18n` | generic i18next wrapper with Domphy reactivity — `createI18n<TLocale, TMessages>(options)` returns `{ t(listener?, key), locale, currentLocale, exists, setLocale, getLocale, detectLocale, initI18n }`; `runWithI18n(fn)` isolates request locale on SSR (`AsyncLocalStorage`); globalThis dedup survives Vite chunk splitting (client); reactive `t(listener, key)` overload re-renders on `setLocale()` |
 | `create-domphy` | scaffolder — `npm create domphy@latest <dir>` writes a runnable Vite + TS starter (themeApply + sample patches + AGENTS.md) |
 | `domphy-web` | docs website — built with `@domphy/press` on `@domphy/app`; renders Mermaid diagrams docs-site-internally (client-side via the islands runtime + CDN; the former `@domphy/mermaid` source lives in `apps/web/mermaid/`) (internal, not published to npm) |
 | `bench` | benchmarks (internal, not published) |
@@ -421,15 +421,20 @@ breaks this relationship fails CI, not a design review.
    generation step specifically because Oklab's hue lines stay closer to
    perceptually constant hue under lightness changes, which matters when
    interpolating rather than just measuring.
-2. Sort anchors by Oklab lightness; walk the resulting polyline and compute
-   **cumulative Euclidean arc length** — this is the *unwarped* parameter
-   space, proportional to how much the color actually changes, not to index.
+2. Keep the caller-supplied waypoint order (do **not** sort by lightness);
+   walk the polyline black → waypoints → white and compute **cumulative
+   Euclidean arc length** — this is the *unwarped* parameter space,
+   proportional to how much the color actually changes, not to index. The
+   interpolator walks dark-to-light and the output is reversed, so input
+   order is restored as light-to-dark.
 3. `unwarp` each anchor's normalized cumulative distance into warped
    parameter space (§3.1) — this is where the anchor sits once the output
-   grid is built by `warp`.
+   grid is built by `warp`. Mid-anchor positions are **not** remapped
+   through a second warp (that displaced them off their own hex).
 4. For each of the `N` output steps, compute its position in the anchor
    polyline (linear between neighboring anchor indices), then `warp` that
-   position and map it back into the arc-length parameter range.
+   sampling parameter once. Each user hex is pinned onto its nearest
+   output step so mid-anchors round-trip exactly.
 5. Interpolate: `L` linearly per Oklab segment; `a`/`b` (the two chroma
    channels) through the same **monotone cubic spline** as §2.3, evaluated
    across *all* anchors at once — a smooth single-peak chroma trajectory,
@@ -438,9 +443,10 @@ breaks this relationship fails CI, not a design review.
 6. Convert back Oklab → linear sRGB → hex.
 
 Passing more than one anchor color pins each as a fixed waypoint the ramp
-must pass through (e.g. a specific existing brand color at a specific
-position), still connected by the same warped interpolation — the ramp is
-not required to be generated from a single color.
+must pass through in the given order (e.g. a specific existing brand color
+at a specific position), still connected by the same warped interpolation —
+the ramp is not required to be generated from a single color, and each
+input hex is present unchanged on the output.
 
 Output is ordered light-to-dark (`ramp[0]` ≈ white, `ramp[N-1]` ≈ black),
 matching `ThemeInput.colors[name]`'s convention directly:
@@ -1480,7 +1486,7 @@ const node3: DomphyElement = {
 | `parent` | `ElementNode` | Parent node |
 | `text` | `string` | Current text content |
 | `html` | `boolean` | `true` only for a `rawHtml()` child |
-| `domText` | `ChildNode` | Mounted DOM node |
+| `domText` | `ChildNode` | Mounted DOM node (first root when `rawHtml()` parses to several siblings) |
 
 ## A string child is always text
 
@@ -1502,15 +1508,16 @@ import { rawHtml } from "@domphy/core"
 
 Only ever wrap markup you control (a Markdown renderer's output, a syntax highlighter, a generated SVG). `rawHtml()` still strips `<script>` elements, `on*` handler attributes and `javascript:` URLs, but that is defense in depth — it is not a full sanitizer, and it cannot make untrusted input safe.
 
-`rawHtml()` accepts a single-root HTML string. Multiple root elements are not supported.
+`rawHtml()` accepts a single-root **or multi-root** HTML string. Every parsed root is inserted as a sibling; `domText` stays the first root (the slot anchor). `children.move()` / `children.swap()` / removal treat those roots as one child group, so identity stays stable.
 
 ```ts
-rawHtml("<b>Hello</b>")                  // valid
-rawHtml("<span class='highlight' />")    // valid
-rawHtml("<b>Hello</b> <i>World</i>")     // invalid: multiple roots
+rawHtml("<b>Hello</b>")                  // one root
+rawHtml("<span class='highlight' />")    // one root
+rawHtml("<b>Hello</b><i>World</i>")      // two roots — both render
+rawHtml("<b>a</b> <i>b</i>")             // two element roots (leading/trailing whitespace is trimmed)
 ```
 
-Single-root HTML is required so DOM operations like `move()` and `swap()` can keep node identity stable.
+SSR `generateHTML()` and the client parse emit the same sanitized markup, so a multi-root child hydrates without drift. Switching between multi-root HTML, single-root HTML, and plain text rebuilds the group.
 
 A reactive child may return either form, and switching between them rebuilds the node:
 
@@ -1541,7 +1548,7 @@ node.generateHTML()  // "Hello World" or "&#8203;" for empty string
 Top-level helper functions exported by `@domphy/core`.
 
 ```ts
-import { toState, merge, hashString } from "@domphy/core"
+import { toState, merge, hashString, peek } from "@domphy/core"
 ```
 
 Use `Utilities` here rather than `Functions`: these are reusable helper APIs, not the main object model like `ElementNode`, `ElementList`, or `State`.
@@ -1826,6 +1833,35 @@ effect(() => {
   console.log(s, o)
 })
 ```
+
+---
+
+## `peek(read)`
+
+Reads a reactive function `(listener) => T` **outside** a render / reactive context — for example checking a `disabled` binding inside an `onClick` handler. The read runs with no listener and untracked: the value resolves once and nothing is subscribed, so it never becomes a dependency of an enclosing `effect` / `computed` either. This is the supported form of the `read(undefined as unknown as Listener)` cast.
+
+```ts
+import { peek, toState } from "@domphy/core"
+
+const disabled = toState(true)
+const read = (listener) => disabled.get(listener)
+
+peek(read)           // true — no subscription is created
+disabled.set(false)
+peek(read)           // false
+
+// Inside an event handler (no listener available):
+onClick: () => {
+  if (peek(props.disabled)) return
+  submit()
+}
+```
+
+| Parameter | Type | Description |
+|---|---|---|
+| `read` | `(listener: Listener) => T` | A reactive reader — typically a `ValueOrState` binding or `(l) => state.get(l)` |
+
+Returns `T`. Use `peek` only when you need a one-shot value outside render. Inside an element child or `style` function, read with the listener you were given so the node stays reactive.
 
 ---
 
@@ -5076,7 +5112,27 @@ Same signature as `themeColor` but returns the resolved token **value** (e.g. `"
 const hex = themeColorToken(null, "shift-9", "primary") // e.g. "#4a7ff4"
 ```
 
-`object` may be `null` — resolves against the `light` theme with no node context.
+`object` may be `null` — that form silently resolves against the `"light"` theme with no node context. The value is baked at call time and will **not** follow a later theme switch. Prefer `resolveThemeColor({ theme, tone, color })` when you mean a specific named theme.
+
+### `resolveThemeColor({ theme?, tone?, color? })`
+
+Explicit non-reactive token resolution — the supported form of `themeColorToken(null, …)`. Returns the resolved token value (e.g. `"#4a7ff4"`) for a **named** theme, with no `ElementNode` / listener context.
+
+```ts
+import { resolveThemeColor } from "@domphy/theme"
+
+const hex = resolveThemeColor({ theme: "light", tone: "shift-9", color: "primary" })
+const darkSurface = resolveThemeColor({ theme: "dark", tone: "inherit" })
+const muted = resolveThemeColor({ tone: "muted" }) // defaults: theme "light", color "inherit" → "neutral"
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `theme` | `string` | `"light"` | Theme name registered via `setTheme()` (`"light"`, `"dark"`, …). |
+| `tone` | `ElementTone` | `"inherit"` | Tone to resolve. Starts from context tone 0 (the theme's own edge) — no `dataTone` / `dataTheme` inheritance. `"base"` uses that role's `baseTones` entry. Semantic aliases (`"muted"`, `"text"`, …) work. |
+| `color` | `string` | `"inherit"` | Color role. `"inherit"` maps to `"neutral"`. |
+
+The returned value is baked at call time — it does **not** follow later theme switches. For reactive, context-aware colors use `themeColor()` with a listener. Throws if the theme name or color role is unknown.
 
 ### `themeSize(object, size?)`
 
@@ -7599,6 +7655,7 @@ const SaveButton: DomphyElement<"button"> = {
 - `mutate(variables, options?)` is fire-and-forget — rejections are swallowed, read them via `save.error(l)`.
 - `mutateAsync(variables, options?)` returns the promise so you can `await`/`catch`.
 - Accessors: `data`, `error`, `variables`, `status`, `isPending`, `isSuccess`, `isError`, `isIdle`. Plus `reset()` and `destroy()`.
+- When `throwOnError` is true (or a function that returns true), reading any field **with a listener** throws `result.error` — same contract as TanStack `useMutation`. Imperative reads without a listener never throw.
 
 ## createInfiniteQuery
 
@@ -7631,7 +7688,7 @@ const Feed: DomphyElement<"div"> = {
 }
 ```
 
-InfiniteQueryHandle accessors: `data`, `error`, `status`, `isPending`, `isFetching`, `isSuccess`, `isError`, `hasNextPage`, `hasPreviousPage`, `isFetchingNextPage`, `isFetchingPreviousPage`; methods: `fetchNextPage`, `fetchPreviousPage`, `refetch`, `destroy`. Note: `fetchStatus`, `isLoading`, `isRefetching`, `isStale`, and `setOptions` are not available on the infinite variant.
+InfiniteQueryHandle accessors: `data`, `error`, `status`, `fetchStatus`, `isPending` / `isLoading`, `isFetching` / `isRefetching`, `isSuccess` / `isError`, `isStale`, `isPlaceholderData`, `hasNextPage`, `hasPreviousPage`, `isFetchingNextPage`, `isFetchingPreviousPage`. Methods: `fetchNextPage`, `fetchPreviousPage`, `refetch`, `destroy`. There is no `setOptions` on the infinite variant.
 
 ## When to use the bridge directly
 
@@ -12595,6 +12652,8 @@ const { table, version, destroy } = createDomphyTable<Person>({
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    // Default `row.id` is the row index. Required for stable `_key: row.id`.
+    getRowId: (person) => String(person.id),
     initialState: { pagination: { pageIndex: 0, pageSize: 5 } },
 })
 
@@ -12903,7 +12962,7 @@ Each feature contributes methods to the table, column, row, and header objects. 
 - **Row pinning** — `table.setRowPinning`, `getTopRows`, `getBottomRows`; `row.pin`, `getIsPinned`
 - **Sizing** — `table.setColumnSizing`, `resetColumnSizing`; `column.getSize`, `getIsResizing`; `header.getSize`, `getResizeHandler`
 - **Faceting** — `column.getFacetedRowModel`, `getFacetedUniqueValues`, `getFacetedMinMaxValues`; global variants on `table`
-- **Cell editing** (opt-in, not a built-in — pass `_features: [CellEditing]`) — `table.setEditingCell`, `getEditingCell`, `resetEditingCell`; `cell.beginEdit`, `commitEdit`, `cancelEdit`, `getIsEditing`, `getCanEdit`; options `enableCellEditing`, `onCellEditingChange`, `onCellEdit`
+- **Cell editing** (opt-in, not a built-in — pass `_features: [CellEditing]`; methods are optional on `Table`/`Cell` until the feature is installed) — `table.setEditingCell`, `getEditingCell`, `resetEditingCell(true)` to exit (without `true` restores `initialState`); `cell.beginEdit`, `commitEdit` (exits even if `onCellEdit` throws), `cancelEdit`, `getIsEditing`, `getCanEdit`; options `enableCellEditing`, `onCellEditingChange`, `onCellEdit`
 
 ## Utilities
 
@@ -14339,6 +14398,7 @@ const table = createDomphyTable({
   columns,
   enableRowPinning: true,
   keepPinnedRows: true,   // keep pinned rows visible even when filtered out
+  getRowId: (row) => row.id, // default row.id is the row index
 })
 
 // Pin a row to the top
@@ -14487,8 +14547,8 @@ const table = createDomphyTable({
 | `row.pin(false)` | Unpin row |
 | `row.getIsPinned()` | `"top"` \| `"bottom"` \| `false` |
 | `row.getPinnedIndex()` | Position in the pinned list |
-| `table.getTopRows(l)` | Reactive list of top-pinned rows |
-| `table.getBottomRows(l)` | Reactive list of bottom-pinned rows |
+| `table.getTopRows(l)` | Top-pinned rows; ids that left the data are skipped (no throw) |
+| `table.getBottomRows(l)` | Bottom-pinned rows; missing ids skipped the same way |
 | `table.getCenterRows(l)` | Non-pinned rows (between top and bottom) |
 | `table.setRowPinning(updater)` | Programmatically set pinning state |
 | `table.resetRowPinning()` | Unpin all rows |
@@ -14875,7 +14935,7 @@ With server pagination there is no need for client-side row virtualization — j
 
 ---
 title: "API Reference"
-description: "Virtualizer, createVirtualizer adapter, VirtualizerOptions, VirtualItem, and all methods."
+description: "Virtualizer, createVirtualizer / createWindowVirtualizer adapters, VirtualizerOptions, VirtualItem, and all methods."
 ---
 
 # API Reference
@@ -14899,12 +14959,12 @@ const list = createVirtualizer<HTMLDivElement, HTMLDivElement>(options)
 | `getVirtualItems(l)` | `VirtualItem[]` | Reactive list of items currently in range. Pass a listener to subscribe. |
 | `getTotalSize(l?)` | `number` | Total scroll size in px. Pass listener to subscribe reactively. |
 | `setScrollElement(el)` | `void` | Wire the scroll container. Call from `_onMount`. |
-| `measureElement(el)` | `void` | Measure an item element. Call from item `_onMount` for variable heights. The element must carry `"data-index": item.index` (see `indexAttribute`) — without it the index cannot be resolved and measurement is skipped with a console warning. |
+| `measureElement(el)` | `void` | Measure an item element. Call from item `_onMount` for variable heights, and `measureElement(null)` from `_onRemove` so disconnected nodes are unobserved. The element must carry `"data-index": item.index` (see `indexAttribute`) — without it the index cannot be resolved and measurement is skipped with a console warning. |
 | `scrollToIndex(i, opts?)` | `void` | Scroll to item at index. |
 | `scrollToOffset(px, opts?)` | `void` | Scroll to an absolute offset. |
 | `scrollBy(delta, opts?)` | `void` | Scroll by a relative pixel delta from the current position. |
 | `scrollToEnd(opts?)` | `void` | Scroll to the last item. |
-| `setOptions(opts)` | `void` | Update `count`, `estimateSize`, or other options reactively. |
+| `setOptions(opts)` | `void` | Update `count`, `estimateSize`, or other options reactively. Preserves `itemSizeCache` — a count-only change does not remeasure. Call `virtualizer.measure()` to force a full remeasure. |
 | `version(l)` | `number` | Raw change counter — subscribe to know when any item changes. |
 | `destroy()` | `void` | Detach resize observers. Call from `_onRemove`. |
 
@@ -14917,6 +14977,16 @@ The `virtualizer` property exposes the underlying `Virtualizer` instance with ad
 | `isAtEnd(threshold?)` | `true` if within `threshold` (default `1`) px of the end. |
 | `resizeItem(index, size)` | Programmatically override a single item's size. |
 | `measure()` | Clear all cached sizes and force full re-measurement. |
+
+## `createWindowVirtualizer(options)` <Badge text="Domphy adapter" />
+
+```ts
+import { createWindowVirtualizer } from "@domphy/virtual/domphy"
+
+const list = createWindowVirtualizer<HTMLDivElement>(options)
+```
+
+Same handle as `createVirtualizer` with `TScroll` fixed to `Window` and `observeWindowRect` / `observeWindowOffset` / `windowScroll` as defaults. No `as any` — wire `window` from `_onMount`: `_onMount: () => list.setScrollElement(window)`. Construction is SSR-safe.
 
 ---
 
@@ -14966,7 +15036,7 @@ interface VirtualizerOptions<TScrollElement, TItemElement> {
   laneAssignmentMode?: "estimate" | "measured"
 
   // Miscellaneous
-  enabled?: boolean                      // default true; false renders all items without virtualization
+  enabled?: boolean                      // default true; false pauses the virtualizer (getVirtualItems() is [], observers detach, getTotalSize() is 0)
   useScrollendEvent?: boolean            // use native scrollend event (default false)
   useAnimationFrameWithResizeObserver?: boolean  // rAF-gate ResizeObserver callbacks
   scrollEndThreshold?: number            // px from end to fire isAtEnd (default 1)
@@ -15117,6 +15187,7 @@ When every item has the same height, set `estimateSize: () => 40` and you are do
 2. After an item's DOM node mounts, you call `list.measureElement(node.domElement)` from its `_onMount`.
 3. A `ResizeObserver` watches that element. When the browser reports its rendered size, the virtualizer stores the real value and re-lays out.
 4. If the item later resizes (e.g. expanded/collapsed content), the `ResizeObserver` fires again automatically — no extra code needed.
+5. When the item unmounts (scrolled out of view), call `list.measureElement(null)` from `_onRemove` so the observer drops disconnected nodes.
 
 ## Basic variable-height list
 
@@ -15150,6 +15221,7 @@ const App = {
           // Call measureElement — actual height replaces the estimate
           _onMount: (node) =>
             list.measureElement(node.domElement as HTMLDivElement),
+          _onRemove: () => list.measureElement(null),
           style: {
             position: "absolute",
             top: 0,
@@ -15338,6 +15410,7 @@ const App = {
           div: items[item.index].title,
           _onMount: (node) =>
             list.measureElement(node.domElement as HTMLDivElement),
+          _onRemove: () => list.measureElement(null),
           style: {
             position: "absolute",
             top: 0,
@@ -15582,6 +15655,7 @@ const Row = (virtualRow: VirtualItem) => ({
   "data-index": virtualRow.index,
   _onMount: (node) =>
     rowVirtualizer.measureElement(node.domElement as HTMLElement),
+  _onRemove: () => rowVirtualizer.measureElement(null),
   _key: virtualRow.key,
   style: {
     position: "absolute",
@@ -15658,9 +15732,9 @@ const list = createVirtualizer<HTMLDivElement, HTMLDivElement>({
 | `getVirtualItems(l)` | Reactive list of visible `VirtualItem`s — read with the listener inside the items function. |
 | `getTotalSize(l)` | Reactive total scroll size, for the spacer height/width. |
 | `setScrollElement(el)` | Wire the scroll container DOM node; call from its `_onMount`. |
-| `measureElement(el)` | Dynamic measurement ref; call from each item's `_onMount` for variable sizes. The item element must carry `"data-index": item.index` — the virtualizer reads the index from that attribute and warns + skips measurement when it is missing. |
+| `measureElement(el)` | Dynamic measurement ref; call from each item's `_onMount` for variable sizes, and `measureElement(null)` from `_onRemove` so disconnected nodes are unobserved. The item element must carry `"data-index": item.index` — the virtualizer reads the index from that attribute and warns + skips measurement when it is missing. |
 | `scrollToIndex(i, opts?)` / `scrollToOffset(px, opts?)` | Imperative scrolling. |
-| `setOptions(opts)` | Update `count`/options, then re-measure. |
+| `setOptions(opts)` | Update `count`/options. Preserves measured sizes; call `virtualizer.measure()` to force a full remeasure. |
 | `virtualizer` | The underlying `Virtualizer` — the full virtual-core API including `scrollBy(delta, opts?)`, `scrollToEnd(opts?)`, `takeSnapshot()`, `getDistanceFromEnd()`, `isAtEnd(threshold?)`. |
 | `version(l)` | Raw reactive change counter. |
 | `destroy()` | Detach observers; call from `_onRemove`. |
@@ -15670,9 +15744,9 @@ const list = createVirtualizer<HTMLDivElement, HTMLDivElement>({
 1. Make the outer element a fixed-height scroll container and wire it: `_onMount: (node) => list.setScrollElement(node.domElement)`. Add `_onRemove: () => list.destroy()` to detach observers when the container is removed.
 2. Inside, render a relative spacer whose height is `list.getTotalSize(l)`.
 3. Map `list.getVirtualItems(l)` into absolutely-positioned children using each item's `start`/`size`, keyed by `item.key`.
-4. For variable-height rows, call `list.measureElement(node.domElement)` from each row's `_onMount` and drop the fixed `height`. Every measured row must render `"data-index": item.index` — the virtualizer resolves the item index from that attribute.
+4. For variable-height rows, call `list.measureElement(node.domElement)` from each row's `_onMount` and `list.measureElement(null)` from `_onRemove`, and drop the fixed `height`. Every measured row must render `"data-index": item.index` — the virtualizer resolves the item index from that attribute.
 
-Pass your own `observeElementRect` / `observeElementOffset` / `scrollToFn` to virtualize against the window instead of an element.
+For window scroll, use `createWindowVirtualizer` from `@domphy/virtual/domphy` instead of passing window observers into `createVirtualizer`.
 
 ### infinite-scroll.md
 
@@ -15818,6 +15892,7 @@ const PostItem = (post: Post, virtualItem: VirtualItem) => ({
   ],
   _onMount: (node) =>
     virtualizer.measureElement(node.domElement as HTMLElement),
+  _onRemove: () => virtualizer.measureElement(null),
   _key: virtualItem.key,
   "data-index": virtualItem.index,
   style: {
@@ -15991,6 +16066,7 @@ const App = {
             "data-index": item.index,
             _onMount: (node) =>
               list.measureElement(node.domElement as HTMLDivElement),
+            _onRemove: () => list.measureElement(null),
             style: {
               position: "absolute",
               top: 0,
@@ -16439,6 +16515,7 @@ const App = {
           _key: item.key,
           "data-index": item.index,
           _onMount: (node) => list.measureElement(node.domElement),
+          _onRemove: () => list.measureElement(null),
           style: {
             position: "absolute",
             top: 0,
@@ -16455,25 +16532,21 @@ const App = {
 }
 ```
 
-`measureElement` replaces the estimate with the actual rendered height and schedules a re-layout.
+`measureElement` replaces the estimate with the actual rendered height and schedules a re-layout. Call `measureElement(null)` from the item's `_onRemove` so the observer drops disconnected nodes when they scroll out of view.
 
 ## Window scroll
 
-Virtualize against the browser window instead of a container. Use `observeWindowRect` and `observeWindowOffset` options:
+Virtualize against the browser window instead of a container. Use `createWindowVirtualizer` — same handle as `createVirtualizer` with `TScroll` fixed to `Window` and the window observers / `windowScroll` defaults filled in (no `as any`):
 
 ```ts
-import { observeWindowRect, observeWindowOffset, windowScroll } from "@domphy/virtual"
-import { createVirtualizer } from "@domphy/virtual/domphy"
+import { createWindowVirtualizer } from "@domphy/virtual/domphy"
 
-const list = createVirtualizer({
+const list = createWindowVirtualizer<HTMLDivElement>({
   count: 5000,
   estimateSize: () => 50,
-  observeElementRect: observeWindowRect as any,
-  observeElementOffset: observeWindowOffset as any,
-  scrollToFn: windowScroll as any,
 })
 // Wire window as the scroll element from _onMount (getScrollElement is not an option in the Domphy adapter):
-// _onMount: () => list.setScrollElement(window as any)
+// _onMount: () => list.setScrollElement(window)
 
 const App = {
   div: {
@@ -16490,7 +16563,7 @@ const App = {
       })),
       style: { position: "relative", height: (l) => `${list.getTotalSize(l)}px` },
     },
-    _onMount: () => list.setScrollElement(window as any),
+    _onMount: () => list.setScrollElement(window),
     _onRemove: () => list.destroy(),
   },
 }
@@ -16663,54 +16736,36 @@ description: "Virtualize content that scrolls with the browser window rather tha
 
 # Window Virtualizer
 
-By default, `createVirtualizer` virtualizes items inside a fixed-height scrollable `div`. When your content should scroll with the browser window (the whole page scrolls), use the window-specific helpers instead.
+By default, `createVirtualizer` virtualizes items inside a fixed-height scrollable `div`. When your content should scroll with the browser window (the whole page scrolls), use `createWindowVirtualizer` — same handle contract with `TScroll` fixed to `Window` and the window observers / `windowScroll` defaults filled in. No `as any` casts.
 
 ## Setup
 
-Import the window observers and scroll function from `@domphy/virtual`:
-
 ```ts
-import {
-  observeWindowRect,
-  observeWindowOffset,
-  windowScroll,
-} from "@domphy/virtual"
-import { createVirtualizer } from "@domphy/virtual/domphy"
-```
+import { createWindowVirtualizer } from "@domphy/virtual/domphy"
 
-Pass them as options, then wire `window` as the scroll element from `_onMount`:
-
-```ts
-const list = createVirtualizer({
+const list = createWindowVirtualizer<HTMLDivElement>({
   count: rows.length,
   estimateSize: () => 50,
-  observeElementRect: observeWindowRect as any,
-  observeElementOffset: observeWindowOffset as any,
-  scrollToFn: windowScroll as any,
   overscan: 5,
 })
 
 // In the container element:
-_onMount: () => list.setScrollElement(window as any)
+_onMount: () => list.setScrollElement(window)
 ```
 
-The `as any` casts are needed because the `createVirtualizer` generic constrains `TScroll extends Element`, while `window` is a `Window`. The runtime behaviour is correct — the `Window` overloads in the virtualizer core handle all window-specific reads.
+The factory touches no DOM globals at construction, so it is SSR-safe; `window` is only passed once the tree mounts client-side.
 
 ## Full example
 
 ```ts
-import { observeWindowRect, observeWindowOffset, windowScroll } from "@domphy/virtual"
-import { createVirtualizer } from "@domphy/virtual/domphy"
+import { createWindowVirtualizer } from "@domphy/virtual/domphy"
 import { themeColor, themeSpacing } from "@domphy/theme"
 
 const rows = Array.from({ length: 10_000 }, (_, i) => `Row ${i + 1}`)
 
-const list = createVirtualizer({
+const list = createWindowVirtualizer<HTMLDivElement>({
   count: rows.length,
   estimateSize: () => 52,
-  observeElementRect: observeWindowRect as any,
-  observeElementOffset: observeWindowOffset as any,
-  scrollToFn: windowScroll as any,
   overscan: 5,
 })
 
@@ -16742,7 +16797,7 @@ const App = {
       },
     },
   ],
-  _onMount: () => list.setScrollElement(window as any),
+  _onMount: () => list.setScrollElement(window),
   _onRemove: () => list.destroy(),
 }
 ```
@@ -16764,13 +16819,10 @@ When the virtual list starts below the top of the page (e.g. after a fixed heade
 ```ts
 const HEADER_HEIGHT = 64
 
-const list = createVirtualizer({
+const list = createWindowVirtualizer<HTMLDivElement>({
   count: rows.length,
   estimateSize: () => 52,
   scrollMargin: HEADER_HEIGHT,  // items begin 64px from the document top
-  observeElementRect: observeWindowRect as any,
-  observeElementOffset: observeWindowOffset as any,
-  scrollToFn: windowScroll as any,
 })
 
 const App = {
@@ -16816,7 +16868,7 @@ const App = {
           },
         },
       ],
-      _onMount: () => list.setScrollElement(window as any),
+      _onMount: () => list.setScrollElement(window),
       _onRemove: () => list.destroy(),
     },
   ],
@@ -16828,12 +16880,9 @@ const App = {
 `measureElement` works identically with window scroll:
 
 ```ts
-const list = createVirtualizer({
+const list = createWindowVirtualizer<HTMLElement>({
   count: posts.length,
   estimateSize: () => 80,
-  observeElementRect: observeWindowRect as any,
-  observeElementOffset: observeWindowOffset as any,
-  scrollToFn: windowScroll as any,
 })
 
 // Attach measureElement to each item:
@@ -16843,6 +16892,7 @@ const PostItem = (item: VirtualItem) => ({
   article: PostContent(posts[item.index]),
   _onMount: (node) =>
     list.measureElement(node.domElement as HTMLElement),
+  _onRemove: () => list.measureElement(null),
   style: {
     position: "absolute",
     top: 0,
@@ -18945,7 +18995,7 @@ const SendButton = {
 }
 ```
 
-No extra debounce or lock needed — the form state handles it.
+No extra debounce or lock needed — the form state handles it. A second `handleSubmit()` while a previous submit is still in flight is ignored (`onSubmit` is not called again). Sequential re-submit after the previous run finishes still re-validates.
 
 ### testing.md
 
@@ -20568,9 +20618,7 @@ const App = {
 }
 ```
 
-`dragDrop` calls `dragAndDrop()` from `@formkit/drag-and-drop` under the hood and patches:
-- `_onMount(node)` — registers the container with animations plugin included
-- `_onRemove()` — tears down listeners automatically
+`dragDrop` registers the container via a per-node `behavior()` instance (`@domphy/core`): `attach` runs `dragAndDrop()` once per real DOM node (animations plugin included by default), later factory re-runs on a reused node route the new `state`/`config` into that same instance via `update()`, and `destroy` tears down listeners, disconnects FormKit's setup MutationObserver, and drops the parent from FormKit's `parents` registry. Do not wire FormKit from `_onMount`/`_onRemove` — those hooks fire only for generation 1 on a reused node.
 
 ### `state` argument
 
@@ -22992,15 +23040,17 @@ When `option` is a `State<ChartOption>`, the `chart()` patch re-renders the char
 ## Low-level utilities
 
 ```ts
-import { resolveDataset, applyTransforms } from "@domphy/chart"
+import { resolveDataset, applyTransforms, applyDatasetToSeries } from "@domphy/chart"
 import type { DatasetOption, DatasetRef } from "@domphy/chart"
 ```
 
-These are the internal functions the engine uses to process datasets before rendering. Useful for custom series or pre-processing data outside the chart.
+These are the functions the engine uses to process datasets before rendering. Useful for custom series or pre-processing data outside the chart.
 
-**`resolveDataset(datasets, ref)`** — resolves a `DatasetRef` (series `datasetIndex`/`datasetId`) to the corresponding raw dataset after applying its transforms.
+**`resolveDataset(dataset)`** — resolves one `DatasetOption` (array-of-arrays with optional header, object rows, or column-object source, plus inline `transform[]`) into a row array.
 
-**`applyTransforms(dataset, allDatasets)`** — runs the `transform` pipeline on a dataset, returning the derived rows as a 2D array.
+**`applyDatasetToSeries(series, dataset)`** — joins `option.dataset` onto series that have no own `data`, honoring `datasetIndex` / `datasetId` and `encode` (`x`/`y`/`value`/`itemName`). This is what `ChartEngine.setOption` runs before render.
+
+**`applyTransforms(source, transforms)`** — runs a `TransformOption[]` pipeline (filter / sort) on a row array.
 
 ```ts
 const datasets: DatasetOption[] = [
@@ -23224,6 +23274,10 @@ tooltip: {
 ```
 
 `"shadow"` draws a shaded band across the category. `"cross"` draws crosshair lines on both axes.
+
+### Overflow and `appendToBody`
+
+The `chart()` host is `overflow: visible`, so the default in-container tooltip can extend past the plot box. To also escape `overflow: hidden` on an *ancestor* of the host (a card, a scroll area), set `tooltip.appendToBody: true` — the tooltip mounts on `document.body` with `position: fixed`.
 
 ## Reactive updates
 
@@ -26320,7 +26374,7 @@ A floating menu anchored to the current text selection. Apply it to the same hos
 
 Positioning uses `@domphy/floating` against a *virtual element* wrapping the live selection rectangle: `getBoundingClientRect()` re-reads `getSelection().getRangeAt(0)` on every call, so scrolling and resizing reposition against the real current rect rather than a snapshot taken when the menu opened. The middleware chain is `inline()` (picks the right rect when a selection wraps across lines), `offset(8)`, `flip()` and `shift()`.
 
-Show/hide is wired to the editor's `selectionUpdate`, `update`, `focus` and `blur` events from inside the behavior — not from a lifecycle hook — so it survives host re-renders. The panel is inserted next to the app root, escaping the editor's overflow and stacking context, and it swallows `mousedown` so pressing a button never blurs the editor and collapses the selection you are formatting.
+Show/hide is wired to the editor's `selectionUpdate`, `update`, `focus` and `blur` events from inside the behavior — not from a lifecycle hook — so it survives host re-renders. Destroying the editor also tears the panel down. The panel is portaled into a document/root overlay (never a child of the contenteditable host, which `EditorView.render()` wipes), escaping the editor's overflow and stacking context, and it swallows `mousedown` so pressing a button never blurs the editor and collapses the selection you are formatting.
 
 ### `editorState(editor)`
 
@@ -26411,7 +26465,7 @@ Select a few words and a small menu appears above them. It is anchored to the se
 - **`inline()` runs first in the middleware chain.** A selection that wraps across two lines has a bounding box spanning both, and anchoring to its centre would park the menu in the middle of the paragraph. `inline()` picks the rect that actually matches where the selection starts. Then `offset(8)` lifts it off the text, `flip()` drops it below when there is no room above, and `shift()` keeps it inside the viewport.
 - **`shouldShow` gates visibility per selection change.** The default is "editable, with a non-empty selection"; this demo also excludes code blocks, where inline marks are meaningless. It runs on every `selectionUpdate`, so it can read anything off the editor.
 - **`mousedown` is swallowed on the panel.** Without it, pressing a button blurs the editor, the selection collapses, and the menu hides *before* the click handler runs its command — the button would appear dead. Preventing the default on `mousedown` keeps focus and selection in the editing surface.
-- **The panel is inserted next to the app root**, so it escapes the editor's overflow and stacking context, and it copies the nearest `[data-theme]` from the editor — floating content is a DOM sibling of the page, not of the editor, so it would otherwise resolve theme variables against the wrong scope.
+- **The panel is portaled into a document/root overlay**, never a child of the contenteditable host (`EditorView.render()` wipes that element's children and would not put the toolbar back). It escapes the editor's overflow and stacking context, and it copies the nearest `[data-theme]` from the editor — floating content is a DOM sibling of the page, not of the editor, so it would otherwise resolve theme variables against the wrong scope. Destroying the editor hides and removes the toolbar.
 - **All of the imperative wiring lives in a `behavior()`.** The event subscriptions, the `autoUpdate` cleanup, and the inserted panel node attach once per real DOM node; re-rendering the host routes fresh props into that same instance instead of leaving listeners bound to an orphaned closure. This is the pattern described in [reused-node lifecycle](/docs/core/lifecycle) and used by every `@domphy/ui` overlay.
 
 [← Back to @domphy/editor](/docs/editor/)
@@ -26708,7 +26762,8 @@ can be assigned there directly.
 
 Passing more than one color pins each as a fixed waypoint (e.g. an existing
 brand color that must land at a specific position), still connected by the
-same interpolation.
+same interpolation. Waypoints keep the caller-supplied order (not sorted by
+lightness) and each input hex appears unchanged on the ramp.
 
 ## What "optimized" means
 
@@ -28907,25 +28962,26 @@ type Highlight = (
 
 | Return value | What happens |
 | --- | --- |
-| Non-empty string | Used as the **inner HTML** of the `<code>` element. Markup is preserved verbatim. |
+| Non-empty string | Wrapped in `rawHtml()` as the content of the `<code>` element. `TextNode` then runs `sanitizeHTMLString` (strips `<script>`, `on*` handlers, `javascript:` URLs) — defense in depth, not a sanitizer for untrusted input. |
 | `DomphyElement` | Replaces the **entire block** — no `pre > code` wrapper is added around it. |
 | Falsy (`null`, `undefined`, empty string) | Falls back to plain escaped text. |
 
-## String return — inner HTML
+## String return — `rawHtml` + sanitize
 
-Most highlighters emit HTML strings. Return the string and `@domphy/press` wraps it in `rawHtml()` (core's explicit HTML opt-in) as the content of the `<code>` element:
+Most highlighters emit token markup as an HTML string. Return that string and `@domphy/press` wraps it in `rawHtml()` (core's explicit HTML opt-in). Do **not** interpolate raw `code` into an HTML string yourself — pass the source to a highlighter (Shiki, highlight.js, …) and return its output:
 
 ```ts
 import { parseMarkdown } from "@domphy/press"
 
 const { body } = parseMarkdown("```ts\nconst x = 1\n```", {
   highlight(code, language) {
-    return `<span class="hl-${language}">${code}</span>`
+    // Highlighter output only — never `...${code}...` as HTML.
+    return myHighlighter(code, language)
   },
 })
 
 // body[0] ->
-// { pre: [{ code: rawHtml('<span class="hl-ts">const x = 1\n</span>'), dataLanguage: "ts", class: "language-ts" }] }
+// { pre: [{ code: rawHtml('…token markup…'), dataLanguage: "ts", class: "language-ts" }] }
 ```
 
 The `dataLanguage` and `class` properties on the `<code>` element are always emitted by the walker when a language identifier is present, regardless of whether a highlighter is supplied.
@@ -29319,7 +29375,7 @@ This page documents every markdown syntax construct and the exact Domphy element
 
 ## Headings
 
-ATX headings (`#` through `######`) become `h1` through `h6` with an `id` attribute derived from the heading text:
+ATX headings (`#` through `######`) become `h1` through `h6` with an `id` attribute derived from the heading text. The walker also appends a `header-anchor` child (`#`) so in-page permalinks work; the link is `aria-hidden` (the TOC is the screen-reader path) and `tabIndex: -1` so it is not a second tab stop.
 
 ```markdown
 # Level 1
@@ -29330,13 +29386,31 @@ ATX headings (`#` through `######`) become `h1` through `h6` with an `id` attrib
 ```ts
 // body
 [
-  { h1: ["Level 1"], id: "level-1" },
-  { h2: ["Level 2"], id: "level-2" },
-  { h3: ["Level 3"], id: "level-3" },
+  {
+    h1: [
+      "Level 1",
+      { a: "#", href: "#level-1", class: "header-anchor", ariaHidden: "true", tabIndex: -1 },
+    ],
+    id: "level-1",
+  },
+  {
+    h2: [
+      "Level 2",
+      { a: "#", href: "#level-2", class: "header-anchor", ariaHidden: "true", tabIndex: -1 },
+    ],
+    id: "level-2",
+  },
+  {
+    h3: [
+      "Level 3",
+      { a: "#", href: "#level-3", class: "header-anchor", ariaHidden: "true", tabIndex: -1 },
+    ],
+    id: "level-3",
+  },
 ]
 ```
 
-The `id` is the slug produced by `defaultSlugify` (or your `anchorSlugify` option). Duplicate heading text gets a numeric suffix: first occurrence keeps the base slug, subsequent ones get `-1`, `-2`, and so on.
+The `id` is the slug produced by `defaultSlugify` (or your `anchorSlugify` option). Duplicate heading text gets a numeric suffix: first occurrence keeps the base slug, subsequent ones get `-1`, `-2`, and so on. The header-anchor `href` always matches that `id`.
 
 ```markdown
 # Intro
@@ -29346,8 +29420,20 @@ The `id` is the slug produced by `defaultSlugify` (or your `anchorSlugify` optio
 
 ```ts
 [
-  { h1: ["Intro"], id: "intro" },
-  { h1: ["Intro"], id: "intro-1" },
+  {
+    h1: [
+      "Intro",
+      { a: "#", href: "#intro", class: "header-anchor", ariaHidden: "true", tabIndex: -1 },
+    ],
+    id: "intro",
+  },
+  {
+    h1: [
+      "Intro",
+      { a: "#", href: "#intro-1", class: "header-anchor", ariaHidden: "true", tabIndex: -1 },
+    ],
+    id: "intro-1",
+  },
 ]
 ```
 
@@ -29402,6 +29488,28 @@ Emphasis elements can be nested: `**_bold italic_**` becomes `{ strong: [{ em: [
 
 All attributes emitted by the mdast walker are copied as element properties. Absolute `http://`/`https://` links automatically get `target: "_blank"` and `rel: "noopener noreferrer"`; relative and anchor (`#...`) links do not. Auto-linked bare URLs (enabled by default via GFM) produce the same shape.
 
+### Reference-style links
+
+`[text][label]`, collapsed `[text][]`, and shortcut `[text]` resolve against a `[label]: url "title"` definition (first definition wins; identifiers match case-insensitively). The walker emits the **same** `a` shape as an inline link. The definition node itself is not rendered.
+
+```markdown
+[Domphy][home]
+
+[home]: https://domphy.dev "Homepage"
+```
+
+```ts
+{
+  a: ["Domphy"],
+  href: "https://domphy.dev",
+  title: "Homepage",
+  target: "_blank",
+  rel: "noopener noreferrer",
+}
+```
+
+Script-capable destinations (`javascript:`, `vbscript:`, `data:text/html`) are rewritten to `"#"` — the same `sanitizeUrl` used for inline links.
+
 ## Images
 
 ```markdown
@@ -29409,10 +29517,14 @@ All attributes emitted by the mdast walker are copied as element properties. Abs
 ```
 
 ```ts
-{ img: null, src: "/img/diagram.png", alt: "A diagram", title: "Figure 1" }
+{ img: null, src: "/img/diagram.png", alt: "A diagram", title: "Figure 1", loading: "lazy" }
 ```
 
 The `img` property is `null` because images are void elements. The `alt` text is extracted from the image's inline token children (markup stripped to plain text).
+
+### Reference-style images
+
+`![alt][label]` resolves the same way as a link reference and emits the same `img` shape as an inline image (including `loading: "lazy"`). The definition is not rendered.
 
 ## Unordered lists
 
@@ -29603,7 +29715,7 @@ Cells without an alignment marker have no `style` property.
 
 ## Line breaks
 
-A regular newline inside a paragraph becomes a **soft break** — rendered as a single space:
+A regular newline inside a paragraph becomes a **soft break**. remark keeps it as a literal `\n` inside one text node; the walker replaces that `\n` with a space, so the paragraph is a single string:
 
 ```markdown
 line one
@@ -29611,7 +29723,7 @@ line two
 ```
 
 ```ts
-{ p: ["line one", " ", "line two"] }
+{ p: ["line one line two"] }
 ```
 
 Two trailing spaces followed by a newline produce a **hard break** — a void `br` element:
@@ -29656,6 +29768,65 @@ Enabled by default (GFM task lists, via `remark-gfm`) — no option needed. List
 ```
 
 The `checked` property is present only on checked items; it is absent (not `false`) on unchecked ones.
+
+## Footnotes
+
+Enabled by default (GFM footnotes, via `remark-gfm`). A `[^label]` reference becomes a numbered superscript link; matching `[^label]:` definitions are collected (not rendered in place) and emitted once at the end of `body` as a `section.footnotes`. Numbering follows first-reference order. A second reference to the same note reuses the number and gets `id` suffix `-2`. Unused definitions are dropped.
+
+```markdown
+See note.[^1]
+
+[^1]: First footnote with **bold**.
+```
+
+```ts
+[
+  {
+    p: [
+      "See note.",
+      {
+        sup: [{
+          a: "1",
+          href: "#user-content-fn-1",
+          id: "user-content-fnref-1",
+          dataFootnoteRef: true,
+          "aria-describedby": "footnote-label",
+        }],
+      },
+    ],
+  },
+  {
+    section: [
+      { h2: "Footnotes", id: "footnote-label", class: "sr-only" },
+      {
+        ol: [{
+          li: [{
+            p: [
+              "First footnote with ",
+              { strong: ["bold"] },
+              ".",
+              " ",
+              {
+                a: "↩",
+                href: "#user-content-fnref-1",
+                dataFootnoteBackref: true,
+                ariaLabel: "Back to reference 1",
+                class: "data-footnote-backref",
+              },
+            ],
+          }],
+          id: "user-content-fn-1",
+          _key: 0,
+        }],
+      },
+    ],
+    class: "footnotes",
+    dataFootnotes: true,
+  },
+]
+```
+
+Ids use the mdast-util-to-hast / GitHub GFM `user-content-` prefix so the fragment contract matches GFM HTML. A later reference to the same note adds a second backref (`↩` + `<sup>2</sup>`, `ariaLabel: "Back to reference 1-2"`).
 
 ## Math
 
@@ -29709,9 +29880,13 @@ The raw LaTeX is stored verbatim. KaTeX (or MathJax) processes `.math` elements 
 
 ## Raw HTML
 
+A raw HTML block or inline fragment in the source **is** markup, so the walker wraps it in `rawHtml()` from `@domphy/core` (the explicit HTML opt-in). A bare string child is always text — putting `"<figure>…"` in the body array would render as escaped characters, not a `<figure>`.
+
+`rawHtml()` still runs `sanitizeHTMLString`: `<script>` elements, `on*` handlers, and `javascript:` / `vbscript:` / `data:text/html` URLs are stripped. That is defense in depth, not a sanitizer for untrusted input.
+
 ### Block HTML
 
-A block of raw HTML is passed through as a bare string in the body array — no `div` wrapper is added. When Domphy renders a body array, a raw HTML string is emitted verbatim (see `@domphy/core`'s HTML-string handling):
+A block of raw HTML is a single `rawHtml(...)` child in the body array — no `div` wrapper is added:
 
 ```markdown
 <figure>
@@ -29721,26 +29896,30 @@ A block of raw HTML is passed through as a bare string in the body array — no 
 ```
 
 ```ts
+import { rawHtml } from "@domphy/core"
+
 [
-  "<figure>\n  <img src=\"/chart.png\" alt=\"Chart\">\n  <figcaption>Monthly visits</figcaption>\n</figure>",
+  rawHtml("<figure>\n  <img src=\"/chart.png\" alt=\"Chart\">\n  <figcaption>Monthly visits</figcaption>\n</figure>"),
 ]
 ```
 
 ### Inline HTML
 
-Raw HTML inline is a per-fragment operation: each open or close tag fragment is passed through as a bare string (no `span` wrapper). The walker does not reconstruct the nested element tree from raw inline HTML:
+Raw HTML inline is a per-fragment operation: each open or close tag fragment is its own `rawHtml(...)` (no `span` wrapper). The walker does not reconstruct the nested element tree from raw inline HTML:
 
 ```markdown
 Text with <strong>bold</strong> inline.
 ```
 
 ```ts
+import { rawHtml } from "@domphy/core"
+
 {
   p: [
     "Text with ",
-    "<strong>",
+    rawHtml("<strong>"),
     "bold",
-    "</strong>",
+    rawHtml("</strong>"),
     " inline.",
   ],
 }
@@ -30952,6 +31131,12 @@ interface Diagnostic {
 | `unknown-tag` | warning | an element whose first key isn't a valid HTML/SVG tag (typo) |
 | `duplicate-key` | error | two siblings sharing the same `_key` value — the reconciler can't tell them apart |
 | `unstable-key` | warning | a dynamic list whose `_key`s are the array index (`0, 1, 2, …`) — index keys shift on reorder/insert |
+| `invalid-nesting` | error | HTML content-model violations the browser re-parents (breaking SSR/hydration): flow content in `<p>`, `a`/`button` inside `a`/`button`, `li`/`dt`/`dd`/`tr`/`td`/`th`/`option`/table-section tags with the wrong parent, non-`li` element child of `ul`/`ol`. Declared direct parent-child pairs only — reactive content, `rawHtml`, and SVG subtrees are exempt |
+| `click-without-keyboard` | warning | an `onClick` on a non-interactive element (not a/button/input/select/textarea/summary/label, no interactive role, no `tabIndex`) without a keyboard handler — hidden elements exempt |
+| `missing-required-attribute` | error (warning for `a`) | `<img>` without `alt` (`aria-label`/`aria-labelledby`/`role: "presentation"\|"none"` accepted), `<iframe>` without `title`; `<a>` with `onClick` but no `href`/`role` is a warning |
+| `unused-doctor-disable` | info | a `_doctorDisable` entry that suppresses nothing on its element — the named rule fired no diagnostic there, `_doctorDisable: true` consumed nothing, or the id matches no known rule (typo detection) |
+
+The doctor implements **22** built-in rules. See [Rules Reference](/docs/doctor/rules) for the full contract of each.
 
 By default the doctor invokes reactive content functions with a no-op listener to inspect their output (this is how the dynamic-list rules are found). Pass `{ runReactive: false }` if your reactive functions have side effects.
 
@@ -31816,6 +32001,16 @@ createI18n<TLocale extends string, TMessages>(options): I18nInstance
 | `getLocale` | `() → TLocale` | Get current locale (non-reactive) |
 | `detectLocale` | `(opts?) → TLocale` | Detect locale from URL path prefix or localStorage |
 
+## runWithI18n
+
+```ts
+runWithI18n<T>(fn: () => T): T
+```
+
+Runs `fn` in a fresh request-locale scope. On the client this is a no-op (`globalThis` is the single locale). On the server, wrap each request so `initI18n` / `t` / `getLocale` stay isolated — Node HTTP already provides a per-request async context, so the wrapper is mainly for tests and frameworks that do not.
+
+`initI18n` / `setLocale` on the server do not change the shared store's language; `t()`, `getLocale()`, `currentLocale()`, `exists()`, and `locale.get()` read the request locale when one is bound.
+
 ## detectLocale options
 
 ```ts
@@ -31931,37 +32126,27 @@ async function createI18nLazy(initialLocale: Locale) {
 }
 ```
 
-For truly on-demand loading (only active locale), fetch before init and defer others:
+For a single locale at startup, load it first and pass it at `createI18n`. `locales` is snapshotted when `createI18n` runs — assigning more keys onto the object afterwards does **not** register translations with i18next, so a later `setLocale("fr")` would have nothing to switch to.
 
 ```ts
 async function createI18nOnDemand(initialLocale: Locale) {
-  // Only load the initial locale upfront
   const initialMessages = await import(`./locales/${initialLocale}.json`)
 
-  // Load remaining locales lazily on setLocale
-  const localeModules: Record<Locale, Record<string, unknown>> = {
-    [initialLocale]: initialMessages.default,
-  } as Record<Locale, Record<string, unknown>>
-
-  const loaders: Record<Locale, () => Promise<Record<string, unknown>>> = {
-    en: () => import("./locales/en.json").then(m => m.default),
-    fr: () => import("./locales/fr.json").then(m => m.default),
-    vi: () => import("./locales/vi.json").then(m => m.default),
-  }
-
-  // Pre-load remaining locales in background
-  for (const locale of (["en", "fr", "vi"] as Locale[]).filter(l => l !== initialLocale)) {
-    loaders[locale]().then(messages => { localeModules[locale] = messages })
-  }
-
-  return createI18n<Locale, typeof initialMessages.default>({
+  const i18n = createI18n<Locale, typeof initialMessages.default>({
     globalKey: "__myapp_i18n__",
     namespace: "app",
-    locales: localeModules as Record<Locale, typeof initialMessages.default>,
+    locales: {
+      [initialLocale]: initialMessages.default,
+    } as Record<Locale, typeof initialMessages.default>,
     defaultLocale: initialLocale,
   })
+
+  await i18n.initI18n(initialLocale)
+  return i18n
 }
 ```
+
+To support switching, either load every locale up front (`createI18nLazy` above) or create a **new** instance after fetching the next locale (give it a distinct `globalKey` — a reuse of the same key keeps the first store and ignores the new `locales`).
 
 ## HTTP backend
 
@@ -32025,11 +32210,14 @@ async function switchLocale(next: "en" | "fr" | "vi") {
 
 ## SSR considerations
 
-On the server, use static imports — fetch is unavailable or requires a polyfill:
+On the server, use static imports — fetch is unavailable or requires a polyfill. `initI18n` / `setLocale` do **not** change the shared `globalThis` store's language: the request locale lives in `AsyncLocalStorage`, so two concurrent requests can call `initI18n("en")` and `initI18n("vi")` without clobbering each other. `t()`, `getLocale()`, `currentLocale()`, `exists()`, and `locale.get()` read the request locale when one is bound.
+
+Node HTTP already gives each request its own async context. Elsewhere (tests, some frameworks) wrap the request with `runWithI18n()`:
 
 ```ts
 import en from "./locales/en.json"
 import fr from "./locales/fr.json"
+import { createI18n, runWithI18n } from "@domphy/i18n"
 
 const i18n = createI18n<"en" | "fr", typeof en>({
   globalKey: "__app_ssr__",
@@ -32038,9 +32226,13 @@ const i18n = createI18n<"en" | "fr", typeof en>({
   defaultLocale: "en",
 })
 
-// Initialize with the locale from Accept-Language or cookie
-await i18n.initI18n(userLocale)
+await runWithI18n(async () => {
+  await i18n.initI18n(userLocale)
+  return renderToString(App)
+})
 ```
+
+On the client, `globalThis[globalKey]` still dedups the instance across Vite chunks.
 
 ### formatting.md
 
@@ -32300,7 +32492,7 @@ await initI18n(detected)
 
 ## globalThis dedup
 
-Registers the instance under `globalKey` on `globalThis` — ensures a single instance across Vite code-split chunks and SSR + client hydration.
+Registers the instance under `globalKey` on `globalThis` — ensures a single instance across Vite code-split chunks. On the server the **locale** is request-scoped (`AsyncLocalStorage` + `runWithI18n()`), so two concurrent `initI18n` calls do not clobber each other.
 
 See the [Setup guide](./setup.md) for full options reference.
 
@@ -32801,7 +32993,9 @@ await initI18n(detectLocale({ pathSegment: true, storageKey: "locale" }))
 
 ## globalThis dedup
 
-`createI18n` registers the i18next instance on `globalThis[globalKey]`. This ensures a single instance across Vite code-split chunks and SSR + client hydration — multiple calls with the same `globalKey` return the same instance.
+`createI18n` registers the i18next instance on `globalThis[globalKey]`. This ensures a single instance across Vite code-split chunks — multiple calls with the same `globalKey` return the same instance.
+
+On the server, resources stay on that shared store, but the **locale** is request-scoped (`AsyncLocalStorage`). Two concurrent `initI18n("en")` and `initI18n("vi")` calls do not clobber each other. Use `runWithI18n()` to wrap a request when the runtime does not already isolate async context (Node HTTP does). See [Lazy Loading & Backend — SSR](./backend#ssr-considerations).
 
 ## i18next plugin integration
 
@@ -34361,8 +34555,8 @@ themeConfig: {
 
 ## How it works
 
-1. **Build time** — `buildSite()` calls `buildSearchIndex(docs)` which tokenizes all page titles, body text, and TOC heading text into an inverted index stored in `/assets/search-index.json`.
-2. **Runtime** — The search widget lazy-loads the index on first focus, runs tokenized prefix queries client-side, and displays results with section links.
+1. **Build time** — `buildSite()` calls `buildSearchIndex(docs)` which tokenizes all page titles, body text, and TOC heading text into an inverted index stored in `/search-index.json`.
+2. **Runtime** — The search widget loads the index on the first search intent — focusing the input or the first keystroke (so the Ctrl/Cmd+K path is covered) — not on page load, so a visitor who never searches never downloads it. A query typed while the index is still in flight is replayed as soon as it arrives. Queries are tokenized prefix matches run client-side, and results are shown with section links.
 3. **Highlighting** — Results show the matched page title, section heading, and route. The current query terms are highlighted in the result list.
 
 ## Programmatic API
@@ -35747,6 +35941,7 @@ import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
+  themeDensity,
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
@@ -35780,16 +35975,16 @@ function badge(
         top: 0,
         right: 0,
         transform: "translate(50%,-50%)",
-        paddingInline: themeSpacing(1.5),
+        paddingInline: (l) => themeSpacing(themeDensity(l) * 1.5),
         minWidth: themeSpacing(5),
-        height: themeSpacing(5),
+        height: (l) => themeSpacing(themeDensity(l) * 5),
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
         fontSize: (l) => themeSize(l, "decrease-2"),
         fontWeight: "600",
         lineHeight: 1,
-        borderRadius: themeSpacing(999),
+        borderRadius: (l) => themeSpacing(themeDensity(l) * 999),
         backgroundColor: (l) => themeColor(l, "shift-9", color.get(l)),
         color: (l) => themeColor(l, "shift-0", color.get(l)),
         // Hairline ring so the pill pops on same-hue surfaces.
@@ -35898,7 +36093,7 @@ function breadcrumb(
       "& > *": {
         display: "inline-flex",
         alignItems: "center",
-        color: (listener) => themeColor(listener, "muted", color.get(listener)),
+        color: (listener) => themeColor(listener, "text", color.get(listener)),
       },
       "& > *:not(:last-child)::after": {
         content: `"${separator}"`,
@@ -35960,7 +36155,7 @@ function breadcrumbEllipsis(
       border: "none",
       background: "none",
       cursor: "pointer",
-      color: (listener) => themeColor(listener, "muted", color.get(listener)),
+      color: (listener) => themeColor(listener, "text", color.get(listener)),
       borderRadius: themeSpacing(1),
       transition:
         "color 140ms ease, background-color 140ms ease, box-shadow 140ms ease",
@@ -36035,6 +36230,8 @@ function button(
   const fontSize = BUTTON_SIZE_FONT[props.size ?? "medium"];
 
   return {
+    // Native `type` on the host still wins (mergePartial: native over patch).
+    type: "button",
     _onInsert: (node) => {
       if (node.tagName !== "button") {
         console.warn(`"button" primitive patch must use button tag`);
@@ -36169,6 +36366,8 @@ function buttonGhost(
   const fontSize = BUTTON_SIZE_FONT[props.size ?? "medium"];
 
   return {
+    // Native `type` on the host still wins (mergePartial: native over patch).
+    type: "button",
     _onInsert: (node) => {
       if (node.tagName !== "button") {
         console.warn(`"buttonGhost" primitive patch must use button tag`);
@@ -36268,6 +36467,8 @@ function buttonSwitch(
   const accentColor = toState(props.accentColor ?? "primary", "accentColor");
 
   return {
+    // Native `type` on the host still wins (mergePartial: native over patch).
+    type: "button",
     _onSchedule: (node) => {
       if (node.tagName !== "button") {
         console.warn(`"buttonSwitch" primitive patch must use button tag`);
@@ -36439,6 +36640,7 @@ import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
+  themeDensity,
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
@@ -36471,9 +36673,9 @@ function code(
       color: (listener) => themeColor(listener, "text", color.get(listener)),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
-      height: themeSpacing(6),
-      paddingInline: themeSpacing(1.5),
-      borderRadius: themeSpacing(1),
+      height: (listener) => themeSpacing(themeDensity(listener) * 6),
+      paddingInline: (listener) => themeSpacing(themeDensity(listener) * 1.5),
+      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
     },
   };
 }
@@ -36485,9 +36687,13 @@ export { code };
 
 ```ts
 import {
+  type BehaviorInstance,
+  behavior,
   type DomphyElement,
+  type ElementNode,
   merge,
   type PartialElement,
+  type State,
   type StyleObject,
   toState,
   type ValueOrState,
@@ -36501,7 +36707,7 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { elevation } from "../utils/elevation.js";
-import { createFloating } from "../utils/floating.js";
+import { createFloating, floatingPanelId } from "../utils/floating.js";
 import { focusRing } from "../utils/focusRing.js";
 import { tag } from "./tag.js";
 
@@ -36586,52 +36792,98 @@ function combobox(props: {
     backgroundColor: (listener: any) => themeColor(listener, "inherit", color),
   };
 
-  let inputElement: DomphyElement;
-  if (props.input) {
-    const inputPartial: PartialElement = {
-      onFocus: (_e, node) => show(node),
-      style: inputStyle,
-      _key: "combobox-input",
-    };
-    merge(props.input, inputPartial);
-    inputElement = props.input;
-  } else {
-    inputElement = {
+  type InnerProps = {
+    options: Array<{ label: string; value: string }>;
+    multiple: boolean;
+    color: ThemeColor;
+    state: State<
+      | Array<number | string | null | undefined>
+      | number
+      | string
+      | null
+      | undefined
+    >;
+    input?: DomphyElement;
+  };
+
+  type ComboboxInner = BehaviorInstance<InnerProps> & {
+    query: State<string>;
+  };
+
+  const readQuery = (listener?: { elementNode?: ElementNode }) =>
+    listener?.elementNode?.getBehavior<ComboboxInner>("comboboxInner")?.query;
+
+  const findComboboxAnchor = (from: ElementNode): ElementNode => {
+    let current: ElementNode | null = from;
+    while (current) {
+      if (current._behaviorInstances.has("floating:combobox")) return current;
+      current = current.parent;
+    }
+    return from;
+  };
+
+  const inputAria: PartialElement = {
+    role: "combobox",
+    ariaHaspopup: "listbox",
+    ariaExpanded: (listener) => openState.get(listener),
+    ariaControls: (listener) =>
+      listener?.elementNode
+        ? floatingPanelId(
+            "combobox",
+            findComboboxAnchor(listener.elementNode),
+          )
+        : undefined,
+  };
+
+  const buildInput = (custom?: DomphyElement): DomphyElement => {
+    if (custom) {
+      merge(custom, {
+        onFocus: (_e: Event, node: ElementNode) => show(node),
+        style: inputStyle,
+        _key: "combobox-input",
+        ...inputAria,
+      });
+      return custom;
+    }
+    return {
       input: null,
       // Accessible name for the filter field (critical for axe label rule).
-      // Native text input (not role=combobox) — full combobox ARIA needs a
-      // stable aria-controls target id for the floating list; label is enough
-      // for WCAG name/role/value of the filter field.
       ariaLabel: "Filter options",
-      onFocus: (_e, node) => show(node),
-      value: (listener: any) => {
-        state.get(listener);
-        return "";
+      onFocus: (_e: Event, node: ElementNode) => show(node),
+      value: (listener: { elementNode?: ElementNode }) =>
+        readQuery(listener)?.get(listener as never) ?? "",
+      onInput: (event: Event, node: ElementNode) => {
+        node
+          .getBehavior<ComboboxInner>("comboboxInner")
+          ?.query.set((event.target as HTMLInputElement).value);
       },
       style: inputStyle,
       _key: "combobox-input",
+      ...inputAria,
     };
-  }
+  };
 
-  const wrap: DomphyElement<"div"> = {
+  const buildWrap = (inner: InnerProps): DomphyElement<"div"> => ({
     div: (listener) => {
-      const val = state.get(listener);
+      const val = inner.state.get(listener);
       const vals = Array.isArray(val) ? val : [val];
-      const opts = options.filter((opt) => vals.includes(opt.value));
+      const opts = inner.options.filter((opt) => vals.includes(opt.value));
       const items: DomphyElement[] = opts.map((opt) => {
         return {
           span: opt.label,
-          $: [tag({ color, removable: true })],
+          $: [tag({ color: inner.color, removable: true })],
           _key: opt.value,
           _onRemove: (_node) => {
-            const cur = state.get();
+            const cur = inner.state.get();
             const curVals = Array.isArray(cur) ? cur : [cur];
             const filter = curVals.filter((v) => v !== opt.value);
-            multiple ? state.set(filter as any) : state.set(filter[0] as any);
+            inner.multiple
+              ? inner.state.set(filter as any)
+              : inner.state.set(filter[0] as any);
           },
         };
       });
-      items.push(inputElement);
+      items.push(buildInput(inner.input));
       return items;
     },
     style: {
@@ -36639,6 +36891,20 @@ function combobox(props: {
       flexWrap: "wrap",
       gap: themeSpacing(1),
     },
+  });
+
+  const attachInner = (
+    node: ElementNode,
+    inner: InnerProps,
+  ): ComboboxInner => {
+    const query = toState("");
+    let wrapNode = node.children.insert(buildWrap(inner)) as ElementNode;
+    return {
+      query,
+      update(next) {
+        wrapNode.patch(buildWrap(next));
+      },
+    };
   };
 
   const partial: PartialElement = {
@@ -36647,7 +36913,13 @@ function combobox(props: {
         console.warn(`"combobox" primitive patch must use div tag`);
       }
     },
-    _onInit: (node) => node.children.insert(wrap),
+    ...behavior<InnerProps>("comboboxInner", attachInner, {
+      options,
+      multiple,
+      color,
+      state,
+      input: props.input,
+    }),
     style: {
       minWidth: themeSpacing(32),
       outlineOffset: "-1px",
@@ -36857,7 +37129,7 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { elevation } from "../utils/elevation.js";
-import { createFloating } from "../utils/floating.js";
+import { createFloating, floatingPanelId } from "../utils/floating.js";
 import { focusRing } from "../utils/focusRing.js";
 
 /** A single date selection, or a `[start, end]` tuple in range mode. */
@@ -36930,12 +37202,17 @@ function localeWeekStart(locale: string): number {
 
 type DatePickerStates = {
   selection: State<DatePickerValue>;
+  // When the caller passed `value`, each generation's toState(Date) is a
+  // new object whose current value IS the caller's Date — copying the
+  // previous internal selection onto it would overwrite that Date.
+  selectionIsCallerOwned: boolean;
   viewYear: State<number>;
   viewMonth: State<number>;
   focused: State<Date>;
   hovered: State<Date | null>;
   hour: State<number>;
   minute: State<number>;
+  open: State<boolean>;
   onChange?: (value: DatePickerValue) => void;
 };
 
@@ -36966,13 +37243,16 @@ function attachDatePicker(
   subscribe(current);
   return {
     update(next) {
-      carryForward(next.selection, current.selection);
+      if (!next.selectionIsCallerOwned) {
+        carryForward(next.selection, current.selection);
+      }
       carryForward(next.viewYear, current.viewYear);
       carryForward(next.viewMonth, current.viewMonth);
       carryForward(next.focused, current.focused);
       carryForward(next.hovered, current.hovered);
       carryForward(next.hour, current.hour);
       carryForward(next.minute, current.minute);
+      carryForward(next.open, current.open);
       if (
         next.selection !== current.selection ||
         next.onChange !== current.onChange
@@ -37188,9 +37468,10 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
 
   // --- floating popover ------------------------------------------------------
   const calendar = buildCalendar();
+  const openState = toState(false);
   const { show, hide, anchorPartial } = createFloating({
     kind: "datePicker",
-    open: false,
+    open: openState,
     placement: placeState,
     content: calendar,
   });
@@ -37201,6 +37482,11 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
     readonly: true,
     value: (listener) => formatDisplay(selection.get(listener)),
     ariaHaspopup: "dialog",
+    ariaExpanded: (listener) => openState.get(listener),
+    ariaControls: (listener) =>
+      listener?.elementNode
+        ? floatingPanelId("datePicker", listener.elementNode)
+        : undefined,
     ariaLabel: "Choose date",
     style: { cursor: "pointer" },
     onClick: (_e, node) => {
@@ -37218,12 +37504,14 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
     },
     ...behavior<DatePickerStates>("datePicker", attachDatePicker, {
       selection,
+      selectionIsCallerOwned: props.value !== undefined,
       viewYear,
       viewMonth,
       focused,
       hovered,
       hour,
       minute,
+      open: openState,
       onChange,
     }),
   };
@@ -38132,7 +38420,15 @@ export { divider };
 ### drawer
 
 ```ts
-import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
+import {
+  type BehaviorInstance,
+  behavior,
+  type ElementNode,
+  type PartialElement,
+  type State,
+  toState,
+  type ValueOrState,
+} from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
@@ -38171,6 +38467,146 @@ function resolvePhysical(
   return placement;
 }
 
+type DrawerProps = {
+  state: State<boolean>;
+  placement: Placement;
+  size?: string;
+};
+
+type DrawerInstance = BehaviorInstance<DrawerProps> & {
+  requestClose: () => void;
+};
+
+function attachDrawer(
+  node: ElementNode,
+  initialProps: DrawerProps,
+): DrawerInstance {
+  let { state, placement, size } = initialProps;
+
+  const dlg = node.domElement as HTMLDialogElement;
+  dlg.setAttribute("aria-modal", "true");
+
+  const onCancel = (e: Event) => {
+    e.preventDefault();
+    state.set(false);
+  };
+  dlg.addEventListener("cancel", onCancel);
+
+  const resolve = (nextPlacement: Placement, nextSize?: string) => {
+    const isLogical = nextPlacement === "start" || nextPlacement === "end";
+    const isRTL =
+      isLogical &&
+      (dlg.ownerDocument.documentElement.dir === "rtl" ||
+        dlg.ownerDocument.dir === "rtl");
+    const physical = resolvePhysical(nextPlacement, isRTL);
+    const drawerSize =
+      nextSize ??
+      (isVertical(physical) ? themeSpacing(80) : themeSpacing(64));
+    dlg.style.margin = marginMap[physical];
+    dlg.style.width = isVertical(physical) ? drawerSize : "100dvw";
+    dlg.style.height = isVertical(physical) ? "100dvh" : drawerSize;
+    return physical;
+  };
+
+  let physical = resolve(placement, size);
+
+  let closing = false;
+  let scrollLocked = false;
+  let closeTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const finishClose = () => {
+    closeTimer = null;
+    if (!closing) return;
+    closing = false;
+    // Guard for environments with HTMLDialogElement but no close()
+    // implementation (e.g. jsdom in tests).
+    if (typeof dlg.close === "function") dlg.close();
+    // Same fix as dialog.ts: the closed state was only ever represented
+    // by an off-screen `transform`, never visibility/pointer-events — a
+    // closed drawer stayed fully reachable by Tab and exposed to the
+    // accessibility tree (a CSS transform, like opacity, does neither),
+    // and a consumer's own `style: { display: ... }` overrides the UA
+    // stylesheet's `dialog:not([open])` rule anyway. Set INLINE so it
+    // always wins.
+    dlg.style.visibility = "hidden";
+    dlg.style.pointerEvents = "none";
+    if (scrollLocked) {
+      unlockScroll();
+      scrollLocked = false;
+    }
+  };
+
+  const onTransitionEnd = (e: Event) => {
+    if (e.target !== dlg) return;
+    if ((e as TransitionEvent).propertyName !== "transform") return;
+    finishClose();
+  };
+  dlg.addEventListener("transitionend", onTransitionEnd);
+
+  const update = (val: boolean) => {
+    if (val) {
+      // Cancel any in-flight close: a pending fallback timer or a leftover
+      // `closing` flag would otherwise finalize-close the just-opened drawer
+      // when the open slide's own transitionend (or the 350ms timer) fires.
+      closing = false;
+      if (closeTimer) {
+        clearTimeout(closeTimer);
+        closeTimer = null;
+      }
+      dlg.style.visibility = "visible";
+      dlg.style.pointerEvents = "auto";
+      // Guard for environments with HTMLDialogElement but no showModal()
+      // implementation (e.g. jsdom in tests). Also guard against re-entering
+      // on an already-open dialog — showModal() throws InvalidStateError in
+      // real browsers when the dialog is already open.
+      if (typeof dlg.showModal === "function" && !dlg.open) dlg.showModal();
+      if (!scrollLocked) {
+        lockScroll();
+        scrollLocked = true;
+      }
+      requestAnimationFrame(() => {
+        dlg.style.transform = "translate(0, 0)";
+      });
+    } else {
+      closing = true;
+      dlg.style.transform = translateOut[physical];
+      closeTimer = setTimeout(finishClose, 350);
+    }
+  };
+  update(state.get());
+  let release = state.addListener(update);
+
+  return {
+    requestClose: () => state.set(false),
+    update(props) {
+      if (props.state !== state) {
+        release();
+        state = props.state;
+        release = state.addListener(update);
+      }
+      if (props.placement !== placement || props.size !== size) {
+        placement = props.placement;
+        size = props.size;
+        physical = resolve(placement, size);
+        if (!state.get()) dlg.style.transform = translateOut[physical];
+      }
+    },
+    destroy() {
+      if (closeTimer) {
+        clearTimeout(closeTimer);
+        closeTimer = null;
+      }
+      release();
+      dlg.removeEventListener("cancel", onCancel);
+      dlg.removeEventListener("transitionend", onTransitionEnd);
+      if (scrollLocked) {
+        unlockScroll();
+        scrollLocked = false;
+      }
+    },
+  };
+}
+
 /**
  * Edge-anchored modal drawer driven by an `open` State. Slides in/out from a
  * chosen edge via a 250 ms transform transition, calls `showModal()`/`close()`,
@@ -38204,7 +38640,6 @@ function drawer(
 ): PartialElement {
   const { color = "neutral", open = false, placement = "end", size } = props;
   const state = toState(open);
-  const isLogical = placement === "start" || placement === "end";
 
   // For static rendering / SSR assume LTR as fallback; corrected at mount time.
   const physicalFallback = resolvePhysical(placement, false);
@@ -38219,104 +38654,16 @@ function drawer(
         console.warn(`"drawer" patch must use dialog tag`);
       }
     },
+    ...behavior<DrawerProps>("drawer", attachDrawer, { state, placement, size }),
     onClick: (e: MouseEvent, node) => {
       if (e.target !== node.domElement) return;
-      state.set(false);
-    },
-    _onMount: (node) => {
-      const dlg = node.domElement as HTMLDialogElement;
-      dlg.setAttribute("aria-modal", "true");
-
-      const onCancel = (e: Event) => {
-        e.preventDefault();
-        state.set(false);
-      };
-      dlg.addEventListener("cancel", onCancel);
-
-      // Resolve logical placements at mount time using document direction.
-      const isRTL =
-        isLogical &&
-        (dlg.ownerDocument.documentElement.dir === "rtl" ||
-          dlg.ownerDocument.dir === "rtl");
-      const physical = resolvePhysical(placement, isRTL);
-
-      // Correct initial styles for logical placements whose physical direction
-      // may differ from the LTR fallback used in the static style block.
-      if (isLogical) {
-        dlg.style.transform = translateOut[physical];
-        dlg.style.margin = marginMap[physical];
-        dlg.style.width = isVertical(physical) ? drawerSize : "100dvw";
-        dlg.style.height = isVertical(physical) ? "100dvh" : drawerSize;
-      }
-
-      let closing = false;
-      let scrollLocked = false;
-      let closeTimer: ReturnType<typeof setTimeout> | null = null;
-      const finishClose = () => {
-        closeTimer = null;
-        if (!closing) return;
-        closing = false;
-        // Guard for environments with HTMLDialogElement but no close()
-        // implementation (e.g. jsdom in tests).
-        if (typeof dlg.close === "function") dlg.close();
-        // Same fix as dialog.ts: the closed state was only ever represented
-        // by an off-screen `transform`, never visibility/pointer-events — a
-        // closed drawer stayed fully reachable by Tab and exposed to the
-        // accessibility tree (a CSS transform, like opacity, does neither),
-        // and a consumer's own `style: { display: ... }` overrides the UA
-        // stylesheet's `dialog:not([open])` rule anyway. Set INLINE so it
-        // always wins.
-        dlg.style.visibility = "hidden";
-        dlg.style.pointerEvents = "none";
-        if (scrollLocked) {
-          unlockScroll();
-          scrollLocked = false;
-        }
-      };
-
-      const onTransitionEnd = (e: Event) => {
-        if (e.target !== dlg) return;
-        if ((e as TransitionEvent).propertyName !== "transform") return;
-        finishClose();
-      };
-      dlg.addEventListener("transitionend", onTransitionEnd);
-
-      const update = (val: boolean) => {
-        if (val) {
-          closing = false;
-          dlg.style.visibility = "visible";
-          dlg.style.pointerEvents = "auto";
-          // Guard for environments with HTMLDialogElement but no showModal()
-          // implementation (e.g. jsdom in tests).
-          if (typeof dlg.showModal === "function") dlg.showModal();
-          if (!scrollLocked) {
-            lockScroll();
-            scrollLocked = true;
-          }
-          requestAnimationFrame(() => {
-            dlg.style.transform = "translate(0, 0)";
-          });
-        } else {
-          closing = true;
-          dlg.style.transform = translateOut[physical];
-          closeTimer = setTimeout(finishClose, 350);
-        }
-      };
-      update(state.get());
-      const release = state.addListener(update);
-      node.addHook("Remove", () => {
-        if (closeTimer) {
-          clearTimeout(closeTimer);
-          closeTimer = null;
-        }
-        release();
-        dlg.removeEventListener("cancel", onCancel);
-        dlg.removeEventListener("transitionend", onTransitionEnd);
-        if (scrollLocked) {
-          unlockScroll();
-          scrollLocked = false;
-        }
-      });
+      const r = node.domElement!.getBoundingClientRect();
+      const inside =
+        e.clientX >= r.left &&
+        e.clientX <= r.right &&
+        e.clientY >= r.top &&
+        e.clientY <= r.bottom;
+      if (!inside) node.getBehavior<DrawerInstance>("drawer")?.requestClose();
     },
     style: {
       transform: translateOut[physicalFallback],
@@ -38442,7 +38789,23 @@ export { empty };
 ### errorBoundary
 
 ```ts
-import type { DomphyElement, PartialElement } from "@domphy/core";
+import type { DomphyElement, ElementNode, PartialElement } from "@domphy/core";
+
+const ORIGINAL_CHILDREN = "errorBoundaryOriginal";
+
+function restoreOriginalChildren(node: ElementNode): void {
+  const original = node.getMetadata(ORIGINAL_CHILDREN);
+  if (typeof original === "function") {
+    node._childrenRelease?.();
+    node._setupFunctionChildren(original);
+    return;
+  }
+  if (original != null) {
+    node.children.update(Array.isArray(original) ? original : [original]);
+    return;
+  }
+  node.children.update([]);
+}
 
 /**
  * Catches errors thrown inside reactive child expressions and renders a
@@ -38451,6 +38814,10 @@ import type { DomphyElement, PartialElement } from "@domphy/core";
  * Only errors in *reactive* children (functions returning element arrays) are
  * caught. Errors during static construction propagate normally — those are
  * programming errors, not runtime data errors.
+ *
+ * `reset()` restores the original children (including a reactive children
+ * function) so the next evaluation runs again — it does not leave the host
+ * empty.
  *
  * @hostTag any
  * @param props.fallback - Fallback element or factory `(error, reset) => element`. Defaults to a plain error message div.
@@ -38466,8 +38833,16 @@ function errorBoundary(
   } = {},
 ): PartialElement {
   return {
-    _onError: (node, error, reset) => {
+    _onSchedule: (node, element) => {
+      if (node.getMetadata(ORIGINAL_CHILDREN) !== undefined) return;
+      node.setMetadata(
+        ORIGINAL_CHILDREN,
+        (element as Record<string, unknown>)[node.tagName],
+      );
+    },
+    _onError: (node, error) => {
       props.onError?.(error);
+      const reset = () => restoreOriginalChildren(node);
       const fallbackEl =
         typeof props.fallback === "function"
           ? props.fallback(error, reset)
@@ -38516,6 +38891,8 @@ function fab(
   const dim = themeSpacing(SIZE_MAP[props.size ?? "medium"]);
 
   return {
+    // Native `type` on the host still wins (mergePartial: native over patch).
+    type: "button",
     _onInsert: (node) => {
       if (node.tagName !== "button") {
         console.warn('"fab" patch must use button tag');
@@ -39104,7 +39481,7 @@ import { focusRing } from "../utils/focusRing.js";
 /**
  * Styles a native color picker swatch with themed padding, rounded swatch and
  * disabled styling. Apply to an `<input>` element of type `color` (the patch
- * sets `type: "color"`).
+ * default is `type: "color"`; a native `type` wins).
  *
  * @hostTag input
  * @param props.color - Optional theme color tone used for the disabled state (`ValueOrState<ThemeColor>`). Defaults to `"neutral"`.
@@ -39119,12 +39496,13 @@ function inputColor(
 ): PartialElement {
   const color = toState(props.color ?? "neutral", "color");
   return {
+    // Declared like any other attribute — the native element still wins over
+    // this patch default if the host declares its own `type`.
     type: "color",
-    _onSchedule: (node, element) => {
+    _onInsert: (node) => {
       if (node.tagName !== "input") {
         console.warn(`"inputColor" primitive patch must use input tag`);
       }
-      (element as any).type = "color";
     },
     style: {
       appearance: "none",
@@ -39182,7 +39560,7 @@ type InputDateTimeMode = "date" | "time" | "week" | "month" | "datetime-local";
 /**
  * Styles a native date/time input with themed border, padding, hover, focus,
  * invalid and disabled states. The `mode` selects the input `type`. Apply to
- * an `<input>` element (the patch sets `type` to the chosen `mode`).
+ * an `<input>` element (the patch default `type` is the chosen `mode`; a native `type` wins).
  *
  * @hostTag input
  * @param props.mode - Input mode selecting the host `type`: `"date" | "time" | "week" | "month" | "datetime-local"`. Defaults to `"datetime-local"`.
@@ -39202,12 +39580,13 @@ function inputDateTime(
   const accentColor = toState(props.accentColor ?? "primary", "accentColor");
 
   return {
+    // Declared like any other attribute — the native element still wins over
+    // this patch default if the host declares its own `type`.
     type: mode,
-    _onSchedule: (node, element) => {
+    _onInsert: (node) => {
       if (node.tagName !== "input") {
         console.warn(`"inputDateTime" primitive patch must use input tag`);
       }
-      (element as any).type = mode;
     },
     style: {
       fontFamily: "inherit",
@@ -39271,7 +39650,7 @@ import { focusRing } from "../utils/focusRing.js";
 /**
  * Styles a native file input with a themed upload button, border, hover, focus
  * and disabled states. Apply to an `<input>` element of type `file` (the patch
- * sets `type: "file"`).
+ * default is `type: "file"`; a native `type` wins).
  *
  * @hostTag input
  * @param props.color - Optional theme color tone for text/border and the upload button (`ValueOrState<ThemeColor>`). Defaults to `"neutral"`.
@@ -39288,12 +39667,13 @@ function inputFile(
   const accentColor = toState(props.accentColor ?? "primary", "accentColor");
 
   return {
+    // Declared like any other attribute — the native element still wins over
+    // this patch default if the host declares its own `type`.
     type: "file",
-    _onSchedule: (node, element) => {
+    _onInsert: (node) => {
       if (node.tagName !== "input") {
         console.warn(`"inputFile" primitive patch must use input tag`);
       }
-      (element as any).type = "file";
     },
     style: {
       display: "inline-flex",
@@ -39371,7 +39751,7 @@ import { focusRing } from "../utils/focusRing.js";
 /**
  * Styles a native number input with themed border, padding, visible spin
  * buttons, hover, focus and disabled states. Apply to an `<input>` element of
- * type `number` (the patch sets `type: "number"`).
+ * type `number` (the patch default is `type: "number"`; a native `type` wins).
  *
  * @hostTag input
  * @param props.color - Optional theme color tone for text/border (`ValueOrState<ThemeColor>`). Defaults to `"neutral"`.
@@ -39388,12 +39768,13 @@ function inputNumber(
   const accentColor = toState(props.accentColor ?? "primary", "accentColor");
 
   return {
+    // Declared like any other attribute — the native element still wins over
+    // this patch default if the host declares its own `type`.
     type: "number",
-    _onSchedule: (node, element) => {
+    _onInsert: (node) => {
       if (node.tagName !== "input") {
         console.warn(`"inputNumber" primitive patch must use input tag`);
       }
-      (element as any).type = "number";
     },
     style: {
       fontFamily: "inherit",
@@ -39501,7 +39882,11 @@ function inputOTP(): PartialElement {
         const found = inputs.indexOf(e.target as HTMLInputElement);
         const startIdx = found === -1 ? 0 : found;
         [...text].forEach((char, i) => {
-          if (inputs[startIdx + i]) inputs[startIdx + i].value = char;
+          const field = inputs[startIdx + i];
+          if (!field) return;
+          field.value = char;
+          field.dispatchEvent(new Event("input", { bubbles: true }));
+          field.dispatchEvent(new Event("change", { bubbles: true }));
         });
         const lastFilled = Math.min(
           startIdx + text.length - 1,
@@ -39529,8 +39914,18 @@ export { inputOTP };
 ### inputPassword
 
 ```ts
-import type { DomphyElement, PartialElement, StyleObject } from "@domphy/core";
-import { rawHtml, toState, type ValueOrState } from "@domphy/core";
+import type {
+  DomphyElement,
+  Listener,
+  PartialElement,
+  StyleObject,
+} from "@domphy/core";
+import {
+  isState,
+  rawHtml,
+  toState,
+  type ValueOrState,
+} from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
@@ -39562,25 +39957,71 @@ const EYE_OFF_SVG =
   `<path d="M3 3l18 18"/>` +
   `</svg>`;
 
+const HOST_FIELD_KEYS = [
+  "name",
+  "value",
+  "onInput",
+  "disabled",
+  "required",
+] as const;
+
+type HostFieldKey = (typeof HOST_FIELD_KEYS)[number];
+
+type HostFields = {
+  name?: string;
+  value?: unknown;
+  onInput?: (event: Event) => void;
+  disabled?: unknown;
+  required?: boolean;
+};
+
+function bindReadable<T>(
+  value: T | ValueOrState<T> | ((listener: Listener) => T) | undefined,
+): T | ((listener: Listener) => T) | undefined {
+  if (value == null) return undefined;
+  if (typeof value === "function") return value as (listener: Listener) => T;
+  if (isState(value)) {
+    return (listener) => (value as { get: (l?: Listener) => T }).get(listener);
+  }
+  return value as T;
+}
+
 /**
  * Password input wrapper: a styled `<div>` that inserts an `<input type="password">`
  * and a show/hide toggle button. The outer div carries the focus-ring outline via
- * `:focus-within`. Apply to an empty `<div>`.
+ * `:focus-within`. Apply to an empty `<div>`. Host `value`/`name`/`onInput`/
+ * `disabled`/`required` are forwarded onto the real input so the field
+ * participates in FormData.
  *
  * @hostTag div
  * @param props.color - Base color tone for border/background/text. Defaults to `"neutral"`.
  * @param props.accentColor - Accent outline color on focus-within. Defaults to `"primary"`.
- * @example { div: null, $: [inputPassword()] }
+ * @param props.value - Forwarded onto the inner input. Optional.
+ * @param props.name - Forwarded onto the inner input (FormData key). Optional.
+ * @param props.onInput - Forwarded onto the inner input. Optional.
+ * @param props.disabled - Forwarded onto the inner input. Optional.
+ * @param props.required - Forwarded onto the inner input. Optional.
+ * @param props.autocomplete - Native autocomplete token. Defaults to `"current-password"`.
+ * @param props.ariaLabel - Accessible name for the inner input. Defaults to `"Password"`.
+ * @example { div: null, name: "password", $: [inputPassword()] }
  */
 function inputPassword(
   props: {
     color?: ValueOrState<ThemeColor>;
     accentColor?: ValueOrState<ThemeColor>;
+    value?: ValueOrState<string>;
+    name?: string;
+    onInput?: (event: Event) => void;
+    disabled?: ValueOrState<boolean>;
+    required?: boolean;
+    autocomplete?: string;
+    ariaLabel?: string;
   } = {},
 ): PartialElement {
   const colorState = toState(props.color ?? "neutral", "color");
   const accentState = toState(props.accentColor ?? "primary", "accentColor");
   const visibleState = toState(false);
+  const hostFields: HostFields = {};
 
   return {
     _onInsert: (node) => {
@@ -39588,16 +40029,42 @@ function inputPassword(
         console.warn('"inputPassword" patch must use div tag');
       }
     },
+    // Lift form fields off the host before merge so they land on the real
+    // <input> (a div is not form-associated; FormData would omit them).
+    _onSchedule: (_node, element) => {
+      const host = element as PartialElement & HostFields;
+      for (const key of HOST_FIELD_KEYS) {
+        if (host[key] !== undefined) {
+          hostFields[key] = host[key] as never;
+          delete (host as Record<HostFieldKey, unknown>)[key];
+        }
+      }
+    },
     // Build the input/toggle as real child elements (not imperative DOM
     // mutation in _onMount) so generateHTML()/SSR emits the actual markup.
     _onInit: (node) => {
+      const name = props.name ?? hostFields.name;
+      const value = bindReadable<string>(
+        (props.value ?? hostFields.value) as ValueOrState<string> | undefined,
+      );
+      const onInput = props.onInput ?? hostFields.onInput;
+      const disabled = bindReadable<boolean>(
+        (props.disabled ?? hostFields.disabled) as
+          | ValueOrState<boolean>
+          | undefined,
+      );
+      const required = props.required ?? hostFields.required;
+
       const field: DomphyElement<"input"> = {
         input: null,
         type: (l) => (visibleState.get(l) ? "text" : "password"),
-        // Default accessible name; consumers can override via a wrapping label
-        // or by replacing the field through a custom composition.
-        ariaLabel: "Password",
-        autocomplete: "current-password",
+        ariaLabel: props.ariaLabel ?? "Password",
+        autocomplete: props.autocomplete ?? "current-password",
+        ...(name != null ? { name } : {}),
+        ...(value != null ? { value } : {}),
+        ...(onInput != null ? { onInput } : {}),
+        ...(disabled != null ? { disabled } : {}),
+        ...(required != null ? { required } : {}),
         style: {
           flex: 1,
           minWidth: 0,
@@ -39864,7 +40331,7 @@ import { focusRing } from "../utils/focusRing.js";
 /**
  * Styles a search input with themed border, padding, placeholder color, native
  * search decorations, hover, focus and disabled states. Apply to an `<input>`
- * element of type `search` (the patch sets `type: "search"`).
+ * element of type `search` (the patch default is `type: "search"`; a native `type` wins).
  *
  * @hostTag input
  * @param props.color - Optional theme color tone for text/border/placeholder (`ValueOrState<ThemeColor>`). Defaults to `"neutral"`.
@@ -39881,12 +40348,13 @@ function inputSearch(
   const accentColor = toState(props.accentColor ?? "primary", "accentColor");
 
   return {
+    // Declared like any other attribute — the native element still wins over
+    // this patch default if the host declares its own `type`.
     type: "search",
-    _onSchedule: (node, element) => {
+    _onInsert: (node) => {
       if (node.tagName !== "input") {
         console.warn(`"inputSearch" primitive patch must use input tag`);
       }
-      (element as any).type = "search";
     },
     style: {
       fontFamily: "inherit",
@@ -40144,6 +40612,7 @@ import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
+  themeDensity,
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
@@ -40173,9 +40642,9 @@ function keyboard(
       color: (listener) => themeColor(listener, "text", color.get(listener)),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
-      paddingBlock: themeSpacing(0.5),
-      paddingInline: themeSpacing(1.5),
-      borderRadius: themeSpacing(1),
+      paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 0.5),
+      paddingInline: (listener) => themeSpacing(themeDensity(listener) * 1.5),
+      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
       outline: (listener) =>
         `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
     },
@@ -40281,6 +40750,16 @@ function link(
         console.warn(`"link" primitive patch must use a tag`);
       }
     },
+    // `<a disabled>` is not a native navigation block — stop click/Enter.
+    onClick: (event, node) => {
+      const el = node.domElement;
+      if (
+        el?.hasAttribute("disabled") ||
+        el?.getAttribute("aria-disabled") === "true"
+      ) {
+        event.preventDefault();
+      }
+    },
     style: {
       fontSize: (listener) => themeSize(listener, "inherit"),
       backgroundColor: (listener) => themeColor(listener),
@@ -40308,6 +40787,7 @@ function link(
       "&[disabled]": {
         opacity: 0.7,
         cursor: "not-allowed",
+        pointerEvents: "none",
         color: (listener) => themeColor(listener, "muted", "neutral"),
       },
     },
@@ -40543,7 +41023,8 @@ import { focusRing } from "../utils/focusRing.js";
  * @param props.color - Surface color tone. Optional `ThemeColor`, defaults to `"neutral"`.
  * @example { ul: [...], $: [list()] }
  */
-function list(_props: { color?: ThemeColor } = {}): PartialElement {
+function list(props: { color?: ThemeColor } = {}): PartialElement {
+  const color = props.color ?? "neutral";
   return {
     style: {
       listStyle: "none",
@@ -40551,6 +41032,8 @@ function list(_props: { color?: ThemeColor } = {}): PartialElement {
       padding: 0,
       display: "flex",
       flexDirection: "column",
+      backgroundColor: (listener) => themeColor(listener, "inherit", color),
+      color: (listener) => themeColor(listener, "text", color),
     },
   };
 }
@@ -40648,6 +41131,7 @@ import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
+  themeDensity,
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
@@ -40681,9 +41165,9 @@ function mark(
         themeColor(listener, "text", accentColor.get(listener)),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", accentColor.get(listener)),
-      height: themeSpacing(6),
-      borderRadius: themeSpacing(1),
-      paddingInline: themeSpacing(1.5),
+      height: (listener) => themeSpacing(themeDensity(listener) * 6),
+      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
+      paddingInline: (listener) => themeSpacing(themeDensity(listener) * 1.5),
     },
   };
 }
@@ -40695,9 +41179,13 @@ export { mark };
 
 ```ts
 import {
+  type BehaviorInstance,
+  behavior,
   type DomphyElement,
+  type ElementNode,
   type Listener,
   type PartialElement,
+  type State,
   toState,
   type ValueOrState,
 } from "@domphy/core";
@@ -40755,6 +41243,131 @@ function menu(
     accentColor = "primary",
   } = props;
   const activeKey = toState(props.activeKey ?? null);
+  const activeKeyIsCallerOwned = props.activeKey !== undefined;
+
+  type MenuInner = {
+    items: MenuItem[];
+    activeKey: State<number | string | null>;
+    activeKeyIsCallerOwned: boolean;
+    selectable: boolean;
+    color: ThemeColor;
+    accentColor: ThemeColor;
+  };
+
+  const buildItems = (
+    node: ElementNode,
+    inner: MenuInner,
+  ): DomphyElement<"button">[] => {
+    const id = node.nodeId;
+    return inner.items.map((item, index) => {
+      const key = item.key ?? index;
+      return {
+        button:
+          typeof item.label === "string"
+            ? [{ span: item.label } as DomphyElement<"span">]
+            : [item.label],
+        _key: key,
+        type: "button",
+        id: `menuitem${id}${key}`,
+        role: "menuitem",
+        ...(inner.selectable
+          ? {
+              ariaCurrent: (l: Listener) =>
+                inner.activeKey.get(l) === key || undefined,
+            }
+          : {}),
+        onClick: () => {
+          if (inner.selectable) inner.activeKey.set(key);
+          item.onClick?.();
+        },
+        onKeyDown: (e: Event) => {
+          const k = (e as KeyboardEvent).key;
+          if (k === "Enter" || k === " ") {
+            e.preventDefault();
+            (e.target as HTMLElement).click();
+            return;
+          }
+          if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(k)) return;
+          e.preventDefault();
+          const keys = inner.items.map((it, i) => it.key ?? i);
+          const idx = keys.indexOf(key);
+          let next = idx;
+          if (k === "ArrowDown") next = (idx + 1) % keys.length;
+          else if (k === "ArrowUp")
+            next = (idx - 1 + keys.length) % keys.length;
+          else if (k === "Home") next = 0;
+          else if (k === "End") next = keys.length - 1;
+          (
+            document.getElementById(
+              `menuitem${id}${keys[next]}`,
+            ) as HTMLElement
+          )?.focus();
+        },
+        style: {
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          gap: themeSpacing(2),
+          width: "100%",
+          fontSize: (l: Listener) => themeSize(l, "inherit"),
+          height: (l: Listener) => themeSpacing(6 + themeDensity(l) * 2),
+          paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
+          border: "none",
+          outline: "none",
+          // Menu panel is a light (shift-0) surface: "text" resolves to a
+          // dark-on-light reading tone in both light and dark themes.
+          color: (l: Listener) => themeColor(l, "text", inner.color),
+          backgroundColor: (l: Listener) =>
+            themeColor(l, "inherit", inner.color),
+          transition:
+            "background-color 140ms ease, box-shadow 140ms ease, color 140ms ease",
+          "&:hover:not([disabled]):not([aria-current=true])": {
+            backgroundColor: (l: Listener) =>
+              themeColor(l, "hover", inner.color),
+          },
+          "&[aria-current=true]": {
+            backgroundColor: (l: Listener) =>
+              themeColor(l, "shift-3", inner.accentColor),
+            color: (l: Listener) =>
+              themeColor(l, "shift-13", inner.accentColor),
+          },
+          "&:focus-visible": {
+            boxShadow: (l: Listener) => focusRing(l, inner.accentColor),
+          },
+        },
+      } as DomphyElement<"button">;
+    });
+  };
+
+  const attachMenu = (
+    _node: ElementNode,
+    initial: MenuInner,
+  ): BehaviorInstance<MenuInner> => {
+    let current = initial;
+    return {
+      update(next) {
+        if (
+          next.activeKey !== current.activeKey &&
+          !next.activeKeyIsCallerOwned
+        ) {
+          next.activeKey.set(current.activeKey.get());
+        }
+        current = next;
+        // Empty items = the caller renders its own rows; leave children alone.
+        if (current.items.length === 0) return;
+        _node.children.update(buildItems(_node, current));
+      },
+    };
+  };
+
+  const inner: MenuInner = {
+    items,
+    activeKey,
+    activeKeyIsCallerOwned,
+    selectable,
+    color,
+    accentColor,
+  };
 
   return {
     role: "menu",
@@ -40762,87 +41375,12 @@ function menu(
     _onSchedule: (node, element) => {
       // Empty items = the caller renders its own rows; leave children alone.
       if (items.length === 0) return;
-      const id = node.nodeId;
-
-      const buttons: DomphyElement<"button">[] = items.map((item, index) => {
-        const key = item.key ?? index;
-
-        return {
-          button:
-            typeof item.label === "string"
-              ? [{ span: item.label } as DomphyElement<"span">]
-              : [item.label],
-          _key: key,
-          type: "button",
-          id: `menuitem${id}${key}`,
-          role: "menuitem",
-          ...(selectable
-            ? {
-                ariaCurrent: (l: Listener) =>
-                  activeKey.get(l) === key || undefined,
-              }
-            : {}),
-          onClick: () => {
-            if (selectable) activeKey.set(key);
-            item.onClick?.();
-          },
-          onKeyDown: (e: Event) => {
-            const k = (e as KeyboardEvent).key;
-            if (k === "Enter" || k === " ") {
-              e.preventDefault();
-              (e.target as HTMLElement).click();
-              return;
-            }
-            if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(k)) return;
-            e.preventDefault();
-            const keys = items.map((it, i) => it.key ?? i);
-            const idx = keys.indexOf(key);
-            let next = idx;
-            if (k === "ArrowDown") next = (idx + 1) % keys.length;
-            else if (k === "ArrowUp")
-              next = (idx - 1 + keys.length) % keys.length;
-            else if (k === "Home") next = 0;
-            else if (k === "End") next = keys.length - 1;
-            (
-              document.getElementById(
-                `menuitem${id}${keys[next]}`,
-              ) as HTMLElement
-            )?.focus();
-          },
-          style: {
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: themeSpacing(2),
-            width: "100%",
-            fontSize: (l: Listener) => themeSize(l, "inherit"),
-            height: (l: Listener) => themeSpacing(6 + themeDensity(l) * 2),
-            paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
-            border: "none",
-            outline: "none",
-            // Menu panel is a light (shift-0) surface: "text" resolves to a
-            // dark-on-light reading tone in both light and dark themes.
-            color: (l: Listener) => themeColor(l, "text", color),
-            backgroundColor: (l: Listener) => themeColor(l, "inherit", color),
-            transition:
-              "background-color 140ms ease, box-shadow 140ms ease, color 140ms ease",
-            "&:hover:not([disabled]):not([aria-current=true])": {
-              backgroundColor: (l: Listener) => themeColor(l, "hover", color),
-            },
-            "&[aria-current=true]": {
-              backgroundColor: (l: Listener) =>
-                themeColor(l, "shift-3", accentColor),
-              color: (l: Listener) => themeColor(l, "shift-13", accentColor),
-            },
-            "&:focus-visible": {
-              boxShadow: (l: Listener) => focusRing(l, accentColor),
-            },
-          },
-        } as DomphyElement<"button">;
-      });
-
-      (element as any)[node.tagName] = buttons;
+      (element as Record<string, unknown>)[node.tagName] = buildItems(
+        node,
+        inner,
+      );
     },
+    ...behavior<MenuInner>("menu", attachMenu, inner),
     style: {
       display: "flex",
       flexDirection: "column",
@@ -40867,7 +41405,12 @@ export type { MenuItem };
 ### motion
 
 ```ts
-import type { PartialElement, State } from "@domphy/core";
+import type {
+  BehaviorInstance,
+  PartialElement,
+  State,
+} from "@domphy/core";
+import { behavior } from "@domphy/core";
 
 /**
  * One keyframe. Shorthands `x`/`y` (px), `scale`, `rotate` (deg) compose into a
@@ -40899,7 +41442,13 @@ export interface MotionProps {
   };
 }
 
-const isState = (value: unknown): value is State<MotionKeyframe> =>
+type MotionInstance = BehaviorInstance<MotionProps> & {
+  play: (props: MotionProps, mode: "enter" | "update") => void;
+  getExit: () => MotionKeyframe | undefined;
+  getTransition: () => MotionProps["transition"];
+};
+
+const isMotionState = (value: unknown): value is State<MotionKeyframe> =>
   !!value &&
   typeof (value as State<MotionKeyframe>).get === "function" &&
   (value as { _isState?: boolean })._isState === true;
@@ -40931,11 +41480,27 @@ const toStyles = (frame: MotionKeyframe): Keyframe => {
   return out as Keyframe;
 };
 
+function toOptions(
+  transition: MotionProps["transition"] = {},
+): KeyframeAnimationOptions {
+  return {
+    duration: transition.duration ?? 300,
+    delay: transition.delay ?? 0,
+    easing: transition.easing ?? "ease",
+    iterations: transition.iterations ?? 1,
+    fill: "both",
+  };
+}
+
 /**
  * Animation primitive driven by the Web Animations API. Runs an enter
  * animation on mount (`initial` -> `animate`), re-animates whenever `animate`
  * is a `State` that changes, and plays the `exit` keyframe before removal.
  * Has no host-tag restriction; apply to any element you want to animate.
+ *
+ * Later generations route a fresh `animate`/`exit`/`transition` into the same
+ * `behavior()` instance via `update()`, so a reused node is not stuck on
+ * generation-1 keyframes.
  *
  * @param props - Optional configuration (see {@link MotionProps}).
  * @param props.initial - Starting keyframe applied before the enter animation.
@@ -40957,62 +41522,83 @@ function prefersReducedMotion(): boolean {
   }
 }
 
-function motion(props: MotionProps = {}): PartialElement {
-  const { initial, animate, exit, transition = {} } = props;
-  const options: KeyframeAnimationOptions = {
-    duration: transition.duration ?? 300,
-    delay: transition.delay ?? 0,
-    easing: transition.easing ?? "ease",
-    iterations: transition.iterations ?? 1,
-    fill: "both",
+function attachMotion(
+  node: { domElement?: HTMLElement | null },
+  initial: MotionProps,
+): MotionInstance {
+  const el = node.domElement as HTMLElement | null;
+  let current = initial;
+  let release: (() => void) | undefined;
+
+  const bindAnimate = (animate: MotionProps["animate"]) => {
+    release?.();
+    release = undefined;
+    if (!el || !isMotionState(animate)) return;
+    release = animate.addListener((next: MotionKeyframe) => {
+      if (prefersReducedMotion()) {
+        Object.assign(el.style, toStyles(next));
+      } else if (typeof el.animate === "function") {
+        el.animate([toStyles(next)], toOptions(current.transition));
+      }
+    });
   };
 
+  const play = (props: MotionProps, mode: "enter" | "update") => {
+    if (!el) return;
+    const target = isMotionState(props.animate)
+      ? props.animate.get()
+      : props.animate;
+    if (prefersReducedMotion()) {
+      if (target) Object.assign(el.style, toStyles(target));
+      else if (mode === "enter" && props.initial) {
+        Object.assign(el.style, toStyles(props.initial));
+      }
+      return;
+    }
+    if (typeof el.animate !== "function") return;
+    if (target) {
+      const frames =
+        mode === "enter" && props.initial
+          ? [toStyles(props.initial), toStyles(target)]
+          : [toStyles(target)];
+      el.animate(frames, toOptions(props.transition));
+    } else if (mode === "enter" && props.initial) {
+      Object.assign(el.style, toStyles(props.initial));
+    }
+  };
+
+  play(initial, "enter");
+  bindAnimate(initial.animate);
+
   return {
-    _onMount: (node) => {
-      const el = node.domElement as HTMLElement | null;
-      if (!el || typeof el.animate !== "function") return;
-      const target = isState(animate) ? animate.get() : animate;
-      // WCAG 2.3.3 / Front-End Checklist: respect prefers-reduced-motion.
-      if (prefersReducedMotion()) {
-        if (target) Object.assign(el.style, toStyles(target));
-        else if (initial) Object.assign(el.style, toStyles(initial));
-        if (isState(animate)) {
-          const release = animate.addListener((next: MotionKeyframe) => {
-            Object.assign(el.style, toStyles(next));
-          });
-          node.setMetadata("motionRelease", release);
-        }
-        return;
-      }
-      if (target) {
-        el.animate(
-          initial ? [toStyles(initial), toStyles(target)] : [toStyles(target)],
-          options,
-        );
-      } else if (initial) {
-        Object.assign(el.style, toStyles(initial));
-      }
-      if (isState(animate)) {
-        const release = animate.addListener((next: MotionKeyframe) => {
-          el.animate([toStyles(next)], options);
-        });
-        node.setMetadata("motionRelease", release);
-      }
+    play,
+    getExit: () => current.exit,
+    getTransition: () => current.transition,
+    update(next) {
+      current = next;
+      play(next, "update");
+      bindAnimate(next.animate);
     },
+    destroy() {
+      release?.();
+    },
+  };
+}
+
+function motion(props: MotionProps = {}): PartialElement {
+  return {
+    ...behavior<MotionProps>("motion", (node, next) => attachMotion(node, next), props),
     _onBeforeRemove: (node, done) => {
       const el = node.domElement as HTMLElement | null;
+      const inst = node.getBehavior<MotionInstance>("motion");
+      const exit = inst?.getExit() ?? props.exit;
       if (!el || !exit || typeof el.animate !== "function") return done();
       if (prefersReducedMotion()) {
         Object.assign(el.style, toStyles(exit));
         return done();
       }
-      el.animate([toStyles(exit)], options).finished.then(done, done);
-    },
-    _onRemove: (node) => {
-      const release = node.getMetadata("motionRelease") as
-        | (() => void)
-        | undefined;
-      release?.();
+      el.animate([toStyles(exit)], toOptions(inst?.getTransition() ?? props.transition))
+        .finished.then(done, done);
     },
   };
 }
@@ -41071,8 +41657,12 @@ export { orderedList };
 
 ```ts
 import {
+  behavior,
   type DomphyElement,
+  type ElementNode,
+  isState,
   type PartialElement,
+  type State,
   toState,
   type ValueOrState,
 } from "@domphy/core";
@@ -41110,6 +41700,30 @@ function getPages(current: number, total: number): (number | "...")[] {
  * @param props.accentColor - Accent color tone for the active page. Defaults to `"primary"`.
  * @example { div: "", $: [pagination({ total: 10, value: 1 })] }
  */
+function persistValue<T>(
+  node: ElementNode,
+  key: string,
+  incoming: ValueOrState<T> | undefined,
+  fallback: T,
+): State<T> {
+  if (isState(incoming)) return incoming as State<T>;
+  let stored = node.getMetadata(key) as State<T> | undefined;
+  if (!stored) {
+    stored = toState((incoming as T | undefined) ?? fallback);
+    node.setMetadata(key, stored);
+  }
+  return stored;
+}
+
+function persistTotal(node: ElementNode, total: number): State<number> {
+  let stored = node.getMetadata("paginationTotal") as State<number> | undefined;
+  if (!stored) {
+    stored = toState(total);
+    node.setMetadata("paginationTotal", stored);
+  }
+  return stored;
+}
+
 function pagination(props: {
   value?: ValueOrState<number>;
   total: number;
@@ -41117,7 +41731,6 @@ function pagination(props: {
   accentColor?: ThemeColor;
 }): PartialElement {
   const { total, color = "neutral", accentColor = "primary" } = props;
-  const state = toState(props.value ?? 1);
 
   const btnBase = {
     display: "inline-flex",
@@ -41172,9 +41785,12 @@ function pagination(props: {
         console.warn('"pagination" patch must use div tag');
     },
     _onInit: (node) => {
+      const state = persistValue(node, "paginationPage", props.value, 1);
+      const totalState = persistTotal(node, total);
       const content: DomphyElement<"div"> = {
         div: (listener) => {
           const page = state.get(listener);
+          const pageCount = totalState.get(listener);
           const items: DomphyElement[] = [];
 
           // Prev button
@@ -41192,7 +41808,7 @@ function pagination(props: {
           // there can be up to two "..." spans) so the list survives length
           // changes across pages without the unkeyed-reuse footgun.
           let ellipsisIndex = 0;
-          for (const p of getPages(page, total)) {
+          for (const p of getPages(page, pageCount)) {
             if (p === "...") {
               items.push({
                 span: "…",
@@ -41228,8 +41844,8 @@ function pagination(props: {
             _key: "next",
             type: "button",
             ariaLabel: "Next page",
-            disabled: page >= total,
-            onClick: () => page < total && state.set(page + 1),
+            disabled: page >= pageCount,
+            onClick: () => page < pageCount && state.set(page + 1),
             style: btnBase,
           });
 
@@ -41243,6 +41859,13 @@ function pagination(props: {
       };
       node.children.insert(content);
     },
+    ...behavior<{ total: number }>("pagination-total", (node, next) => {
+      const apply = (snapshot: { total: number }) => {
+        persistTotal(node, snapshot.total).set(snapshot.total);
+      };
+      apply(next);
+      return { update: apply };
+    }, { total }),
     style: {
       display: "inline-flex",
     },
@@ -41444,6 +42067,9 @@ function popover(props: {
     },
     onFocus: (_e, node) => openOn === "hover" && show(node),
     onBlur: (e, node) => {
+      // Docs: focus has no effect when openOn is click — only hover-mode
+      // blur dismisses (and even then, not when focus moved INTO the panel).
+      if (openOn !== "hover") return;
       const related = (e as FocusEvent).relatedTarget as Node | null;
       const root = node.getRoot().domElement as Element;
       // Tabbing from the trigger INTO the panel must not close the popover.
@@ -41741,10 +42367,14 @@ export { progress };
 
 ```ts
 import {
+  behavior,
   type DomphyElement,
+  type ElementNode,
+  isState,
   type Listener,
   type PartialElement,
   rawHtml,
+  type State,
   toState,
   type ValueOrState,
 } from "@domphy/core";
@@ -41765,10 +42395,127 @@ const STAR_EMPTY =
   `<path d="M22 9.24l-7.19-.62L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.63-7.03L22 9.24zM12 15.4l-3.76 2.27 1-4.28-3.32-2.88 4.38-.38L12 6.1l1.71 4.04 4.38.38-3.32 2.88 1 4.28L12 15.4z"/>` +
   `</svg>`;
 
+type RatingProps = {
+  value?: ValueOrState<number>;
+  max?: number;
+  onChange?: (value: number) => void;
+  readOnly?: boolean;
+  color?: ThemeColor;
+};
+
+type RatingLive = {
+  valueState: State<number>;
+  onChange?: (value: number) => void;
+  readOnly: boolean;
+  max: number;
+  color: ThemeColor;
+};
+
+function applyRatingProps(live: RatingLive, next: RatingProps): void {
+  live.onChange = next.onChange;
+  live.readOnly = next.readOnly ?? false;
+  live.max = next.max ?? 5;
+  live.color = next.color ?? "warning";
+  if (isState(next.value)) {
+    if (next.value !== live.valueState) {
+      live.valueState.set(next.value.get());
+    }
+  } else if (next.value !== undefined) {
+    // Plain number stays live. Omitted value leaves the internal state
+    // alone so an uncontrolled click is not reset on a later factory call.
+    live.valueState.set(next.value);
+  }
+}
+
+function insertStar(
+  node: ElementNode,
+  index: number,
+  live: RatingLive,
+  hoveredState: State<number>,
+): void {
+  const activeCount = (listener: Listener) => {
+    const hovered = hoveredState.get(listener);
+    return hovered > 0 ? hovered : live.valueState.get(listener);
+  };
+
+  const star: DomphyElement<"button"> = {
+    button: (listener) =>
+      rawHtml(index <= activeCount(listener) ? STAR_FILLED : STAR_EMPTY),
+    _key: index,
+    type: "button",
+    ariaLabel: `${index} star${index > 1 ? "s" : ""}`,
+    onClick: () => {
+      if (live.readOnly) return;
+      const next = index === live.valueState.get() ? 0 : index;
+      live.valueState.set(next);
+      live.onChange?.(next);
+      hoveredState.set(0);
+    },
+    onMouseEnter: () => {
+      if (live.readOnly) return;
+      hoveredState.set(index);
+    },
+    onMouseLeave: () => hoveredState.set(0),
+    onKeyDown: (e: KeyboardEvent) => {
+      if (live.readOnly) return;
+      const current = live.valueState.get();
+      let next = current;
+      if (e.key === "ArrowRight" || e.key === "ArrowUp") {
+        next = Math.min(live.max, current + 1);
+        e.preventDefault();
+      } else if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
+        next = Math.max(0, current - 1);
+        e.preventDefault();
+      } else {
+        return;
+      }
+      live.valueState.set(next);
+      live.onChange?.(next);
+      const target = next > 0 ? next - 1 : 0;
+      (node.domElement?.children[target] as HTMLElement)?.focus();
+    },
+    style: {
+      background: "none",
+      border: "none",
+      outline: "none",
+      borderRadius: themeSpacing(1),
+      padding: 0,
+      cursor: "inherit",
+      color: "inherit",
+      fontSize: "inherit",
+      display: "flex",
+      alignItems: "center",
+      transition: "box-shadow 140ms ease",
+      "&:focus-visible": {
+        boxShadow: (listener) => focusRing(listener, live.color),
+      },
+    },
+  };
+  node.children.insert(star);
+}
+
+function syncStars(
+  node: ElementNode,
+  live: RatingLive,
+  hoveredState: State<number>,
+): void {
+  const children = node.children.items;
+  while (children.length > live.max) {
+    node.children.remove(children[children.length - 1]);
+  }
+  for (let index = children.length + 1; index <= live.max; index++) {
+    insertStar(node, index, live, hoveredState);
+  }
+}
+
 /**
  * Interactive star rating applied to a container `<div>`. Manages its own star
  * children: click to set, Arrow keys to adjust, hover to preview. In `readOnly`
  * mode stars are non-interactive. Apply to a `<div>` element.
+ *
+ * Star insert runs in `_onInit` (SSR markup). `onChange`/`readOnly`/`max` and
+ * a plain-number `value` stay live via `behavior()` `update()` so a reused
+ * node picks up the latest factory props.
  *
  * @hostTag div
  * @param props.value - Current rating (0 – max). `ValueOrState<number>`, defaults to `0`.
@@ -41778,25 +42525,15 @@ const STAR_EMPTY =
  * @param props.color - Star color tone. Optional `ThemeColor`, defaults to `"warning"`.
  * @example { div: null, $: [rating({ value: ratingState, onChange: (v) => ratingState.set(v) })] }
  */
-function rating(
-  props: {
-    value?: ValueOrState<number>;
-    max?: number;
-    onChange?: (value: number) => void;
-    readOnly?: boolean;
-    color?: ThemeColor;
-  } = {},
-): PartialElement {
-  const { max = 5, readOnly = false, onChange } = props;
-  const color = props.color ?? "warning";
-  const valueState = toState(props.value ?? 0);
-  // Hover preview only — never reported via onChange, only affects display.
-  const hoveredState = toState(0);
-
-  const activeCount = (listener: Listener) => {
-    const hovered = hoveredState.get(listener);
-    return hovered > 0 ? hovered : valueState.get(listener);
+function rating(props: RatingProps = {}): PartialElement {
+  const live: RatingLive = {
+    valueState: toState(props.value ?? 0),
+    onChange: props.onChange,
+    readOnly: props.readOnly ?? false,
+    max: props.max ?? 5,
+    color: props.color ?? "warning",
   };
+  const hoveredState = toState(0);
 
   return {
     role: "group",
@@ -41806,70 +42543,29 @@ function rating(
       gap: themeSpacing(0.5),
       // 1.5× inherited control size (theme-owned type scale, not a px/rem literal).
       fontSize: (listener) => themeSize(listener, "increase-1"),
-      cursor: readOnly ? "default" : "pointer",
-      color: (listener) => themeColor(listener, "muted", color),
+      cursor: live.readOnly ? "default" : "pointer",
+      color: (listener) => themeColor(listener, "muted", live.color),
     },
+    ...behavior<RatingProps>("rating", (node, initial) => {
+      applyRatingProps(live, initial);
+      syncStars(node, live, hoveredState);
+      return {
+        update(next) {
+          applyRatingProps(live, next);
+          syncStars(node, live, hoveredState);
+        },
+      };
+    }, {
+      value: props.value,
+      max: props.max ?? 5,
+      onChange: props.onChange,
+      readOnly: props.readOnly ?? false,
+      color: props.color ?? "warning",
+    }),
     // Build stars as real child elements (not imperative DOM mutation in
     // _onMount) so generateHTML()/SSR emits the actual star markup.
     _onInit: (node) => {
-      for (let i = 1; i <= max; i++) {
-        const index = i;
-        const interactive = readOnly
-          ? {}
-          : {
-              onClick: () => {
-                const next = index === valueState.get() ? 0 : index;
-                valueState.set(next);
-                onChange?.(next);
-                hoveredState.set(0);
-              },
-              onMouseEnter: () => hoveredState.set(index),
-              onMouseLeave: () => hoveredState.set(0),
-              onKeyDown: (e: KeyboardEvent) => {
-                const current = valueState.get();
-                let next = current;
-                if (e.key === "ArrowRight" || e.key === "ArrowUp") {
-                  next = Math.min(max, current + 1);
-                  e.preventDefault();
-                } else if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
-                  next = Math.max(0, current - 1);
-                  e.preventDefault();
-                } else {
-                  return;
-                }
-                valueState.set(next);
-                onChange?.(next);
-                const target = next > 0 ? next - 1 : 0;
-                (node.domElement?.children[target] as HTMLElement)?.focus();
-              },
-            };
-
-        const star: DomphyElement<"button"> = {
-          button: (listener) =>
-            rawHtml(index <= activeCount(listener) ? STAR_FILLED : STAR_EMPTY),
-          _key: index,
-          type: "button",
-          ariaLabel: `${index} star${index > 1 ? "s" : ""}`,
-          ...interactive,
-          style: {
-            background: "none",
-            border: "none",
-            outline: "none",
-            borderRadius: themeSpacing(1),
-            padding: 0,
-            cursor: "inherit",
-            color: "inherit",
-            fontSize: "inherit",
-            display: "flex",
-            alignItems: "center",
-            transition: "box-shadow 140ms ease",
-            "&:focus-visible": {
-              boxShadow: (listener) => focusRing(listener, color),
-            },
-          },
-        };
-        node.children.insert(star);
-      }
+      syncStars(node, live, hoveredState);
     },
   };
 }
@@ -42061,9 +42757,13 @@ export { scrollArea };
 
 ```ts
 import {
+  behavior,
   type DomphyElement,
+  type ElementNode,
+  isState,
   type Listener,
   type PartialElement,
+  type State,
   toState,
   type ValueOrState,
 } from "@domphy/core";
@@ -42083,6 +42783,131 @@ type SegmentedItem = {
   /** Stable key. Defaults to the item's zero-based index. */
   key?: string;
 };
+
+type SegmentedLive = {
+  items: SegmentedItem[];
+  color: ThemeColor;
+  accentColor: ThemeColor;
+};
+
+function persistValue<T>(
+  node: ElementNode,
+  key: string,
+  incoming: ValueOrState<T> | undefined,
+  fallback: T,
+): State<T> {
+  if (isState(incoming)) return incoming as State<T>;
+  let stored = node.getMetadata(key) as State<T> | undefined;
+  if (!stored) {
+    stored = toState((incoming as T | undefined) ?? fallback);
+    node.setMetadata(key, stored);
+  }
+  return stored;
+}
+
+function persistLive(
+  node: ElementNode,
+  live: SegmentedLive,
+): State<SegmentedLive> {
+  let stored = node.getMetadata("segmentedLive") as
+    | State<SegmentedLive>
+    | undefined;
+  if (!stored) {
+    stored = toState(live);
+    node.setMetadata("segmentedLive", stored);
+  }
+  return stored;
+}
+
+function moveSegment(
+  e: Event,
+  items: SegmentedItem[],
+  key: string,
+  value: State<string>,
+): void {
+  const k = (e as KeyboardEvent).key;
+  if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(k)) return;
+  e.preventDefault();
+  const keys = items.map((item, index) => item.key ?? String(index));
+  const idx = keys.indexOf(key);
+  let next = idx;
+  if (k === "ArrowRight") next = (idx + 1) % keys.length;
+  else if (k === "ArrowLeft") next = (idx - 1 + keys.length) % keys.length;
+  else if (k === "Home") next = 0;
+  else if (k === "End") next = keys.length - 1;
+  value.set(keys[next]);
+  const group = (e.target as HTMLElement).closest("[role=radiogroup]");
+  group?.querySelectorAll<HTMLElement>("[role=radio]")[next]?.focus();
+}
+
+function buildSegmentButtons(
+  items: SegmentedItem[],
+  value: State<string>,
+  color: ThemeColor,
+  accentColor: ThemeColor,
+): DomphyElement<"button">[] {
+  return items.map((item, index) => {
+    const key = item.key ?? String(index);
+    const labelEl: DomphyElement =
+      typeof item.label === "string"
+        ? ({ span: item.label } as DomphyElement<"span">)
+        : item.label;
+
+    return {
+      button: [labelEl],
+      _key: key,
+      type: "button",
+      role: "radio",
+      ariaChecked: (l: Listener) => value.get(l) === key,
+      tabIndex: (l: Listener) => {
+        const current = value.get(l);
+        if (current === key) return 0;
+        if (current === "" && key === (items[0]?.key ?? "")) return 0;
+        return -1;
+      },
+      onClick: () => value.set(key),
+      onKeyDown: (e: Event) => moveSegment(e, items, key, value),
+      style: {
+        cursor: "pointer",
+        fontSize: (l: Listener) => themeSize(l, "inherit"),
+        height: themeSpacing(6),
+        paddingBlock: themeSpacing(1),
+        paddingInline: themeSpacing(3),
+        border: "none",
+        borderRadius: themeSpacing(10),
+        color: (l: Listener) => themeColor(l, "text", color),
+        backgroundColor: "transparent",
+        transition:
+          "background-color 140ms ease, color 140ms ease, box-shadow 140ms ease",
+        "&:hover:not([disabled]):not([aria-checked=true])": {
+          backgroundColor: (l: Listener) => themeColor(l, "shift-3", color),
+        },
+        "&:active:not([disabled]):not([aria-checked=true])": {
+          backgroundColor: (l: Listener) =>
+            themeColor(l, "increase-2", color),
+        },
+        "&[aria-checked=true]": {
+          backgroundColor: (l: Listener) =>
+            themeColor(l, "shift-0", accentColor),
+          color: (l: Listener) => themeColor(l, "shift-10", accentColor),
+          // Selected segment sits slightly above the track.
+          boxShadow: elevation("low"),
+        },
+        "&:focus-visible": {
+          boxShadow: (l: Listener) => focusRing(l, accentColor),
+        },
+        "&[aria-checked=true]:focus-visible": {
+          boxShadow: (l: Listener) =>
+            `${elevation("low")}, ${focusRing(l, accentColor)}`,
+        },
+        "&[disabled]": {
+          opacity: 0.7,
+          cursor: "not-allowed",
+        },
+      },
+    } as DomphyElement<"button">;
+  });
+}
 
 /**
  * All-in-one single-select segmented control. Generates `<button>` option
@@ -42108,70 +42933,37 @@ function segmented(
   } = { items: [] },
 ): PartialElement {
   const { items = [], color = "neutral", accentColor = "primary" } = props;
-  const value = toState(props.value ?? items[0]?.key ?? "");
+  const live: SegmentedLive = { items, color, accentColor };
 
   return {
     role: "radiogroup",
-    // Expose value in context so segmentedItem() escape-hatch still works.
-    _context: { segmented: { value } },
+    // Publish value so descendants can read the selected segment.
+    _context: { segmented: { value: toState(props.value ?? items[0]?.key ?? "") } },
     _onSchedule: (node, element) => {
-      const buttons: DomphyElement<"button">[] = items.map((item, index) => {
-        const key = item.key ?? String(index);
-        const labelEl: DomphyElement =
-          typeof item.label === "string"
-            ? ({ span: item.label } as DomphyElement<"span">)
-            : item.label;
-
-        return {
-          button: [labelEl],
-          _key: key,
-          type: "button",
-          role: "radio",
-          ariaChecked: (l: Listener) => value.get(l) === key,
-          onClick: () => value.set(key),
-          style: {
-            cursor: "pointer",
-            fontSize: (l: Listener) => themeSize(l, "inherit"),
-            height: themeSpacing(6),
-            paddingBlock: themeSpacing(1),
-            paddingInline: themeSpacing(3),
-            border: "none",
-            borderRadius: themeSpacing(10),
-            color: (l: Listener) => themeColor(l, "text", color),
-            backgroundColor: "transparent",
-            transition:
-              "background-color 140ms ease, color 140ms ease, box-shadow 140ms ease",
-            "&:hover:not([disabled]):not([aria-checked=true])": {
-              backgroundColor: (l: Listener) => themeColor(l, "shift-3", color),
-            },
-            "&:active:not([disabled]):not([aria-checked=true])": {
-              backgroundColor: (l: Listener) =>
-                themeColor(l, "increase-2", color),
-            },
-            "&[aria-checked=true]": {
-              backgroundColor: (l: Listener) =>
-                themeColor(l, "shift-0", accentColor),
-              color: (l: Listener) => themeColor(l, "shift-10", accentColor),
-              // Selected segment sits slightly above the track.
-              boxShadow: elevation("low"),
-            },
-            "&:focus-visible": {
-              boxShadow: (l: Listener) => focusRing(l, accentColor),
-            },
-            "&[aria-checked=true]:focus-visible": {
-              boxShadow: (l: Listener) =>
-                `${elevation("low")}, ${focusRing(l, accentColor)}`,
-            },
-            "&[disabled]": {
-              opacity: 0.7,
-              cursor: "not-allowed",
-            },
-          },
-        } as DomphyElement<"button">;
-      });
-
-      (element as any)[node.tagName] = buttons;
+      const liveState = persistLive(node, live);
+      const value = persistValue(
+        node,
+        "segmentedValue",
+        props.value,
+        items[0]?.key ?? "",
+      );
+      (element as Record<string, unknown>)[node.tagName] = (l: Listener) => {
+        const next = liveState.get(l);
+        return buildSegmentButtons(
+          next.items,
+          value,
+          next.color,
+          next.accentColor,
+        );
+      };
     },
+    ...behavior<SegmentedLive>("segmented-items", (node, next) => {
+      const apply = (snapshot: SegmentedLive) => {
+        persistLive(node, snapshot).set(snapshot);
+      };
+      apply(next);
+      return { update: apply };
+    }, live),
     // Track is a soft surface anchor — shift via dataTone, paint with inherit.
     dataTone: "shift-2",
     style: {
@@ -42284,10 +43076,13 @@ export { select };
 
 ```ts
 import {
+  type BehaviorInstance,
+  behavior,
   type DomphyElement,
   type ElementNode,
   merge,
   type PartialElement,
+  type State,
   type StyleObject,
   toState,
   type ValueOrState,
@@ -42420,20 +43215,35 @@ function selectBox(props: {
 
   merge(props.content, popoverPartial);
 
-  const wrap: DomphyElement<"div"> = {
+  type InnerProps = {
+    options: Array<{ label: string; value: string }>;
+    multiple: boolean;
+    color: ThemeColor;
+    state: State<
+      | Array<number | string | null | undefined>
+      | number
+      | string
+      | null
+      | undefined
+    >;
+  };
+
+  const buildWrap = (inner: InnerProps): DomphyElement<"div"> => ({
     div: (listener) => {
-      const val = state.get(listener);
+      const val = inner.state.get(listener);
       const vals = Array.isArray(val) ? val : [val];
-      const opts = options.filter((opt) => vals.includes(opt.value));
+      const opts = inner.options.filter((opt) => vals.includes(opt.value));
       return opts.map((opt) => ({
         span: opt.label,
-        $: [tag({ color, removable: multiple })],
+        $: [tag({ color: inner.color, removable: inner.multiple })],
         _key: opt.value,
         _onRemove: (_node) => {
-          const cur = state.get();
+          const cur = inner.state.get();
           const curVals = Array.isArray(cur) ? cur : [cur];
           const filter = curVals.filter((v) => v !== opt.value);
-          multiple ? state.set(filter as any) : state.set(filter[0] as any);
+          inner.multiple
+            ? inner.state.set(filter as any)
+            : inner.state.set(filter[0] as any);
         },
       })) as DomphyElement<"span">[];
     },
@@ -42443,6 +43253,18 @@ function selectBox(props: {
       gap: themeSpacing(1),
       flex: 1,
     } as StyleObject,
+  });
+
+  const attachInner = (
+    node: ElementNode,
+    inner: InnerProps,
+  ): BehaviorInstance<InnerProps> => {
+    let wrapNode = node.children.insert(buildWrap(inner)) as ElementNode;
+    return {
+      update(next) {
+        wrapNode.patch(buildWrap(next));
+      },
+    };
   };
 
   const toggle = (node?: ElementNode) =>
@@ -42496,7 +43318,12 @@ function selectBox(props: {
         console.warn(`"selectBox" patch must use div tag`);
       }
     },
-    _onInit: (node) => node.children.insert(wrap),
+    ...behavior<InnerProps>("selectBoxInner", attachInner, {
+      options,
+      multiple,
+      color,
+      state,
+    }),
     onClick: (_e, node) => toggle(node),
     // Focusable trigger: click + Enter/Space/ArrowDown open (APG button+listbox).
     // Escape dismiss composes with createFloating's hide path.
@@ -42506,6 +43333,10 @@ function selectBox(props: {
     // ariaExpanded or patch re-apply will overwrite after keyboard open.
     ariaExpanded: (listener) => openState.get(listener),
     ariaHaspopup: "listbox",
+    ariaControls: (listener) =>
+      listener?.elementNode
+        ? floatingPanelId("selectBox", listener.elementNode)
+        : undefined,
     onKeyDown: (e, node) => {
       const key = (e as KeyboardEvent).key;
       if (key === "Escape") {
@@ -42925,7 +43756,12 @@ export { spinner };
 ### splitter
 
 ```ts
-import { merge, type PartialElement, toState } from "@domphy/core";
+import {
+  ElementNode,
+  merge,
+  type PartialElement,
+  toState,
+} from "@domphy/core";
 import { themeColor, themeSpacing } from "@domphy/theme";
 import { focusRing } from "../utils/focusRing.js";
 
@@ -42964,8 +43800,8 @@ function splitter(
             size: toState(defaultSize),
             min,
             max,
-            // Mutable bookkeeping (not reactive state) so splitterPanel can
-            // tell the first panel from later ones — see its own comment.
+            // Legacy bookkeeping kept on the context object for compatibility.
+            // First-vs-second assignment uses sibling order (see splitterPanel).
             panelCount: 0,
           },
         },
@@ -42990,8 +43826,20 @@ function splitter(
  *
  * @example { div: [...], $: [splitterPanel()] }
  */
+function isFirstSplitterPanel(node: ElementNode): boolean {
+  const parent = node.parent;
+  if (!parent) return true;
+  for (const item of parent.children.items) {
+    if (item instanceof ElementNode && item.getMetadata("splitterPanel")) {
+      return item === node;
+    }
+  }
+  return true;
+}
+
 function splitterPanel(): PartialElement {
   return {
+    _metadata: { splitterPanel: true },
     _onMount: (node) => {
       const ctx = node.getContext("splitter");
       if (!ctx) {
@@ -43000,17 +43848,19 @@ function splitterPanel(): PartialElement {
       }
       const el = node.domElement as HTMLElement;
       const prop = ctx.direction === "horizontal" ? "width" : "height";
-      const isFirst = ctx.panelCount++ === 0;
 
       const apply = (size: number) => {
-        el.style[prop] = `${isFirst ? size : 100 - size}%`;
+        el.style[prop] = `${isFirstSplitterPanel(node) ? size : 100 - size}%`;
       };
       apply(ctx.size.get());
       el.style.flexShrink = "0";
       el.style.overflow = "auto";
 
       const release = ctx.size.addListener(apply);
-      node.addHook("Remove", release);
+      node.addHook("Remove", () => {
+        ctx.panelCount = Math.max(0, (ctx.panelCount ?? 1) - 1);
+        release();
+      });
     },
   };
 }
@@ -43184,9 +44034,13 @@ export type { FlexAlign };
 
 ```ts
 import {
+  behavior,
   type DomphyElement,
+  type ElementNode,
+  isState,
   type Listener,
   type PartialElement,
+  type State,
   toState,
   type ValueOrState,
 } from "@domphy/core";
@@ -43204,6 +44058,172 @@ type StepItem = {
   /** Stable key. Defaults to the item's zero-based index. */
   key?: string | number;
 };
+
+type StepsLive = {
+  items: StepItem[];
+  direction: "horizontal" | "vertical";
+  color: ThemeColor;
+  accentColor: ThemeColor;
+};
+
+function persistValue<T>(
+  node: ElementNode,
+  key: string,
+  incoming: ValueOrState<T> | undefined,
+  fallback: T,
+): State<T> {
+  if (isState(incoming)) return incoming as State<T>;
+  let stored = node.getMetadata(key) as State<T> | undefined;
+  if (!stored) {
+    stored = toState((incoming as T | undefined) ?? fallback);
+    node.setMetadata(key, stored);
+  }
+  return stored;
+}
+
+function persistLive(node: ElementNode, live: StepsLive): State<StepsLive> {
+  let stored = node.getMetadata("stepsLive") as State<StepsLive> | undefined;
+  if (!stored) {
+    stored = toState(live);
+    node.setMetadata("stepsLive", stored);
+  }
+  return stored;
+}
+
+function stepConnectorStyle(
+  direction: "horizontal" | "vertical",
+  color: ThemeColor,
+  accentColor: ThemeColor,
+) {
+  if (direction === "vertical") {
+    // Outgoing track: from this badge's bottom through the host gap to the
+    // next badge. Incoming-from-current-item cannot span the previous
+    // item's variable label height.
+    return {
+      "&:not(:last-child)::after": {
+        content: '""',
+        position: "absolute",
+        left: themeSpacing(3),
+        top: themeSpacing(6),
+        bottom: `-${themeSpacing(2)}`,
+        width: "2px",
+        height: "auto",
+        right: "auto",
+        backgroundColor: (l: Listener) => themeColor(l, "shift-3", color),
+        zIndex: "0",
+      },
+      "&[data-status=done]:not(:last-child)::after": {
+        backgroundColor: (l: Listener) => themeColor(l, "shift-9", accentColor),
+      },
+    };
+  }
+  return {
+    "&:not(:first-child)::after": {
+      content: '""',
+      position: "absolute",
+      top: themeSpacing(3),
+      right: `calc(50% + ${themeSpacing(3)})`,
+      left: `calc(-50% + ${themeSpacing(3)})`,
+      height: "2px",
+      backgroundColor: (l: Listener) => themeColor(l, "shift-3", color),
+      zIndex: "0",
+    },
+    "&[data-status=done]:not(:first-child)::after": {
+      backgroundColor: (l: Listener) => themeColor(l, "shift-9", accentColor),
+    },
+    "&[data-status=active]:not(:first-child)::after": {
+      backgroundColor: (l: Listener) => themeColor(l, "shift-9", accentColor),
+    },
+  };
+}
+
+function buildStepItems(
+  items: StepItem[],
+  current: State<number>,
+  direction: "horizontal" | "vertical",
+  color: ThemeColor,
+  accentColor: ThemeColor,
+): DomphyElement<"li">[] {
+  const vertical = direction === "vertical";
+  const connector = stepConnectorStyle(direction, color, accentColor);
+
+  return items.map((item, index) => {
+    const labelEl: DomphyElement =
+      typeof item.label === "string"
+        ? ({ span: item.label } as DomphyElement<"span">)
+        : item.label;
+
+    return {
+      li: [labelEl],
+      _key: item.key ?? index,
+      dataStep: String(index + 1),
+      dataStatus: (l: Listener) => {
+        const cur = current.get(l);
+        if (index < cur) return "done";
+        if (index === cur) return "active";
+        return "pending";
+      },
+      ariaCurrent: (l: Listener) =>
+        current.get(l) === index ? "step" : undefined,
+      style: {
+        position: "relative",
+        display: "flex",
+        flexDirection: vertical ? "row" : "column",
+        alignItems: vertical ? "flex-start" : "center",
+        gap: themeSpacing(1),
+        flex: vertical ? "none" : "1",
+        fontSize: (l: Listener) => themeSize(l, "decrease-1"),
+        textAlign: vertical ? "left" : "center",
+        "&::before": {
+          content: "attr(data-step)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: themeSpacing(6),
+          height: themeSpacing(6),
+          borderRadius: themeSpacing(999),
+          fontSize: (l: Listener) => themeSize(l, "decrease-1"),
+          fontWeight: "bold",
+          flexShrink: "0",
+          border: (l: Listener) =>
+            `2px solid ${themeColor(l, "border-strong", color)}`,
+          backgroundColor: (l: Listener) => themeColor(l, "inherit"),
+          color: (l: Listener) => themeColor(l, "muted"),
+          transition:
+            "background-color 200ms ease, color 200ms ease, border-color 200ms ease",
+          zIndex: "1",
+        },
+        ...connector,
+        "&[data-status=active]::before": {
+          backgroundColor: (l: Listener) =>
+            themeColor(l, "shift-9", accentColor),
+          borderColor: (l: Listener) => themeColor(l, "shift-9", accentColor),
+          color: (l: Listener) => themeColor(l, "shift-0", accentColor),
+          boxShadow: (l: Listener) =>
+            `0 0 0 3px ${themeColor(l, "shift-3", accentColor)}`,
+        },
+        // Completed steps: filled accent + check, matching active track.
+        "&[data-status=done]::before": {
+          content: '"✓"',
+          backgroundColor: (l: Listener) =>
+            themeColor(l, "shift-9", accentColor),
+          borderColor: (l: Listener) => themeColor(l, "shift-9", accentColor),
+          color: (l: Listener) => themeColor(l, "shift-0", accentColor),
+        },
+        "&[data-status=pending]": {
+          color: (l: Listener) => themeColor(l, "muted"),
+        },
+        "&[data-status=active]": {
+          color: (l: Listener) => themeColor(l, "shift-11", accentColor),
+          fontWeight: "bold",
+        },
+        "&[data-status=done]": {
+          color: (l: Listener) => themeColor(l, "text", color),
+        },
+      },
+    } as DomphyElement<"li">;
+  });
+}
 
 /**
  * All-in-one step-progress indicator. Generates `<li>` step elements from the
@@ -43236,112 +44256,34 @@ function steps(
     color = "neutral",
     accentColor = "primary",
   } = props;
-  const current = toState(props.current ?? 0);
+  const live: StepsLive = { items, direction, color, accentColor };
 
   return {
     // Step badge weight is design-system chrome for the progress control.
     _doctorDisable: "inline-typography",
-    // Expose state in context so stepItem() escape-hatch still works.
-    _context: { steps: { current, direction, color, accentColor } },
+    // Publish current/direction/colors so descendants can read the indicator.
+    _context: { steps: { current: toState(props.current ?? 0), direction, color, accentColor } },
     _onSchedule: (node, element) => {
-      const stepEls: DomphyElement<"li">[] = items.map((item, index) => {
-        const labelEl: DomphyElement =
-          typeof item.label === "string"
-            ? ({ span: item.label } as DomphyElement<"span">)
-            : item.label;
-
-        return {
-          li: [labelEl],
-          _key: item.key ?? index,
-          dataStep: String(index + 1),
-          dataStatus: (l: Listener) => {
-            const cur = current.get(l);
-            if (index < cur) return "done";
-            if (index === cur) return "active";
-            return "pending";
-          },
-          ariaCurrent: (l: Listener) =>
-            current.get(l) === index ? "step" : undefined,
-          style: {
-            position: "relative",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: themeSpacing(1),
-            flex: "1",
-            fontSize: (l: Listener) => themeSize(l, "decrease-1"),
-            textAlign: "center",
-            "&::before": {
-              content: "attr(data-step)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: themeSpacing(6),
-              height: themeSpacing(6),
-              borderRadius: themeSpacing(999),
-              fontSize: (l: Listener) => themeSize(l, "decrease-1"),
-              fontWeight: "bold",
-              flexShrink: "0",
-              border: (l: Listener) =>
-                `2px solid ${themeColor(l, "border-strong", color)}`,
-              backgroundColor: (l: Listener) => themeColor(l, "inherit"),
-              color: (l: Listener) => themeColor(l, "muted"),
-              transition:
-                "background-color 200ms ease, color 200ms ease, border-color 200ms ease",
-              zIndex: "1",
-            },
-            "&:not(:first-child)::after": {
-              content: '""',
-              position: "absolute",
-              top: themeSpacing(3),
-              right: `calc(50% + ${themeSpacing(3)})`,
-              left: `calc(-50% + ${themeSpacing(3)})`,
-              height: "2px",
-              backgroundColor: (l: Listener) => themeColor(l, "shift-3", color),
-              zIndex: "0",
-            },
-            "&[data-status=active]::before": {
-              backgroundColor: (l: Listener) =>
-                themeColor(l, "shift-9", accentColor),
-              borderColor: (l: Listener) =>
-                themeColor(l, "shift-9", accentColor),
-              color: (l: Listener) => themeColor(l, "shift-0", accentColor),
-              boxShadow: (l: Listener) =>
-                `0 0 0 3px ${themeColor(l, "shift-3", accentColor)}`,
-            },
-            // Completed steps: filled accent + check, matching active track.
-            "&[data-status=done]::before": {
-              content: '"✓"',
-              backgroundColor: (l: Listener) =>
-                themeColor(l, "shift-9", accentColor),
-              borderColor: (l: Listener) =>
-                themeColor(l, "shift-9", accentColor),
-              color: (l: Listener) => themeColor(l, "shift-0", accentColor),
-            },
-            "&[data-status=done]:not(:first-child)::after": {
-              backgroundColor: (l: Listener) =>
-                themeColor(l, "shift-9", accentColor),
-            },
-            "&[data-status=active]:not(:first-child)::after": {
-              backgroundColor: (l: Listener) =>
-                themeColor(l, "shift-9", accentColor),
-            },
-            "&[data-status=pending]": {
-              color: (l: Listener) => themeColor(l, "muted"),
-            },
-            "&[data-status=active]": {
-              color: (l: Listener) => themeColor(l, "shift-11", accentColor),
-              fontWeight: "bold",
-            },
-            "&[data-status=done]": {
-              color: (l: Listener) => themeColor(l, "text", color),
-            },
-          },
-        } as DomphyElement<"li">;
-      });
-
-      (element as any)[node.tagName] = stepEls;
+      const liveState = persistLive(node, live);
+      const current = persistValue(node, "stepsCurrent", props.current, 0);
+      (element as Record<string, unknown>)[node.tagName] = (l: Listener) => {
+        const next = liveState.get(l);
+        return buildStepItems(
+          next.items,
+          current,
+          next.direction,
+          next.color,
+          next.accentColor,
+        );
+      };
     },
+    ...behavior<StepsLive>("steps-items", (node, next) => {
+      const apply = (snapshot: StepsLive) => {
+        persistLive(node, snapshot).set(snapshot);
+      };
+      apply(next);
+      return { update: apply };
+    }, live),
     style: {
       display: "flex",
       flexDirection: direction === "vertical" ? "column" : "row",
@@ -43558,9 +44500,13 @@ export { table };
 
 ```ts
 import {
+  behavior,
   type DomphyElement,
+  type ElementNode,
+  isState,
   type Listener,
   type PartialElement,
+  type State,
   toState,
   type ValueOrState,
 } from "@domphy/core";
@@ -43582,6 +44528,147 @@ type TabItem = {
   /** Stable identity key. Defaults to the item's zero-based index. */
   key?: string | number;
 };
+
+type TabsLive = {
+  items: TabItem[];
+  accentColor: ThemeColor;
+  color: ThemeColor;
+};
+
+function persistValue<T>(
+  node: ElementNode,
+  key: string,
+  incoming: ValueOrState<T> | undefined,
+  fallback: T,
+): State<T> {
+  if (isState(incoming)) return incoming as State<T>;
+  let stored = node.getMetadata(key) as State<T> | undefined;
+  if (!stored) {
+    stored = toState((incoming as T | undefined) ?? fallback);
+    node.setMetadata(key, stored);
+  }
+  return stored;
+}
+
+function persistLive(node: ElementNode, live: TabsLive): State<TabsLive> {
+  let stored = node.getMetadata("tabsLive") as State<TabsLive> | undefined;
+  if (!stored) {
+    stored = toState(live);
+    node.setMetadata("tabsLive", stored);
+  }
+  return stored;
+}
+
+function buildTabsChildren(
+  node: ElementNode,
+  items: TabItem[],
+  activeKey: State<string | number>,
+  accentColor: ThemeColor,
+  color: ThemeColor,
+): DomphyElement[] {
+  const id = node.nodeId;
+
+  const buttons: DomphyElement<"button">[] = items.map((item, index) => {
+    const key = item.key ?? index;
+    const labelEl: DomphyElement =
+      typeof item.label === "string"
+        ? ({ span: item.label } as DomphyElement<"span">)
+        : item.label;
+
+    return {
+      button: [labelEl],
+      _key: key,
+      type: "button",
+      role: "tab",
+      id: `tab${id}${key}`,
+      ariaControls: `panel${id}${key}`,
+      ariaSelected: (l: Listener) => activeKey.get(l) === key,
+      // Roving tabindex (APG tabs pattern): only the selected tab is in
+      // the tab order; arrow keys move both selection and focus.
+      tabIndex: (l: Listener) => (activeKey.get(l) === key ? 0 : -1),
+      onClick: () => activeKey.set(key),
+      onKeyDown: (e: Event) => {
+        const k = (e as KeyboardEvent).key;
+        if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(k)) return;
+        e.preventDefault();
+        const keys = items.map((it, i) => it.key ?? i);
+        const idx = keys.indexOf(key);
+        let next = idx;
+        if (k === "ArrowRight") next = (idx + 1) % keys.length;
+        else if (k === "ArrowLeft")
+          next = (idx - 1 + keys.length) % keys.length;
+        else if (k === "Home") next = 0;
+        else if (k === "End") next = keys.length - 1;
+        activeKey.set(keys[next]);
+        // Focus must follow selection: without this the next arrow key
+        // fires on the OLD tab and re-navigates from its stale position,
+        // making later tabs unreachable by keyboard. Resolved via the
+        // event target's own tablist — shadow-root safe (unlike a
+        // document.getElementById lookup).
+        const list = (e.target as HTMLElement).closest("[role=tablist]");
+        list?.querySelectorAll<HTMLElement>("[role=tab]")[next]?.focus();
+      },
+      style: {
+        cursor: "pointer",
+        fontSize: (l: Listener) => themeSize(l, "inherit"),
+        height: (l: Listener) => themeSpacing(6 + themeDensity(l) * 2),
+        paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 4),
+        border: "none",
+        outline: "none",
+        // Resting tabs: shift-13 for ≥4.5:1 on surface (catalog low-contrast).
+        color: (l: Listener) => themeColor(l, "shift-13"),
+        backgroundColor: (l: Listener) => themeColor(l, "inherit"),
+        boxShadow: (l: Listener) =>
+          `inset 0 ${themeSpacing(-0.5)} 0 0 ${themeColor(l, "shift-1", color)}`,
+        transition: "box-shadow 140ms ease, color 140ms ease",
+        "&:hover:not([disabled]):not([aria-selected=true])": {
+          color: (l: Listener) => themeColor(l, "shift-13"),
+          boxShadow: (l: Listener) =>
+            `inset 0 ${themeSpacing(-0.5)} 0 0 ${themeColor(l, "shift-2", color)}`,
+        },
+        "&[aria-selected=true]:not([disabled])": {
+          color: (l: Listener) => themeColor(l, "shift-13", accentColor),
+          boxShadow: (l: Listener) =>
+            `inset 0 ${themeSpacing(-0.5)} 0 0 ${themeColor(l, "shift-8", accentColor)}`,
+        },
+        // Focus ring must compose with the selected underline (both use
+        // box-shadow) so keyboard focus doesn't erase the active indicator.
+        "&:focus-visible": {
+          boxShadow: (l: Listener) => focusRing(l, accentColor),
+        },
+        "&[aria-selected=true]:focus-visible": {
+          boxShadow: (l: Listener) =>
+            `${focusRing(l, accentColor)}, inset 0 ${themeSpacing(-0.5)} 0 0 ${themeColor(l, "shift-6", accentColor)}`,
+        },
+      },
+    } as DomphyElement<"button">;
+  });
+
+  const tablist: DomphyElement<"div"> = {
+    div: buttons,
+    role: "tablist",
+    ariaOrientation: "horizontal",
+    style: { display: "flex" },
+  } as DomphyElement<"div">;
+
+  const panels: DomphyElement<"div">[] = items.map((item, index) => {
+    const key = item.key ?? index;
+    return {
+      div: [item.content],
+      _key: key,
+      role: "tabpanel",
+      id: `panel${id}${key}`,
+      ariaLabelledby: `tab${id}${key}`,
+      hidden: (l: Listener) => activeKey.get(l) !== key,
+      style: {
+        paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+        paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+      },
+    } as DomphyElement<"div">;
+  });
+
+  return [tablist, ...panels];
+}
 
 /**
  * All-in-one tabs patch. Generates a `[role=tablist]` button row and
@@ -43610,114 +44697,35 @@ function tabs(
   } = { items: [] },
 ): PartialElement {
   const { items = [], accentColor = "primary", color = "neutral" } = props;
-  const activeKey = toState(props.activeKey ?? items[0]?.key ?? 0);
+  const live: TabsLive = { items, accentColor, color };
 
   return {
     _onSchedule: (node, element) => {
-      const id = node.nodeId;
-
-      const buttons: DomphyElement<"button">[] = items.map((item, index) => {
-        const key = item.key ?? index;
-        const labelEl: DomphyElement =
-          typeof item.label === "string"
-            ? ({ span: item.label } as DomphyElement<"span">)
-            : item.label;
-
-        return {
-          button: [labelEl],
-          _key: key,
-          type: "button",
-          role: "tab",
-          id: `tab${id}${key}`,
-          ariaControls: `panel${id}${key}`,
-          ariaSelected: (l: Listener) => activeKey.get(l) === key,
-          // Roving tabindex (APG tabs pattern): only the selected tab is in
-          // the tab order; arrow keys move both selection and focus.
-          tabIndex: (l: Listener) => (activeKey.get(l) === key ? 0 : -1),
-          onClick: () => activeKey.set(key),
-          onKeyDown: (e: Event) => {
-            const k = (e as KeyboardEvent).key;
-            if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(k)) return;
-            e.preventDefault();
-            const keys = items.map((it, i) => it.key ?? i);
-            const idx = keys.indexOf(key);
-            let next = idx;
-            if (k === "ArrowRight") next = (idx + 1) % keys.length;
-            else if (k === "ArrowLeft")
-              next = (idx - 1 + keys.length) % keys.length;
-            else if (k === "Home") next = 0;
-            else if (k === "End") next = keys.length - 1;
-            activeKey.set(keys[next]);
-            // Focus must follow selection: without this the next arrow key
-            // fires on the OLD tab and re-navigates from its stale position,
-            // making later tabs unreachable by keyboard. Resolved via the
-            // event target's own tablist — shadow-root safe (unlike a
-            // document.getElementById lookup).
-            const list = (e.target as HTMLElement).closest("[role=tablist]");
-            list?.querySelectorAll<HTMLElement>("[role=tab]")[next]?.focus();
-          },
-          style: {
-            cursor: "pointer",
-            fontSize: (l: Listener) => themeSize(l, "inherit"),
-            height: (l: Listener) => themeSpacing(6 + themeDensity(l) * 2),
-            paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 4),
-            border: "none",
-            outline: "none",
-            // Resting tabs: shift-13 for ≥4.5:1 on surface (catalog low-contrast).
-            color: (l: Listener) => themeColor(l, "shift-13"),
-            backgroundColor: (l: Listener) => themeColor(l, "inherit"),
-            boxShadow: (l: Listener) =>
-              `inset 0 ${themeSpacing(-0.5)} 0 0 ${themeColor(l, "shift-1", color)}`,
-            transition: "box-shadow 140ms ease, color 140ms ease",
-            "&:hover:not([disabled]):not([aria-selected=true])": {
-              color: (l: Listener) => themeColor(l, "shift-13"),
-              boxShadow: (l: Listener) =>
-                `inset 0 ${themeSpacing(-0.5)} 0 0 ${themeColor(l, "shift-2", color)}`,
-            },
-            "&[aria-selected=true]:not([disabled])": {
-              color: (l: Listener) => themeColor(l, "shift-13", accentColor),
-              boxShadow: (l: Listener) =>
-                `inset 0 ${themeSpacing(-0.5)} 0 0 ${themeColor(l, "shift-8", accentColor)}`,
-            },
-            // Focus ring must compose with the selected underline (both use
-            // box-shadow) so keyboard focus doesn't erase the active indicator.
-            "&:focus-visible": {
-              boxShadow: (l: Listener) => focusRing(l, accentColor),
-            },
-            "&[aria-selected=true]:focus-visible": {
-              boxShadow: (l: Listener) =>
-                `${focusRing(l, accentColor)}, inset 0 ${themeSpacing(-0.5)} 0 0 ${themeColor(l, "shift-6", accentColor)}`,
-            },
-          },
-        } as DomphyElement<"button">;
-      });
-
-      const tablist: DomphyElement<"div"> = {
-        div: buttons,
-        role: "tablist",
-        ariaOrientation: "horizontal",
-        style: { display: "flex" },
-      } as DomphyElement<"div">;
-
-      const panels: DomphyElement<"div">[] = items.map((item, index) => {
-        const key = item.key ?? index;
-        return {
-          div: [item.content],
-          _key: key,
-          role: "tabpanel",
-          id: `panel${id}${key}`,
-          ariaLabelledby: `tab${id}${key}`,
-          hidden: (l: Listener) => activeKey.get(l) !== key,
-          style: {
-            paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 2),
-            paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 2),
-          },
-        } as DomphyElement<"div">;
-      });
-
-      // Inject generated structure into the host element's children slot.
-      (element as any)[node.tagName] = [tablist, ...panels];
+      const liveState = persistLive(node, live);
+      const activeKey = persistValue(
+        node,
+        "tabsActiveKey",
+        props.activeKey,
+        items[0]?.key ?? 0,
+      );
+      (element as Record<string, unknown>)[node.tagName] = (l: Listener) => {
+        const next = liveState.get(l);
+        return buildTabsChildren(
+          node,
+          next.items,
+          activeKey,
+          next.accentColor,
+          next.color,
+        );
+      };
     },
+    ...behavior<TabsLive>("tabs-items", (node, next) => {
+      const apply = (snapshot: TabsLive) => {
+        persistLive(node, snapshot).set(snapshot);
+      };
+      apply(next);
+      return { update: apply };
+    }, live),
   };
 }
 
@@ -43728,11 +44736,19 @@ export type { TabItem };
 ### tag
 
 ```ts
-import type { DomphyElement, PartialElement } from "@domphy/core";
-import { rawHtml, toState, type ValueOrState } from "@domphy/core";
+import {
+  behavior,
+  type DomphyElement,
+  ElementNode,
+  type PartialElement,
+  rawHtml,
+  toState,
+  type ValueOrState,
+} from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
+  themeDensity,
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
@@ -43740,14 +44756,16 @@ import { focusRing } from "../utils/focusRing.js";
 
 const xSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6.707 5.293l5.293 5.292l5.293 -5.292a1 1 0 0 1 1.414 1.414l-5.292 5.293l5.292 5.293a1 1 0 0 1 -1.414 1.414l-5.293 -5.292l-5.293 5.292a1 1 0 1 1 -1.414 -1.414l5.292 -5.293l-5.292 -5.293a1 1 0 0 1 1.414 -1.414" /></svg>`;
 
+type TagRemoveProps = { removable: boolean };
+
 /**
  * Styles an inline chip/tag (rounded, bordered, optional remove button).
  * No host tag check; typically applied to a `<span>`. When `removable` is true,
- * a close button is inserted that removes the host node on click.
+ * a close button is inserted that removes the host node on click or Enter/Space.
  *
  * @hostTag span
  * @param props.color - Theme color for the chip background/border/text. Optional, accepts a value or state. Defaults to `"neutral"`.
- * @param props.removable - When true, renders a remove (x) button that removes the tag on click. Optional. Defaults to `false`.
+ * @param props.removable - When true, renders a remove (x) button that removes the tag on click or Enter/Space. Optional. Defaults to `false`.
  * @example { span: "Label", $: [tag({ removable: true })] }
  */
 function tag(
@@ -43758,47 +44776,85 @@ function tag(
 
   return {
     dataTone: "shift-2",
-    _onInit: (node) => {
-      const removeBtn: DomphyElement<"span"> = {
-        span: rawHtml(xSvg),
-        onClick: (e) => {
-          (e as Event).stopPropagation();
-          node.remove();
-        },
-        tabindex: 0,
-        role: "button",
-        ariaLabel: "Remove",
-        style: {
-          display: "inline-flex",
-          alignItems: "center",
-          cursor: "pointer",
-          borderRadius: themeSpacing(1),
-          width: themeSpacing(4),
-          height: themeSpacing(4),
-          flexShrink: 0,
-          transition: "background-color 140ms ease, box-shadow 140ms ease",
-          "&:hover": {
-            backgroundColor: (listener) =>
-              themeColor(listener, "shift-4", color.get(listener)),
+    // _onInit would miss/orphan the button when a reused node is re-patched
+    // with a flipped `removable`. behavior() attaches once and routes later
+    // generations through update().
+    ...behavior<TagRemoveProps>(
+      "tag-remove",
+      (node, initial) => {
+        const removeHost = () => node.remove();
+        const makeButton = (): DomphyElement<"span"> => ({
+          span: rawHtml(xSvg),
+          _key: "tag-remove",
+          onClick: (e) => {
+            (e as Event).stopPropagation();
+            removeHost();
           },
-          "&:focus-visible": {
-            boxShadow: (listener) => focusRing(listener, color.get(listener)),
+          onKeyDown: (e) => {
+            const event = e as KeyboardEvent;
+            if (event.key !== "Enter" && event.key !== " ") return;
+            event.preventDefault();
+            event.stopPropagation();
+            removeHost();
           },
-        },
-      };
-
-      removable && node.children.insert(removeBtn);
-    },
+          tabindex: 0,
+          role: "button",
+          ariaLabel: "Remove",
+          style: {
+            display: "inline-flex",
+            alignItems: "center",
+            cursor: "pointer",
+            borderRadius: (listener) =>
+              themeSpacing(themeDensity(listener) * 1),
+            width: (listener) => themeSpacing(themeDensity(listener) * 4),
+            height: (listener) => themeSpacing(themeDensity(listener) * 4),
+            flexShrink: 0,
+            transition: "background-color 140ms ease, box-shadow 140ms ease",
+            "&:hover": {
+              backgroundColor: (listener) =>
+                themeColor(listener, "shift-4", color.get(listener)),
+            },
+            "&:focus-visible": {
+              boxShadow: (listener) => focusRing(listener, color.get(listener)),
+            },
+          },
+        });
+        const findButton = () =>
+          node.children.items.find(
+            (item) => item instanceof ElementNode && item.key === "tag-remove",
+          ) ?? null;
+        // attach() runs from the host Mount hook, which fires BEFORE
+        // render() walks children. Inserting with updateDom=true would
+        // create a DOM node that render() then creates a second time.
+        // First paint: list-only insert, let render() materialize it.
+        // Later update(): the walk already finished, so mutate the live DOM.
+        const sync = (next: TagRemoveProps, updateDom: boolean) => {
+          const existing = findButton();
+          if (next.removable && !existing) {
+            node.children.insert(makeButton(), undefined, updateDom);
+          } else if (!next.removable && existing) {
+            node.children.remove(existing);
+          }
+        };
+        sync(initial, false);
+        return {
+          update: (next) => sync(next, true),
+        };
+      },
+      { removable },
+    ),
     style: {
       display: "inline-flex",
       alignItems: "center",
       whiteSpace: "nowrap",
       userSelect: "none",
-      height: themeSpacing(6),
+      height: (listener) => themeSpacing(themeDensity(listener) * 6),
       paddingBlock: 0,
-      borderRadius: themeSpacing(999),
-      paddingInlineStart: themeSpacing(2.5),
-      paddingInlineEnd: removable ? themeSpacing(1) : themeSpacing(2.5),
+      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 999),
+      paddingInlineStart: (listener) =>
+        themeSpacing(themeDensity(listener) * 2.5),
+      paddingInlineEnd: (listener) =>
+        themeSpacing(themeDensity(listener) * (removable ? 1 : 2.5)),
       gap: themeSpacing(1.5),
       fontSize: (listener) => themeSize(listener, "decrease-1"),
       backgroundColor: (listener) =>
@@ -43818,7 +44874,12 @@ export { tag };
 ### textarea
 
 ```ts
-import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
+import {
+  behavior,
+  type PartialElement,
+  toState,
+  type ValueOrState,
+} from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
@@ -43835,7 +44896,7 @@ import { focusRing } from "../utils/focusRing.js";
  * @hostTag textarea
  * @param props.color - Theme color for the border and text. Optional, accepts a value or state. Defaults to `"neutral"`.
  * @param props.accentColor - Theme color for hover/focus outline. Optional, accepts a value or state. Defaults to `"primary"`.
- * @param props.autoResize - When true, grows the textarea height to fit its content on input. Optional. Defaults to `false`.
+ * @param props.autoResize - When true, grows the textarea height to fit its content on input and when `value` updates. Optional. Defaults to `false`.
  * @example { textarea: null, $: [textarea({ autoResize: true })] }
  */
 function textarea(
@@ -43855,18 +44916,38 @@ function textarea(
         console.warn(`"textarea" primitive patch must use textarea tag`);
       }
     },
-    _onMount: (node) => {
-      if (autoResize) {
+    // Resize on mount, on input, and when the host `value` attribute updates
+    // (controlled writes skip the input event).
+    ...behavior(
+      "textarea-auto-resize",
+      (node, initial) => {
         const el = node.domElement as HTMLTextAreaElement;
-        el.style.overflow = "hidden";
+        let enabled = initial.autoResize;
         const resize = () => {
+          if (!enabled) return;
+          el.style.overflow = "hidden";
           el.style.height = "auto";
           el.style.height = `${el.scrollHeight}px`;
         };
         el.addEventListener("input", resize);
-        resize();
-        node.addHook("Remove", () => el.removeEventListener("input", resize));
-      }
+        node.attributes.addListener("value", resize);
+        if (enabled) resize();
+        return {
+          resize,
+          update(next) {
+            enabled = next.autoResize;
+            node.attributes.addListener("value", resize);
+            if (enabled) resize();
+          },
+          destroy() {
+            el.removeEventListener("input", resize);
+          },
+        };
+      },
+      { autoResize },
+    ),
+    _onUpdate: (node) => {
+      node.getBehavior<{ resize: () => void }>("textarea-auto-resize")?.resize();
     },
     style: {
       fontFamily: "inherit",
@@ -44203,9 +45284,13 @@ export { toast };
 
 ```ts
 import {
+  behavior,
   type DomphyElement,
+  type ElementNode,
+  isState,
   type Listener,
   type PartialElement,
+  type State,
   toState,
   type ValueOrState,
 } from "@domphy/core";
@@ -44224,6 +45309,146 @@ type ToggleItem = {
   /** Stable key. Defaults to the item's zero-based index as a string. */
   key?: string;
 };
+
+type ToggleLive = {
+  items: ToggleItem[];
+  multiple: boolean;
+  color: ThemeColor;
+  accentColor: ThemeColor;
+};
+
+function persistValue<T>(
+  node: ElementNode,
+  key: string,
+  incoming: ValueOrState<T> | undefined,
+  fallback: T,
+): State<T> {
+  if (isState(incoming)) return incoming as State<T>;
+  let stored = node.getMetadata(key) as State<T> | undefined;
+  if (!stored) {
+    stored = toState((incoming as T | undefined) ?? fallback);
+    node.setMetadata(key, stored);
+  }
+  return stored;
+}
+
+function persistLive(node: ElementNode, live: ToggleLive): State<ToggleLive> {
+  let stored = node.getMetadata("toggleGroupLive") as
+    | State<ToggleLive>
+    | undefined;
+  if (!stored) {
+    stored = toState(live);
+    node.setMetadata("toggleGroupLive", stored);
+  }
+  return stored;
+}
+
+function isPressed(val: string | string[], key: string): boolean {
+  return Array.isArray(val) ? val.includes(key) : val === key;
+}
+
+function moveToggle(
+  e: Event,
+  items: ToggleItem[],
+  key: string,
+  value: State<string | string[]>,
+  multiple: boolean,
+): void {
+  const k = (e as KeyboardEvent).key;
+  if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(k)) return;
+  e.preventDefault();
+  const keys = items.map((item, index) => item.key ?? String(index));
+  const idx = keys.indexOf(key);
+  let next = idx;
+  if (k === "ArrowRight") next = (idx + 1) % keys.length;
+  else if (k === "ArrowLeft") next = (idx - 1 + keys.length) % keys.length;
+  else if (k === "Home") next = 0;
+  else if (k === "End") next = keys.length - 1;
+  if (!multiple) value.set(keys[next]);
+  const group = (e.target as HTMLElement).closest("[role=group]");
+  group?.querySelectorAll<HTMLElement>("button")[next]?.focus();
+}
+
+function buildToggleButtons(
+  items: ToggleItem[],
+  value: State<string | string[]>,
+  multiple: boolean,
+  color: ThemeColor,
+  accentColor: ThemeColor,
+): DomphyElement<"button">[] {
+  return items.map((item, index) => {
+    const key = item.key ?? String(index);
+    const labelEl: DomphyElement =
+      typeof item.label === "string"
+        ? ({ span: item.label } as DomphyElement<"span">)
+        : item.label;
+
+    return {
+      button: [labelEl],
+      _key: key,
+      type: "button",
+      role: "button",
+      ariaPressed: (l: Listener) => isPressed(value.get(l), key),
+      tabIndex: (l: Listener) => {
+        const val = value.get(l);
+        if (multiple) {
+          const arr = Array.isArray(val) ? val : [];
+          const focusKey = arr[0] ?? items[0]?.key ?? "0";
+          return key === focusKey ? 0 : -1;
+        }
+        if (val === key) return 0;
+        if (val === "" && key === (items[0]?.key ?? "0")) return 0;
+        return -1;
+      },
+      onClick: () => {
+        const val = value.get();
+        if (multiple) {
+          const arr = Array.isArray(val) ? [...val] : [];
+          value.set(
+            arr.includes(key) ? arr.filter((v) => v !== key) : [...arr, key],
+          );
+        } else {
+          value.set(val === key ? "" : key);
+        }
+      },
+      onKeyDown: (e: Event) => moveToggle(e, items, key, value, multiple),
+      style: {
+        cursor: "pointer",
+        fontSize: (l: Listener) => themeSize(l, "inherit"),
+        height: themeSpacing(6),
+        paddingBlock: themeSpacing(1),
+        paddingInline: themeSpacing(2),
+        border: "none",
+        borderRadius: themeSpacing(1.5),
+        // Unpressed: shift-13 for readable resting labels (catalog contrast).
+        color: (l: Listener) => themeColor(l, "shift-13", color),
+        backgroundColor: (l: Listener) => themeColor(l, "inherit", color),
+        transition:
+          "background-color 140ms ease, color 140ms ease, box-shadow 140ms ease",
+        "&:hover:not([disabled]):not([aria-pressed=true])": {
+          color: (l: Listener) => themeColor(l, "shift-13", color),
+          backgroundColor: (l: Listener) => themeColor(l, "hover", color),
+        },
+        "&:active:not([disabled])": {
+          backgroundColor: (l: Listener) =>
+            themeColor(l, "increase-2", color),
+        },
+        "&[aria-pressed=true]": {
+          backgroundColor: (l: Listener) =>
+            themeColor(l, "shift-3", accentColor),
+          color: (l: Listener) => themeColor(l, "shift-13", accentColor),
+        },
+        "&:focus-visible": {
+          boxShadow: (l: Listener) => focusRing(l, accentColor),
+        },
+        "&[disabled]": {
+          opacity: 0.7,
+          cursor: "not-allowed",
+        },
+      },
+    } as DomphyElement<"button">;
+  });
+}
 
 /**
  * All-in-one toggle group — single or multi-select button group. Generates
@@ -44255,81 +45480,43 @@ function toggleGroup(
     color = "neutral",
     accentColor = "primary",
   } = props;
-  const value = toState(props.value ?? (multiple ? [] : ""));
+  const live: ToggleLive = { items, multiple, color, accentColor };
 
   return {
     role: "group",
-    // Expose value + multiple in context so toggle() escape-hatch still works.
-    _context: { toggleGroup: { value, multiple } },
-    _onSchedule: (node, element) => {
-      const buttons: DomphyElement<"button">[] = items.map((item, index) => {
-        const key = item.key ?? String(index);
-        const labelEl: DomphyElement =
-          typeof item.label === "string"
-            ? ({ span: item.label } as DomphyElement<"span">)
-            : item.label;
-
-        return {
-          button: [labelEl],
-          _key: key,
-          type: "button",
-          role: "button",
-          ariaPressed: (l: Listener) => {
-            const val = value.get(l);
-            return Array.isArray(val) ? val.includes(key) : val === key;
-          },
-          onClick: () => {
-            const val = value.get();
-            if (multiple) {
-              const arr = Array.isArray(val) ? [...val] : [];
-              value.set(
-                arr.includes(key)
-                  ? arr.filter((v) => v !== key)
-                  : [...arr, key],
-              );
-            } else {
-              value.set(val === key ? "" : key);
-            }
-          },
-          style: {
-            cursor: "pointer",
-            fontSize: (l: Listener) => themeSize(l, "inherit"),
-            height: themeSpacing(6),
-            paddingBlock: themeSpacing(1),
-            paddingInline: themeSpacing(2),
-            border: "none",
-            borderRadius: themeSpacing(1.5),
-            // Unpressed: shift-13 for readable resting labels (catalog contrast).
-            color: (l: Listener) => themeColor(l, "shift-13", color),
-            backgroundColor: (l: Listener) => themeColor(l, "inherit", color),
-            transition:
-              "background-color 140ms ease, color 140ms ease, box-shadow 140ms ease",
-            "&:hover:not([disabled]):not([aria-pressed=true])": {
-              color: (l: Listener) => themeColor(l, "shift-13", color),
-              backgroundColor: (l: Listener) => themeColor(l, "hover", color),
-            },
-            "&:active:not([disabled])": {
-              backgroundColor: (l: Listener) =>
-                themeColor(l, "increase-2", color),
-            },
-            "&[aria-pressed=true]": {
-              backgroundColor: (l: Listener) =>
-                themeColor(l, "shift-3", accentColor),
-              color: (l: Listener) => themeColor(l, "shift-13", accentColor),
-            },
-            "&:focus-visible": {
-              boxShadow: (l: Listener) => focusRing(l, accentColor),
-            },
-            "&[disabled]": {
-              opacity: 0.7,
-              cursor: "not-allowed",
-            },
-          },
-        } as DomphyElement<"button">;
-      });
-
-      (element as any)[node.tagName] = buttons;
+    // Publish value + multiple so descendants can read the group selection.
+    _context: {
+      toggleGroup: {
+        value: toState(props.value ?? (multiple ? [] : "")),
+        multiple,
+      },
     },
+    _onSchedule: (node, element) => {
+      const liveState = persistLive(node, live);
+      const value = persistValue(
+        node,
+        "toggleGroupValue",
+        props.value,
+        multiple ? [] : "",
+      );
+      (element as Record<string, unknown>)[node.tagName] = (l: Listener) => {
+        const next = liveState.get(l);
+        return buildToggleButtons(
+          next.items,
+          value,
+          next.multiple,
+          next.color,
+          next.accentColor,
+        );
+      };
+    },
+    ...behavior<ToggleLive>("toggle-items", (node, next) => {
+      const apply = (snapshot: ToggleLive) => {
+        persistLive(node, snapshot).set(snapshot);
+      };
+      apply(next);
+      return { update: apply };
+    }, live),
     style: {
       display: "flex",
       paddingBlock: themeSpacing(1),

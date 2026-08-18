@@ -35,7 +35,8 @@ can be assigned there directly.
 
 Passing more than one color pins each as a fixed waypoint (e.g. an existing
 brand color that must land at a specific position), still connected by the
-same interpolation.
+same interpolation. Waypoints keep the caller-supplied order (not sorted by
+lightness) and each input hex appears unchanged on the ramp.
 
 ## What "optimized" means
 

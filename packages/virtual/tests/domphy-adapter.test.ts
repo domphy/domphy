@@ -122,6 +122,55 @@ describe("createVirtualizer anchorTo: 'end' pure-append fast path", () => {
   });
 });
 
+describe("createVirtualizer setOptions size cache", () => {
+  // Adapter setOptions used to call virtualizer.measure() on every update,
+  // which wipes itemSizeCache. A count-only change (infinite-scroll append)
+  // must keep measured sizes; the core rebuilds measurements from the cache.
+  it("preserves measured sizes on a count-only setOptions", () => {
+    const list = createVirtualizer<HTMLDivElement, HTMLDivElement>({
+      count: 10,
+      estimateSize: () => 50,
+      observeElementRect: fixedRect,
+      measureElement: () => 80,
+    });
+    const scroll = document.createElement("div");
+    document.body.appendChild(scroll);
+    list.setScrollElement(scroll);
+
+    const row = document.createElement("div");
+    row.setAttribute("data-index", "3");
+    scroll.appendChild(row);
+    list.measureElement(row);
+
+    expect(list.getTotalSize()).toBe(9 * 50 + 80);
+    expect(list.virtualizer.itemSizeCache.get(3)).toBe(80);
+
+    const versionBefore = list.version();
+    list.setOptions({ count: 20 });
+
+    // Measured key 3 is still 80; the 19 unmeasured items stay at 50.
+    expect(list.virtualizer.itemSizeCache.get(3)).toBe(80);
+    expect(list.getTotalSize()).toBe(19 * 50 + 80);
+    // Subscribers still learn about the count change (version bump).
+    expect(list.version()).toBeGreaterThan(versionBefore);
+
+    list.destroy();
+    scroll.remove();
+  });
+
+  it("still applies a count-only update when nothing has been measured", () => {
+    const list = createVirtualizer<HTMLDivElement, HTMLDivElement>({
+      count: 10,
+      estimateSize: () => 50,
+      observeElementRect: fixedRect,
+    });
+    expect(list.getTotalSize()).toBe(500);
+    list.setOptions({ count: 20 });
+    expect(list.getTotalSize()).toBe(1000);
+    list.destroy();
+  });
+});
+
 describe("createVirtualizer dynamic measurement (data-index contract)", () => {
   // The virtualizer resolves an item's index from the element's `data-index`
   // attribute (upstream indexFromElement). Every measured row MUST render it.

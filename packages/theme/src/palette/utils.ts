@@ -193,30 +193,75 @@ export const labToLch = (lab: number[]): number[] => {
 
     return [L, C, hDeg];
 };
-/** Calculate color difference using CIEDE2000 formula. */
+/**
+ * CIEDE2000 color difference (Sharma, Wu & Dalal 2005 / CIE 15).
+ * Includes the achromatic (C′1·C′2 = 0) and h̄ wrap branches: Δh′ = 0 and
+ * h̄′ = h′1 + h′2 when either sample is achromatic; when both are chromatic
+ * and |h′1 − h′2| > 180°, h̄′ uses (h′1 + h′2 + 360) / 2 if the sum is
+ * under 360° and (h′1 + h′2 − 360) / 2 otherwise.
+ */
 export const calcDeltaE2000 = (lab1: number[], lab2: number[]): number => {
-    const [L1, a1, b1] = lab1, [L2, a2, b2] = lab2;
-    const avgL = (L1 + L2) / 2;
-    const C1 = Math.sqrt(a1 * a1 + b1 * b1), C2 = Math.sqrt(a2 * a2 + b2 * b2);
+    const [L1, a1, b1] = lab1;
+    const [L2, a2, b2] = lab2;
+    const C1 = Math.hypot(a1, b1);
+    const C2 = Math.hypot(a2, b2);
     const avgC = (C1 + C2) / 2;
-    const G = 0.5 * (1 - Math.sqrt(Math.pow(avgC, 7) / (Math.pow(avgC, 7) + Math.pow(25, 7))));
-    const a1p = a1 * (1 + G), a2p = a2 * (1 + G);
-    const C1p = Math.sqrt(a1p * a1p + b1 * b1), C2p = Math.sqrt(a2p * a2p + b2 * b2);
+    const G = 0.5 * (1 - Math.sqrt(avgC ** 7 / (avgC ** 7 + 25 ** 7)));
+    const a1p = a1 * (1 + G);
+    const a2p = a2 * (1 + G);
+    const C1p = Math.hypot(a1p, b1);
+    const C2p = Math.hypot(a2p, b2);
     const avgCp = (C1p + C2p) / 2;
-    const h1p = Math.atan2(b1, a1p) * 180 / Math.PI + (Math.atan2(b1, a1p) < 0 ? 360 : 0);
-    const h2p = Math.atan2(b2, a2p) * 180 / Math.PI + (Math.atan2(b2, a2p) < 0 ? 360 : 0);
-    let dhp = h2p - h1p;
-    if (Math.abs(dhp) > 180) dhp += (h2p <= h1p ? 360 : -360);
-    const avgHp = Math.abs(h1p - h2p) > 180 ? (h1p + h2p + 360) / 2 : (h1p + h2p) / 2;
-    const T = 1 - 0.17 * Math.cos((avgHp - 30) * Math.PI / 180) + 0.24 * Math.cos(2 * avgHp * Math.PI / 180) + 0.32 * Math.cos((3 * avgHp + 6) * Math.PI / 180) - 0.2 * Math.cos((4 * avgHp - 63) * Math.PI / 180);
-    const dLp = L2 - L1, dCp = C2p - C1p;
-    const dHp = 2 * Math.sqrt(C1p * C2p) * Math.sin(dhp / 2 * Math.PI / 180);
-    const SL = 1 + (0.015 * Math.pow(avgL - 50, 2)) / Math.sqrt(20 + Math.pow(avgL - 50, 2));
-    const SC = 1 + 0.045 * avgCp, SH = 1 + 0.015 * avgCp * T;
-    const dtheta = 30 * Math.exp(-Math.pow((avgHp - 275) / 25, 2));
-    const RC = 2 * Math.sqrt(Math.pow(avgCp, 7) / (Math.pow(avgCp, 7) + Math.pow(25, 7)));
-    const RT = -RC * Math.sin(2 * dtheta * Math.PI / 180);
-    return Math.sqrt(Math.pow(dLp / SL, 2) + Math.pow(dCp / SC, 2) + Math.pow(dHp / SH, 2) + RT * (dCp / SC) * (dHp / SH));
+
+    const huePrime = (aPrime: number, b: number): number => {
+        if (aPrime === 0 && b === 0) return 0;
+        const angle = (Math.atan2(b, aPrime) * 180) / Math.PI;
+        return angle >= 0 ? angle : angle + 360;
+    };
+    const h1p = huePrime(a1p, b1);
+    const h2p = huePrime(a2p, b2);
+    const hueDifference = h2p - h1p;
+    const hueAbs = Math.abs(hueDifference);
+    const hueSum = h1p + h2p;
+    const achromatic = C1p * C2p === 0;
+
+    let dhp: number;
+    if (achromatic) dhp = 0;
+    else if (hueAbs <= 180) dhp = hueDifference;
+    else if (hueDifference > 180) dhp = hueDifference - 360;
+    else dhp = hueDifference + 360;
+
+    // Sharma / CIE: h̄′ when either C′ is 0 is the sum (the chromatic hue, or
+    // 0 if both are gray). The wrap when |Δh′| > 180° picks +360 or −360
+    // from whether the raw sum sits below 360°.
+    let avgHp: number;
+    if (achromatic) avgHp = hueSum;
+    else if (hueAbs <= 180) avgHp = hueSum / 2;
+    else if (hueSum < 360) avgHp = (hueSum + 360) / 2;
+    else avgHp = (hueSum - 360) / 2;
+
+    const T =
+        1 -
+        0.17 * Math.cos(((avgHp - 30) * Math.PI) / 180) +
+        0.24 * Math.cos((2 * avgHp * Math.PI) / 180) +
+        0.32 * Math.cos(((3 * avgHp + 6) * Math.PI) / 180) -
+        0.2 * Math.cos(((4 * avgHp - 63) * Math.PI) / 180);
+    const dLp = L2 - L1;
+    const dCp = C2p - C1p;
+    const dHp = 2 * Math.sqrt(C1p * C2p) * Math.sin((dhp / 2) * Math.PI / 180);
+    const avgL = (L1 + L2) / 2;
+    const SL = 1 + (0.015 * (avgL - 50) ** 2) / Math.sqrt(20 + (avgL - 50) ** 2);
+    const SC = 1 + 0.045 * avgCp;
+    const SH = 1 + 0.015 * avgCp * T;
+    const dtheta = 30 * Math.exp(-(((avgHp - 275) / 25) ** 2));
+    const RC = 2 * Math.sqrt(avgCp ** 7 / (avgCp ** 7 + 25 ** 7));
+    const RT = -RC * Math.sin((2 * dtheta * Math.PI) / 180);
+    return Math.sqrt(
+        (dLp / SL) ** 2 +
+        (dCp / SC) ** 2 +
+        (dHp / SH) ** 2 +
+        RT * (dCp / SC) * (dHp / SH),
+    );
 };
 
 /**

@@ -5,6 +5,7 @@ import {
   createMemoryHistory,
   type DomphyApp,
   defineRoutes,
+  redirect,
   type Route,
 } from "../src/index";
 
@@ -66,6 +67,60 @@ function interceptRoutes(): Route[] {
   ]);
 }
 
+function slotLoaderRoutes(): Route[] {
+  return defineRoutes([
+    {
+      path: "dash",
+      layout: (children, _context, slots) => ({
+        div: [
+          { section: [slots.team ?? { span: "" }], dataSlot: "team" },
+          { section: [slots.metrics ?? { span: "" }], dataSlot: "metrics" },
+          children,
+        ],
+      }),
+      slots: {
+        team: [
+          {
+            path: "",
+            loader: () => "team-data",
+            page: (context) => ({ span: String(context.data) }),
+          },
+        ],
+        metrics: [
+          {
+            path: "",
+            loader: () => "metrics-data",
+            page: (context) => ({ span: String(context.data) }),
+          },
+        ],
+      },
+      children: [{ path: "", page: () => ({ h1: "Dash home" }) }],
+    },
+  ]);
+}
+
+function slotRedirectRoutes(): Route[] {
+  return defineRoutes([
+    {
+      path: "dash",
+      layout: (children, _context, slots) => ({
+        div: [slots.panel ?? { span: "" }, children],
+      }),
+      slots: {
+        panel: [
+          {
+            path: "",
+            loader: () => redirect("/about"),
+            page: () => ({ span: "panel" }),
+          },
+        ],
+      },
+      children: [{ path: "", page: () => ({ h1: "Dash" }) }],
+    },
+    { path: "about", page: () => ({ h1: "About" }) },
+  ]);
+}
+
 async function mount(routes: Route[], initial: string): Promise<void> {
   app = createApp(routes, { history: createMemoryHistory(initial) });
   container = document.createElement("div");
@@ -99,6 +154,19 @@ describe("parallel routes", () => {
     expect(container.textContent).not.toContain("team-home");
     // metrics slot has no match for /dash/users -> omitted
     expect(container.textContent).toContain("no-metrics");
+  });
+
+  it("gives path:\"\" slots distinct loader cache keys", async () => {
+    await mount(slotLoaderRoutes(), "/dash");
+    expect(container.textContent).toContain("team-data");
+    expect(container.textContent).toContain("metrics-data");
+  });
+
+  it("follows a redirect thrown by a slot loader", async () => {
+    await mount(slotRedirectRoutes(), "/dash");
+    expect(app.router.state.get("pathname")).toBe("/about");
+    expect(container.textContent).toContain("About");
+    expect(container.textContent).not.toContain("Dash");
   });
 });
 

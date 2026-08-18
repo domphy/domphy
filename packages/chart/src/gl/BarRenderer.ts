@@ -73,25 +73,36 @@ export class BarRenderer {
     for (const b of this.instanceBuffers) b.destroy();
     this.instanceBuffers = [];
 
-    const stackGroups = new Map<string | null, BarSeriesOption[]>();
-    for (const s of series) {
-      const key = s.stack ?? null;
-      if (!stackGroups.has(key)) stackGroups.set(key, []);
-      stackGroups.get(key)!.push(s);
-    }
-
-    const grouped = stackGroups.get(null) ?? [];
-    const stacked = [...stackGroups.entries()].filter(([k]) => k !== null);
-
-    const firstSeries = series[0];
-    const xScale = xScales[firstSeries?.xAxisIndex ?? 0];
-    const yScale = yScales[firstSeries?.yAxisIndex ?? 0];
-    if (!xScale || !yScale) return;
-
     const allInstances: number[] = [];
     let barCount = 0;
     const barRadius = 2;
     const gap = 2; // px gap between bars in a group
+
+    // Group by the series' own axes first so a secondary x/y axis does not
+    // inherit the first series' scales (and so stacked/grouped bars only
+    // share a band with series on the same axes).
+    const axisGroups = new Map<string, BarSeriesOption[]>();
+    for (const s of series) {
+      const key = `${s.xAxisIndex ?? 0}\0${s.yAxisIndex ?? 0}`;
+      if (!axisGroups.has(key)) axisGroups.set(key, []);
+      axisGroups.get(key)!.push(s);
+    }
+
+    for (const axisSeries of axisGroups.values()) {
+      const firstSeries = axisSeries[0];
+      const xScale = xScales[firstSeries?.xAxisIndex ?? 0];
+      const yScale = yScales[firstSeries?.yAxisIndex ?? 0];
+      if (!xScale || !yScale) continue;
+
+      const stackGroups = new Map<string | null, BarSeriesOption[]>();
+      for (const s of axisSeries) {
+        const key = s.stack ?? null;
+        if (!stackGroups.has(key)) stackGroups.set(key, []);
+        stackGroups.get(key)!.push(s);
+      }
+
+      const grouped = stackGroups.get(null) ?? [];
+      const stacked = [...stackGroups.entries()].filter(([k]) => k !== null);
 
     // Detect orientation: y-axis has bandwidth → horizontal bars (y=category, x=value).
     // The grid's y-scale pixel range is intentionally reversed (bottom→top, see
@@ -312,6 +323,7 @@ export class BarRenderer {
           });
         });
       }
+    }
     }
 
     if (barCount === 0) return;

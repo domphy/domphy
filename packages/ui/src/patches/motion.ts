@@ -1,4 +1,9 @@
-import type { PartialElement, State } from "@domphy/core";
+import {
+  type BehaviorInstance,
+  behavior,
+  type PartialElement,
+  type State,
+} from "@domphy/core";
 
 /**
  * One keyframe. Shorthands `x`/`y` (px), `scale`, `rotate` (deg) compose into a
@@ -30,7 +35,13 @@ export interface MotionProps {
   };
 }
 
-const isState = (value: unknown): value is State<MotionKeyframe> =>
+type MotionInstance = BehaviorInstance<MotionProps> & {
+  play: (props: MotionProps, mode: "enter" | "update") => void;
+  getExit: () => MotionKeyframe | undefined;
+  getTransition: () => MotionProps["transition"];
+};
+
+const isMotionState = (value: unknown): value is State<MotionKeyframe> =>
   !!value &&
   typeof (value as State<MotionKeyframe>).get === "function" &&
   (value as { _isState?: boolean })._isState === true;
@@ -62,11 +73,27 @@ const toStyles = (frame: MotionKeyframe): Keyframe => {
   return out as Keyframe;
 };
 
+function toOptions(
+  transition: MotionProps["transition"] = {},
+): KeyframeAnimationOptions {
+  return {
+    duration: transition.duration ?? 300,
+    delay: transition.delay ?? 0,
+    easing: transition.easing ?? "ease",
+    iterations: transition.iterations ?? 1,
+    fill: "both",
+  };
+}
+
 /**
  * Animation primitive driven by the Web Animations API. Runs an enter
  * animation on mount (`initial` -> `animate`), re-animates whenever `animate`
  * is a `State` that changes, and plays the `exit` keyframe before removal.
  * Has no host-tag restriction; apply to any element you want to animate.
+ *
+ * Later generations route a fresh `animate`/`exit`/`transition` into the same
+ * `behavior()` instance via `update()`, so a reused node is not stuck on
+ * generation-1 keyframes.
  *
  * @param props - Optional configuration (see {@link MotionProps}).
  * @param props.initial - Starting keyframe applied before the enter animation.
@@ -88,62 +115,89 @@ function prefersReducedMotion(): boolean {
   }
 }
 
-function motion(props: MotionProps = {}): PartialElement {
-  const { initial, animate, exit, transition = {} } = props;
-  const options: KeyframeAnimationOptions = {
-    duration: transition.duration ?? 300,
-    delay: transition.delay ?? 0,
-    easing: transition.easing ?? "ease",
-    iterations: transition.iterations ?? 1,
-    fill: "both",
+function attachMotion(
+  node: { domElement?: HTMLElement | null },
+  initial: MotionProps,
+): MotionInstance {
+  const el = node.domElement as HTMLElement | null;
+  let current = initial;
+  let release: (() => void) | undefined;
+
+  const bindAnimate = (animate: MotionProps["animate"]) => {
+    release?.();
+    release = undefined;
+    if (!el || !isMotionState(animate)) return;
+    release = animate.addListener((next: MotionKeyframe) => {
+      if (prefersReducedMotion()) {
+        Object.assign(el.style, toStyles(next));
+      } else if (typeof el.animate === "function") {
+        el.animate([toStyles(next)], toOptions(current.transition));
+      }
+    });
   };
 
+  const play = (props: MotionProps, mode: "enter" | "update") => {
+    if (!el) return;
+    const target = isMotionState(props.animate)
+      ? props.animate.get()
+      : props.animate;
+    if (prefersReducedMotion()) {
+      if (target) Object.assign(el.style, toStyles(target));
+      else if (mode === "enter" && props.initial) {
+        Object.assign(el.style, toStyles(props.initial));
+      }
+      return;
+    }
+    if (typeof el.animate !== "function") return;
+    if (target) {
+      const frames =
+        mode === "enter" && props.initial
+          ? [toStyles(props.initial), toStyles(target)]
+          : [toStyles(target)];
+      el.animate(frames, toOptions(props.transition));
+    } else if (mode === "enter" && props.initial) {
+      Object.assign(el.style, toStyles(props.initial));
+    }
+  };
+
+  play(initial, "enter");
+  bindAnimate(initial.animate);
+
   return {
-    _onMount: (node) => {
-      const el = node.domElement as HTMLElement | null;
-      if (!el || typeof el.animate !== "function") return;
-      const target = isState(animate) ? animate.get() : animate;
-      // WCAG 2.3.3 / Front-End Checklist: respect prefers-reduced-motion.
-      if (prefersReducedMotion()) {
-        if (target) Object.assign(el.style, toStyles(target));
-        else if (initial) Object.assign(el.style, toStyles(initial));
-        if (isState(animate)) {
-          const release = animate.addListener((next: MotionKeyframe) => {
-            Object.assign(el.style, toStyles(next));
-          });
-          node.setMetadata("motionRelease", release);
-        }
-        return;
-      }
-      if (target) {
-        el.animate(
-          initial ? [toStyles(initial), toStyles(target)] : [toStyles(target)],
-          options,
-        );
-      } else if (initial) {
-        Object.assign(el.style, toStyles(initial));
-      }
-      if (isState(animate)) {
-        const release = animate.addListener((next: MotionKeyframe) => {
-          el.animate([toStyles(next)], options);
-        });
-        node.setMetadata("motionRelease", release);
-      }
+    play,
+    getExit: () => current.exit,
+    getTransition: () => current.transition,
+    update(next) {
+      current = next;
+      play(next, "update");
+      bindAnimate(next.animate);
     },
+    destroy() {
+      release?.();
+    },
+  };
+}
+
+function motion(props: MotionProps = {}): PartialElement {
+  return {
+    ...behavior<MotionProps>(
+      "motion",
+      (node, next) => attachMotion(node, next),
+      props,
+    ),
     _onBeforeRemove: (node, done) => {
       const el = node.domElement as HTMLElement | null;
+      const inst = node.getBehavior<MotionInstance>("motion");
+      const exit = inst?.getExit() ?? props.exit;
       if (!el || !exit || typeof el.animate !== "function") return done();
       if (prefersReducedMotion()) {
         Object.assign(el.style, toStyles(exit));
         return done();
       }
-      el.animate([toStyles(exit)], options).finished.then(done, done);
-    },
-    _onRemove: (node) => {
-      const release = node.getMetadata("motionRelease") as
-        | (() => void)
-        | undefined;
-      release?.();
+      el.animate(
+        [toStyles(exit)],
+        toOptions(inst?.getTransition() ?? props.transition),
+      ).finished.then(done, done);
     },
   };
 }

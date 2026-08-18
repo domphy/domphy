@@ -658,7 +658,7 @@ interface TooltipOption {
   }
   
   confine?: boolean
-  appendToBody?: boolean
+  appendToBody?: boolean  // mounts on document.body, position:fixed (escapes ancestor overflow)
 }
 ```
 
@@ -912,17 +912,27 @@ ChartOption
 
 Series: `heatmap`, `candlestick`, `boxplot`, `gauge`, `treemap`, `funnel`, `sankey`, `graph`  
 Gradient area fills (`GradientObject` — linear + radial)  
-Components: `dataZoom`, `visualMap`, `toolbox`, `brush`  
-Axes: `log`  
-Dataset + transforms  
+Components: `dataZoom`, `visualMap`  
+Axes: `log` (zoom windows apply; auto min includes (0, 1) data)  
+Dataset + transforms (`option.dataset` / `series.encode` / `series.datasetIndex` joined in `ChartEngine.setOption`)  
 Mark point/line/area  
+
+### Phase 2 typed only (not rendered)
+
+`toolbox`, `brush` — present on `ChartOption` for ECharts interop; `setOption` warns once and they have no effect.
 
 ## Phase 3 (shipped)
 
-Series: `custom`, `parallel`, `themeRiver`, `map`, `scatter3D`, `bar3D`, `line3D`, `surface3D`  
+Series: `parallel`, `themeRiver`, `map`, `scatter3D`, `bar3D`, `line3D`, `surface3D`  
 Calendar coordinate system (`calendar` + `heatmap[coordinateSystem:"calendar"]`)  
 Geo/map (`geo` + `map` series, GeoJSON via `registerMap`)  
 3D charts (`grid3D`, `xAxis3D`, `yAxis3D`, `zAxis3D`) — SVG perspective projection, no extra package required  
+Polar layout (`option.polar` / `angleAxis` / `radiusAxis`) is resolved via `resolvePolar` when present  
+
+### Phase 3 typed only (not rendered)
+
+`custom` series — `setOption` warns once; the series is ignored.  
+Polar *series drawing* (`coordinateSystem: "polar"` on bar/line/scatter) is not implemented; only the coord is computed.  
 
 ### New series types (Phase 3)
 

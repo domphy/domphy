@@ -12,6 +12,7 @@ import type {
   Listener,
   StyleObject,
 } from "@domphy/core";
+import { behavior } from "@domphy/core";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
 
 export interface SmoothCursorSpring {
@@ -132,9 +133,32 @@ function smoothCursor(props: SmoothCursorProps = {}): DomphyElement<"div"> {
       transform: "translate(-100px, -100px)",
       ...(props.style ?? {}),
     },
-    _onMount: (node: ElementNode) => {
-      if (typeof window === "undefined") return;
-      const element = node.domElement as HTMLElement;
+    ...behavior<{ spring: Required<SmoothCursorSpring> }>(
+      "magicui-smooth-cursor",
+      attachSmoothCursor,
+      { spring },
+    ),
+  };
+
+  return {
+    div: [resting, follower],
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      minWidth: themeSpacing(12),
+      minHeight: themeSpacing(12),
+    },
+  };
+}
+
+function attachSmoothCursor(
+  node: ElementNode,
+  initialProps: { spring: Required<SmoothCursorSpring> },
+) {
+  let spring = initialProps.spring;
+  if (typeof window === "undefined") return { update() {}, destroy() {} };
+  const element = node.domElement as HTMLElement;
       const previousCursor = document.body.style.cursor;
       const pointerQuery =
         typeof window.matchMedia === "function"
@@ -291,23 +315,15 @@ function smoothCursor(props: SmoothCursorProps = {}): DomphyElement<"div"> {
       window.addEventListener("pointermove", handleMove);
       pointerQuery?.addEventListener("change", updateEnabled);
 
-      node.addHook("Remove", () => {
-        window.removeEventListener("pointermove", handleMove);
-        pointerQuery?.removeEventListener("change", updateEnabled);
-        if (frameHandle !== null) cancelAnimationFrame(frameHandle);
-        document.body.style.cursor = previousCursor;
-      });
-    },
-  };
-
   return {
-    div: [resting, follower],
-    style: {
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center",
-      minWidth: themeSpacing(12),
-      minHeight: themeSpacing(12),
+    update(next: { spring: Required<SmoothCursorSpring> }) {
+      spring = next.spring;
+    },
+    destroy() {
+      window.removeEventListener("pointermove", handleMove);
+      pointerQuery?.removeEventListener("change", updateEnabled);
+      if (frameHandle !== null) cancelAnimationFrame(frameHandle);
+      document.body.style.cursor = previousCursor;
     },
   };
 }

@@ -15,6 +15,7 @@
 // literal hex values, so the globe matches whatever theme is active.
 
 import type { DomphyElement, ElementNode } from "@domphy/core";
+import { behavior } from "@domphy/core";
 import { type ThemeColor, themeColorToken, themeSpacing } from "@domphy/theme";
 import createGlobe, { type COBEOptions, type Globe, type Marker } from "cobe";
 
@@ -57,6 +58,22 @@ export interface GlobeProps {
 // Well-known public city coordinates — plain geographic facts, used purely as
 // illustrative default marker locations for the demo, not sourced from any
 // third party's specific marker dataset.
+const GLOBE_BEHAVIOR_KEY = "magicui-globe";
+
+interface GlobeBehaviorProps {
+  dark: boolean;
+  mapSamples: number;
+  mapBrightness: number;
+  rotationSpeed: number;
+  initialPhi: number;
+  initialTheta: number;
+  markers: GlobeMarker[];
+  draggable: boolean;
+  baseColor?: [number, number, number];
+  markerColor?: [number, number, number];
+  glowColor?: [number, number, number];
+}
+
 const DEFAULT_MARKERS: GlobeMarker[] = [
   { latitude: 14.5995, longitude: 120.9842, size: 0.03 }, // Manila
   { latitude: 19.076, longitude: 72.8777, size: 0.1 }, // Mumbai
@@ -107,31 +124,50 @@ function globe(props: GlobeProps = {}): DomphyElement<"div"> {
       marginInline: "auto",
       contain: "layout paint size",
     },
-    _onMount: (node: ElementNode) => {
-      const container = node.domElement as HTMLElement | null;
-      if (!container || typeof document === "undefined") return;
+    ...behavior<GlobeBehaviorProps>(GLOBE_BEHAVIOR_KEY, attachGlobe, {
+      dark,
+      mapSamples,
+      mapBrightness,
+      rotationSpeed,
+      initialPhi,
+      initialTheta,
+      markers,
+      draggable,
+      baseColor: props.baseColor,
+      markerColor: props.markerColor,
+      glowColor: props.glowColor,
+    }),
+  };
+}
 
-      const canvas = document.createElement("canvas");
-      canvas.setAttribute("aria-hidden", "true");
-      canvas.style.position = "absolute";
-      canvas.style.inset = "0";
-      canvas.style.width = "100%";
-      canvas.style.height = "100%";
-      canvas.style.cursor = draggable ? "grab" : "default";
-      canvas.style.opacity = "0";
-      canvas.style.transition = "opacity 500ms cubic-bezier(0.4, 0, 0.2, 1)";
-      container.appendChild(canvas);
+function attachGlobe(node: ElementNode, initialProps: GlobeBehaviorProps) {
+  let props = initialProps;
+  const container = node.domElement as HTMLElement | null;
+  if (!container || typeof document === "undefined") {
+    return { update() {}, destroy() {} };
+  }
 
-      // Upstream feeds the drag offset into a motion/react spring
-      // (mass 1, damping 30, stiffness 100 → damping ratio 1.5, i.e.
-      // overdamped: eases toward the target with no overshoot and, once the
-      // drag is released, no residual momentum — the spring just settles).
-      // We integrate that same spring by hand each frame instead of coasting.
-      const SPRING_MASS = 1;
-      const SPRING_DAMPING = 30;
-      const SPRING_STIFFNESS = 100;
+  const canvas = document.createElement("canvas");
+  canvas.setAttribute("aria-hidden", "true");
+  canvas.style.position = "absolute";
+  canvas.style.inset = "0";
+  canvas.style.width = "100%";
+  canvas.style.height = "100%";
+  canvas.style.cursor = props.draggable ? "grab" : "default";
+  canvas.style.opacity = "0";
+  canvas.style.transition = "opacity 500ms cubic-bezier(0.4, 0, 0.2, 1)";
+  container.appendChild(canvas);
 
-      let phi = initialPhi;
+  // Upstream feeds the drag offset into a motion/react spring
+  // (mass 1, damping 30, stiffness 100 → damping ratio 1.5, i.e.
+  // overdamped: eases toward the target with no overshoot and, once the
+  // drag is released, no residual momentum — the spring just settles).
+  // We integrate that same spring by hand each frame instead of coasting.
+  const SPRING_MASS = 1;
+  const SPRING_DAMPING = 30;
+  const SPRING_STIFFNESS = 100;
+
+  let phi = props.initialPhi;
       // Accumulated drag offset (radians) — the spring's target — and the
       // spring's own current value/velocity that ease toward it.
       let dragTarget = 0;
@@ -159,7 +195,7 @@ function globe(props: GlobeProps = {}): DomphyElement<"div"> {
         }
       };
 
-      const markerList: Marker[] = markers.map((marker) => ({
+      const markerList: Marker[] = props.markers.map((marker) => ({
         location: [marker.latitude, marker.longitude],
         size: marker.size ?? 0.05,
         color: marker.color,
@@ -185,11 +221,11 @@ function globe(props: GlobeProps = {}): DomphyElement<"div"> {
         width,
         height: width,
         phi,
-        theta: initialTheta,
-        dark: dark ? 1 : 0,
+        theta: props.initialTheta,
+        dark: props.dark ? 1 : 0,
         diffuse: 0.4,
-        mapSamples,
-        mapBrightness,
+        mapSamples: props.mapSamples,
+        mapBrightness: props.mapBrightness,
         baseColor,
         markerColor,
         glowColor,
@@ -218,7 +254,8 @@ function globe(props: GlobeProps = {}): DomphyElement<"div"> {
       // target (semi-implicit Euler; dt is clamped so a backgrounded tab
       // can't destabilize it), and uploads the final rotation.
       const tick = () => {
-        if (pointerStartX === null) phi += rotationSpeed;
+        if (!canvas.isConnected) return;
+        if (pointerStartX === null) phi += props.rotationSpeed;
 
         const now =
           typeof performance !== "undefined" ? performance.now() : Date.now();
@@ -275,7 +312,7 @@ function globe(props: GlobeProps = {}): DomphyElement<"div"> {
         if (touch) applyMovement(touch.clientX);
       };
 
-      if (draggable) {
+      if (props.draggable) {
         canvas.addEventListener("pointerdown", handlePointerDown);
         canvas.addEventListener("pointerup", handlePointerUp);
         canvas.addEventListener("pointerout", handlePointerOut);
@@ -296,23 +333,26 @@ function globe(props: GlobeProps = {}): DomphyElement<"div"> {
         resizeObserver.observe(container);
       }
 
-      node.addHook("Remove", () => {
-        if (
-          animationFrameId !== null &&
-          typeof cancelAnimationFrame === "function"
-        ) {
-          cancelAnimationFrame(animationFrameId);
-        }
-        globeInstance?.destroy();
-        resizeObserver?.disconnect();
-        if (draggable) {
-          canvas.removeEventListener("pointerdown", handlePointerDown);
-          canvas.removeEventListener("pointerup", handlePointerUp);
-          canvas.removeEventListener("pointerout", handlePointerOut);
-          canvas.removeEventListener("mousemove", handleMouseMove);
-          canvas.removeEventListener("touchmove", handleTouchMove);
-        }
-      });
+  return {
+    update(next: GlobeBehaviorProps) {
+      props = next;
+    },
+    destroy() {
+      if (
+        animationFrameId !== null &&
+        typeof cancelAnimationFrame === "function"
+      ) {
+        cancelAnimationFrame(animationFrameId);
+      }
+      globeInstance?.destroy();
+      resizeObserver?.disconnect();
+      if (props.draggable) {
+        canvas.removeEventListener("pointerdown", handlePointerDown);
+        canvas.removeEventListener("pointerup", handlePointerUp);
+        canvas.removeEventListener("pointerout", handlePointerOut);
+        canvas.removeEventListener("mousemove", handleMouseMove);
+        canvas.removeEventListener("touchmove", handleTouchMove);
+      }
     },
   };
 }

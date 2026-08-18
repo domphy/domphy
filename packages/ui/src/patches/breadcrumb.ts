@@ -41,7 +41,7 @@ function breadcrumb(
       "& > *": {
         display: "inline-flex",
         alignItems: "center",
-        color: (listener) => themeColor(listener, "muted", color.get(listener)),
+        color: (listener) => themeColor(listener, "text", color.get(listener)),
       },
       "& > *:not(:last-child)::after": {
         content: `"${separator}"`,

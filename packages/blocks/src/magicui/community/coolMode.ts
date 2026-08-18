@@ -32,6 +32,7 @@ import type {
   Listener,
   StyleObject,
 } from "@domphy/core";
+import { behavior } from "@domphy/core";
 import { type ThemeColor, themeColor, themeColorToken } from "@domphy/theme";
 import { button } from "@domphy/ui";
 
@@ -273,71 +274,100 @@ function coolMode(props: CoolModeProps = {}): DomphyElement<"span"> {
   return {
     span: children,
     style: { display: "inline-block", ...(props.style ?? {}) } as StyleObject,
-    _onMount: (node: ElementNode) => {
-      if (typeof window === "undefined") return;
-      sharedMountedInstanceCount += 1;
-      const element = node.domElement as HTMLElement;
-
-      let spawnTimer: ReturnType<typeof setInterval> | null = null;
-      let lastPointerX = 0;
-      let lastPointerY = 0;
-
-      const spawnAtLastPointer = () => {
-        // Belt-and-suspenders: if the wrapped element was torn down without
-        // the framework's own "Remove" hook firing (e.g. a raw DOM wipe),
-        // this interval would otherwise spawn particles forever. Bail and
-        // self-clear instead of relying solely on pointerup/pointerleave.
-        if (!element.isConnected) {
-          stopEmitting();
-          return;
-        }
-        spawnParticle(
-          node,
-          lastPointerX,
-          lastPointerY,
-          appearance,
-          sizes,
-          props.size,
-          props.driftSpeed,
-          props.launchSpeed,
-        );
-      };
-
-      const trackPointer = (event: PointerEvent) => {
-        lastPointerX = event.clientX;
-        lastPointerY = event.clientY;
-      };
-
-      const stopEmitting = () => {
-        if (spawnTimer !== null) {
-          clearInterval(spawnTimer);
-          spawnTimer = null;
-        }
-        window.removeEventListener("pointermove", trackPointer);
-        window.removeEventListener("pointerup", stopEmitting);
-      };
-
-      const handlePointerDown = (event: PointerEvent) => {
-        trackPointer(event);
-        spawnAtLastPointer();
-        stopEmitting();
-        spawnTimer = setInterval(spawnAtLastPointer, SPAWN_INTERVAL_MS);
-        window.addEventListener("pointermove", trackPointer);
-        window.addEventListener("pointerup", stopEmitting);
-      };
-
-      element.addEventListener("pointerdown", handlePointerDown);
-      element.addEventListener("pointerleave", stopEmitting);
-
-      node.addHook("Remove", () => {
-        sharedMountedInstanceCount -= 1;
-        stopEmitting();
-        element.removeEventListener("pointerdown", handlePointerDown);
-        element.removeEventListener("pointerleave", stopEmitting);
-        teardownSharedOverlayIfIdle();
-      });
-    },
+    ...behavior<{
+      appearance: CoolModeParticleAppearance;
+      sizes: number[];
+      size?: number;
+      driftSpeed?: number;
+      launchSpeed?: number;
+    }>(
+      "magicui-cool-mode",
+      attachCoolMode,
+      {
+        appearance,
+        sizes,
+        size: props.size,
+        driftSpeed: props.driftSpeed,
+        launchSpeed: props.launchSpeed,
+      },
+    ),
   } as DomphyElement<"span">;
+}
+
+function attachCoolMode(
+  node: ElementNode,
+  initialProps: {
+    appearance: CoolModeParticleAppearance;
+    sizes: number[];
+    size?: number;
+    driftSpeed?: number;
+    launchSpeed?: number;
+  },
+) {
+  let props = initialProps;
+  if (typeof window === "undefined") return { update() {}, destroy() {} };
+  sharedMountedInstanceCount += 1;
+  const element = node.domElement as HTMLElement;
+
+  let spawnTimer: ReturnType<typeof setInterval> | null = null;
+  let lastPointerX = 0;
+  let lastPointerY = 0;
+
+  const spawnAtLastPointer = () => {
+    if (!element.isConnected) {
+      stopEmitting();
+      return;
+    }
+    spawnParticle(
+      node,
+      lastPointerX,
+      lastPointerY,
+      props.appearance,
+      props.sizes,
+      props.size,
+      props.driftSpeed,
+      props.launchSpeed,
+    );
+  };
+
+  const trackPointer = (event: PointerEvent) => {
+    lastPointerX = event.clientX;
+    lastPointerY = event.clientY;
+  };
+
+  const stopEmitting = () => {
+    if (spawnTimer !== null) {
+      clearInterval(spawnTimer);
+      spawnTimer = null;
+    }
+    window.removeEventListener("pointermove", trackPointer);
+    window.removeEventListener("pointerup", stopEmitting);
+  };
+
+  const handlePointerDown = (event: PointerEvent) => {
+    trackPointer(event);
+    spawnAtLastPointer();
+    stopEmitting();
+    spawnTimer = setInterval(spawnAtLastPointer, SPAWN_INTERVAL_MS);
+    window.addEventListener("pointermove", trackPointer);
+    window.addEventListener("pointerup", stopEmitting);
+  };
+
+  element.addEventListener("pointerdown", handlePointerDown);
+  element.addEventListener("pointerleave", stopEmitting);
+
+  return {
+    update(next: typeof initialProps) {
+      props = next;
+    },
+    destroy() {
+      sharedMountedInstanceCount -= 1;
+      stopEmitting();
+      element.removeEventListener("pointerdown", handlePointerDown);
+      element.removeEventListener("pointerleave", stopEmitting);
+      teardownSharedOverlayIfIdle();
+    },
+  };
 }
 
 export { coolMode };

@@ -12,8 +12,8 @@
 // copied. The arc geometry, tooltip layer and card chrome below are original,
 // hand-rolled SVG + Domphy-patch composition.
 
-import type { DomphyElement, Listener, State } from "@domphy/core";
-import { toState } from "@domphy/core";
+import type { DomphyElement, ElementNode, Listener, State } from "@domphy/core";
+import { behavior, toState } from "@domphy/core";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import { card, heading, icon, small } from "@domphy/ui";
 import { fixed } from "../../shared/typography.js";
@@ -224,9 +224,12 @@ export function wedgeTooltipHandlers(
     seriesLabel,
   } = options;
 
-  const update = (event: Event) => {
+  const update = (event: Event, node?: ElementNode) => {
     const mouseEvent = event as MouseEvent;
-    const rect = containerRef.current?.getBoundingClientRect();
+    const container =
+      node?.getBehavior<{ element: HTMLElement }>("pie-container")?.element ??
+      containerRef.current;
+    const rect = container?.getBoundingClientRect();
     const name = showName
       ? seriesLabel
         ? `${seriesLabel} · ${slice.datum.name}`
@@ -710,6 +713,35 @@ export function pieCardFooter(
   };
 }
 
+type PieContainerBehaviorProps = {
+  containerRef: ChartContainerRef;
+};
+
+type PieContainerBehavior = {
+  element: HTMLElement;
+  update: (next: PieContainerBehaviorProps) => void;
+  destroy: () => void;
+};
+
+function attachPieContainer(
+  node: ElementNode,
+  props: PieContainerBehaviorProps,
+): PieContainerBehavior {
+  const element = node.domElement as HTMLElement;
+  // Keep writing the (possibly cloned) factory ref so existing call sites
+  // that still read `containerRef.current` stay consistent on first mount.
+  props.containerRef.current = element;
+  return {
+    element,
+    update: (next: PieContainerBehaviorProps) => {
+      next.containerRef.current = element;
+    },
+    destroy: () => {
+      props.containerRef.current = null;
+    },
+  };
+}
+
 export function pieChartContainer(
   containerRef: ChartContainerRef,
   svgChildren: DomphyElement[],
@@ -737,12 +769,12 @@ export function pieChartContainer(
       maxWidth: themeSpacing(90),
       marginInline: "auto",
     },
-    _onMount: (node) => {
-      containerRef.current = node.domElement as HTMLElement;
-    },
-    _onRemove: () => {
-      containerRef.current = null;
-    },
+    // Persist the plot element onto each generation's `containerRef` —
+    // factories allocate a fresh `{ current: null }` and `_onMount` would
+    // leave generation 2's ref empty so wedge hover positions at 0,0.
+    ...behavior<PieContainerBehaviorProps>("pie-container", attachPieContainer, {
+      containerRef,
+    }),
   };
 }
 

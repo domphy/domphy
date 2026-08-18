@@ -371,4 +371,31 @@ describe("adapter: re-submission error clearing", () => {
     expect(form.state().submissionAttempts).toBe(1);
     form.destroy();
   });
+
+  it("a second overlapping handleSubmit does not run onSubmit", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const onSubmit = vi.fn(async () => {
+      await gate;
+    });
+    const form = createForm<{ name: string }>({
+      defaultValues: { name: "Ada" },
+      onSubmit,
+    });
+    form.field<string>("name");
+
+    const first = form.handleSubmit();
+    expect(form.isSubmitting()).toBe(true);
+
+    const second = form.handleSubmit();
+    release();
+    await Promise.all([first, second]);
+
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    expect(form.state().submissionAttempts).toBe(1);
+    expect(form.isSubmitted()).toBe(true);
+    form.destroy();
+  });
 });

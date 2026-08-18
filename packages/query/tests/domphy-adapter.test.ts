@@ -105,6 +105,37 @@ describe("createQuery throwOnError", () => {
     query.destroy();
   });
 
+  it("subscribes the listener before throwing so a recover re-renders", async () => {
+    let shouldFail = true;
+    const query = createQuery<string>(client, {
+      queryKey: ["throw-then-recover"],
+      queryFn: async () => {
+        if (shouldFail) throw new Error("boom");
+        return "ok";
+      },
+      throwOnError: true,
+      retry: false,
+    });
+
+    await sleep(30);
+    expect(query.isError()).toBe(true);
+
+    // A render-path read must subscribe even though it throws — otherwise
+    // a later recover cannot notify the tree (no re-render, error stuck).
+    const fakeListener = vi.fn();
+    expect(() => query.isError(fakeListener as any)).toThrow("boom");
+
+    shouldFail = false;
+    await query.refetch();
+    await sleep(10);
+
+    expect(query.data()).toBe("ok");
+    expect(query.isError()).toBe(false);
+    expect(fakeListener).toHaveBeenCalled();
+
+    query.destroy();
+  });
+
   it("does not throw on reactive read when throwOnError is false", async () => {
     const query = createQuery(client, {
       queryKey: ["no-throw"],
@@ -119,6 +150,71 @@ describe("createQuery throwOnError", () => {
     expect(query.isError(fakeListener as any)).toBe(true);
     expect(query.error(fakeListener as any)).toBeInstanceOf(Error);
     query.destroy();
+  });
+});
+
+describe("createMutation throwOnError", () => {
+  it("throws on reactive field read when throwOnError is true and the mutation errored", async () => {
+    const mutation = createMutation<never, Error, void>(client, {
+      mutationFn: async () => {
+        throw new Error("mut-boom");
+      },
+      throwOnError: true,
+    });
+
+    mutation.mutate();
+    await sleep(30);
+    expect(mutation.isError()).toBe(true);
+
+    // Imperative read without a listener must not throw.
+    expect(mutation.error()).toBeInstanceOf(Error);
+    expect(mutation.data()).toBeUndefined();
+
+    const fakeListener = () => {};
+    expect(() => mutation.data(fakeListener as any)).toThrow("mut-boom");
+    expect(() => mutation.status(fakeListener as any)).toThrow("mut-boom");
+
+    mutation.destroy();
+  });
+
+  it("does not throw on reactive read when throwOnError is false", async () => {
+    const mutation = createMutation<never, Error, void>(client, {
+      mutationFn: async () => {
+        throw new Error("soft");
+      },
+      throwOnError: false,
+    });
+    mutation.mutate();
+    await sleep(30);
+    const fakeListener = () => {};
+    expect(mutation.isError(fakeListener as any)).toBe(true);
+    expect(mutation.error(fakeListener as any)).toBeInstanceOf(Error);
+    mutation.destroy();
+  });
+
+  it("subscribes the listener before throwing so a reset re-renders", async () => {
+    const mutation = createMutation<never, Error, void>(client, {
+      mutationFn: async () => {
+        throw new Error("mut-boom");
+      },
+      throwOnError: true,
+    });
+
+    mutation.mutate();
+    await sleep(30);
+    expect(mutation.isError()).toBe(true);
+
+    const fakeListener = vi.fn();
+    expect(() => mutation.isError(fakeListener as any)).toThrow("mut-boom");
+
+    mutation.reset();
+    await sleep(10);
+
+    expect(mutation.isIdle()).toBe(true);
+    expect(mutation.isError()).toBe(false);
+    expect(fakeListener).toHaveBeenCalled();
+
+    mutation.destroy();
   });
 });
 
@@ -358,6 +454,62 @@ describe("createMutation destroy() tripwires", () => {
 
     mutation.destroy();
     mutation.destroy();
+
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]?.[0])).toContain("twice");
+
+    warn.mockRestore();
+  });
+});
+
+describe("createInfiniteQuery destroy() tripwires", () => {
+  it("dev-warns once on field reads after destroy()", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const query = createInfiniteQuery<
+      number[],
+      Error,
+      number[],
+      string[],
+      number
+    >(client, {
+      queryKey: ["infinite-destroy-read-hint"],
+      queryFn: async ({ pageParam }) => [pageParam],
+      initialPageParam: 0,
+      getNextPageParam: (last) => last[0] + 1,
+    });
+    await sleep(10);
+
+    query.destroy();
+    query.data();
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]?.[0])).toContain("after destroy()");
+
+    // Warn-once: further stale reads stay silent.
+    query.data();
+    query.status();
+    expect(warn).toHaveBeenCalledTimes(1);
+
+    warn.mockRestore();
+  });
+
+  it("dev-warns on a second destroy() and makes it a no-op", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const query = createInfiniteQuery<
+      number[],
+      Error,
+      number[],
+      string[],
+      number
+    >(client, {
+      queryKey: ["infinite-destroy-twice-hint"],
+      queryFn: async ({ pageParam }) => [pageParam],
+      initialPageParam: 0,
+      getNextPageParam: (last) => last[0] + 1,
+    });
+    await sleep(10);
+
+    query.destroy();
+    query.destroy();
 
     expect(warn).toHaveBeenCalledTimes(1);
     expect(String(warn.mock.calls[0]?.[0])).toContain("twice");

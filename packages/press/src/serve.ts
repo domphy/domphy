@@ -1,9 +1,23 @@
 // Static file server with clean-URL support.
 // In dev mode: adds SSE endpoint /_dev/sse for live-reload.
 
-import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
+import {
+  createReadStream,
+  existsSync,
+  readFileSync,
+  realpathSync,
+  statSync,
+} from "node:fs";
 import { createServer, type Server, type ServerResponse } from "node:http";
-import { extname, join, normalize } from "node:path";
+import {
+  extname,
+  isAbsolute,
+  join,
+  normalize,
+  relative,
+  resolve,
+  sep,
+} from "node:path";
 
 const MIME: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -61,16 +75,44 @@ function guard(response: ServerResponse, handler: () => void): void {
   }
 }
 
+function realpathOrResolve(filePath: string): string {
+  try {
+    return realpathSync(filePath);
+  } catch {
+    return resolve(filePath);
+  }
+}
+
+function isInsideRoot(rootReal: string, candidate: string): boolean {
+  const rel = relative(rootReal, candidate);
+  if (rel === "" || isAbsolute(rel)) return false;
+  return rel !== ".." && !rel.startsWith(`..${sep}`) && !rel.startsWith("../");
+}
+
 function resolveFile(root: string, urlPath: string): string | null {
-  const safe = normalize(decodeURIComponent(urlPath.split("?")[0])).replace(
-    /^(\.\.[/\\])+/,
+  // Strip a leading slash so join/resolve cannot treat the URL as an
+  // absolute filesystem path (posix resolve(root, "/etc/passwd") === "/etc/passwd").
+  const relativeUrl = decodeURIComponent(urlPath.split("?")[0]).replace(
+    /^[/\\]+/,
     "",
   );
+  const safe = normalize(relativeUrl);
+  if (safe.split(/[/\\]/).includes("..")) return null;
+
+  const rootReal = realpathOrResolve(root);
   const candidates = extname(safe)
-    ? [join(root, safe)]
-    : [join(root, safe, "index.html"), join(root, `${safe}.html`)];
+    ? [resolve(rootReal, safe)]
+    : [resolve(rootReal, safe, "index.html"), resolve(rootReal, `${safe}.html`)];
   for (const candidate of candidates) {
-    if (existsSync(candidate) && statSync(candidate).isFile()) return candidate;
+    if (!isInsideRoot(rootReal, candidate)) continue;
+    try {
+      if (!existsSync(candidate) || !statSync(candidate).isFile()) continue;
+      const real = realpathSync(candidate);
+      if (!isInsideRoot(rootReal, real)) continue;
+      return real;
+    } catch {
+      continue;
+    }
   }
   return null;
 }

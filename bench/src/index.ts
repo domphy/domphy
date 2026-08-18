@@ -87,7 +87,13 @@ async function main(): Promise<void> {
       );
       results.push(result);
 
-      const mark = result.score >= 70 ? "✓" : result.score >= 40 ? "~" : "✗";
+      const mark = dryRun
+        ? "dry"
+        : result.score >= 70
+          ? "✓"
+          : result.score >= 40
+            ? "~"
+            : "✗";
       console.log(`${mark} ${result.score}/100 (${Math.round(durationMs)}ms)`);
     }
   }

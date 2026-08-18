@@ -10,12 +10,14 @@
 // existing fetching library.
 
 import type {
+  BehaviorInstance,
   DomphyElement,
   ElementNode,
   Listener,
+  State,
   StyleObject,
 } from "@domphy/core";
-import { toState } from "@domphy/core";
+import { behavior, toState } from "@domphy/core";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import {
   avatar,
@@ -79,6 +81,97 @@ export interface TweetCardProps {
 }
 
 type TweetPhase = "loading" | "loaded" | "error";
+
+const TWEET_CARD_BEHAVIOR_KEY = "magicui-tweet-card";
+
+interface TweetCardBehaviorProps {
+  phase: State<TweetPhase>;
+  tweetState: State<TweetData | null>;
+  tweet?: TweetData;
+  tweetId?: string;
+  fetchTweet: TweetFetcher;
+}
+
+interface TweetCardBehavior extends BehaviorInstance<TweetCardBehaviorProps> {
+  phase: State<TweetPhase>;
+  tweetState: State<TweetData | null>;
+}
+
+function attachTweetCard(
+  _node: ElementNode,
+  initialProps: TweetCardBehaviorProps,
+): TweetCardBehavior {
+  // Persist generation 1's phase/tweetState so a fetch that resolves after
+  // an ancestor re-render still writes the State the live children read.
+  const phase = initialProps.phase;
+  const tweetState = initialProps.tweetState;
+  let cancelled = false;
+  let latestId = initialProps.tweetId;
+
+  function startFetch(props: TweetCardBehaviorProps): void {
+    if (props.tweet || !props.tweetId) return;
+    cancelled = false;
+    latestId = props.tweetId;
+    props
+      .fetchTweet(props.tweetId)
+      .then((data) => {
+        if (cancelled || latestId !== props.tweetId) return;
+        tweetState.set(data);
+        phase.set("loaded");
+      })
+      .catch(() => {
+        if (cancelled || latestId !== props.tweetId) return;
+        phase.set("error");
+      });
+  }
+
+  startFetch(initialProps);
+
+  return {
+    phase,
+    tweetState,
+    update(next) {
+      if (next.tweet) {
+        tweetState.set(next.tweet);
+        phase.set("loaded");
+        return;
+      }
+      if (next.tweetId && next.tweetId !== latestId) {
+        cancelled = true;
+        phase.set("loading");
+        startFetch(next);
+      }
+    },
+    destroy() {
+      cancelled = true;
+    },
+  };
+}
+
+function elementNodeOf(listener: Listener): ElementNode | null {
+  const fromListener = (listener as { elementNode?: ElementNode }).elementNode;
+  if (fromListener && typeof fromListener.getBehavior === "function") {
+    return fromListener;
+  }
+  if (typeof (listener as ElementNode).getBehavior === "function") {
+    return listener as ElementNode;
+  }
+  return null;
+}
+
+function tweetCardState(
+  listener: Listener,
+  fallbackPhase: State<TweetPhase>,
+  fallbackTweet: State<TweetData | null>,
+): { phase: State<TweetPhase>; tweetState: State<TweetData | null> } {
+  const instance = elementNodeOf(listener)?.getBehavior<TweetCardBehavior>(
+    TWEET_CARD_BEHAVIOR_KEY,
+  );
+  if (instance?.phase && instance.tweetState) {
+    return { phase: instance.phase, tweetState: instance.tweetState };
+  }
+  return { phase: fallbackPhase, tweetState: fallbackTweet };
+}
 
 const DEFAULT_TWEET: TweetData = {
   id: "domphy-demo-1",
@@ -633,7 +726,8 @@ function tweetCard(props: TweetCardProps = {}): DomphyElement<"div"> {
 
   return {
     div: (listener: Listener) => {
-      const currentPhase = phase.get(listener);
+      const live = tweetCardState(listener, phase, tweetState);
+      const currentPhase = live.phase.get(listener);
       // Each phase gets a distinct `_key` so the reconciler replaces the
       // single child outright on a phase transition instead of positionally
       // patching the old (structurally different) DOM subtree in place —
@@ -642,7 +736,7 @@ function tweetCard(props: TweetCardProps = {}): DomphyElement<"div"> {
       // loaded body).
       if (currentPhase === "loading")
         return [{ ...tweetSkeleton(), _key: "skeleton" }];
-      const data = tweetState.get(listener);
+      const data = live.tweetState.get(listener);
       if (currentPhase === "error" || !data)
         return [{ ...tweetFallback(), _key: "error" }];
       return [
@@ -670,23 +764,17 @@ function tweetCard(props: TweetCardProps = {}): DomphyElement<"div"> {
         `1px solid ${themeColor(listenerValue, "shift-3")}`,
       outlineOffset: "-1px",
     },
-    _onMount: (node: ElementNode) => {
-      if (props.tweet || !props.tweetId) return;
-      let cancelled = false;
-      fetchTweet(props.tweetId)
-        .then((data) => {
-          if (cancelled) return;
-          tweetState.set(data);
-          phase.set("loaded");
-        })
-        .catch(() => {
-          if (cancelled) return;
-          phase.set("error");
-        });
-      node.addHook("Remove", () => {
-        cancelled = true;
-      });
-    },
+    ...behavior<TweetCardBehaviorProps>(
+      TWEET_CARD_BEHAVIOR_KEY,
+      attachTweetCard,
+      {
+        phase,
+        tweetState,
+        tweet: props.tweet,
+        tweetId: props.tweetId,
+        fetchTweet,
+      },
+    ),
   };
 }
 

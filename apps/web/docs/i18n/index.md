@@ -77,6 +77,6 @@ await initI18n(detected)
 
 ## globalThis dedup
 
-Registers the instance under `globalKey` on `globalThis` — ensures a single instance across Vite code-split chunks and SSR + client hydration.
+Registers the instance under `globalKey` on `globalThis` — ensures a single instance across Vite code-split chunks. On the server the **locale** is request-scoped (`AsyncLocalStorage` + `runWithI18n()`), so two concurrent `initI18n` calls do not clobber each other.
 
 See the [Setup guide](./setup.md) for full options reference.

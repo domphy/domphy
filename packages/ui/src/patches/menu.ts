@@ -1,7 +1,11 @@
 import {
+  type BehaviorInstance,
+  behavior,
   type DomphyElement,
+  type ElementNode,
   type Listener,
   type PartialElement,
+  type State,
   toState,
   type ValueOrState,
 } from "@domphy/core";
@@ -59,6 +63,131 @@ function menu(
     accentColor = "primary",
   } = props;
   const activeKey = toState(props.activeKey ?? null);
+  const activeKeyIsCallerOwned = props.activeKey !== undefined;
+
+  type MenuInner = {
+    items: MenuItem[];
+    activeKey: State<number | string | null>;
+    activeKeyIsCallerOwned: boolean;
+    selectable: boolean;
+    color: ThemeColor;
+    accentColor: ThemeColor;
+  };
+
+  const buildItems = (
+    node: ElementNode,
+    inner: MenuInner,
+  ): DomphyElement<"button">[] => {
+    const id = node.nodeId;
+    return inner.items.map((item, index) => {
+      const key = item.key ?? index;
+      return {
+        button:
+          typeof item.label === "string"
+            ? [{ span: item.label } as DomphyElement<"span">]
+            : [item.label],
+        _key: key,
+        type: "button",
+        id: `menuitem${id}${key}`,
+        role: "menuitem",
+        ...(inner.selectable
+          ? {
+              ariaCurrent: (l: Listener) =>
+                inner.activeKey.get(l) === key || undefined,
+            }
+          : {}),
+        onClick: () => {
+          if (inner.selectable) inner.activeKey.set(key);
+          item.onClick?.();
+        },
+        onKeyDown: (e: Event) => {
+          const k = (e as KeyboardEvent).key;
+          if (k === "Enter" || k === " ") {
+            e.preventDefault();
+            (e.target as HTMLElement).click();
+            return;
+          }
+          if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(k)) return;
+          e.preventDefault();
+          const keys = inner.items.map((it, i) => it.key ?? i);
+          const idx = keys.indexOf(key);
+          let next = idx;
+          if (k === "ArrowDown") next = (idx + 1) % keys.length;
+          else if (k === "ArrowUp")
+            next = (idx - 1 + keys.length) % keys.length;
+          else if (k === "Home") next = 0;
+          else if (k === "End") next = keys.length - 1;
+          (
+            document.getElementById(
+              `menuitem${id}${keys[next]}`,
+            ) as HTMLElement
+          )?.focus();
+        },
+        style: {
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          gap: themeSpacing(2),
+          width: "100%",
+          fontSize: (l: Listener) => themeSize(l, "inherit"),
+          height: (l: Listener) => themeSpacing(6 + themeDensity(l) * 2),
+          paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
+          border: "none",
+          outline: "none",
+          // Menu panel is a light (shift-0) surface: "text" resolves to a
+          // dark-on-light reading tone in both light and dark themes.
+          color: (l: Listener) => themeColor(l, "text", inner.color),
+          backgroundColor: (l: Listener) =>
+            themeColor(l, "inherit", inner.color),
+          transition:
+            "background-color 140ms ease, box-shadow 140ms ease, color 140ms ease",
+          "&:hover:not([disabled]):not([aria-current=true])": {
+            backgroundColor: (l: Listener) =>
+              themeColor(l, "hover", inner.color),
+          },
+          "&[aria-current=true]": {
+            backgroundColor: (l: Listener) =>
+              themeColor(l, "shift-3", inner.accentColor),
+            color: (l: Listener) =>
+              themeColor(l, "shift-13", inner.accentColor),
+          },
+          "&:focus-visible": {
+            boxShadow: (l: Listener) => focusRing(l, inner.accentColor),
+          },
+        },
+      } as DomphyElement<"button">;
+    });
+  };
+
+  const attachMenu = (
+    _node: ElementNode,
+    initial: MenuInner,
+  ): BehaviorInstance<MenuInner> => {
+    let current = initial;
+    return {
+      update(next) {
+        if (
+          next.activeKey !== current.activeKey &&
+          !next.activeKeyIsCallerOwned
+        ) {
+          next.activeKey.set(current.activeKey.get());
+        }
+        current = next;
+        // Empty items = the caller renders its own rows; leave children alone.
+        if (current.items.length === 0) return;
+        _node.children.update(buildItems(_node, current));
+      },
+    };
+  };
+
+  const inner: MenuInner = {
+    items,
+    activeKey,
+    activeKeyIsCallerOwned,
+    selectable,
+    color,
+    accentColor,
+  };
 
   return {
     role: "menu",
@@ -66,87 +195,12 @@ function menu(
     _onSchedule: (node, element) => {
       // Empty items = the caller renders its own rows; leave children alone.
       if (items.length === 0) return;
-      const id = node.nodeId;
-
-      const buttons: DomphyElement<"button">[] = items.map((item, index) => {
-        const key = item.key ?? index;
-
-        return {
-          button:
-            typeof item.label === "string"
-              ? [{ span: item.label } as DomphyElement<"span">]
-              : [item.label],
-          _key: key,
-          type: "button",
-          id: `menuitem${id}${key}`,
-          role: "menuitem",
-          ...(selectable
-            ? {
-                ariaCurrent: (l: Listener) =>
-                  activeKey.get(l) === key || undefined,
-              }
-            : {}),
-          onClick: () => {
-            if (selectable) activeKey.set(key);
-            item.onClick?.();
-          },
-          onKeyDown: (e: Event) => {
-            const k = (e as KeyboardEvent).key;
-            if (k === "Enter" || k === " ") {
-              e.preventDefault();
-              (e.target as HTMLElement).click();
-              return;
-            }
-            if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(k)) return;
-            e.preventDefault();
-            const keys = items.map((it, i) => it.key ?? i);
-            const idx = keys.indexOf(key);
-            let next = idx;
-            if (k === "ArrowDown") next = (idx + 1) % keys.length;
-            else if (k === "ArrowUp")
-              next = (idx - 1 + keys.length) % keys.length;
-            else if (k === "Home") next = 0;
-            else if (k === "End") next = keys.length - 1;
-            (
-              document.getElementById(
-                `menuitem${id}${keys[next]}`,
-              ) as HTMLElement
-            )?.focus();
-          },
-          style: {
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: themeSpacing(2),
-            width: "100%",
-            fontSize: (l: Listener) => themeSize(l, "inherit"),
-            height: (l: Listener) => themeSpacing(6 + themeDensity(l) * 2),
-            paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
-            border: "none",
-            outline: "none",
-            // Menu panel is a light (shift-0) surface: "text" resolves to a
-            // dark-on-light reading tone in both light and dark themes.
-            color: (l: Listener) => themeColor(l, "text", color),
-            backgroundColor: (l: Listener) => themeColor(l, "inherit", color),
-            transition:
-              "background-color 140ms ease, box-shadow 140ms ease, color 140ms ease",
-            "&:hover:not([disabled]):not([aria-current=true])": {
-              backgroundColor: (l: Listener) => themeColor(l, "hover", color),
-            },
-            "&[aria-current=true]": {
-              backgroundColor: (l: Listener) =>
-                themeColor(l, "shift-3", accentColor),
-              color: (l: Listener) => themeColor(l, "shift-13", accentColor),
-            },
-            "&:focus-visible": {
-              boxShadow: (l: Listener) => focusRing(l, accentColor),
-            },
-          },
-        } as DomphyElement<"button">;
-      });
-
-      (element as any)[node.tagName] = buttons;
+      (element as Record<string, unknown>)[node.tagName] = buildItems(
+        node,
+        inner,
+      );
     },
+    ...behavior<MenuInner>("menu", attachMenu, inner),
     style: {
       display: "flex",
       flexDirection: "column",

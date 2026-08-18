@@ -192,6 +192,15 @@ describe("camera-missing-lookat", () => {
     ).toEqual([]);
   });
 
+  it("accepts an off-axis camera aimed by lookAt", () => {
+    expect(
+      rules({
+        camera: { position: [3, 4, 5], lookAt: [0, 0, 0] },
+        scene: [],
+      }),
+    ).toEqual([]);
+  });
+
   it("walks self-referencing (cyclic) scene descriptions without overflowing the stack", () => {
     const cyclic: Record<string, unknown> = { mesh: null };
     cyclic.mesh = [cyclic];

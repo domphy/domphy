@@ -60,7 +60,8 @@ function guardHostChildren(node: ElementNode, host: HTMLElement): () => void {
 // into the real DOM node exactly once, and every later generation of the patch
 // factory (a reactive ancestor re-rendering the host) routes its fresh props
 // into that SAME instance through `update` instead of mounting a second view
-// onto the same element. `destroy` unmounts once, when the host leaves the DOM.
+// onto the same element. `destroy` unmounts only if this host still owns the
+// view — removing host A must not unmount a view that now lives on host B.
 function attachEditorContent(
   node: ElementNode,
   initialProps: EditorContentProps,
@@ -76,14 +77,16 @@ function attachEditorContent(
       if (props.editor === editor) return;
       // Swapping to a different Editor instance on a live host: detach the old
       // view before the new one takes the element, otherwise both keep their
-      // `beforeinput`/selection listeners on it.
-      editor.unmount();
+      // `beforeinput`/selection listeners on it. Skip if this host no longer
+      // owns the view — the editor was remounted elsewhere.
+      if (editor.view?.element === host) editor.unmount();
       editor = props.editor;
       editor.mount(host);
     },
     destroy() {
       unguard();
-      editor.unmount();
+      // Removing host A must not unmount a view that now lives on host B.
+      if (editor.view?.element === host) editor.unmount();
     },
   };
 }

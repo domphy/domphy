@@ -44,7 +44,7 @@ Each feature contributes methods to the table, column, row, and header objects. 
 - **Row pinning** — `table.setRowPinning`, `getTopRows`, `getBottomRows`; `row.pin`, `getIsPinned`
 - **Sizing** — `table.setColumnSizing`, `resetColumnSizing`; `column.getSize`, `getIsResizing`; `header.getSize`, `getResizeHandler`
 - **Faceting** — `column.getFacetedRowModel`, `getFacetedUniqueValues`, `getFacetedMinMaxValues`; global variants on `table`
-- **Cell editing** (opt-in, not a built-in — pass `_features: [CellEditing]`) — `table.setEditingCell`, `getEditingCell`, `resetEditingCell`; `cell.beginEdit`, `commitEdit`, `cancelEdit`, `getIsEditing`, `getCanEdit`; options `enableCellEditing`, `onCellEditingChange`, `onCellEdit`
+- **Cell editing** (opt-in, not a built-in — pass `_features: [CellEditing]`; methods are optional on `Table`/`Cell` until the feature is installed) — `table.setEditingCell`, `getEditingCell`, `resetEditingCell(true)` to exit (without `true` restores `initialState`); `cell.beginEdit`, `commitEdit` (exits even if `onCellEdit` throws), `cancelEdit`, `getIsEditing`, `getCanEdit`; options `enableCellEditing`, `onCellEditingChange`, `onCellEdit`
 
 ## Utilities
 

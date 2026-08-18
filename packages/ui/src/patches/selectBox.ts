@@ -1,8 +1,11 @@
 import {
+  type BehaviorInstance,
+  behavior,
   type DomphyElement,
   type ElementNode,
   merge,
   type PartialElement,
+  type State,
   type StyleObject,
   toState,
   type ValueOrState,
@@ -135,29 +138,56 @@ function selectBox(props: {
 
   merge(props.content, popoverPartial);
 
-  const wrap: DomphyElement<"div"> = {
+  type InnerProps = {
+    options: Array<{ label: string; value: string }>;
+    multiple: boolean;
+    color: ThemeColor;
+    state: State<
+      | Array<number | string | null | undefined>
+      | number
+      | string
+      | null
+      | undefined
+    >;
+  };
+
+  const buildWrap = (inner: InnerProps): DomphyElement<"div"> => ({
     div: (listener) => {
-      const val = state.get(listener);
+      const val = inner.state.get(listener);
       const vals = Array.isArray(val) ? val : [val];
-      const opts = options.filter((opt) => vals.includes(opt.value));
+      const opts = inner.options.filter((opt) => vals.includes(opt.value));
       return opts.map((opt) => ({
         span: opt.label,
-        $: [tag({ color, removable: multiple })],
+        $: [tag({ color: inner.color, removable: inner.multiple })],
         _key: opt.value,
-        _onRemove: (_node) => {
-          const cur = state.get();
+        _onRemove: (_node: ElementNode) => {
+          const cur = inner.state.get();
           const curVals = Array.isArray(cur) ? cur : [cur];
           const filter = curVals.filter((v) => v !== opt.value);
-          multiple ? state.set(filter as any) : state.set(filter[0] as any);
+          inner.multiple
+            ? inner.state.set(filter as any)
+            : inner.state.set(filter[0] as any);
         },
       })) as DomphyElement<"span">[];
     },
+    _key: "selectBoxWrap",
     style: {
       display: "flex",
       flexWrap: "wrap",
       gap: themeSpacing(1),
       flex: 1,
     } as StyleObject,
+  });
+
+  const attachInner = (
+    node: ElementNode,
+    _inner: InnerProps,
+  ): BehaviorInstance<InnerProps> => {
+    return {
+      update(next) {
+        node.children.update([buildWrap(next)]);
+      },
+    };
   };
 
   const toggle = (node?: ElementNode) =>
@@ -211,7 +241,17 @@ function selectBox(props: {
         console.warn(`"selectBox" patch must use div tag`);
       }
     },
-    _onInit: (node) => node.children.insert(wrap),
+    _onSchedule: (node, element) => {
+      (element as Record<string, unknown>)[node.tagName] = [
+        buildWrap({ options, multiple, color, state }),
+      ];
+    },
+    ...behavior<InnerProps>("selectBoxInner", attachInner, {
+      options,
+      multiple,
+      color,
+      state,
+    }),
     onClick: (_e, node) => toggle(node),
     // Focusable trigger: click + Enter/Space/ArrowDown open (APG button+listbox).
     // Escape dismiss composes with createFloating's hide path.
@@ -221,6 +261,10 @@ function selectBox(props: {
     // ariaExpanded or patch re-apply will overwrite after keyboard open.
     ariaExpanded: (listener) => openState.get(listener),
     ariaHaspopup: "listbox",
+    ariaControls: (listener) =>
+      listener?.elementNode
+        ? floatingPanelId("selectBox", listener.elementNode)
+        : undefined,
     onKeyDown: (e, node) => {
       const key = (e as KeyboardEvent).key;
       if (key === "Escape") {

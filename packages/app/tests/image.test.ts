@@ -92,6 +92,22 @@ describe("optimizedImage", () => {
     host.remove();
   });
 
+  it("escapes quotes and </style> in blurDataURL", () => {
+    const part = optimizedImage({
+      src: "/photo.jpg",
+      placeholder: "blur",
+      blurDataURL: 'foo")</style><script>alert(1)</script>',
+    });
+    const background = String(
+      (part.style as { backgroundImage?: string }).backgroundImage,
+    );
+    expect(background).not.toContain("</style>");
+    expect(background).not.toContain("<script>");
+    expect(background).toContain("url(");
+    expect(background).toContain("\\3c ");
+    expect(background).toContain('\\"');
+  });
+
   it("ignores the blur placeholder when no blurDataURL is given", () => {
     const part = optimizedImage({ src: "/photo.jpg", placeholder: "blur" });
     expect(part.style).toEqual({});

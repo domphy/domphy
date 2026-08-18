@@ -21,6 +21,7 @@
 // numberTicker/dock use elsewhere in this package).
 
 import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
+import { behavior } from "@domphy/core";
 import { fixed } from "../../shared/typography.js";
 
 export interface HyperTextProps {
@@ -77,12 +78,19 @@ function hyperText(props: HyperTextProps = {}): DomphyElement {
         character === " "
           ? { display: "inline-block", width: "0.75rem" }
           : { display: "inline-block" },
-      _onMount: (node: ElementNode) => {
-        characterElementRefs[index] = node.domElement as HTMLElement;
-      },
-      _onRemove: () => {
-        characterElementRefs[index] = null;
-      },
+      ...behavior(
+        `magicui-hyper-text-char-${index}`,
+        (node) => {
+          characterElementRefs[index] = node.domElement as HTMLElement;
+          return {
+            update() {},
+            destroy() {
+              characterElementRefs[index] = null;
+            },
+          };
+        },
+        {},
+      ),
     }),
   );
 
@@ -111,8 +119,8 @@ function hyperText(props: HyperTextProps = {}): DomphyElement {
       fontWeight: fixed("700"),
       ...(props.style ?? {}),
     } as StyleObject,
-    _onMount: (node: ElementNode) => {
-      if (typeof window === "undefined") return;
+    ...behavior("magicui-hyper-text", (node: ElementNode) => {
+      if (typeof window === "undefined") return { update() {}, destroy() {} };
       const element = node.domElement as HTMLElement;
       let animationFrameId: number | null = null;
       let startTimeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -199,14 +207,17 @@ function hyperText(props: HyperTextProps = {}): DomphyElement {
       if (hoverTrigger)
         element.addEventListener("mouseenter", handleMouseEnter);
 
-      node.addHook("Remove", () => {
-        stopAnimationFrame();
-        if (startTimeoutId !== null) clearTimeout(startTimeoutId);
-        if (hoverTrigger)
-          element.removeEventListener("mouseenter", handleMouseEnter);
-        intersectionObserver?.disconnect();
-      });
-    },
+      return {
+        update() {},
+        destroy() {
+          stopAnimationFrame();
+          if (startTimeoutId !== null) clearTimeout(startTimeoutId);
+          if (hoverTrigger)
+            element.removeEventListener("mouseenter", handleMouseEnter);
+          intersectionObserver?.disconnect();
+        },
+      };
+    }, {}),
     // The host tag is caller-configurable (`props.tag`), so it can't be
     // narrowed to one arm of the DomphyElement tag union statically — same
     // caveat `terminal.ts`'s typingLineElement()/fadeLineElement() document.

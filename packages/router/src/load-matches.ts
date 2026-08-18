@@ -890,7 +890,13 @@ const loadRouteMatch = async (
           match._nonReactive.loadPromise = undefined
         } catch (err) {
           if (isRedirect(err)) {
-            await inner.router.navigate(err.options)
+            // Same staleness gate as RouterCore.load(): a newer navigation
+            // replaces latestLocation, and this background SWR must not
+            // follow a redirect that would hijack the committed location.
+            const isStaleLoad = inner.router.latestLocation !== inner.location
+            if (!isStaleLoad && !(isServer ?? inner.router.isServer)) {
+              await inner.router.navigate(err.options)
+            }
           }
         }
       })()

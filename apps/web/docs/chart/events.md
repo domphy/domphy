@@ -50,6 +50,10 @@ tooltip: {
 
 `"shadow"` draws a shaded band across the category. `"cross"` draws crosshair lines on both axes.
 
+### Overflow and `appendToBody`
+
+The `chart()` host is `overflow: visible`, so the default in-container tooltip can extend past the plot box. To also escape `overflow: hidden` on an *ancestor* of the host (a card, a scroll area), set `tooltip.appendToBody: true` — the tooltip mounts on `document.body` with `position: fixed`.
+
 ## Reactive updates
 
 The most common interaction pattern: bind a `State<ChartOption>` and update it from UI controls.

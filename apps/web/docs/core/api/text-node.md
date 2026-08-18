@@ -24,7 +24,7 @@ const node3: DomphyElement = {
 | `parent` | `ElementNode` | Parent node |
 | `text` | `string` | Current text content |
 | `html` | `boolean` | `true` only for a `rawHtml()` child |
-| `domText` | `ChildNode` | Mounted DOM node |
+| `domText` | `ChildNode` | Mounted DOM node (first root when `rawHtml()` parses to several siblings) |
 
 ## A string child is always text
 
@@ -46,15 +46,16 @@ import { rawHtml } from "@domphy/core"
 
 Only ever wrap markup you control (a Markdown renderer's output, a syntax highlighter, a generated SVG). `rawHtml()` still strips `<script>` elements, `on*` handler attributes and `javascript:` URLs, but that is defense in depth — it is not a full sanitizer, and it cannot make untrusted input safe.
 
-`rawHtml()` accepts a single-root HTML string. Multiple root elements are not supported.
+`rawHtml()` accepts a single-root **or multi-root** HTML string. Every parsed root is inserted as a sibling; `domText` stays the first root (the slot anchor). `children.move()` / `children.swap()` / removal treat those roots as one child group, so identity stays stable.
 
 ```ts
-rawHtml("<b>Hello</b>")                  // valid
-rawHtml("<span class='highlight' />")    // valid
-rawHtml("<b>Hello</b> <i>World</i>")     // invalid: multiple roots
+rawHtml("<b>Hello</b>")                  // one root
+rawHtml("<span class='highlight' />")    // one root
+rawHtml("<b>Hello</b><i>World</i>")      // two roots — both render
+rawHtml("<b>a</b> <i>b</i>")             // two element roots (leading/trailing whitespace is trimmed)
 ```
 
-Single-root HTML is required so DOM operations like `move()` and `swap()` can keep node identity stable.
+SSR `generateHTML()` and the client parse emit the same sanitized markup, so a multi-root child hydrates without drift. Switching between multi-root HTML, single-root HTML, and plain text rebuilds the group.
 
 A reactive child may return either form, and switching between them rebuilds the node:
 

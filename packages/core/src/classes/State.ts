@@ -49,6 +49,7 @@ export class State<T> {
       }
       return;
     }
+    if (Object.is(this._value, newValue)) return;
     this._value = newValue;
     this._notifier.notify(this.name, newValue);
   }

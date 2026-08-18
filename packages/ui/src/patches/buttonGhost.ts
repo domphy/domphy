@@ -34,6 +34,8 @@ function buttonGhost(
   const fontSize = BUTTON_SIZE_FONT[props.size ?? "medium"];
 
   return {
+    // Native `type` on the host still wins (mergePartial: native over patch).
+    type: "button",
     _onInsert: (node) => {
       if (node.tagName !== "button") {
         console.warn(`"buttonGhost" primitive patch must use button tag`);

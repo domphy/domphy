@@ -31,6 +31,8 @@ function buttonSwitch(
   const accentColor = toState(props.accentColor ?? "primary", "accentColor");
 
   return {
+    // Native `type` on the host still wins (mergePartial: native over patch).
+    type: "button",
     _onSchedule: (node) => {
       if (node.tagName !== "button") {
         console.warn(`"buttonSwitch" primitive patch must use button tag`);

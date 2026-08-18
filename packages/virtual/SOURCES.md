@@ -31,5 +31,5 @@ Evidence (direct, not inferred):
 
 ## Verification
 
-- `pnpm --filter @domphy/virtual test` — 18 tests (adapter reactivity, cleanup/destroy hardening, pure-append deviation, `data-index` measurement contract, `createWindowVirtualizer`).
+- `pnpm --filter @domphy/virtual test` — 20 tests (adapter reactivity, cleanup/destroy hardening, pure-append deviation, `data-index` measurement contract, `setOptions` size-cache preservation, `createWindowVirtualizer`).
 - `pnpm --filter @domphy/virtual build` — tsup.

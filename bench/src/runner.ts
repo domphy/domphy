@@ -79,23 +79,18 @@ import { toState } from "@domphy/core";
 const count = toState(0);
 
 const app = {
-  div: {
-    style: { display: "flex", flexDirection: "column", alignItems: "center", padding: "24px" },
-    $: [],
-    _: [
-      { h1: "Hello Counter", style: { fontSize: "2rem", color: "#333", marginBottom: "16px" } },
-      {
-        div: {
-          style: { display: "flex", gap: "8px", alignItems: "center" },
-          _: [
-            { button: "−", onClick: () => count.set(count.get() - 1), style: { padding: "8px 16px" } },
-            { span: (l) => String(count.get(l)), style: { fontSize: "1.5rem", fontWeight: "bold" } },
-            { button: "+", onClick: () => count.set(count.get() + 1), style: { padding: "8px 16px" } },
-          ],
-        },
-      },
-    ],
-  },
+  div: [
+    { h1: "Hello Counter", style: { fontSize: "2rem", color: "#333", marginBottom: "16px" } },
+    {
+      div: [
+        { button: "−", onClick: () => count.set(count.get() - 1), style: { padding: "8px 16px" } },
+        { span: (l) => String(count.get(l)), style: { fontSize: "1.5rem", fontWeight: "bold" } },
+        { button: "+", onClick: () => count.set(count.get() + 1), style: { padding: "8px 16px" } },
+      ],
+      style: { display: "flex", gap: "8px", alignItems: "center" },
+    },
+  ],
+  style: { display: "flex", flexDirection: "column", alignItems: "center", padding: "24px" },
 };
 
 export default app;
@@ -109,29 +104,27 @@ import { button, heading, card } from "@domphy/ui";
 const count = toState(0);
 
 const app = {
-  div: {
-    style: { display: "flex", flexDirection: "column", alignItems: "center", padding: "24px" },
-    $: [card()],
-    _: [
-      { h2: "Counter", $: [heading(2)] },
-      {
-        div: {
-          style: { display: "flex", gap: "16px", alignItems: "center", marginTop: "16px" },
-          _: [
-            { button: "−", $: [button()], onClick: () => count.set(count.get() - 1) },
-            { span: (l) => String(count.get(l)) },
-            { button: "+", $: [button()], onClick: () => count.set(count.get() + 1) },
-          ],
-        },
-      },
-    ],
-  },
+  div: [
+    { h2: "Counter", $: [heading()] },
+    {
+      div: [
+        { button: "−", $: [button()], onClick: () => count.set(count.get() - 1) },
+        { span: (l) => String(count.get(l)) },
+        { button: "+", $: [button()], onClick: () => count.set(count.get() + 1) },
+      ],
+      style: { display: "flex", gap: "16px", alignItems: "center", marginTop: "16px" },
+    },
+  ],
+  style: { display: "flex", flexDirection: "column", alignItems: "center", padding: "24px" },
+  $: [card()],
 };
 
 export default app;
 \`\`\``;
 
-// Condition C: self-corrected — correct, idiomatic
+// Condition C: self-corrected Counter — valid syntax, but NOT a per-task answer.
+// Dry-run evaluates this same snippet against every task; structure fails on
+// tasks that require other patches (createForm, inputText, …).
 const MOCK_C = `\`\`\`ts
 import { toState } from "@domphy/core";
 import { button, heading, paragraph, card } from "@domphy/ui";
@@ -140,37 +133,33 @@ import { themeSpacing } from "@domphy/theme";
 const count = toState(0);
 
 const app = {
-  div: {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      padding: themeSpacing(6),
-      gap: themeSpacing(4),
-    },
-    _: [
-      { h2: "Counter", $: [heading(2)] },
-      { p: (l) => String(count.get(l)), $: [paragraph()] },
-      {
-        div: {
-          style: { display: "flex", gap: themeSpacing(2) },
-          _: [
-            {
-              button: "−",
-              $: [button()],
-              onClick: () => count.set(count.get() - 1),
-            },
-            {
-              button: "+",
-              $: [button()],
-              onClick: () => count.set(count.get() + 1),
-            },
-          ],
+  div: [
+    { h2: "Counter", $: [heading()] },
+    { p: (l) => String(count.get(l)), $: [paragraph()] },
+    {
+      div: [
+        {
+          button: "−",
+          $: [button()],
+          onClick: () => count.set(count.get() - 1),
         },
-      },
-    ],
-    $: [card()],
+        {
+          button: "+",
+          $: [button()],
+          onClick: () => count.set(count.get() + 1),
+        },
+      ],
+      style: { display: "flex", gap: themeSpacing(2) },
+    },
+  ],
+  style: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    padding: themeSpacing(6),
+    gap: themeSpacing(4),
   },
+  $: [card()],
 };
 
 export default app;
@@ -283,9 +272,10 @@ export async function runCondition(
 
     for (let round = 1; round < 3; round++) {
       const code = extractCode(reply);
-      // Run static analysis to produce doctor-like feedback
-      const issues = detectIssuesForFeedback(code);
-      if (issues.length === 0) break; // clean — stop early
+      // Compile + structure + @domphy/doctor diagnose — do not stop just
+      // because the typography regex is empty.
+      const issues = detectIssuesForFeedback(code, task, "C");
+      if (issues.length === 0) break;
 
       const feedback = buildDoctorFeedback(issues, code);
       const fixPrompt = [

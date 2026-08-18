@@ -1,4 +1,4 @@
-import type { Condition, EvalResult } from "./evaluator.js";
+import { PASS_SCORE, type Condition, type EvalResult } from "./evaluator.js";
 import type { Task } from "./tasks.js";
 
 const CONDITIONS: Condition[] = ["A", "B", "C", "D"];
@@ -33,7 +33,7 @@ interface ConditionStats {
   compileRate: number;
   noTypoRate: number;
   structureRate: number;
-  passRate: number; // score >= 70
+  passRate: number; // score >= PASS_SCORE (skipped / unused in dry-run)
   avgScore: number;
   avgIterations: number;
   issueFreq: Map<string, number>;
@@ -69,7 +69,7 @@ function aggregateCondition(
           (total || 1),
     structureRate:
       filtered.filter((r) => r.hasRequiredStructure).length / (total || 1),
-    passRate: filtered.filter((r) => r.score >= 70).length / (total || 1),
+    passRate: filtered.filter((r) => r.score >= PASS_SCORE).length / (total || 1),
     avgScore: filtered.reduce((a, r) => a + r.score, 0) / (total || 1),
     avgIterations: iters.length
       ? iters.reduce((a, b) => a + b, 0) / iters.length
@@ -99,7 +99,8 @@ export function printReport(
   console.log();
 
   // ─── Summary table ───────────────────────────────────────────────────────
-  const header = `  ${"Condition".padEnd(20)} ${"Compile".padStart(8)} ${"No-typo".padStart(8)} ${"Structure".padStart(10)} ${"Pass≥70".padStart(8)} ${"Avg score".padStart(10)}`;
+  const passHeader = options.dryRun ? "Pass n/a" : "Pass≥70";
+  const header = `  ${"Condition".padEnd(20)} ${"Compile".padStart(8)} ${"No-typo".padStart(8)} ${"Structure".padStart(10)} ${passHeader.padStart(8)} ${"Avg score".padStart(10)}`;
   console.log(header);
   console.log(`  ${"─".repeat(68)}`);
 
@@ -110,7 +111,7 @@ export function printReport(
         `  ${pct(Math.round(s.compileRate * n), n)}` +
         `    ${s.condition === "D" ? "  n/a" : pct(Math.round(s.noTypoRate * n), n)}` +
         `      ${pct(Math.round(s.structureRate * n), n)}` +
-        `       ${pct(Math.round(s.passRate * n), n)}` +
+        `       ${options.dryRun ? "  skip" : pct(Math.round(s.passRate * n), n)}` +
         `      ${avg([s.avgScore])}`,
     );
   }
@@ -171,21 +172,30 @@ export function printReport(
   }
 
   // ─── Interpretation ──────────────────────────────────────────────────────
-  const aPass = stats.find((s) => s.condition === "A")!.passRate;
-  const bPass = stats.find((s) => s.condition === "B")!.passRate;
-  const cPass = stats.find((s) => s.condition === "C")!.passRate;
-  const dPass = stats.find((s) => s.condition === "D")!.passRate;
-
   console.log("  Interpretation:");
-  console.log(
-    `  • Spec lift (B vs A):      +${Math.round((bPass - aPass) * 100)}pp (spec alone helps this much)`,
-  );
-  console.log(
-    `  • Doctor lift (C vs B):    +${Math.round((cPass - bPass) * 100)}pp (self-correction adds this)`,
-  );
-  console.log(
-    `  • vs React baseline (C vs D): ${cPass >= dPass ? "+" : ""}${Math.round((cPass - dPass) * 100)}pp`,
-  );
+  if (options.dryRun) {
+    console.log(
+      "  • Dry-run: pass rates skipped. The mock LLM returns the same Counter snippet for every task — that is not a per-task result.",
+    );
+    console.log(
+      "  • Structure still evaluated per task against required camelCase APIs; C cannot pass without it.",
+    );
+  } else {
+    const aPass = stats.find((s) => s.condition === "A")!.passRate;
+    const bPass = stats.find((s) => s.condition === "B")!.passRate;
+    const cPass = stats.find((s) => s.condition === "C")!.passRate;
+    const dPass = stats.find((s) => s.condition === "D")!.passRate;
+
+    console.log(
+      `  • Spec lift (B vs A):      +${Math.round((bPass - aPass) * 100)}pp (spec alone helps this much)`,
+    );
+    console.log(
+      `  • Doctor lift (C vs B):    +${Math.round((cPass - bPass) * 100)}pp (self-correction adds this)`,
+    );
+    console.log(
+      `  • vs React baseline (C vs D): ${cPass >= dPass ? "+" : ""}${Math.round((cPass - dPass) * 100)}pp`,
+    );
+  }
   console.log(
     "═══════════════════════════════════════════════════════════════════════════════",
   );

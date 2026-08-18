@@ -54,11 +54,12 @@ export interface CellEditingCell {
    */
   beginEdit: () => void
   /**
-   * Exits edit mode without firing `options.onCellEdit`.
+   * Exits edit mode without firing `options.onCellEdit`. Always clears the
+   * editing cell (`resetEditingCell(true)`), even when `initialState.cellEditing` is set.
    */
   cancelEdit: () => void
   /**
-   * Fires `options.onCellEdit` with the cell's `rowId`/`columnId` and the committed value, then exits edit mode.
+   * Fires `options.onCellEdit` with the cell's `rowId`/`columnId` and the committed value, then exits edit mode (`resetEditingCell(true)` — not a restore of `initialState.cellEditing`). A throw from `onCellEdit` still exits.
    */
   commitEdit: (value: unknown) => void
   /**
@@ -110,7 +111,7 @@ export const CellEditing: TableFeature = {
       table.options.onCellEditingChange?.(updater)
     table.getEditingCell = () => table.getState().cellEditing ?? null
     table.resetEditingCell = defaultState =>
-      table.setEditingCell(
+      table.setEditingCell!(
         defaultState ? null : (table.initialState.cellEditing ?? null)
       )
   },
@@ -122,7 +123,7 @@ export const CellEditing: TableFeature = {
     table: Table<TData>
   ): void => {
     cell.getIsEditing = () => {
-      const editing = table.getEditingCell()
+      const editing = table.getEditingCell!()
       return (
         editing !== null &&
         editing.rowId === row.id &&
@@ -139,22 +140,27 @@ export const CellEditing: TableFeature = {
     }
 
     cell.beginEdit = () => {
-      if (!cell.getCanEdit()) return
-      table.setEditingCell({ rowId: row.id, columnId: column.id })
+      if (!cell.getCanEdit!()) return
+      table.setEditingCell!({ rowId: row.id, columnId: column.id })
     }
 
     cell.commitEdit = value => {
-      table.options.onCellEdit?.({
-        rowId: row.id,
-        columnId: column.id,
-        value,
-        cell,
-      })
-      table.resetEditingCell()
+      try {
+        table.options.onCellEdit?.({
+          rowId: row.id,
+          columnId: column.id,
+          value,
+          cell,
+        })
+      } finally {
+        // Force a blank reset — `resetEditingCell()` without `true` restores
+        // `initialState.cellEditing` and would re-enter the initial cell.
+        table.resetEditingCell!(true)
+      }
     }
 
     cell.cancelEdit = () => {
-      table.resetEditingCell()
+      table.resetEditingCell!(true)
     }
   },
 }

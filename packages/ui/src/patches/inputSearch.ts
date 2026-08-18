@@ -11,7 +11,7 @@ import { focusRing } from "../utils/focusRing.js";
 /**
  * Styles a search input with themed border, padding, placeholder color, native
  * search decorations, hover, focus and disabled states. Apply to an `<input>`
- * element of type `search` (the patch sets `type: "search"`).
+ * element of type `search` (the patch default is `type: "search"`; a native `type` wins).
  *
  * @hostTag input
  * @param props.color - Optional theme color tone for text/border/placeholder (`ValueOrState<ThemeColor>`). Defaults to `"neutral"`.
@@ -28,12 +28,13 @@ function inputSearch(
   const accentColor = toState(props.accentColor ?? "primary", "accentColor");
 
   return {
+    // Declared like any other attribute — the native element still wins over
+    // this patch default if the host declares its own `type`.
     type: "search",
-    _onSchedule: (node, element) => {
+    _onInsert: (node) => {
       if (node.tagName !== "input") {
         console.warn(`"inputSearch" primitive patch must use input tag`);
       }
-      (element as any).type = "search";
     },
     style: {
       fontFamily: "inherit",

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import type { DomphyElement } from "@domphy/core";
-import { ElementNode, flushSync } from "@domphy/core";
+import { ElementNode, flushSync, toState } from "@domphy/core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { pixelImage } from "../../../src/magicui/community/pixelImage.ts";
 
@@ -58,5 +58,31 @@ describe("pixelImage", () => {
     const { node } = render(pixelImage() as DomphyElement);
     flushSync();
     expect(() => node.remove()).not.toThrow();
+  });
+});
+
+describe("pixelImage — reused-node lifecycle", () => {
+  it("still reveals tiles after an ancestor re-render before the timeout fires", () => {
+    vi.useFakeTimers();
+    const refresh = toState(0);
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const node = new ElementNode({
+      div: (listener: unknown) => {
+        (refresh.get as (l: unknown) => number)(listener);
+        return [pixelImage({ rows: 1, cols: 1 }) as DomphyElement];
+      },
+    } as DomphyElement);
+    node.render(host);
+    flushSync();
+    expect(node.generateCSS()).toContain("opacity: 0");
+
+    // Fresh factory closure (new revealed=false) on the SAME tiles.
+    refresh.set(1);
+    flushSync();
+
+    vi.advanceTimersByTime(10);
+    flushSync();
+    expect(node.generateCSS()).toContain("opacity: 1");
   });
 });

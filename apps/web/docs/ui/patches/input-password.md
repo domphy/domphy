@@ -16,6 +16,13 @@ The toggle switches `input.type` between `"password"` and `"text"` and updates i
 |------|------|---------|-------------|
 | `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Border/background/text color tone. |
 | `accentColor` | `ValueOrState<ThemeColor>` | `"primary"` | Outline color on focus-within. |
+| `value` | `ValueOrState<string>` | — | Forwarded onto the inner `<input>` (host `value` is also lifted). |
+| `name` | `string` | — | Forwarded onto the inner `<input>` so FormData includes the field (host `name` is also lifted). |
+| `onInput` | `(event: Event) => void` | — | Forwarded onto the inner `<input>` (host `onInput` is also lifted). |
+| `disabled` | `ValueOrState<boolean>` | — | Forwarded onto the inner `<input>` (host `disabled` is also lifted). |
+| `required` | `boolean` | — | Forwarded onto the inner `<input>` (host `required` is also lifted). |
+| `autocomplete` | `string` | `"current-password"` | Native `autocomplete` token on the inner input. |
+| `ariaLabel` | `string` | `"Password"` | Accessible name for the inner input. |
 
 ## Example
 

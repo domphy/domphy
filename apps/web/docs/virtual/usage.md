@@ -38,6 +38,7 @@ const App = {
           _key: item.key,
           "data-index": item.index,
           _onMount: (node) => list.measureElement(node.domElement),
+          _onRemove: () => list.measureElement(null),
           style: {
             position: "absolute",
             top: 0,
@@ -54,25 +55,21 @@ const App = {
 }
 ```
 
-`measureElement` replaces the estimate with the actual rendered height and schedules a re-layout.
+`measureElement` replaces the estimate with the actual rendered height and schedules a re-layout. Call `measureElement(null)` from the item's `_onRemove` so the observer drops disconnected nodes when they scroll out of view.
 
 ## Window scroll
 
-Virtualize against the browser window instead of a container. Use `observeWindowRect` and `observeWindowOffset` options:
+Virtualize against the browser window instead of a container. Use `createWindowVirtualizer` — same handle as `createVirtualizer` with `TScroll` fixed to `Window` and the window observers / `windowScroll` defaults filled in (no `as any`):
 
 ```ts
-import { observeWindowRect, observeWindowOffset, windowScroll } from "@domphy/virtual"
-import { createVirtualizer } from "@domphy/virtual/domphy"
+import { createWindowVirtualizer } from "@domphy/virtual/domphy"
 
-const list = createVirtualizer({
+const list = createWindowVirtualizer<HTMLDivElement>({
   count: 5000,
   estimateSize: () => 50,
-  observeElementRect: observeWindowRect as any,
-  observeElementOffset: observeWindowOffset as any,
-  scrollToFn: windowScroll as any,
 })
 // Wire window as the scroll element from _onMount (getScrollElement is not an option in the Domphy adapter):
-// _onMount: () => list.setScrollElement(window as any)
+// _onMount: () => list.setScrollElement(window)
 
 const App = {
   div: {
@@ -89,7 +86,7 @@ const App = {
       })),
       style: { position: "relative", height: (l) => `${list.getTotalSize(l)}px` },
     },
-    _onMount: () => list.setScrollElement(window as any),
+    _onMount: () => list.setScrollElement(window),
     _onRemove: () => list.destroy(),
   },
 }

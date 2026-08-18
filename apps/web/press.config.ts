@@ -240,6 +240,10 @@ export const config = defineConfig({
             },
             { text: "Typography", link: "/docs/ui/patches/typography" },
             { text: "Unordered List", link: "/docs/ui/patches/unordered-list" },
+            {
+              text: "Visually Hidden",
+              link: "/docs/ui/patches/visually-hidden",
+            },
           ],
         },
         {

@@ -2,6 +2,7 @@ import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
+  themeDensity,
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
@@ -35,16 +36,16 @@ function badge(
         top: 0,
         right: 0,
         transform: "translate(50%,-50%)",
-        paddingInline: themeSpacing(1.5),
+        paddingInline: (l) => themeSpacing(themeDensity(l) * 1.5),
         minWidth: themeSpacing(5),
-        height: themeSpacing(5),
+        height: (l) => themeSpacing(themeDensity(l) * 5),
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
         fontSize: (l) => themeSize(l, "decrease-2"),
         fontWeight: "600",
         lineHeight: 1,
-        borderRadius: themeSpacing(999),
+        borderRadius: (l) => themeSpacing(themeDensity(l) * 999),
         backgroundColor: (l) => themeColor(l, "shift-9", color.get(l)),
         color: (l) => themeColor(l, "shift-0", color.get(l)),
         // Hairline ring so the pill pops on same-hue surfaces.

@@ -1,6 +1,14 @@
 # @domphy/press Changelog
 
 ## Unreleased
+- fix(markdown): resolve reference-style links and images against their definitions (same `a`/`img` shape as inline, including `sanitizeUrl`) instead of dropping `linkReference`/`imageReference` nodes. GFM footnotes (`[^label]`) render as numbered superscript refs plus a collected `section.footnotes` footer (mdast-util-to-hast / GitHub id contract); unused definitions stay out of the body.
+- docs(markdown): syntax-reference matches the walker — heading `header-anchor` child, soft-break as one string, raw HTML via `rawHtml()` + `sanitizeHTMLString`.
+- fix(serve): resolve each candidate and require its realpath stays under the site root, so absolute URLs (`/etc/passwd`) and `%2e%2e` / symlink escapes cannot leave the preview directory.
+- fix(build): skip locale directories when discovering the default locale so `vi/guide.md` is not registered twice (first write used to win as localeKey `/`).
+- fix(highlight): escape the fence `lang` before interpolating it into the `language-*` class.
+- fix(layout): match locale prefixes on a segment boundary so `/vi` does not claim `/video`.
+- fix(build): validate mermaid `{ cdn }` as http(s) and JSON-stringify it into `import()`.
+- fix(build): emit `dir="rtl"` on `<html>` for RTL `lang` values (`ar`, `he`, `fa`, `ur`, …).
 - perf(search): the search index is fetched on the first search intent (input focus or first keystroke, including the Ctrl/Cmd+K path) instead of on mount. It was the largest asset on a docs page — measured on the shapemetry docs site at 573,534 B of a 693,468 B cold page load, paid by every visitor whether or not they ever searched. A query typed while the fetch is in flight is replayed once the index resolves, so nothing is dropped; requests are shared per index URL, so two widgets on a page (or a re-mounted island) fetch once, and a failed fetch is forgotten so the next intent retries.
 
 ## 0.23.0

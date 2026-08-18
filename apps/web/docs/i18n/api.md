@@ -37,6 +37,16 @@ createI18n<TLocale extends string, TMessages>(options): I18nInstance
 | `getLocale` | `() → TLocale` | Get current locale (non-reactive) |
 | `detectLocale` | `(opts?) → TLocale` | Detect locale from URL path prefix or localStorage |
 
+## runWithI18n
+
+```ts
+runWithI18n<T>(fn: () => T): T
+```
+
+Runs `fn` in a fresh request-locale scope. On the client this is a no-op (`globalThis` is the single locale). On the server, wrap each request so `initI18n` / `t` / `getLocale` stay isolated — Node HTTP already provides a per-request async context, so the wrapper is mainly for tests and frameworks that do not.
+
+`initI18n` / `setLocale` on the server do not change the shared store's language; `t()`, `getLocale()`, `currentLocale()`, `exists()`, and `locale.get()` read the request locale when one is bound.
+
 ## detectLocale options
 
 ```ts

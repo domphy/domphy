@@ -108,14 +108,17 @@ describe("diamond dependency execution", () => {
     expect(values).toEqual([2, 4]);
   });
 
-  it("plain State notifications are never skipped (same-value set still re-runs)", () => {
+  it("plain State notifications are not version-skipped when the value changes", () => {
     const a = toState(1);
     let runs = 0;
     effect(() => {
       runs++;
       a.get();
     });
-    a.set(1); // same value — State.set always notifies; behavior unchanged
+    a.set(1); // Object.is equal — no notify
+    flushSync();
+    expect(runs).toBe(1);
+    a.set(2);
     flushSync();
     expect(runs).toBe(2);
   });

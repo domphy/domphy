@@ -17,6 +17,7 @@ import { runInputRules } from "./inputRules.js";
 import { getMarkAttributes, getNodeAttributes, isActive } from "./isActive.js";
 import { contentSize, endPosition, startPosition } from "./model/position.js";
 import type { Schema } from "./model/schema.js";
+import { stripDisallowedLinkHrefs } from "./extensions/link.js";
 import { generateHTML, parseHTML } from "./serialize/html.js";
 import { createDocument, toJSON } from "./serialize/json.js";
 import { generateText } from "./serialize/text.js";
@@ -42,6 +43,31 @@ type EventCallback = (...args: unknown[]) => void;
 
 function selectionEquals(left: SelectionRange, right: SelectionRange): boolean {
   return left.anchor === right.anchor && left.head === right.head;
+}
+
+/**
+ * Empty means only vacant textblocks. Atoms (hr) and structure (table, lists)
+ * count as content even when they have no text.
+ */
+function isEmptyDocument(schema: Schema, node: JSONContent): boolean {
+  const name = node.type ?? "";
+  if (name === "text") {
+    return (node.text ?? "") === "";
+  }
+  if (schema.nodes.get(name)?.atom) {
+    return false;
+  }
+  if (schema.isLeaf(name) && !schema.isInline(name)) {
+    return false;
+  }
+  if (
+    !schema.isTextblock(name) &&
+    !schema.isInline(name) &&
+    name !== schema.topNodeType
+  ) {
+    return false;
+  }
+  return (node.content ?? []).every((child) => isEmptyDocument(schema, child));
 }
 
 /**
@@ -77,6 +103,8 @@ export class Editor implements EditorInstance {
   private readonly commandManager: CommandManager;
   private readonly listeners = new Map<EditorEventName, Set<EventCallback>>();
   private editable: boolean;
+  /** True after `onCreate`. Autofocus on a later `mount()` waits for this. */
+  private created = false;
   /**
    * Set by a dispatch carrying the `appendNextToHistoryGroup` meta: the next
    * document change joins the open history group instead of starting its own.
@@ -123,14 +151,8 @@ export class Editor implements EditorInstance {
     this.emit("create");
     this.extensionManager.emit("onCreate");
     options.onCreate?.({ editor: this });
-
-    if (
-      options.autofocus !== undefined &&
-      options.autofocus !== null &&
-      options.autofocus !== false
-    ) {
-      this.commands.focus(options.autofocus);
-    }
+    this.created = true;
+    this.applyAutofocus();
   }
 
   get schema(): Schema {
@@ -143,10 +165,7 @@ export class Editor implements EditorInstance {
 
   get isEmpty(): boolean {
     const children = this.state.doc.content ?? [];
-    return (
-      children.length <= 1 &&
-      generateText(this.schema, this.state.doc, "") === ""
-    );
+    return children.length <= 1 && isEmptyDocument(this.schema, this.state.doc);
   }
 
   get commands(): SingleCommands {
@@ -274,13 +293,16 @@ export class Editor implements EditorInstance {
   // -------------------------------------------------------------------------
 
   createDocument(content: Content): JSONContent {
-    return createDocument(this.schema, content, (html) =>
-      parseHTML(this.schema, html),
+    return stripDisallowedLinkHrefs(
+      this,
+      createDocument(this.schema, content, (html) =>
+        parseHTML(this.schema, html),
+      ),
     );
   }
 
   getJSON(): JSONContent {
-    return toJSON(this.schema, this.state.doc);
+    return stripDisallowedLinkHrefs(this, toJSON(this.schema, this.state.doc));
   }
 
   getHTML(): string {
@@ -342,11 +364,27 @@ export class Editor implements EditorInstance {
     // the createEditor() flow mounts after construction, so onCreate fires
     // while `this.view` is still null.
     this.extensionManager.emit("onMount");
+    // createEditor() + editorContent() mount after the constructor, so
+    // autofocus must run here once the view exists — not only in the ctor.
+    if (this.created) {
+      this.applyAutofocus();
+    }
   }
 
   unmount(): void {
     this.view?.destroy();
     this.view = null;
+  }
+
+  private applyAutofocus(): void {
+    const autofocus = this.options.autofocus;
+    if (autofocus === undefined || autofocus === null || autofocus === false) {
+      return;
+    }
+    if (!this.view) {
+      return;
+    }
+    this.commands.focus(autofocus);
   }
 
   setEditable(editable: boolean, emitUpdate = true): void {

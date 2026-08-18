@@ -1,6 +1,7 @@
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { basename, join } from "node:path";
+import { basename, join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   diagnoseTree,
@@ -8,6 +9,7 @@ import {
   getPatch,
   listAppBlocks,
   listPatches,
+  readBlockSource,
   validateTree,
 } from "../src/tools";
 
@@ -170,6 +172,94 @@ describe("app-block tools", () => {
       const found = JSON.parse(await getAppBlock("Evil"));
       expect(found.source).not.toContain("TOP SECRET");
       expect(found.source).toContain("Could not read source");
+    } finally {
+      rmSync(secretPath, { force: true });
+    }
+  });
+
+  it("does not read a no-dotdot path that only exists under the parent root", async () => {
+    const parentRoot = mkdtempSync(join(tmpdir(), "domphy-parent-"));
+    const manifestDir = join(parentRoot, "a", "b", "manifest");
+    mkdirSync(manifestDir, { recursive: true });
+    const secretName = `secret-${Date.now()}.txt`;
+    const secretPath = join(parentRoot, secretName);
+    writeFileSync(secretPath, "TOP SECRET");
+    const manifestPath = join(manifestDir, "app-manifest.json");
+    writeFileSync(
+      manifestPath,
+      JSON.stringify([
+        {
+          name: "Evil",
+          kind: "block",
+          file: secretName,
+          signature: 'Evil: DomphyElement<"div">',
+          jsdoc: "",
+          exportKind: "named",
+        },
+      ]),
+    );
+    process.env.DOMPHY_APP_MANIFEST = manifestPath;
+    try {
+      const found = JSON.parse(await getAppBlock("Evil"));
+      expect(found.source).not.toContain("TOP SECRET");
+      expect(found.source).toContain("Could not read source");
+    } finally {
+      rmSync(secretPath, { force: true });
+    }
+  });
+});
+
+describe("readBlockSource containment", () => {
+  it("reads a file under the configured manifest directory", async () => {
+    const manifestDir = mkdtempSync(join(tmpdir(), "domphy-app-"));
+    const manifestPath = join(manifestDir, "app-manifest.json");
+    writeFileSync(manifestPath, "[]");
+    writeFileSync(
+      join(manifestDir, "hero.ts"),
+      "export const Hero = { section: {} }\n",
+    );
+    process.env.DOMPHY_APP_MANIFEST = manifestPath;
+    expect(await readBlockSource("hero.ts")).toContain("export const Hero");
+  });
+
+  it("reads a path under process.cwd() (explicit root)", async () => {
+    const manifestDir = mkdtempSync(join(tmpdir(), "domphy-app-"));
+    process.env.DOMPHY_APP_MANIFEST = join(manifestDir, "app-manifest.json");
+    writeFileSync(process.env.DOMPHY_APP_MANIFEST, "[]");
+    const toolsFile = fileURLToPath(new URL("../src/tools.ts", import.meta.url));
+    const fromCwd = relative(process.cwd(), toolsFile);
+    expect(fromCwd === "" || !fromCwd.startsWith("..")).toBe(true);
+    expect(await readBlockSource(fromCwd)).toContain(
+      "export async function readBlockSource",
+    );
+  });
+
+  it("refuses a path without .. that only exists under the implicit parent root", async () => {
+    const parentRoot = mkdtempSync(join(tmpdir(), "domphy-parent-"));
+    const manifestDir = join(parentRoot, "a", "b", "manifest");
+    mkdirSync(manifestDir, { recursive: true });
+    const secretName = `secret-${Date.now()}.txt`;
+    const secretPath = join(parentRoot, secretName);
+    writeFileSync(secretPath, "TOP SECRET");
+    writeFileSync(join(manifestDir, "app-manifest.json"), "[]");
+    process.env.DOMPHY_APP_MANIFEST = join(manifestDir, "app-manifest.json");
+    try {
+      await expect(readBlockSource(secretName)).rejects.toThrow();
+    } finally {
+      rmSync(secretPath, { force: true });
+    }
+  });
+
+  it("refuses a .. escape even when the target exists", async () => {
+    const manifestDir = mkdtempSync(join(tmpdir(), "domphy-app-"));
+    const secretPath = join(tmpdir(), `domphy-secret-${Date.now()}.txt`);
+    writeFileSync(secretPath, "TOP SECRET");
+    writeFileSync(join(manifestDir, "app-manifest.json"), "[]");
+    process.env.DOMPHY_APP_MANIFEST = join(manifestDir, "app-manifest.json");
+    try {
+      await expect(
+        readBlockSource(`../${basename(secretPath)}`),
+      ).rejects.toThrow(/refusing to read outside/);
     } finally {
       rmSync(secretPath, { force: true });
     }

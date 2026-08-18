@@ -116,4 +116,29 @@ describe("sidebar01", () => {
     expect(host.textContent).toContain("Only Item");
     expect(host.textContent).toContain("Root");
   });
+
+  it("SOURCES.md and registry.json describe the shipped version header, no footer, and behavior hotkey", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { dirname, join } = await import("node:path");
+    const { fileURLToPath } = await import("node:url");
+    const root = join(dirname(fileURLToPath(import.meta.url)), "../../..");
+    const sources = readFileSync(join(root, "SOURCES.md"), "utf8");
+    const registry = JSON.parse(
+      readFileSync(join(root, "registry.json"), "utf8"),
+    ) as Array<{ exportName: string; fidelityNotes: string }>;
+    const sourcesRow = sources
+      .split("\n")
+      .find((line) => line.includes("`sidebar01`"));
+    const registryNotes =
+      registry.find((entry) => entry.exportName === "sidebar01")
+        ?.fidelityNotes ?? "";
+
+    for (const notes of [sourcesRow ?? "", registryNotes]) {
+      expect(notes.toLowerCase()).toContain("version");
+      expect(notes).toMatch(/sidebar-hotkey|behavior\(/);
+      expect(notes.toLowerCase()).not.toContain("workspace switcher");
+      expect(notes.toLowerCase()).not.toContain("pinned account footer");
+      expect(notes).not.toMatch(/_onMount\/_onRemove/);
+    }
+  });
 });

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import type { DomphyElement } from "@domphy/core";
-import { ElementNode } from "@domphy/core";
+import { ElementNode, flushSync, toState } from "@domphy/core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { magicCard } from "../../../src/magicui/effects/magicCard.ts";
 
@@ -126,5 +126,30 @@ describe("magicCard", () => {
   it("orb variant removes cleanly without throwing", () => {
     const { node } = render(magicCard({ variant: "orb" }) as DomphyElement);
     expect(() => node.remove()).not.toThrow();
+  });
+
+  it("still tracks the pointer after an ancestor re-render reuses the card", () => {
+    const refresh = toState(0);
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const node = new ElementNode({
+      div: (listener: unknown) => {
+        (refresh.get as (l: unknown) => number)(listener);
+        return [magicCard() as DomphyElement];
+      },
+    } as DomphyElement);
+    node.render(host);
+    flushSync();
+
+    const card = host.firstElementChild?.firstElementChild as HTMLElement;
+    const glow = card.firstElementChild as HTMLElement;
+    refresh.set(1);
+    flushSync();
+
+    card.dispatchEvent(
+      new MouseEvent("mousemove", { clientX: 42, clientY: 24, bubbles: true }),
+    );
+    expect(card.style.getPropertyValue("--magic-card-x")).toBe("42px");
+    expect(glow.style.opacity).toBe("0.8");
   });
 });

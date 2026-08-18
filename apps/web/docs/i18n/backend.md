@@ -51,37 +51,27 @@ async function createI18nLazy(initialLocale: Locale) {
 }
 ```
 
-For truly on-demand loading (only active locale), fetch before init and defer others:
+For a single locale at startup, load it first and pass it at `createI18n`. `locales` is snapshotted when `createI18n` runs — assigning more keys onto the object afterwards does **not** register translations with i18next, so a later `setLocale("fr")` would have nothing to switch to.
 
 ```ts
 async function createI18nOnDemand(initialLocale: Locale) {
-  // Only load the initial locale upfront
   const initialMessages = await import(`./locales/${initialLocale}.json`)
 
-  // Load remaining locales lazily on setLocale
-  const localeModules: Record<Locale, Record<string, unknown>> = {
-    [initialLocale]: initialMessages.default,
-  } as Record<Locale, Record<string, unknown>>
-
-  const loaders: Record<Locale, () => Promise<Record<string, unknown>>> = {
-    en: () => import("./locales/en.json").then(m => m.default),
-    fr: () => import("./locales/fr.json").then(m => m.default),
-    vi: () => import("./locales/vi.json").then(m => m.default),
-  }
-
-  // Pre-load remaining locales in background
-  for (const locale of (["en", "fr", "vi"] as Locale[]).filter(l => l !== initialLocale)) {
-    loaders[locale]().then(messages => { localeModules[locale] = messages })
-  }
-
-  return createI18n<Locale, typeof initialMessages.default>({
+  const i18n = createI18n<Locale, typeof initialMessages.default>({
     globalKey: "__myapp_i18n__",
     namespace: "app",
-    locales: localeModules as Record<Locale, typeof initialMessages.default>,
+    locales: {
+      [initialLocale]: initialMessages.default,
+    } as Record<Locale, typeof initialMessages.default>,
     defaultLocale: initialLocale,
   })
+
+  await i18n.initI18n(initialLocale)
+  return i18n
 }
 ```
+
+To support switching, either load every locale up front (`createI18nLazy` above) or create a **new** instance after fetching the next locale (give it a distinct `globalKey` — a reuse of the same key keeps the first store and ignores the new `locales`).
 
 ## HTTP backend
 
@@ -145,11 +135,14 @@ async function switchLocale(next: "en" | "fr" | "vi") {
 
 ## SSR considerations
 
-On the server, use static imports — fetch is unavailable or requires a polyfill:
+On the server, use static imports — fetch is unavailable or requires a polyfill. `initI18n` / `setLocale` do **not** change the shared `globalThis` store's language: the request locale lives in `AsyncLocalStorage`, so two concurrent requests can call `initI18n("en")` and `initI18n("vi")` without clobbering each other. `t()`, `getLocale()`, `currentLocale()`, `exists()`, and `locale.get()` read the request locale when one is bound.
+
+Node HTTP already gives each request its own async context. Elsewhere (tests, some frameworks) wrap the request with `runWithI18n()`:
 
 ```ts
 import en from "./locales/en.json"
 import fr from "./locales/fr.json"
+import { createI18n, runWithI18n } from "@domphy/i18n"
 
 const i18n = createI18n<"en" | "fr", typeof en>({
   globalKey: "__app_ssr__",
@@ -158,6 +151,10 @@ const i18n = createI18n<"en" | "fr", typeof en>({
   defaultLocale: "en",
 })
 
-// Initialize with the locale from Accept-Language or cookie
-await i18n.initI18n(userLocale)
+await runWithI18n(async () => {
+  await i18n.initI18n(userLocale)
+  return renderToString(App)
+})
 ```
+
+On the client, `globalThis[globalKey]` still dedups the instance across Vite chunks.

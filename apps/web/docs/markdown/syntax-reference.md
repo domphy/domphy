@@ -9,7 +9,7 @@ This page documents every markdown syntax construct and the exact Domphy element
 
 ## Headings
 
-ATX headings (`#` through `######`) become `h1` through `h6` with an `id` attribute derived from the heading text:
+ATX headings (`#` through `######`) become `h1` through `h6` with an `id` attribute derived from the heading text. The walker also appends a `header-anchor` child (`#`) so in-page permalinks work; the link is `aria-hidden` (the TOC is the screen-reader path) and `tabIndex: -1` so it is not a second tab stop.
 
 ```markdown
 # Level 1
@@ -20,13 +20,31 @@ ATX headings (`#` through `######`) become `h1` through `h6` with an `id` attrib
 ```ts
 // body
 [
-  { h1: ["Level 1"], id: "level-1" },
-  { h2: ["Level 2"], id: "level-2" },
-  { h3: ["Level 3"], id: "level-3" },
+  {
+    h1: [
+      "Level 1",
+      { a: "#", href: "#level-1", class: "header-anchor", ariaHidden: "true", tabIndex: -1 },
+    ],
+    id: "level-1",
+  },
+  {
+    h2: [
+      "Level 2",
+      { a: "#", href: "#level-2", class: "header-anchor", ariaHidden: "true", tabIndex: -1 },
+    ],
+    id: "level-2",
+  },
+  {
+    h3: [
+      "Level 3",
+      { a: "#", href: "#level-3", class: "header-anchor", ariaHidden: "true", tabIndex: -1 },
+    ],
+    id: "level-3",
+  },
 ]
 ```
 
-The `id` is the slug produced by `defaultSlugify` (or your `anchorSlugify` option). Duplicate heading text gets a numeric suffix: first occurrence keeps the base slug, subsequent ones get `-1`, `-2`, and so on.
+The `id` is the slug produced by `defaultSlugify` (or your `anchorSlugify` option). Duplicate heading text gets a numeric suffix: first occurrence keeps the base slug, subsequent ones get `-1`, `-2`, and so on. The header-anchor `href` always matches that `id`.
 
 ```markdown
 # Intro
@@ -36,8 +54,20 @@ The `id` is the slug produced by `defaultSlugify` (or your `anchorSlugify` optio
 
 ```ts
 [
-  { h1: ["Intro"], id: "intro" },
-  { h1: ["Intro"], id: "intro-1" },
+  {
+    h1: [
+      "Intro",
+      { a: "#", href: "#intro", class: "header-anchor", ariaHidden: "true", tabIndex: -1 },
+    ],
+    id: "intro",
+  },
+  {
+    h1: [
+      "Intro",
+      { a: "#", href: "#intro-1", class: "header-anchor", ariaHidden: "true", tabIndex: -1 },
+    ],
+    id: "intro-1",
+  },
 ]
 ```
 
@@ -92,6 +122,28 @@ Emphasis elements can be nested: `**_bold italic_**` becomes `{ strong: [{ em: [
 
 All attributes emitted by the mdast walker are copied as element properties. Absolute `http://`/`https://` links automatically get `target: "_blank"` and `rel: "noopener noreferrer"`; relative and anchor (`#...`) links do not. Auto-linked bare URLs (enabled by default via GFM) produce the same shape.
 
+### Reference-style links
+
+`[text][label]`, collapsed `[text][]`, and shortcut `[text]` resolve against a `[label]: url "title"` definition (first definition wins; identifiers match case-insensitively). The walker emits the **same** `a` shape as an inline link. The definition node itself is not rendered.
+
+```markdown
+[Domphy][home]
+
+[home]: https://domphy.dev "Homepage"
+```
+
+```ts
+{
+  a: ["Domphy"],
+  href: "https://domphy.dev",
+  title: "Homepage",
+  target: "_blank",
+  rel: "noopener noreferrer",
+}
+```
+
+Script-capable destinations (`javascript:`, `vbscript:`, `data:text/html`) are rewritten to `"#"` — the same `sanitizeUrl` used for inline links.
+
 ## Images
 
 ```markdown
@@ -99,10 +151,14 @@ All attributes emitted by the mdast walker are copied as element properties. Abs
 ```
 
 ```ts
-{ img: null, src: "/img/diagram.png", alt: "A diagram", title: "Figure 1" }
+{ img: null, src: "/img/diagram.png", alt: "A diagram", title: "Figure 1", loading: "lazy" }
 ```
 
 The `img` property is `null` because images are void elements. The `alt` text is extracted from the image's inline token children (markup stripped to plain text).
+
+### Reference-style images
+
+`![alt][label]` resolves the same way as a link reference and emits the same `img` shape as an inline image (including `loading: "lazy"`). The definition is not rendered.
 
 ## Unordered lists
 
@@ -293,7 +349,7 @@ Cells without an alignment marker have no `style` property.
 
 ## Line breaks
 
-A regular newline inside a paragraph becomes a **soft break** — rendered as a single space:
+A regular newline inside a paragraph becomes a **soft break**. remark keeps it as a literal `\n` inside one text node; the walker replaces that `\n` with a space, so the paragraph is a single string:
 
 ```markdown
 line one
@@ -301,7 +357,7 @@ line two
 ```
 
 ```ts
-{ p: ["line one", " ", "line two"] }
+{ p: ["line one line two"] }
 ```
 
 Two trailing spaces followed by a newline produce a **hard break** — a void `br` element:
@@ -346,6 +402,65 @@ Enabled by default (GFM task lists, via `remark-gfm`) — no option needed. List
 ```
 
 The `checked` property is present only on checked items; it is absent (not `false`) on unchecked ones.
+
+## Footnotes
+
+Enabled by default (GFM footnotes, via `remark-gfm`). A `[^label]` reference becomes a numbered superscript link; matching `[^label]:` definitions are collected (not rendered in place) and emitted once at the end of `body` as a `section.footnotes`. Numbering follows first-reference order. A second reference to the same note reuses the number and gets `id` suffix `-2`. Unused definitions are dropped.
+
+```markdown
+See note.[^1]
+
+[^1]: First footnote with **bold**.
+```
+
+```ts
+[
+  {
+    p: [
+      "See note.",
+      {
+        sup: [{
+          a: "1",
+          href: "#user-content-fn-1",
+          id: "user-content-fnref-1",
+          dataFootnoteRef: true,
+          "aria-describedby": "footnote-label",
+        }],
+      },
+    ],
+  },
+  {
+    section: [
+      { h2: "Footnotes", id: "footnote-label", class: "sr-only" },
+      {
+        ol: [{
+          li: [{
+            p: [
+              "First footnote with ",
+              { strong: ["bold"] },
+              ".",
+              " ",
+              {
+                a: "↩",
+                href: "#user-content-fnref-1",
+                dataFootnoteBackref: true,
+                ariaLabel: "Back to reference 1",
+                class: "data-footnote-backref",
+              },
+            ],
+          }],
+          id: "user-content-fn-1",
+          _key: 0,
+        }],
+      },
+    ],
+    class: "footnotes",
+    dataFootnotes: true,
+  },
+]
+```
+
+Ids use the mdast-util-to-hast / GitHub GFM `user-content-` prefix so the fragment contract matches GFM HTML. A later reference to the same note adds a second backref (`↩` + `<sup>2</sup>`, `ariaLabel: "Back to reference 1-2"`).
 
 ## Math
 
@@ -399,9 +514,13 @@ The raw LaTeX is stored verbatim. KaTeX (or MathJax) processes `.math` elements 
 
 ## Raw HTML
 
+A raw HTML block or inline fragment in the source **is** markup, so the walker wraps it in `rawHtml()` from `@domphy/core` (the explicit HTML opt-in). A bare string child is always text — putting `"<figure>…"` in the body array would render as escaped characters, not a `<figure>`.
+
+`rawHtml()` still runs `sanitizeHTMLString`: `<script>` elements, `on*` handlers, and `javascript:` / `vbscript:` / `data:text/html` URLs are stripped. That is defense in depth, not a sanitizer for untrusted input.
+
 ### Block HTML
 
-A block of raw HTML is passed through as a bare string in the body array — no `div` wrapper is added. When Domphy renders a body array, a raw HTML string is emitted verbatim (see `@domphy/core`'s HTML-string handling):
+A block of raw HTML is a single `rawHtml(...)` child in the body array — no `div` wrapper is added:
 
 ```markdown
 <figure>
@@ -411,26 +530,30 @@ A block of raw HTML is passed through as a bare string in the body array — no 
 ```
 
 ```ts
+import { rawHtml } from "@domphy/core"
+
 [
-  "<figure>\n  <img src=\"/chart.png\" alt=\"Chart\">\n  <figcaption>Monthly visits</figcaption>\n</figure>",
+  rawHtml("<figure>\n  <img src=\"/chart.png\" alt=\"Chart\">\n  <figcaption>Monthly visits</figcaption>\n</figure>"),
 ]
 ```
 
 ### Inline HTML
 
-Raw HTML inline is a per-fragment operation: each open or close tag fragment is passed through as a bare string (no `span` wrapper). The walker does not reconstruct the nested element tree from raw inline HTML:
+Raw HTML inline is a per-fragment operation: each open or close tag fragment is its own `rawHtml(...)` (no `span` wrapper). The walker does not reconstruct the nested element tree from raw inline HTML:
 
 ```markdown
 Text with <strong>bold</strong> inline.
 ```
 
 ```ts
+import { rawHtml } from "@domphy/core"
+
 {
   p: [
     "Text with ",
-    "<strong>",
+    rawHtml("<strong>"),
     "bold",
-    "</strong>",
+    rawHtml("</strong>"),
     " inline.",
   ],
 }

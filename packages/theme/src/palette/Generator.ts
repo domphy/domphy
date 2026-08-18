@@ -35,19 +35,18 @@ function euclidean3(v1: number[], v2: number[]): number {
 }
 
 // Builds a continuous color-at-parameter function over Oklab-space anchors
-// (black, ...baseColors, white), sorted by lightness. The anchors' positions
-// along the polyline are placed in "warped" parameter space via `unwarp`
-// (cumulative Oklab arc length -> normalized distance -> unwarp), so that a
-// linearly-sampled output parameter `t`, once passed back through `warp`,
-// re-lands on the correct anchor position — same mechanism as Ramp.ts's
-// contrastEfficiency metric, run in reverse to CONSTRUCT a ramp instead of
-// SCORING one. Lightness is linearly interpolated per Oklab segment; a and b
-// (chroma channels) use a monotone cubic spline across ALL anchors for a
-// smooth, single-peak chroma trajectory (matches the Chroma Smoothness metric's
-// ideal trajectory assumption).
+// (black, ...baseColors, white) in the caller-supplied waypoint order — not
+// sorted by lightness, so a multi-anchor path can change hue at mid-L without
+// the L-sort swapping the waypoints. Positions along the polyline are placed
+// in warped parameter space via `unwarp` (cumulative Oklab arc length ->
+// normalized distance -> unwarp), so a linearly-sampled output `t` passed
+// through `warp` once re-lands on the matching anchor. A second remap of the
+// mid-anchor window (the old tMin/tMax slice) would double-warp those
+// waypoints and they would miss their own hex. Lightness is linear per Oklab
+// segment; a and b use a monotone cubic spline across ALL anchors.
 function sequentialInterpolator(rgbs: number[][]) {
     const fullRgbs = [[0, 0, 0], ...rgbs, [1, 1, 1]];
-    const anchors = fullRgbs.map((rgb) => rgbToOklab(rgb)).sort((a, b) => a[0] - b[0]);
+    const anchors = fullRgbs.map((rgb) => rgbToOklab(rgb));
 
     const L = anchors.map((v) => v[0]);
     const A = anchors.map((v) => v[1]);
@@ -62,19 +61,15 @@ function sequentialInterpolator(rgbs: number[][]) {
 
     const allParams = cumulativeDistances.map((d) => unwarp(totalDist > 0 ? d / totalDist : 0));
 
-    const tMin = rgbs.length === 1 ? 0 : allParams[1];
-    const tMax = rgbs.length === 1 ? 1 : allParams[allParams.length - 2];
-
     const aInterpolator = createMonotone(allParams.map((p, i) => [p, A[i]]));
     const bInterpolator = createMonotone(allParams.map((p, i) => [p, B[i]]));
 
     const colorAtParam = (t: number): number[] => {
         const tWarped = warp(t);
-        const tMapped = tMin + tWarped * (tMax - tMin);
 
         let i = 0;
         for (let j = 0; j < allParams.length - 1; j++) {
-            if (tMapped <= allParams[j + 1]) {
+            if (tWarped <= allParams[j + 1]) {
                 i = j;
                 break;
             }
@@ -82,17 +77,17 @@ function sequentialInterpolator(rgbs: number[][]) {
 
         const dStart = allParams[i];
         const dEnd = allParams[i + 1];
-        const ratio = (tMapped - dStart) / (dEnd - dStart || 1);
+        const ratio = (tWarped - dStart) / (dEnd - dStart || 1);
         const l = L[i] + ratio * (L[i + 1] - L[i]);
-        const a = aInterpolator(tMapped);
-        const b = bInterpolator(tMapped);
+        const a = aInterpolator(tWarped);
+        const b = bInterpolator(tWarped);
 
         return oklabToRgb([l, a, b]);
     };
 
     return {
         colorAtParam,
-        parameters: allParams.slice(1, -1).map((v) => (v - tMin) / (tMax - tMin)),
+        parameters: allParams.slice(1, -1),
     };
 }
 
@@ -100,8 +95,8 @@ function sequentialInterpolator(rgbs: number[][]) {
  * Generate a WCAG-optimized sequential monochromatic ramp from one or more
  * anchor colors, black and white implicitly bracketing the ramp. When more
  * than one anchor color is given, each becomes a fixed waypoint the ramp
- * passes through (e.g. a specific brand color pinned at a specific step),
- * still connected by the same warped Oklab interpolation.
+ * passes through in the given order — not sorted by lightness — and the
+ * input hex is pinned onto its nearest step so mid-anchors round-trip.
  *
  * Output is ordered light-to-dark (index 0 lightest, last index darkest) to
  * match `@domphy/theme`'s `ThemeInput.colors[name]` convention (`light.ts`'s
@@ -121,7 +116,12 @@ export function generateRamp(hexs: string | string[], stepsCount: number): strin
     // lowercase #rrggbb shape produced by the multi-step path below.
     if (stepsCount === 1) return [rgbToHex(hexToRgb(anchors[0]))];
 
-    const { colorAtParam, parameters } = sequentialInterpolator(anchors.map(hexToRgb));
+    // Interpolator walks dark -> light with black/white brackets. Reverse the
+    // caller's waypoints so the final light-to-dark reverse restores input order.
+    const waypointHexes = anchors.map((hex) => rgbToHex(hexToRgb(hex))).reverse();
+    const { colorAtParam, parameters } = sequentialInterpolator(
+        [...anchors.map(hexToRgb)].reverse(),
+    );
     const colors: string[] = [];
 
     const fullParams = [0, ...parameters, 1];
@@ -145,6 +145,19 @@ export function generateRamp(hexs: string | string[], stepsCount: number): strin
         }
 
         colors.push(rgbToHex(colorAtParam(t)));
+    }
+
+    // Pin multi-anchor waypoints to their nearest step so mid-anchors
+    // round-trip their input hex. A single-anchor ramp is not pinned: the
+    // nearest interpolated step is already close, and overwriting it with
+    // the source hex can invert relative luminance vs its neighbors.
+    if (waypointHexes.length > 1) {
+        for (let i = 0; i < waypointHexes.length; i++) {
+            const step = anchorIdx[i + 1];
+            if (step >= 0 && step < colors.length) {
+                colors[step] = waypointHexes[i];
+            }
+        }
     }
 
     // sequentialInterpolator walks dark (t=0) -> light (t=1); reverse to match

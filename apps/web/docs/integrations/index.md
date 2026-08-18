@@ -84,7 +84,7 @@ When the library mutates the DOM itself (e.g. a drag-sort plugin reorders nodes)
 
 ## Examples
 
-- [Chart.js](/docs/integrations/chartjs) — charts via `_onMount`
+- [Chart.js](/docs/integrations/chartjs) — charts via `behavior()` (subscribe + destroy in `destroy`)
 - [SortableJS](/docs/integrations/sortablejs) — drag-and-drop list reordering
 - [Zod](/docs/integrations/zod) — form validation
 - [page.js](/docs/integrations/pagejs) — client-side routing

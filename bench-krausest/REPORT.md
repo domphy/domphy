@@ -16,7 +16,9 @@ bench-krausest/
   src/vanilla.ts        # vanilla-DOM control (port of krausest vanillajs reference)
   build.mjs             # node build.mjs -> dist/{main.js, main.profile.js, vanilla.js}
   harness/serve.mjs     # static server (port 4190)
-  harness/run.mjs       # timing harness: node harness/run.mjs  (env: IMPLS=... RUNS=...)
+  harness/run.mjs       # timing harness: node harness/run.mjs
+                        # defaults match this file: IMPLS=vanilla,fine,tuned,coarse RUNS=3
+                        # each (impl, op, run) is a fresh browser + page
   harness/profile.mjs   # CDP CPU profiler: node harness/profile.mjs <op> [impl]
   harness/check-rules.mjs # CSSOM rule-count diagnostic (empty-rule churn proof)
 ```
@@ -41,10 +43,17 @@ bench-krausest/
 
 Per op: `performance.now()` bracket around a synchronous `.click()` dispatch,
 then `flushSync()` (drain Domphy's reactivity queue) + a forced synchronous
-layout (`offsetHeight` read). Median of N fresh page loads. This approximates
-"DOM update + style/layout"; the official krausest driver additionally waits
-for paint, so these numbers are a lower bound relative to the published table.
+layout (`offsetHeight` read). Each **(impl, op, run)** is isolated: a fresh
+Chromium + page, unmeasured warmup (`#run` + `#clear`), unmeasured setup
+(seed 1k / 10k as needed), then the named click is timed. Median of `RUNS`
+isolated samples. Defaults: `IMPLS=vanilla,fine,tuned,coarse` `RUNS=3`
+(same columns/N as the first table below). This approximates "DOM update +
+style/layout"; the official krausest driver additionally waits for paint, so
+these numbers are a lower bound relative to the published table.
 Chromium via playwright 1.62, headless, no CPU throttling.
+
+The tables below were measured **before** per-op isolation (all ops shared
+one page per run). Re-run `node harness/run.mjs` for isolated numbers.
 
 ## Results
 
@@ -82,58 +91,54 @@ Reading:
   objects cost ~200 ms. Per-row states pay off only when partial updates
   dominate (partial update: 9.5 vs 96.2 ms).
 
-## Core-level findings (for a follow-up lane — core source NOT modified here)
+## Core-level findings (current `@domphy/core` — verified against source)
 
-1. **Empty-CSS-rule churn on every reconciliation patch.**
-   `ElementNode.patch()` calls `this.styles.patchCSS(element.style || {}, …)`
-   unconditionally (`packages/core/src/classes/ElementNode.ts:355`).
-   `StyleList.patchCSS` (`packages/core/src/classes/StyleList.ts:113-143`)
-   creates a `StyleRule` when none exists **even when the style object has no
-   flat properties**, and if the node is mounted inserts it into the CSSOM
-   (`rule.render(sheet)` → `insertRule(".tr_xxx {  }")`, lines 141-142).
-   Net effect: the first reconciliation pass over a 1,000-row table inserts
-   ~1,000 empty CSS rules. Construction (`addCSS`) correctly guards empty
-   blocks (line 84); `patchCSS` is missing the same guard.
-   **Empirically confirmed** (`node harness/check-rules.mjs`): boot = 1195
-   rules (bootstrap), create 1k = 1195 (construction path is clean), one swap
-   = **9195 rules** (+8000 = 8 nodes/row × 1000 rows, one empty rule per
-   patched node), clear = 1195 again.
+These used to be open holes; the follow-up section below landed the fixes.
+Line citations are **current** `packages/core` (not the pre-fix tree).
 
-2. **O(rules) CSSOM removal per disposed node → O(n²) clear.**
-   `ElementNode._dispose` calls `rule.remove()` per rule
-   (`ElementNode.ts:224`); `StyleRule.remove`
-   (`packages/core/src/classes/StyleRule.ts:84-96`) linearly scans
-   `sheet.cssRules` to find its index before `deleteRule`. After a patch pass
-   has created per-node rules (finding 1), clearing N rows costs N scans over
-   an N-rule sheet. CDP profile of swap+clear: `deleteRule` 8.6% self time,
-   `insertRule` 2.7%.
+1. **Empty-rule guard is in `StyleList.patchCSS`.**
+   `ElementNode.patch()` still always calls `this.styles.patchCSS(...)`
+   (`packages/core/src/classes/ElementNode.ts:383-386`). `StyleList.patchCSS`
+   (`StyleList.ts:113-149`) now has the same empty guard `addCSS` always had
+   (`addCSS` only inserts a rule when `Object.keys(basic).length` at
+   `StyleList.ts:84-88`): if there is no existing rule and no flat
+   properties, `patchCSS` returns before constructing a `StyleRule`
+   (`StyleList.ts:124-130`). A brand-new rule is inserted into the live
+   CSSOM only when there is something to reconcile (`StyleList.ts:144-148`).
+   **Empirically confirmed** (`node harness/check-rules.mjs`): swap adds **0**
+   rules (was +8,000 = 8 nodes/row × 1000 rows). Construction path was
+   already clean (`addCSS`).
 
-3. **Full re-patch of every reused node on any list change.**
-   `ElementList.update` (`packages/core/src/classes/ElementList.ts:191`) calls
-   `reused.patch(input)` for every keyed match, and `patch()`
-   (`ElementNode.ts:320-…`) rebuilds all attributes/events and re-runs
-   children reconciliation per row — even when the row's data did not change
-   (e.g. removing one row re-patches the other 999). Measured: reactive swap
-   193 ms / remove 184 ms vs imperative `children.swap`/`remove` 12/15 ms —
-   ~94% of those ops is patch overhead. A cheap per-input "descriptor
-   unchanged" skip (reference equality, or a dirty flag) would close most of
-   it for the benchmark shape.
+2. **`StyleRule.remove` uses an insertion-index hint.**
+   `ElementNode._dispose` still calls `rule.remove()` per rule
+   (`ElementNode.ts:235-237`). `StyleRule.remove` (`StyleRule.ts:89-109`)
+   trusts `_domIndex` only after an identity check against `sheet.cssRules`;
+   the linear scan is the stale-hint fallback, not the default. The O(n²)
+   clear from finding 1 (N empty rules × N-length scan) does not apply
+   while the empty-rule guard holds.
 
-4. **`deepClone` of every descriptor, on create AND on patch.**
-   `ElementNode` constructor (`ElementNode.ts:83`) and `patch()`
-   (`ElementNode.ts:321`) recursively clone the entire element tree input.
-   ~6% self time on create-10k plus visible GC pressure (GC ~5-8%). For
-   freshly-allocated per-render descriptors this is pure overhead; needs an
-   ownership/copy-on-write decision in core.
+3. **Keyed reuse still calls `reused.patch(input)` — fast path is identity.**
+   `ElementList.update` (`ElementList.ts:202`) patches every keyed match.
+   `ElementNode.patch()` (`ElementNode.ts:333-347`) returns immediately when
+   `rawElement === this._descriptor`. Regenerated descriptors (`fine`:
+   `rows: (l) => data.get(l).map(rowElement)`) miss that path and still
+   rebuild attributes/events/children. Memoized descriptors (`memo` variant)
+   hit it. DOM placement is deferred: logical `move(..., false, true)` then
+   `_placeKeyedDom` (`ElementList.ts:259-266`, `:299`) applies only LIS
+   outliers (removal = 0 insertBefores, two-row swap = 2).
 
-5. **Per-node hashing + scope-class + `getTagName` linear scan.**
-   Every node computes `nodeId = hashString(tempPath + JSON.stringify(style))`
-   (`ElementNode.ts:94-98`) and sets a `tag_nodeId` scope class via
-   `setAttribute` even with no styles; `getTagName`
-   (`packages/core/src/helpers.ts:398-402`) does
-   `Object.keys(el).find(k => HtmlTags.includes(k))` — a linear scan of the
-   138-entry `HtmlTags` array per key per node (a `Set` lookup fixes it).
-   On create-10k: `hashString` ~1.4%, native `setAttribute` ~5.1% self.
+4. **`cloneDescriptor` no longer deep-clones children.**
+   Constructor (`ElementNode.ts:91-95`) and `patch()` (`ElementNode.ts:349`)
+   call `cloneDescriptor` (`helpers.ts:421-437`): the tag-content children
+   are passed by reference; only attributes/style/`$`/`_context`/`_metadata`
+   are deep-cloned. Each child node clones its own descriptor.
+
+5. **`nodeId` skips empty style; `getTagName` is a Set lookup.**
+   Constructor (`ElementNode.ts:104-111`) stringifies `element.style` only
+   when it has keys; `nodeId = hashString(tempPath + str)` with `str === ""`
+   for style-less nodes. Scope class `${tagName}_${nodeId}` is still set
+   (`ElementNode.ts:113`). `getTagName` (`helpers.ts:399-407`) uses
+   precomputed `HtmlTagSet` — not `HtmlTags.includes` over 138 entries.
 
 ## External comparison
 

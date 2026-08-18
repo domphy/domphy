@@ -30,6 +30,7 @@ function displayOf(element: Element): string | undefined {
 
 afterEach(() => {
   document.body.innerHTML = "";
+  document.documentElement.classList.remove("dark");
   // The CSS-in-JS engine content-hashes class tokens and shares the single
   // `<style>` sheet across renders, so a stale rule from a previous test can
   // otherwise be reused (and its reactive display checked here) by a later
@@ -86,5 +87,45 @@ describe("animatedThemeToggler", () => {
     const { node } = render(animatedThemeToggler() as DomphyElement);
     flushSync();
     expect(() => node.remove()).not.toThrow();
+  });
+});
+
+describe("animatedThemeToggler — reused-node lifecycle", () => {
+  it("keeps the toggled theme after an ancestor re-render reuses the button", () => {
+    const refresh = toState(0);
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const node = new ElementNode({
+      div: (listener: unknown) => {
+        (refresh.get as (l: unknown) => number)(listener);
+        return [animatedThemeToggler() as DomphyElement];
+      },
+    } as DomphyElement);
+    node.render(host);
+    flushSync();
+
+    const button = host.querySelector("button") as HTMLButtonElement;
+    const icons = () => button.querySelectorAll(":scope > span");
+    expect(displayOf(icons()[0])).toBe("flex");
+    expect(displayOf(icons()[1])).toBe("none");
+
+    button.click();
+    flushSync();
+    expect(displayOf(icons()[0])).toBe("none");
+    expect(displayOf(icons()[1])).toBe("flex");
+    expect(document.documentElement.classList.contains("dark")).toBe(true);
+
+    // Fresh factory closure on the SAME button — persisted theme must survive.
+    refresh.set(1);
+    flushSync();
+    expect(host.querySelector("button")).toBe(button);
+    expect(displayOf(icons()[0])).toBe("none");
+    expect(displayOf(icons()[1])).toBe("flex");
+
+    button.click();
+    flushSync();
+    expect(displayOf(icons()[0])).toBe("flex");
+    expect(displayOf(icons()[1])).toBe("none");
+    expect(document.documentElement.classList.contains("dark")).toBe(false);
   });
 });

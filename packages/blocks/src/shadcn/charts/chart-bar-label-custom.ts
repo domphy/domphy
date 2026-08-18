@@ -17,12 +17,10 @@ import {
   type ChartBarTwoSeriesPoint,
   type ChartTrendDirection,
   chartBarCardShell,
-  chartBarColorHex,
   chartBarFrame,
   chartBarHorizontalHoverOverlay,
   chartBarInsideOutsideLabelOverlay,
   chartBarSeriesColor,
-  chartBarTooltipRow,
   chartBarTrendFooter,
   chartBarValueDomain,
 } from "./chart-bar-shared.js";
@@ -93,7 +91,6 @@ function chartBarLabelCustom(
   );
   const values = orderedData.map((point) => point.desktop);
   const valueDomain = chartBarValueDomain(values);
-  const seriesColorHex = chartBarColorHex(seriesColor);
 
   const option: ChartOption = {
     tooltip: { show: false },
@@ -148,12 +145,7 @@ function chartBarLabelCustom(
               showCategoryTitle: true,
               // Match upstream ChartTooltipContent indicator="line": a thin
               // line swatch in the series color + the series name + the value.
-              valueLabel: (index) =>
-                chartBarTooltipRow(
-                  `<span style="display:inline-block;width:3px;height:11px;border-radius:1px;background:${seriesColorHex};margin-right:6px;vertical-align:middle;"></span>`,
-                  seriesLabel,
-                  String(values[index] ?? ""),
-                ),
+              valueLabel: (index) => String(values[index] ?? ""),
             }),
           ],
         }),

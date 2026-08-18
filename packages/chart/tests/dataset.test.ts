@@ -70,6 +70,16 @@ describe("applyTransforms — filter", () => {
     { name: "C", value: 30 },
   ];
 
+  it("accepts gt/gte/lt/lte/eq/ne aliases used in dataset docs", () => {
+    const result = applyTransforms(rows, [
+      { type: "filter", config: { dimension: "value", gt: 10, lte: 30 } },
+    ]);
+    expect(result).toEqual([
+      { name: "B", value: 20 },
+      { name: "C", value: 30 },
+    ]);
+  });
+
   it("ANDs multiple comparison operators by default", () => {
     const result = applyTransforms(rows, [
       { type: "filter", config: { dimension: "value", ">": 10, "<=": 30 } },

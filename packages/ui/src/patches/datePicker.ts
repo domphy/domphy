@@ -19,7 +19,7 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { elevation } from "../utils/elevation.js";
-import { createFloating } from "../utils/floating.js";
+import { createFloating, floatingPanelId } from "../utils/floating.js";
 import { focusRing } from "../utils/focusRing.js";
 
 /** A single date selection, or a `[start, end]` tuple in range mode. */
@@ -92,12 +92,17 @@ function localeWeekStart(locale: string): number {
 
 type DatePickerStates = {
   selection: State<DatePickerValue>;
+  // When the caller passed `value`, each generation's toState(Date) is a
+  // new object whose current value IS the caller's Date — copying the
+  // previous internal selection onto it would overwrite that Date.
+  selectionIsCallerOwned: boolean;
   viewYear: State<number>;
   viewMonth: State<number>;
   focused: State<Date>;
   hovered: State<Date | null>;
   hour: State<number>;
   minute: State<number>;
+  open: State<boolean>;
   onChange?: (value: DatePickerValue) => void;
 };
 
@@ -128,13 +133,16 @@ function attachDatePicker(
   subscribe(current);
   return {
     update(next) {
-      carryForward(next.selection, current.selection);
+      if (!next.selectionIsCallerOwned) {
+        carryForward(next.selection, current.selection);
+      }
       carryForward(next.viewYear, current.viewYear);
       carryForward(next.viewMonth, current.viewMonth);
       carryForward(next.focused, current.focused);
       carryForward(next.hovered, current.hovered);
       carryForward(next.hour, current.hour);
       carryForward(next.minute, current.minute);
+      carryForward(next.open, current.open);
       if (
         next.selection !== current.selection ||
         next.onChange !== current.onChange
@@ -350,9 +358,10 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
 
   // --- floating popover ------------------------------------------------------
   const calendar = buildCalendar();
+  const openState = toState(false);
   const { show, hide, anchorPartial } = createFloating({
     kind: "datePicker",
-    open: false,
+    open: openState,
     placement: placeState,
     content: calendar,
   });
@@ -362,7 +371,13 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
     type: "text",
     readonly: true,
     value: (listener) => formatDisplay(selection.get(listener)),
+    role: "combobox",
     ariaHaspopup: "dialog",
+    ariaExpanded: (listener) => openState.get(listener),
+    ariaControls: (listener) =>
+      listener?.elementNode
+        ? floatingPanelId("datePicker", listener.elementNode)
+        : undefined,
     ariaLabel: "Choose date",
     style: { cursor: "pointer" },
     onClick: (_e, node) => {
@@ -380,12 +395,14 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
     },
     ...behavior<DatePickerStates>("datePicker", attachDatePicker, {
       selection,
+      selectionIsCallerOwned: props.value !== undefined,
       viewYear,
       viewMonth,
       focused,
       hovered,
       hour,
       minute,
+      open: openState,
       onChange,
     }),
   };

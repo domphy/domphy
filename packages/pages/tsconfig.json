@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "strict": true,
@@ -11,5 +12,13 @@
     "outDir": "build",
     "noEmit": true
   },
-  "include": ["src"]
+  "include": [
+    "src",
+    "engine/index.ts",
+    "engine/types.ts",
+    "engine/expression.ts",
+    "engine/runtime.ts",
+    "engine/model.ts",
+    "engine/pageVocabulary.ts"
+  ]
 }

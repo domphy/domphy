@@ -9,8 +9,14 @@
 // them abruptly. By default each source item is revealed once and the feed
 // halts (matching upstream); loop/maxItems opt into a bounded recycling feed.
 
-import type { DomphyElement, Listener } from "@domphy/core";
-import { toState } from "@domphy/core";
+import type {
+  BehaviorInstance,
+  DomphyElement,
+  ElementNode,
+  Listener,
+  State,
+} from "@domphy/core";
+import { behavior, toState } from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
@@ -43,6 +49,117 @@ export interface AnimatedListProps {
   loop?: boolean;
   /** Container max-height, in `themeSpacing` units. Defaults to 112 (~28em). */
   maxHeightUnits?: number;
+}
+
+const ANIMATED_LIST_BEHAVIOR_KEY = "magicui-animated-list";
+
+interface AnimatedListEntry {
+  item: AnimatedListItem;
+  key: string;
+}
+
+interface AnimatedListBehaviorProps {
+  visibleEntries: State<AnimatedListEntry[]>;
+  items: AnimatedListItem[];
+  intervalDelay: number;
+  maxItems: number;
+  direction: "top" | "bottom";
+  loop: boolean;
+}
+
+interface AnimatedListBehavior
+  extends BehaviorInstance<AnimatedListBehaviorProps> {
+  visibleEntries: State<AnimatedListEntry[]>;
+}
+
+function attachAnimatedList(
+  _node: ElementNode,
+  initialProps: AnimatedListBehaviorProps,
+): AnimatedListBehavior {
+  const visibleEntries = initialProps.visibleEntries;
+  let props = initialProps;
+  let sourceIndex = 0;
+  let insertCount = 0;
+  let timer: ReturnType<typeof setInterval> | null = null;
+
+  const pushNext = () => {
+    if (sourceIndex >= props.items.length) {
+      if (!props.loop) return;
+      sourceIndex = 0;
+    }
+    const nextItem = props.items[sourceIndex];
+    sourceIndex += 1;
+    insertCount += 1;
+    const entry: AnimatedListEntry = {
+      item: nextItem,
+      key: `entry-${insertCount}`,
+    };
+
+    const current = visibleEntries.get();
+    const next =
+      props.direction === "top" ? [entry, ...current] : [...current, entry];
+    // Only the bounded recycling feed (loop) trims. The default once-through
+    // reveal keeps every card mounted — old ones just clip under overflow:hidden,
+    // matching upstream. A small buffer beyond `maxItems` lets the oldest card
+    // scroll under the fade mask before it's removed, instead of popping away.
+    const bufferedMax = props.maxItems + 2;
+    const trimmed =
+      props.loop && next.length > bufferedMax
+        ? props.direction === "top"
+          ? next.slice(0, bufferedMax)
+          : next.slice(next.length - bufferedMax)
+        : next;
+    visibleEntries.set(trimmed);
+  };
+
+  const startTimer = () => {
+    if (timer !== null) clearInterval(timer);
+    timer = setInterval(() => {
+      pushNext();
+      if (!props.loop && sourceIndex >= props.items.length && timer !== null) {
+        clearInterval(timer);
+        timer = null;
+      }
+    }, props.intervalDelay);
+  };
+
+  pushNext();
+  startTimer();
+
+  return {
+    visibleEntries,
+    update(next) {
+      const delayChanged = next.intervalDelay !== props.intervalDelay;
+      props = { ...next, visibleEntries };
+      if (delayChanged) startTimer();
+    },
+    destroy() {
+      if (timer !== null) clearInterval(timer);
+      timer = null;
+    },
+  };
+}
+
+function elementNodeOf(listener: Listener): ElementNode | null {
+  const fromListener = (listener as { elementNode?: ElementNode }).elementNode;
+  if (fromListener && typeof fromListener.getBehavior === "function") {
+    return fromListener;
+  }
+  if (typeof (listener as ElementNode).getBehavior === "function") {
+    return listener as ElementNode;
+  }
+  return null;
+}
+
+function entriesFromListener(
+  listener: Listener,
+  fallback: State<AnimatedListEntry[]>,
+): State<AnimatedListEntry[]> {
+  const instance = elementNodeOf(
+    listener,
+  )?.getBehavior<AnimatedListBehavior>(ANIMATED_LIST_BEHAVIOR_KEY);
+  if (instance?.visibleEntries) return instance.visibleEntries;
+  return fallback;
 }
 
 const DEFAULT_ITEMS: AnimatedListItem[] = [
@@ -236,47 +353,13 @@ function animatedList(props: AnimatedListProps = {}): DomphyElement<"div"> {
   const loop = props.loop ?? props.maxItems !== undefined;
   const maxHeightUnits = props.maxHeightUnits ?? 112;
 
-  interface Entry {
-    item: AnimatedListItem;
-    key: string;
-  }
-
-  const visibleEntries = toState<Entry[]>([]);
-  let sourceIndex = 0;
-  let insertCount = 0;
-
-  const pushNext = () => {
-    if (sourceIndex >= items.length) {
-      if (!loop) return;
-      sourceIndex = 0;
-    }
-    const nextItem = items[sourceIndex];
-    sourceIndex += 1;
-    insertCount += 1;
-    const entry: Entry = { item: nextItem, key: `entry-${insertCount}` };
-
-    const current = visibleEntries.get();
-    const next =
-      direction === "top" ? [entry, ...current] : [...current, entry];
-    // Only the bounded recycling feed (loop) trims. The default once-through
-    // reveal keeps every card mounted — old ones just clip under overflow:hidden,
-    // matching upstream. A small buffer beyond `maxItems` lets the oldest card
-    // scroll under the fade mask before it's removed, instead of popping away.
-    const bufferedMax = maxItems + 2;
-    const trimmed =
-      loop && next.length > bufferedMax
-        ? direction === "top"
-          ? next.slice(0, bufferedMax)
-          : next.slice(next.length - bufferedMax)
-        : next;
-    visibleEntries.set(trimmed);
-  };
+  const visibleEntries = toState<AnimatedListEntry[]>([]);
 
   return {
     div: [
       {
         div: (listener: Listener) =>
-          visibleEntries
+          entriesFromListener(listener, visibleEntries)
             .get(listener)
             .map((entry) => notificationEntry(entry.item, entry.key)),
         $: [transitionGroup({ duration: 350 })],
@@ -298,16 +381,18 @@ function animatedList(props: AnimatedListProps = {}): DomphyElement<"div"> {
       width: "100%",
       maxHeight: themeSpacing(maxHeightUnits),
     },
-    _onMount: (node) => {
-      pushNext();
-      const timer = setInterval(() => {
-        pushNext();
-        // Once-through reveal (no loop): stop the timer at the last item, like
-        // upstream's `index < childrenArray.length - 1` guard.
-        if (!loop && sourceIndex >= items.length) clearInterval(timer);
-      }, intervalDelay);
-      node.addHook("Remove", () => clearInterval(timer));
-    },
+    ...behavior<AnimatedListBehaviorProps>(
+      ANIMATED_LIST_BEHAVIOR_KEY,
+      attachAnimatedList,
+      {
+        visibleEntries,
+        items,
+        intervalDelay,
+        maxItems,
+        direction,
+        loop,
+      },
+    ),
   };
 }
 

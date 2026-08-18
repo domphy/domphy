@@ -259,9 +259,8 @@ export async function getAppBlock(name: string): Promise<string> {
       : [];
     return `No app block named "${name}".${near.length ? ` Did you mean: ${near.join(", ")}?` : ""}`;
   }
-  // The manifest stores repo-relative paths; resolve them against the repo root,
-  // which is the manifest's directory walked up out of apps/web/public, falling
-  // back to cwd-relative resolution when that layout does not apply.
+  // Manifest `file` paths resolve against process.cwd() and the manifest
+  // directory only — never against an implicit parent of the manifest.
   let source: string;
   try {
     source = await readBlockSource(block.file);
@@ -289,17 +288,19 @@ function isWithinRoot(candidate: string, root: string): boolean {
   return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
 }
 
-/** Reads a block's source file, resolving its repo-relative `file` path. */
-async function readBlockSource(repoRelativeFile: string): Promise<string> {
-  // The app-manifest lives at <repo>/apps/web/public/app-manifest.json by
-  // default, so the repo root is three levels up from the manifest directory.
-  // Each base is also its own containment root: block.file comes from a
-  // (possibly untrusted) app-manifest.json, so `..` segments must never let a
-  // candidate escape the base it was resolved against, whichever app/repo
-  // that base belongs to (DOMPHY_APP_MANIFEST can point at any app's own
-  // manifest, not just this monorepo's).
+/**
+ * Reads a block's source file, resolving `file` against cwd and the configured
+ * manifest directory (the only allowed roots).
+ */
+export async function readBlockSource(
+  repoRelativeFile: string,
+): Promise<string> {
+  // Containment roots are only the configured manifest directory and
+  // process.cwd(). Walking three levels up from the manifest (the default
+  // apps/web/public layout) used to be a third base, but that made any
+  // path-without-`..` under that parent readable from an untrusted manifest.
   const manifestDir = dirname(appManifestPath());
-  const bases = [resolve(manifestDir, "../../.."), process.cwd(), manifestDir];
+  const bases = [process.cwd(), manifestDir];
   let lastError: unknown;
   for (const base of bases) {
     const candidate = resolve(base, repoRelativeFile);

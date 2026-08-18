@@ -1,15 +1,18 @@
 import { themeColor } from "@domphy/theme";
 import type { TitleOption } from "../types.js";
+import { stampOverlayGroup, takeOverlaySlot } from "./groups.js";
 
-export function renderTitle(svg: SVGSVGElement, title: TitleOption): void {
-  const old = svg.querySelector(".dc-title");
-  if (old) old.remove();
-
+export function renderTitle(
+  svg: SVGSVGElement,
+  title: TitleOption,
+  index?: number,
+): void {
+  const { slot, root } = takeOverlaySlot(svg, "dc-title", index);
   if (title.show === false || (!title.text && !title.subtext)) return;
 
   const svgWidth = Number(svg.getAttribute("width") ?? 400);
   const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
-  group.setAttribute("class", "dc-title");
+  stampOverlayGroup(group, slot);
 
   function resolveH(
     val: string | number | undefined,
@@ -75,5 +78,5 @@ export function renderTitle(svg: SVGSVGElement, title: TitleOption): void {
     group.appendChild(sub);
   }
 
-  svg.appendChild(group);
+  root.appendChild(group);
 }

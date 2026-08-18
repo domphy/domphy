@@ -13,16 +13,45 @@ import {
   tearDown,
 } from "@formkit/drag-and-drop";
 
-// FormKit's tearDown() only aborts the parent-level listeners — it leaves the
+// FormKit's tearDown() only aborts the parent-level listeners. It leaves the
 // entry in the exported `parents` registry and never disconnects the
-// MutationObserver it created at setup (no observer handle is exposed
-// upstream). The orphaned observer keeps firing remapNodes() against the stale
-// registry entry — on a detached parent after removal, and TWICE per mutation
-// after a tearDown+re-register cycle (old observer + new observer). Deleting
-// the registry entry neutralizes the orphan: remapNodes() no-ops on an
-// unknown parent. (The observer/target cycle itself is GC-able once detached.)
+// MutationObserver created at setup (the handle is a local — not stored on
+// parentData, not exported). The orphaned observer keeps firing remapNodes()
+// against the stale registry entry — on a detached parent after removal, and
+// TWICE per mutation after a tearDown+re-register cycle (old + new observer).
+// We capture the observer at register time and disconnect it here, then drop
+// the registry entry so a leftover callback (if any) no-ops.
+const parentObservers = new WeakMap<HTMLElement, MutationObserver>();
+
+function runCapturingObserver(parent: HTMLElement, run: () => void): void {
+  if (typeof MutationObserver === "undefined") {
+    run();
+    return;
+  }
+  const proto = MutationObserver.prototype;
+  const originalObserve = proto.observe;
+  proto.observe = function (
+    this: MutationObserver,
+    target: Node,
+    options?: MutationObserverInit,
+  ) {
+    if (target === parent) parentObservers.set(parent, this);
+    return originalObserve.call(this, target, options);
+  };
+  try {
+    run();
+  } finally {
+    proto.observe = originalObserve;
+  }
+}
+
 function tearDownFully(parent: HTMLElement): void {
   tearDown(parent);
+  const observer = parentObservers.get(parent);
+  if (observer) {
+    observer.disconnect();
+    parentObservers.delete(parent);
+  }
   parents.delete(parent);
 }
 
@@ -99,23 +128,33 @@ export function attachDragDrop<T>(
     }
   };
 
+  // Live getters — always read the current `props`, not the State captured
+  // at the last register() call. update() assigns `props` synchronously, so
+  // a State swap is visible to FormKit immediately; the deferred rAF
+  // re-register cannot leave a two-frame window writing the previous State.
+  const getValues = () => props.values.get();
+  const setValues = (next: T[]) => {
+    props.values.set(next);
+  };
+
   const register = () => {
     if (!parent) return;
     if (registered) {
       tearDownFully(parent);
       registered = false;
     }
-    const { values, group } = props;
+    const { group } = props;
     const { animated = true, ...rest } = props.config;
     const plugins = animated
       ? [animations(), ...(rest.plugins ?? [])]
       : (rest.plugins ?? []);
-    const setValues = (next: T[]) => values.set(next);
-    dragAndDrop<T>({
-      parent,
-      getValues: () => values.get(),
-      setValues,
-      config: { ...rest, ...(group !== undefined ? { group } : {}), plugins },
+    runCapturingObserver(parent, () => {
+      dragAndDrop<T>({
+        parent,
+        getValues,
+        setValues,
+        config: { ...rest, ...(group !== undefined ? { group } : {}), plugins },
+      });
     });
     registered = true;
   };
@@ -146,9 +185,10 @@ export function attachDragDrop<T>(
         nextProps.group !== props.group ||
         !configEquals(nextProps.config, props.config);
       props = nextProps;
-      // Re-register with the new binding. If the initial registration is
-      // still pending, scheduleRegister() simply replaces it — the frames
-      // always read the LATEST props, so no stale registration can land.
+      // Live getters already see the new State. Re-register so FormKit
+      // remaps against the new config/group (and so a pending initial
+      // registration is replaced — the frames always read the latest
+      // props, so no stale registration can land).
       if (changed && !disposed) scheduleRegister();
     },
     destroy: () => {

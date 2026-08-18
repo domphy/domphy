@@ -19,10 +19,25 @@ export function addHook<K extends keyof HookMap>(
   const current = partial[hookProperty];
 
   if (typeof current === "function") {
-    (partial as any)[hookProperty] = (...args: any[]) => {
+    const composed = (...args: any[]) => {
       (current as Function)(...args);
       (handler as Function)(...args);
     };
+    // Removal inspects BeforeRemove.length (>= 2 owns `done()`). A rest
+    // wrapper reports 0 and is treated as a sync hook, completing removal
+    // before an exit animation can call done().
+    try {
+      Object.defineProperty(composed, "length", {
+        value: Math.max(
+          (current as Function).length,
+          (handler as Function).length,
+        ),
+        configurable: true,
+      });
+    } catch {
+      /* length non-configurable on some engines — best effort */
+    }
+    (partial as any)[hookProperty] = composed;
   } else {
     (partial as any)[hookProperty] = handler;
   }
@@ -316,11 +331,12 @@ export function sanitizeHTMLString(html: string): string {
     "$1",
   );
   // Neutralise script-capable schemes (javascript:/vbscript:/data:text/html)
-  // in URL attributes — href/src/action/formaction plus object@data. The value
-  // is canonicalized before the test, so entity-encoded and
+  // in URL attributes. Longer names first so xlink:href / formaction / srcset
+  // are not matched as the shorter href / action / src suffix. The value is
+  // canonicalized before the test, so entity-encoded and
   // whitespace-obfuscated schemes are caught too.
   result = result.replace(
-    /((?:href|src|action|formaction|data)\s*=\s*)("([^"]*)"|'([^']*)'|([^\s>]*))/gi,
+    /((?:xlink:href|formaction|imagesrcset|srcset|poster|cite|background|ping|longdesc|codebase|classid|archive|icon|manifest|href|src|action|data)\s*=\s*)("([^"]*)"|'([^']*)'|([^\s>]*))/gi,
     (
       match,
       prefix: string,
@@ -486,8 +502,8 @@ export function normalizeSelectorKey(selectorText: string): string {
 
 export function collectCSSRules(
   rules: CSSRuleList,
-  map: Map<string, CSSRule>,
-): Map<string, CSSRule> {
+  map: Map<string, CSSRule[]>,
+): Map<string, CSSRule[]> {
   for (let i = 0; i < rules.length; i++) {
     const rule = rules[i] as any;
     let key: string | null = null;
@@ -499,7 +515,10 @@ export function collectCSSRules(
     ) {
       key = normalizeSelectorKey(rule.cssText.split("{")[0]);
     }
-    if (key && !map.has(key)) map.set(key, rule as CSSRule);
+    if (!key) continue;
+    const queue = map.get(key);
+    if (queue) queue.push(rule as CSSRule);
+    else map.set(key, [rule as CSSRule]);
   }
   return map;
 }

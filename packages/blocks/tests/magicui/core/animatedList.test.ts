@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import type { DomphyElement } from "@domphy/core";
-import { ElementNode, flushSync } from "@domphy/core";
+import { ElementNode, flushSync, toState } from "@domphy/core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { animatedList } from "../../../src/magicui/core/animatedList.js";
 
@@ -77,5 +77,57 @@ describe("animatedList", () => {
     expect(() =>
       render(animatedList({ direction: "bottom", intervalDelay: 10_000 })),
     ).not.toThrow();
+  });
+});
+
+describe("animatedList — reused-node lifecycle", () => {
+  it("keeps streamed cards and keeps inserting after an ancestor re-render", () => {
+    vi.useFakeTimers();
+    const items = [
+      {
+        icon: "🔔",
+        color: "info" as const,
+        title: "One",
+        time: "1m",
+        description: "First",
+      },
+      {
+        icon: "🔔",
+        color: "success" as const,
+        title: "Two",
+        time: "2m",
+        description: "Second",
+      },
+    ];
+    const refresh = toState(0);
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const node = new ElementNode({
+      div: (listener: unknown) => {
+        (refresh.get as (l: unknown) => number)(listener);
+        return [
+          animatedList({
+            intervalDelay: 100,
+            items,
+            loop: false,
+          }) as DomphyElement,
+        ];
+      },
+    } as DomphyElement);
+    node.render(host);
+    flushSync();
+    expect(host.querySelectorAll('[data-tone="shift-1"]').length).toBe(1);
+    expect(host.textContent).toContain("One");
+
+    refresh.set(1);
+    flushSync();
+    // Persisted feed must not reset to empty on a reused node.
+    expect(host.querySelectorAll('[data-tone="shift-1"]').length).toBe(1);
+    expect(host.textContent).toContain("One");
+
+    vi.advanceTimersByTime(100);
+    flushSync();
+    expect(host.querySelectorAll('[data-tone="shift-1"]').length).toBe(2);
+    expect(host.textContent).toContain("Two");
   });
 });

@@ -33,6 +33,8 @@ const { table, version, destroy } = createDomphyTable<Person>({
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    // Default `row.id` is the row index. Required for stable `_key: row.id`.
+    getRowId: (person) => String(person.id),
     initialState: { pagination: { pageIndex: 0, pageSize: 5 } },
 })
 

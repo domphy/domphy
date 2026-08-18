@@ -3,7 +3,7 @@
 Top-level helper functions exported by `@domphy/core`.
 
 ```ts
-import { toState, merge, hashString } from "@domphy/core"
+import { toState, merge, hashString, peek } from "@domphy/core"
 ```
 
 Use `Utilities` here rather than `Functions`: these are reusable helper APIs, not the main object model like `ElementNode`, `ElementList`, or `State`.
@@ -288,6 +288,35 @@ effect(() => {
   console.log(s, o)
 })
 ```
+
+---
+
+## `peek(read)`
+
+Reads a reactive function `(listener) => T` **outside** a render / reactive context — for example checking a `disabled` binding inside an `onClick` handler. The read runs with no listener and untracked: the value resolves once and nothing is subscribed, so it never becomes a dependency of an enclosing `effect` / `computed` either. This is the supported form of the `read(undefined as unknown as Listener)` cast.
+
+```ts
+import { peek, toState } from "@domphy/core"
+
+const disabled = toState(true)
+const read = (listener) => disabled.get(listener)
+
+peek(read)           // true — no subscription is created
+disabled.set(false)
+peek(read)           // false
+
+// Inside an event handler (no listener available):
+onClick: () => {
+  if (peek(props.disabled)) return
+  submit()
+}
+```
+
+| Parameter | Type | Description |
+|---|---|---|
+| `read` | `(listener: Listener) => T` | A reactive reader — typically a `ValueOrState` binding or `(l) => state.get(l)` |
+
+Returns `T`. Use `peek` only when you need a one-shot value outside render. Inside an element child or `style` function, read with the listener you were given so the node stays reactive.
 
 ---
 

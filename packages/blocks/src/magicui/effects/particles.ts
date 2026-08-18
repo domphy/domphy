@@ -28,10 +28,11 @@
 import type {
   DomphyElement,
   ElementNode,
+  State,
   StyleObject,
   ValueOrState,
 } from "@domphy/core";
-import { toState } from "@domphy/core";
+import { behavior, toState } from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
@@ -61,6 +62,19 @@ export interface ParticlesProps {
   children?: DomphyElement | DomphyElement[];
   /** Passthrough style merged onto the outer container. */
   style?: StyleObject;
+}
+
+const PARTICLES_BEHAVIOR_KEY = "magicui-particles";
+
+interface ParticlesBehaviorProps {
+  quantity: number;
+  color: ThemeColor;
+  baseSize: number;
+  ease: number;
+  staticity: number;
+  vx: number;
+  vy: number;
+  refreshState: State<unknown>;
 }
 
 interface ParticleInstance {
@@ -104,6 +118,193 @@ function createParticle(
     driftX: (Math.random() - 0.5) * 0.1 + vx,
     driftY: (Math.random() - 0.5) * 0.1 + vy,
     magnetism: 0.1 + Math.random() * 4,
+  };
+}
+
+function attachParticles(
+  node: ElementNode,
+  initialProps: ParticlesBehaviorProps,
+) {
+  let props = initialProps;
+  const canvas = node.domElement as HTMLCanvasElement | null;
+  const containerElement = canvas?.parentElement ?? null;
+  if (!canvas || !containerElement || typeof window === "undefined") {
+    return { update() {}, destroy() {} };
+  }
+
+  // Headless/test runtimes without a real 2D canvas backend (e.g. jsdom
+  // without the optional `canvas` npm package) resolve `getContext` to
+  // `null` rather than throwing — bail out before starting the loop.
+  const context = canvas.getContext("2d");
+  if (!context) return { update() {}, destroy() {} };
+
+  let particleList: ParticleInstance[] = [];
+  // Raw devicePixelRatio, no clamp — matches upstream (`const dpr =
+  // window.devicePixelRatio`). Clamping to 2 would render a lower-res
+  // backing store on >2× displays. `|| 1` guards a 0/undefined ratio so
+  // the width/scale math below can't collapse.
+  const devicePixelRatio = window.devicePixelRatio || 1;
+  let canvasWidth = 0;
+  let canvasHeight = 0;
+  let mouseX = 0;
+  let mouseY = 0;
+  let animationFrameId: number | null = null;
+  let resizeObserver: ResizeObserver | null = null;
+
+  // shift-11 (not a small shift-1) so particles read as a bright,
+  // clearly visible dot field against the container's own dark surface —
+  // a small shift only nudges a couple of ramp steps toward the opposite
+  // edge and would barely be distinguishable from the background.
+  const fillColor = (() => {
+    try {
+      return themeColorToken(node, "shift-11", props.color);
+    } catch {
+      return "#ffffff";
+    }
+  })();
+
+  function resizeCanvas(): void {
+    const rect = containerElement.getBoundingClientRect();
+    canvasWidth = rect.width;
+    canvasHeight = rect.height;
+    canvas.width = Math.max(1, Math.floor(canvasWidth * devicePixelRatio));
+    canvas.height = Math.max(1, Math.floor(canvasHeight * devicePixelRatio));
+    // `setTransform` (not `scale`) so repeated resizes never compound the
+    // device-pixel-ratio scale factor onto itself.
+    context.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  }
+
+  function generateParticles(): void {
+    // 2× quantity: upstream initCanvas() pushes `quantity` circles in
+    // resizeCanvas() then another `quantity` in drawParticles() (which
+    // clears the canvas but not the circles array), so the field holds
+    // 2×quantity particles. Per-particle respawn keeps that count stable.
+    particleList = Array.from({ length: props.quantity * 2 }, () =>
+      createParticle(
+        canvasWidth,
+        canvasHeight,
+        props.baseSize,
+        props.vx,
+        props.vy,
+      ),
+    );
+  }
+
+  function respawnParticle(particle: ParticleInstance): void {
+    const respawned = createParticle(
+      canvasWidth,
+      canvasHeight,
+      props.baseSize,
+      props.vx,
+      props.vy,
+    );
+    Object.assign(particle, respawned);
+  }
+
+  function tick(): void {
+    // Belt-and-suspenders: bail without rescheduling once the canvas is
+    // no longer in the document, so this loop can't outlive the
+    // component even if the framework's own "Remove" hook never fires
+    // (e.g. a host that wipes the DOM directly instead of going through
+    // node removal).
+    if (!canvas.isConnected) return;
+    context.clearRect(0, 0, canvasWidth, canvasHeight);
+
+    for (const particle of particleList) {
+      const closestEdge = Math.min(
+        particle.x + particle.translateX - particle.size,
+        canvasWidth - particle.x - particle.translateX - particle.size,
+        particle.y + particle.translateY - particle.size,
+        canvasHeight - particle.y - particle.translateY - particle.size,
+      );
+      const closestEdgeAlpha = Math.max(0, closestEdge / 20);
+      if (closestEdgeAlpha > 1) {
+        particle.alpha = Math.min(particle.alpha + 0.02, particle.targetAlpha);
+      } else {
+        particle.alpha = particle.targetAlpha * closestEdgeAlpha;
+      }
+
+      particle.x += particle.driftX;
+      particle.y += particle.driftY;
+
+      particle.translateX +=
+        (mouseX * (particle.magnetism / props.staticity) -
+          particle.translateX) /
+        props.ease;
+      particle.translateY +=
+        (mouseY * (particle.magnetism / props.staticity) -
+          particle.translateY) /
+        props.ease;
+
+      context.beginPath();
+      context.arc(
+        particle.x + particle.translateX,
+        particle.y + particle.translateY,
+        particle.size,
+        0,
+        Math.PI * 2,
+      );
+      context.fillStyle = hexTokenToRgba(fillColor, particle.alpha);
+      context.fill();
+
+      if (
+        particle.x < -particle.size ||
+        particle.x > canvasWidth + particle.size ||
+        particle.y < -particle.size ||
+        particle.y > canvasHeight + particle.size
+      ) {
+        respawnParticle(particle);
+      }
+    }
+
+    animationFrameId = window.requestAnimationFrame(tick);
+  }
+
+  function handlePointerMove(event: PointerEvent): void {
+    const rect = containerElement.getBoundingClientRect();
+    mouseX = event.clientX - rect.left - canvasWidth / 2;
+    mouseY = event.clientY - rect.top - canvasHeight / 2;
+  }
+
+  resizeCanvas();
+  generateParticles();
+  animationFrameId = window.requestAnimationFrame(tick);
+
+  containerElement.addEventListener("pointermove", handlePointerMove);
+
+  if (typeof ResizeObserver !== "undefined") {
+    resizeObserver = new ResizeObserver(() => {
+      resizeCanvas();
+      generateParticles();
+    });
+    resizeObserver.observe(containerElement);
+  }
+
+  let releaseRefreshListener = props.refreshState.addListener(() => {
+    resizeCanvas();
+    generateParticles();
+  });
+
+  return {
+    update(next: ParticlesBehaviorProps) {
+      if (next.refreshState !== props.refreshState) {
+        releaseRefreshListener();
+        releaseRefreshListener = next.refreshState.addListener(() => {
+          resizeCanvas();
+          generateParticles();
+        });
+      }
+      const quantityChanged = next.quantity !== props.quantity;
+      props = next;
+      if (quantityChanged) generateParticles();
+    },
+    destroy() {
+      if (animationFrameId !== null)
+        window.cancelAnimationFrame(animationFrameId);
+      resizeObserver?.disconnect();
+      containerElement.removeEventListener("pointermove", handlePointerMove);
+      releaseRefreshListener();
+    },
   };
 }
 
@@ -152,168 +353,20 @@ function particles(props: ParticlesProps = {}): DomphyElement<"div"> {
       height: "100%",
       pointerEvents: "none",
     },
-    _onMount: (node: ElementNode) => {
-      const canvas = node.domElement as HTMLCanvasElement | null;
-      const containerElement = canvas?.parentElement ?? null;
-      if (!canvas || !containerElement || typeof window === "undefined") return;
-
-      // Headless/test runtimes without a real 2D canvas backend (e.g. jsdom
-      // without the optional `canvas` npm package) resolve `getContext` to
-      // `null` rather than throwing — bail out before starting the loop.
-      const context = canvas.getContext("2d");
-      if (!context) return;
-
-      let particleList: ParticleInstance[] = [];
-      // Raw devicePixelRatio, no clamp — matches upstream (`const dpr =
-      // window.devicePixelRatio`). Clamping to 2 would render a lower-res
-      // backing store on >2× displays. `|| 1` guards a 0/undefined ratio so
-      // the width/scale math below can't collapse.
-      const devicePixelRatio = window.devicePixelRatio || 1;
-      let canvasWidth = 0;
-      let canvasHeight = 0;
-      let mouseX = 0;
-      let mouseY = 0;
-      let animationFrameId: number | null = null;
-      let resizeObserver: ResizeObserver | null = null;
-
-      // shift-11 (not a small shift-1) so particles read as a bright,
-      // clearly visible dot field against the container's own dark surface —
-      // a small shift only nudges a couple of ramp steps toward the opposite
-      // edge and would barely be distinguishable from the background.
-      const fillColor = (() => {
-        try {
-          return themeColorToken(node, "shift-11", color);
-        } catch {
-          return "#ffffff";
-        }
-      })();
-
-      function resizeCanvas(): void {
-        const rect = containerElement!.getBoundingClientRect();
-        canvasWidth = rect.width;
-        canvasHeight = rect.height;
-        canvas!.width = Math.max(1, Math.floor(canvasWidth * devicePixelRatio));
-        canvas!.height = Math.max(
-          1,
-          Math.floor(canvasHeight * devicePixelRatio),
-        );
-        context!.scale(devicePixelRatio, devicePixelRatio);
-      }
-
-      function generateParticles(): void {
-        // 2× quantity: upstream initCanvas() pushes `quantity` circles in
-        // resizeCanvas() then another `quantity` in drawParticles() (which
-        // clears the canvas but not the circles array), so the field holds
-        // 2×quantity particles. Per-particle respawn keeps that count stable.
-        particleList = Array.from({ length: quantity * 2 }, () =>
-          createParticle(canvasWidth, canvasHeight, baseSize, vx, vy),
-        );
-      }
-
-      function respawnParticle(particle: ParticleInstance): void {
-        const respawned = createParticle(
-          canvasWidth,
-          canvasHeight,
-          baseSize,
-          vx,
-          vy,
-        );
-        Object.assign(particle, respawned);
-      }
-
-      function tick(): void {
-        // Belt-and-suspenders: bail without rescheduling once the canvas is
-        // no longer in the document, so this loop can't outlive the
-        // component even if the framework's own "Remove" hook never fires
-        // (e.g. a host that wipes the DOM directly instead of going through
-        // node removal).
-        if (!canvas!.isConnected) return;
-        context!.clearRect(0, 0, canvasWidth, canvasHeight);
-
-        for (const particle of particleList) {
-          const closestEdge = Math.min(
-            particle.x + particle.translateX - particle.size,
-            canvasWidth - particle.x - particle.translateX - particle.size,
-            particle.y + particle.translateY - particle.size,
-            canvasHeight - particle.y - particle.translateY - particle.size,
-          );
-          const closestEdgeAlpha = Math.max(0, closestEdge / 20);
-          if (closestEdgeAlpha > 1) {
-            particle.alpha = Math.min(
-              particle.alpha + 0.02,
-              particle.targetAlpha,
-            );
-          } else {
-            particle.alpha = particle.targetAlpha * closestEdgeAlpha;
-          }
-
-          particle.x += particle.driftX;
-          particle.y += particle.driftY;
-
-          particle.translateX +=
-            (mouseX * (particle.magnetism / staticity) - particle.translateX) /
-            ease;
-          particle.translateY +=
-            (mouseY * (particle.magnetism / staticity) - particle.translateY) /
-            ease;
-
-          context!.beginPath();
-          context!.arc(
-            particle.x + particle.translateX,
-            particle.y + particle.translateY,
-            particle.size,
-            0,
-            Math.PI * 2,
-          );
-          context!.fillStyle = hexTokenToRgba(fillColor, particle.alpha);
-          context!.fill();
-
-          if (
-            particle.x < -particle.size ||
-            particle.x > canvasWidth + particle.size ||
-            particle.y < -particle.size ||
-            particle.y > canvasHeight + particle.size
-          ) {
-            respawnParticle(particle);
-          }
-        }
-
-        animationFrameId = window.requestAnimationFrame(tick);
-      }
-
-      function handlePointerMove(event: PointerEvent): void {
-        const rect = containerElement!.getBoundingClientRect();
-        mouseX = event.clientX - rect.left - canvasWidth / 2;
-        mouseY = event.clientY - rect.top - canvasHeight / 2;
-      }
-
-      resizeCanvas();
-      generateParticles();
-      animationFrameId = window.requestAnimationFrame(tick);
-
-      containerElement.addEventListener("pointermove", handlePointerMove);
-
-      if (typeof ResizeObserver !== "undefined") {
-        resizeObserver = new ResizeObserver(() => {
-          resizeCanvas();
-          generateParticles();
-        });
-        resizeObserver.observe(containerElement);
-      }
-
-      const releaseRefreshListener = refreshState.addListener(() => {
-        resizeCanvas();
-        generateParticles();
-      });
-
-      node.addHook("Remove", () => {
-        if (animationFrameId !== null)
-          window.cancelAnimationFrame(animationFrameId);
-        resizeObserver?.disconnect();
-        containerElement.removeEventListener("pointermove", handlePointerMove);
-        releaseRefreshListener();
-      });
-    },
+    ...behavior<ParticlesBehaviorProps>(
+      PARTICLES_BEHAVIOR_KEY,
+      attachParticles,
+      {
+        quantity,
+        color,
+        baseSize,
+        ease,
+        staticity,
+        vx,
+        vy,
+        refreshState,
+      },
+    ),
   } as DomphyElement<"canvas">;
 
   return {

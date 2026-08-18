@@ -642,6 +642,57 @@ describe("column pinning and sizing", () => {
   });
 });
 
+describe("row pinning", () => {
+  it("pin / getIsPinned / getCenterRows split rows", () => {
+    const table = buildTable<Person>({
+      data: people,
+      columns: personColumns,
+      getRowId: (person) => String(person.id),
+    });
+    table.getRow("1").pin("top");
+    table.getRow("6").pin("bottom");
+
+    expect(table.getTopRows().map((row) => row.id)).toEqual(["1"]);
+    expect(table.getBottomRows().map((row) => row.id)).toEqual(["6"]);
+    expect(table.getCenterRows().map((row) => row.id)).toEqual([
+      "2",
+      "3",
+      "4",
+      "5",
+    ]);
+    expect(table.getRow("1").getIsPinned()).toBe("top");
+    expect(table.getRow("6").getIsPinned()).toBe("bottom");
+    expect(table.getRow("2").getIsPinned()).toBe(false);
+  });
+
+  it("getTopRows / getBottomRows skip pinned ids that are no longer in the data", () => {
+    const table = buildTable<Person>({
+      data: people,
+      columns: personColumns,
+      getRowId: (person) => String(person.id),
+    });
+    table.setRowPinning({ top: ["1", "999"], bottom: ["gone", "6"] });
+
+    expect(() => table.getTopRows()).not.toThrow();
+    expect(() => table.getBottomRows()).not.toThrow();
+    expect(table.getTopRows().map((row) => row.id)).toEqual(["1"]);
+    expect(table.getBottomRows().map((row) => row.id)).toEqual(["6"]);
+  });
+
+  it("keepPinnedRows: false skips pinned ids missing from the visible rows", () => {
+    const table = buildTable<Person>({
+      data: people,
+      columns: personColumns,
+      getRowId: (person) => String(person.id),
+      keepPinnedRows: false,
+    });
+    table.setRowPinning({ top: ["1", "missing"] });
+
+    expect(() => table.getTopRows()).not.toThrow();
+    expect(table.getTopRows().map((row) => row.id)).toEqual(["1"]);
+  });
+});
+
 describe("faceting", () => {
   function buildFacetedTable() {
     return buildTable<Person>({

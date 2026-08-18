@@ -531,107 +531,121 @@ export function reconcileChildren(
 
   const claimed = new Set<SceneNode>();
   const nextChildren: SceneNode[] = [];
+  const created: SceneNode[] = [];
   const reusedEntries: Array<{
     node: SceneNode;
     description: Record<string, any>;
   }> = [];
   let reordered = false;
 
-  for (let index = 0; index < inputs.length; index++) {
-    const description = inputs[index];
-    const key = description._key ?? null;
-    const tag = getSceneTag(description);
+  try {
+    for (let index = 0; index < inputs.length; index++) {
+      const description = inputs[index];
+      const key = description._key ?? null;
+      const tag = getSceneTag(description);
 
-    let reused: SceneNode | undefined;
-    if (key !== null) {
-      const candidate = keyedOld.get(key);
-      if (candidate && candidate.tag === tag && !claimed.has(candidate))
-        reused = candidate;
-    } else {
-      const candidate = oldChildren[index];
-      if (
-        candidate &&
-        candidate.key === null &&
-        candidate.tag === tag &&
-        !claimed.has(candidate)
-      ) {
-        reused = candidate;
+      let reused: SceneNode | undefined;
+      if (key !== null) {
+        const candidate = keyedOld.get(key);
+        if (candidate && candidate.tag === tag && !claimed.has(candidate))
+          reused = candidate;
+      } else {
+        const candidate = oldChildren[index];
+        if (
+          candidate &&
+          candidate.key === null &&
+          candidate.tag === tag &&
+          !claimed.has(candidate)
+        ) {
+          reused = candidate;
+        }
+      }
+
+      if (reused) {
+        claimed.add(reused);
+        if (oldChildren[index] !== reused) reordered = true;
+        nextChildren.push(reused);
+        reusedEntries.push({ node: reused, description });
+      } else {
+        const createdNode = createSceneNode(description, node, root);
+        created.push(createdNode);
+        nextChildren.push(createdNode);
+        reordered = true;
       }
     }
 
-    if (reused) {
-      claimed.add(reused);
-      if (oldChildren[index] !== reused) reordered = true;
-      nextChildren.push(reused);
-      reusedEntries.push({ node: reused, description });
-    } else {
-      nextChildren.push(createSceneNode(description, node, root));
-      reordered = true;
+    // Iterate over a COPY: disposeSceneNode splices itself out of
+    // `node.children` (which `oldChildren` still aliases — `node.children` is
+    // only replaced below), so iterating the live array would skip every
+    // second removed child, leaving it attached and undisposed.
+    for (const child of oldChildren.slice()) {
+      if (!claimed.has(child)) disposeSceneNode(child);
     }
-  }
 
-  // Iterate over a COPY: disposeSceneNode splices itself out of
-  // `node.children` (which `oldChildren` still aliases — `node.children` is
-  // only replaced below), so iterating the live array would skip every
-  // second removed child, leaving it attached and undisposed.
-  for (const child of oldChildren.slice()) {
-    if (!claimed.has(child)) disposeSceneNode(child);
-  }
+    // Two-phase patch for every REUSED child: detach every sibling that needs
+    // reconstructing (args/primitive-object change) BEFORE any of them attaches
+    // its replacement. A naive one-sibling-at-a-time patch (detach+attach
+    // interleaved) corrupts a simultaneous multi-sibling identity swap — e.g.
+    // 4 keyed primitives trading positions in one pass — because attaching
+    // sibling A's new instance (which may currently still be sibling B's OWN
+    // live instance, not yet detached) clobbers B's `.__domphy` backref and
+    // its `three.js` parent link before B gets its turn. Ported fix for r3f's
+    // https://github.com/pmndrs/react-three-fiber/issues/3125 /
+    // https://github.com/pmndrs/react-three-fiber/issues/3143.
+    const pendingReconstructs: Array<{
+      node: SceneNode;
+      props: Record<string, any>;
+      childrenValue: any;
+      oldInstance: any;
+      build: () => any;
+    }> = [];
 
-  // Two-phase patch for every REUSED child: detach every sibling that needs
-  // reconstructing (args/primitive-object change) BEFORE any of them attaches
-  // its replacement. A naive one-sibling-at-a-time patch (detach+attach
-  // interleaved) corrupts a simultaneous multi-sibling identity swap — e.g.
-  // 4 keyed primitives trading positions in one pass — because attaching
-  // sibling A's new instance (which may currently still be sibling B's OWN
-  // live instance, not yet detached) clobbers B's `.__domphy` backref and
-  // its `three.js` parent link before B gets its turn. Ported fix for r3f's
-  // https://github.com/pmndrs/react-three-fiber/issues/3125 /
-  // https://github.com/pmndrs/react-three-fiber/issues/3143.
-  const pendingReconstructs: Array<{
-    node: SceneNode;
-    props: Record<string, any>;
-    childrenValue: any;
-    oldInstance: any;
-    build: () => any;
-  }> = [];
+    for (const { node: childNode, description } of reusedEntries) {
+      const childrenValue = description[childNode.tag];
+      const props: Record<string, any> = { ...description };
+      delete props[childNode.tag];
 
-  for (const { node: childNode, description } of reusedEntries) {
-    const childrenValue = description[childNode.tag];
-    const props: Record<string, any> = { ...description };
-    delete props[childNode.tag];
-
-    const build = reconstructPlan(childNode, props);
-    if (build) {
-      const oldInstance = detachForReconstruct(childNode);
-      pendingReconstructs.push({
-        node: childNode,
-        props,
-        childrenValue,
-        oldInstance,
-        build,
-      });
-    } else {
-      applyProps(childNode, props);
-      // Same props-only invalidation as patchSceneNode's non-reconstruct
-      // branch — without it a demand-mode root never re-renders the change.
-      childNode.root.invalidate();
-      finishChildReconcile(childNode, childrenValue, root);
+      const build = reconstructPlan(childNode, props);
+      if (build) {
+        const oldInstance = detachForReconstruct(childNode);
+        pendingReconstructs.push({
+          node: childNode,
+          props,
+          childrenValue,
+          oldInstance,
+          build,
+        });
+      } else {
+        applyProps(childNode, props);
+        // Same props-only invalidation as patchSceneNode's non-reconstruct
+        // branch — without it a demand-mode root never re-renders the change.
+        childNode.root.invalidate();
+        finishChildReconcile(childNode, childrenValue, root);
+      }
     }
-  }
 
-  for (const entry of pendingReconstructs) {
-    attachReconstructed(
-      entry.node,
-      entry.oldInstance,
-      entry.build,
-      entry.props,
-    );
-    finishChildReconcile(entry.node, entry.childrenValue, root);
-  }
+    for (const entry of pendingReconstructs) {
+      attachReconstructed(
+        entry.node,
+        entry.oldInstance,
+        entry.build,
+        entry.props,
+      );
+      finishChildReconcile(entry.node, entry.childrenValue, root);
+    }
 
-  node.children = nextChildren;
-  if (reordered) syncInstanceChildOrder(node);
+    node.children = nextChildren;
+    if (reordered) syncInstanceChildOrder(node);
+  } catch (error) {
+    // A later sibling's instantiate/apply/child-reconcile throw must not
+    // leak earlier siblings already attached to the parent instance — they
+    // were never pushed onto `node.children` (that swap is above, and may
+    // not have run yet).
+    for (const child of created) {
+      if (!child.disposed) disposeSceneNode(child);
+    }
+    throw error;
+  }
 }
 
 // Defers the actual dispose() call to an idle callback when one is available

@@ -113,6 +113,43 @@ describe("editorContent", () => {
     await flush();
     expect(spy).not.toHaveBeenCalled();
   });
+
+  it("does not unmount a remounted editor when a previous host is removed", () => {
+    const editor = makeEditor();
+    const wrapperA = document.createElement("div");
+    const wrapperB = document.createElement("div");
+    document.body.append(wrapperA, wrapperB);
+    const nodeA = new ElementNode({
+      div: null,
+      $: [editorContent(editor)],
+    } as DomphyElement);
+    nodeA.render(wrapperA);
+    const hostA = nodeA.domElement as HTMLElement;
+    const nodeB = new ElementNode({
+      div: null,
+      $: [editorContent(editor)],
+    } as DomphyElement);
+    nodeB.render(wrapperB);
+    const hostB = nodeB.domElement as HTMLElement;
+    expect(editor.view?.element).toBe(hostB);
+    nodeA.remove();
+    expect(editor.view).not.toBeNull();
+    expect(editor.view?.element).toBe(hostB);
+    expect(hostB.querySelector("p")?.textContent).toBe("hello");
+    expect(hostA.isConnected).toBe(false);
+  });
+
+  it("unmounts only when the departing host still owns the view", () => {
+    const editor = makeEditor();
+    const { node, host } = mount({
+      div: null,
+      $: [editorContent(editor)],
+    } as DomphyElement);
+    const editorHost = host.querySelector("[contenteditable]") ?? host;
+    expect(editor.view?.element).toBe(editorHost);
+    node.remove();
+    expect(editor.view).toBeNull();
+  });
 });
 
 describe("bubbleMenu", () => {
@@ -146,6 +183,48 @@ describe("bubbleMenu", () => {
       ],
     } as DomphyElement);
     await flush();
+    expect(document.body.querySelector("[role='toolbar']")).toBeNull();
+  });
+
+  it("portals the toolbar outside the contenteditable host and survives a view render wipe", async () => {
+    const editor = makeEditor();
+    const { host } = mount({
+      div: null,
+      $: [
+        editorContent(editor),
+        bubbleMenu(editor, {
+          children: { div: "menu" },
+        }),
+      ],
+    } as DomphyElement);
+    const editable = host.querySelector("[contenteditable]") ?? host;
+    editor.commands.setTextSelection({ from: 1, to: 3 });
+    await flush();
+    const toolbar = document.body.querySelector("[role='toolbar']");
+    expect(toolbar).not.toBeNull();
+    expect(editable.contains(toolbar)).toBe(false);
+    editor.view!.render();
+    await flush();
+    const after = document.body.querySelector("[role='toolbar']");
+    expect(after).not.toBeNull();
+    expect(editable.contains(after)).toBe(false);
+  });
+
+  it("removes the toolbar when the editor is destroyed", async () => {
+    const editor = makeEditor();
+    mount({
+      div: null,
+      $: [
+        editorContent(editor),
+        bubbleMenu(editor, {
+          children: { div: "menu" },
+        }),
+      ],
+    } as DomphyElement);
+    editor.commands.setTextSelection({ from: 1, to: 3 });
+    await flush();
+    expect(document.body.querySelector("[role='toolbar']")).not.toBeNull();
+    editor.destroy();
     expect(document.body.querySelector("[role='toolbar']")).toBeNull();
   });
 });

@@ -1,4 +1,4 @@
-import { type DomphyElement, toState } from "@domphy/core";
+import { behavior, type DomphyElement, toState } from "@domphy/core";
 import { themeSpacing } from "@domphy/theme";
 import { menu } from "@domphy/ui";
 
@@ -17,6 +17,21 @@ const contextMenu: DomphyElement<"div"> = {
         { label: "Paste", onClick: () => open.set(false) },
       ],
     }),
+    // Document-level dismiss must survive a reactive parent re-rendering
+    // this node: _onMount would only fire for the first generation.
+    behavior(
+      "context-menu-dismiss",
+      (node) => {
+        const close = (e: MouseEvent) => {
+          if (!node.domElement!.contains(e.target as Node)) open.set(false);
+        };
+        document.addEventListener("click", close);
+        return {
+          destroy: () => document.removeEventListener("click", close),
+        };
+      },
+      {},
+    ),
   ],
   style: {
     position: "fixed",
@@ -30,13 +45,6 @@ const contextMenu: DomphyElement<"div"> = {
   // Text color is set by the menuitem buttons the menu() patch renders —
   // the outer container itself carries no text.
   _doctorDisable: "missing-color",
-  _onMount: (node) => {
-    const close = (e: MouseEvent) => {
-      if (!node.domElement!.contains(e.target as Node)) open.set(false);
-    };
-    document.addEventListener("click", close);
-    node.addHook("Remove", () => document.removeEventListener("click", close));
-  },
 };
 
 const App: DomphyElement<"div"> = {

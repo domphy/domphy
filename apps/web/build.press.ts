@@ -9,6 +9,7 @@ import {
   readdirSync,
   readFileSync,
   rmSync,
+  watch,
   writeFileSync,
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -28,12 +29,18 @@ import {
   pageShell,
   pressCSS,
   renderDoc,
+  startDevServer,
 } from "@domphy/press";
 import { themeCSS } from "@domphy/theme";
-import * as esbuild from "esbuild";
-import { htmlDocument, type PageIslandSpec } from "./html-template.js";
+import { htmlDocument } from "./html-template.js";
 import { applyPlaygroundLayout } from "./playground-layout.js";
 import { config } from "./press.config.js";
+import {
+  isShippablePage,
+  pageIslandSpecs,
+  parsePressArgs,
+  toIslandSourceKey,
+} from "./press-build.js";
 // Side effect: registers the site's brand palette (orange primary, slate
 // secondary) into the theme registry BEFORE themeCSS() is called below.
 import "./site-theme.js";
@@ -277,35 +284,6 @@ interface BuiltPage {
   islands: IslandRef[];
 }
 
-function pageIslandSpecs(page: BuiltPage): PageIslandSpec[] {
-  const specs: PageIslandSpec[] = [{ kind: "search", id: "search" }];
-  for (const island of page.islands) {
-    if (island.kind === "editor") {
-      const editorIsland = island as unknown as EditorIslandRef;
-      let code = editorIsland.inlineCode;
-      if (!code && editorIsland.source) {
-        code = existsSync(editorIsland.source)
-          ? readFileSync(editorIsland.source, "utf8")
-          : "// demo source not found";
-      }
-      code ??= "// demo source not found";
-      const spec: PageIslandSpec = { kind: "editor", id: island.id, code };
-      if (editorIsland.storageKey) spec.storageKey = editorIsland.storageKey;
-      specs.push(spec);
-    } else {
-      const previewIsland = island as unknown as PreviewIslandRef;
-      const spec: PageIslandSpec = {
-        kind: "preview",
-        id: island.id,
-        source: island.source!,
-      };
-      if (previewIsland.bare) spec.bare = true;
-      specs.push(spec);
-    }
-  }
-  return specs;
-}
-
 /**
  * Bundle the client islands runtime. Returns the public URL of the entry
  * script with a content hash so CDN `immutable` caching cannot pin an old
@@ -322,10 +300,10 @@ async function buildIslands(
     }
   }
   const registryEntries = [...previewSources]
-    .map(
-      (source) =>
-        `  ${JSON.stringify(source)}: () => import(${JSON.stringify(source)}),`,
-    )
+    .map((source) => {
+      const key = toIslandSourceKey(source);
+      return `  ${JSON.stringify(key)}: () => import(${JSON.stringify(source)}),`;
+    })
     .join("\n");
   const entrySource = `import { bootstrap } from ${JSON.stringify(islandsRuntimePath)};
 const previewRegistry = {
@@ -337,6 +315,7 @@ bootstrap(previewRegistry);
   const entryFile = join(cacheDir, "islands-entry.ts");
   writeFileSync(entryFile, entrySource, "utf8");
   const assetsDir = join(outDir, "assets");
+  const esbuild = await import("esbuild");
   await esbuild.build({
     entryPoints: { "islands-entry": entryFile },
     bundle: true,
@@ -394,8 +373,10 @@ function buildSitemap(pages: BuiltPage[], hostname: string): string {
 
 // --- Main build --------------------------------------------------------------
 
-async function run(): Promise<void> {
-  const startedPages = discoverPages(appRoot);
+async function run(options?: { exitOnFailure?: boolean }): Promise<void> {
+  const startedPages = discoverPages(appRoot).filter((page) =>
+    isShippablePage(page.filePath),
+  );
   console.log(`Discovered ${startedPages.length} pages.`);
 
   const highlight = await createHighlighter();
@@ -527,7 +508,8 @@ async function run(): Promise<void> {
       console.error(`  ✗ ${failure.route}: ${failure.error}`);
     // Match @domphy/press's buildSite contract: any page failure fails the
     // build — a silently skipped page would ship as a CDN-cached 404.
-    process.exit(1);
+    if (options?.exitOnFailure !== false) process.exit(1);
+    return;
   }
 
   const indexJson = buildSearchIndex(searchDocs);
@@ -545,8 +527,59 @@ async function run(): Promise<void> {
   );
 }
 
+function startWatch(onChange: (filename: string) => void): void {
+  const onFs = (_event: string, filename: string | Buffer | null) => {
+    if (filename == null) return;
+    const name = String(filename).replace(/\\/g, "/");
+    if (!/\.(md|ts|js)$/.test(name)) return;
+    onChange(name);
+  };
+  watch(docsDir, { recursive: true }, onFs);
+  watch(join(appRoot, "index.md"), onFs);
+  watch(islandsRuntimePath, onFs);
+}
+
+async function runDev(port: number): Promise<void> {
+  await run({ exitOnFailure: false });
+  const { notify } = startDevServer(outDir, port);
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let building = false;
+  let queued = false;
+  const rebuild = async (): Promise<void> => {
+    if (building) {
+      queued = true;
+      return;
+    }
+    building = true;
+    try {
+      do {
+        queued = false;
+        try {
+          await run({ exitOnFailure: false });
+        } catch (error) {
+          console.error("Build error:", (error as Error).message || error);
+        }
+      } while (queued);
+    } finally {
+      building = false;
+    }
+    notify();
+  };
+  startWatch((filename) => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      timer = null;
+      console.log(`Changed: ${filename}`);
+      void rebuild();
+    }, 150);
+  });
+  console.log(`Watching ${docsDir} (island build path)`);
+}
+
 if (process.argv[1]?.replace(/\\/g, "/").endsWith("build.press.ts")) {
-  run().catch((error) => {
+  const { watch: watchMode, port } = parsePressArgs(process.argv.slice(2));
+  const started = watchMode ? runDev(port) : run();
+  started.catch((error) => {
     console.error(error);
     process.exit(1);
   });

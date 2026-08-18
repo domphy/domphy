@@ -10,6 +10,7 @@ import type { RouteMatch } from "./matcher.js";
 import type {
   ErrorBlock,
   NotFoundBlock,
+  Params,
   RouteContext,
   RouterStatus,
 } from "./types.js";
@@ -126,7 +127,9 @@ export function buildTree(input: BuildTreeInput): BuiltTree {
     inner = page
       ? page(contexts[chain.length - 1])
       : ({ div: "" } as DomphyElement);
-    inner._key = `${match.route.id}:page`;
+    // Include param identity so /blog/hello and /blog/world do not reuse
+    // the same DOM node (lifecycle hooks run once per real node).
+    inner._key = `${match.route.id}:page:${stableParams(match.params)}`;
     wrapLimit = chain.length - 1;
     status = "idle";
   }
@@ -140,6 +143,15 @@ export function buildTree(input: BuildTreeInput): BuiltTree {
   }
 
   return { element, status };
+}
+
+/** Stable, order-independent identity for route params (page `_key`). */
+function stableParams(params: Params): string {
+  const keys = Object.keys(params).sort();
+  if (keys.length === 0) return "";
+  const ordered: Params = {};
+  for (const key of keys) ordered[key] = params[key];
+  return JSON.stringify(ordered);
 }
 
 function nearestBlockIndex(

@@ -5,10 +5,11 @@ import {
   normalizeHex,
   rgbToLab,
 } from "./palette/index.js";
+import { TONE_STEPS } from "./theme.js";
 import type { PartialThemeInput, ThemeInput } from "./types.js";
 
 export type GenerateThemeOptions = {
-  /** Ramp length. Must match `@domphy/theme`'s tone scale (18 steps: shift-0..shift-17). */
+  /** Ramp length. Must be `TONE_STEPS` (18). Other values throw — a shorter/longer ramp cannot be passed to `setTheme()`. */
   steps?: number;
   direction?: ThemeInput["direction"];
   fontSizes?: string[];
@@ -73,7 +74,12 @@ export function generateTheme(
   baseColors: Record<string, string>,
   options: GenerateThemeOptions = {},
 ): PartialThemeInput {
-  const steps = options.steps ?? 18;
+  if (options.steps !== undefined && options.steps !== TONE_STEPS) {
+    throw new Error(
+      `generateTheme() steps must be ${TONE_STEPS} (the tone model is fixed at shift-0…shift-${TONE_STEPS - 1}), got ${options.steps}`,
+    );
+  }
+  const steps = TONE_STEPS;
   const colors: Record<string, string[]> = {};
   const baseTones: Record<string, number> = {};
 

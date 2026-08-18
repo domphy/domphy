@@ -1,5 +1,11 @@
 import { once } from "node:events";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
@@ -76,12 +82,38 @@ describe("startServer", () => {
         `/..%2F${secretName}`,
         `/..%5c${secretName}`,
         `/%2e%2e/%2e%2e/${secretName}`,
+        // Absolute filesystem path as the URL — join(root, "/etc/passwd")
+        // (or resolve()) must not escape the site root.
+        `/${secret.replace(/\\/g, "/")}`,
+        "/etc/passwd",
       ]) {
         const response = await fetch(base + attempt);
         expect(response.status).toBe(404);
         expect(await response.text()).not.toContain("top secret");
       }
     } finally {
+      rmSync(secret, { force: true });
+    }
+  });
+
+  it("never follows a symlink whose realpath is outside the root", async () => {
+    const secret = join(tmpdir(), `press-serve-link-secret-${process.pid}.txt`);
+    writeFileSync(secret, "top secret");
+    const leak = join(root, "leak.txt");
+    try {
+      symlinkSync(secret, leak);
+    } catch (error) {
+      rmSync(secret, { force: true });
+      throw error;
+    }
+    try {
+      server = startServer(root, 0);
+      const base = await listen(server);
+      const response = await fetch(`${base}/leak.txt`);
+      expect(response.status).toBe(404);
+      expect(await response.text()).not.toContain("top secret");
+    } finally {
+      rmSync(leak, { force: true });
       rmSync(secret, { force: true });
     }
   });

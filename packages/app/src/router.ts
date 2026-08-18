@@ -84,6 +84,36 @@ const renderStack: AppRouter[] = [];
 /** Depth budget shared by redirect and middleware-rewrite chains before a loop is declared. */
 const MAX_NAVIGATION_LOOPS = 10;
 
+/** Prefixes compiled slot route ids so two `path: ""` slots do not share a cache key. */
+function namespaceSlotRoutes(
+  compiled: CompiledRoute[],
+  slotName: string,
+): CompiledRoute[] {
+  return compiled.map((route) => ({
+    ...route,
+    id: `@${slotName}${route.id}`,
+    chainIds: route.chainIds.map((id) => `@${slotName}${id}`),
+  }));
+}
+
+function redirectStreamResult(signal: RedirectSignal): {
+  shell: DomphyElement;
+  status: number;
+  redirect: string;
+  rest: Promise<{
+    content: DomphyElement;
+    data: Record<string, unknown>;
+    head: string;
+  }>;
+} {
+  return {
+    shell: { div: "" },
+    status: signal.permanent ? 308 : 307,
+    redirect: signal.to,
+    rest: Promise.resolve({ content: { div: "" }, data: {}, head: "" }),
+  };
+}
+
 function rewriteLoopError(depth: number): Error {
   return new Error(
     `[Domphy] Rewrite loop detected: too many consecutive middleware rewrites (>${depth - 1}). ` +
@@ -174,8 +204,11 @@ export class AppRouter {
         for (const name of Object.keys(route.slots)) {
           const slotRoutes = route.slots[name];
           entry[name] = {
-            soft: compileRoutes(slotRoutes),
-            hard: compileRoutes(slotRoutes.filter((route) => !route.intercept)),
+            soft: namespaceSlotRoutes(compileRoutes(slotRoutes), name),
+            hard: namespaceSlotRoutes(
+              compileRoutes(slotRoutes.filter((route) => !route.intercept)),
+              name,
+            ),
           };
           this.compileSlots(slotRoutes);
         }
@@ -240,7 +273,8 @@ export class AppRouter {
       results[index] = { status: "success", data };
     } catch (error) {
       if (error instanceof RedirectSignal) {
-        onRedirect?.(error);
+        if (onRedirect) onRedirect(error);
+        else throw error;
       } else if (error instanceof NotFoundSignal) {
         results[index] = { status: "notfound" };
       } else {
@@ -259,6 +293,7 @@ export class AppRouter {
   private async loadMatch(
     match: RouteMatch,
     url: URL,
+    onRedirect?: (signal: RedirectSignal) => void,
   ): Promise<SegmentResult[]> {
     const { chain, chainIds } = match.route;
     const context = this.loaderContext(url, match);
@@ -271,6 +306,7 @@ export class AppRouter {
           context,
           results,
           index,
+          onRedirect,
         ),
       ),
     );
@@ -283,6 +319,7 @@ export class AppRouter {
     match: RouteMatch,
     url: URL,
     soft: boolean,
+    onRedirect?: (signal: RedirectSignal) => void,
   ): Promise<Record<string, DomphyElement>> {
     const route = match.route.chain[chainIndex];
     const compiledSlots = this.slotCompiled.get(route);
@@ -302,7 +339,10 @@ export class AppRouter {
       if (!slotMatch) continue;
       slotMatch.pathname = url.pathname;
       slotMatch.params = { ...match.params, ...slotMatch.params };
-      const results = await this.loadMatch(slotMatch, url);
+      const results = await this.loadMatch(slotMatch, url, onRedirect);
+      // A redirect leaves the throwing segment pending; do not build a
+      // loading tree for a slot that is about to navigate away.
+      if (results.some((result) => result.status === "pending")) continue;
       slots[name] = this.buildWithContext(
         () =>
           buildTree({
@@ -582,21 +622,33 @@ export class AppRouter {
         }).element,
     );
 
+    // Resolve loaders before committing to a 200 shell so a redirect from
+    // the page or a slot becomes StreamResult.redirect instead of a pending
+    // loading tree flushed as 200.
+    let redirectSignal: RedirectSignal | null = null;
+    const onRedirect = (signal: RedirectSignal) => {
+      redirectSignal = redirectSignal ?? signal;
+    };
+    const results = await this.loadMatch(resolvedMatch, url, onRedirect);
+    if (redirectSignal) return redirectStreamResult(redirectSignal);
+
+    const slots: Record<number, Record<string, DomphyElement>> = {};
+    await Promise.all(
+      resolvedMatch.route.chain.map(async (route, index) => {
+        if (this.slotCompiled.has(route)) {
+          slots[index] = await this.renderSlots(
+            index,
+            resolvedMatch,
+            url,
+            false,
+            onRedirect,
+          );
+        }
+      }),
+    );
+    if (redirectSignal) return redirectStreamResult(redirectSignal);
+
     const rest = (async () => {
-      const results = await this.loadMatch(resolvedMatch, url);
-      const slots: Record<number, Record<string, DomphyElement>> = {};
-      await Promise.all(
-        resolvedMatch.route.chain.map(async (route, index) => {
-          if (this.slotCompiled.has(route)) {
-            slots[index] = await this.renderSlots(
-              index,
-              resolvedMatch,
-              url,
-              false,
-            );
-          }
-        }),
-      );
       const content = this.buildWithContext(
         () =>
           buildTree({
@@ -625,7 +677,13 @@ export class AppRouter {
           this.loaderContext(url, resolvedMatch),
         );
         head = renderHeadTags(metadataToHeadTags(metadata));
-      } catch {
+      } catch (error) {
+        if (
+          error instanceof RedirectSignal ||
+          error instanceof NotFoundSignal
+        ) {
+          throw error;
+        }
         head = "";
       }
 
@@ -828,11 +886,20 @@ export class AppRouter {
     await Promise.all(
       chain.map(async (route, index) => {
         if (this.slotCompiled.has(route)) {
-          slots[index] = await this.renderSlots(index, match, url, soft);
+          slots[index] = await this.renderSlots(
+            index,
+            match,
+            url,
+            soft,
+            (signal) => {
+              redirectSignal = redirectSignal ?? signal;
+            },
+          );
         }
       }),
     );
     if (token !== this.navigationToken) return;
+    if (redirectSignal) throw redirectSignal;
 
     const built = this.buildWithContext(() =>
       buildTree({
@@ -912,7 +979,10 @@ export class AppRouter {
         match.route.chain.map((route) => routeMetadata(route)),
         context,
       );
-    } catch {
+    } catch (error) {
+      if (error instanceof RedirectSignal || error instanceof NotFoundSignal) {
+        throw error;
+      }
       return {};
     }
   }

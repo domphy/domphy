@@ -213,5 +213,28 @@ export async function handleToolCall(
     // error so MCP clients do not treat the failure text as a normal answer.
     return errorResult(`Error: ${(error as Error).message}`);
   }
+  // parseElementTree / runDoctor convert JSON and doctor crashes into
+  // readable strings instead of throwing — those must still be flagged so
+  // MCP clients do not treat "Invalid JSON: …" as a successful diagnose.
+  if (isTreeToolError(name, text)) {
+    return errorResult(text);
+  }
   return { content: [{ type: "text", text }] };
+}
+
+/** True when a doctor tool returned a parse/run failure string, not a report. */
+function isTreeToolError(name: string, text: string): boolean {
+  if (
+    name !== "domphy_diagnose" &&
+    name !== "domphy_validate" &&
+    name !== "domphy_fix"
+  ) {
+    return false;
+  }
+  return (
+    text.startsWith("Invalid JSON:") ||
+    text.startsWith("diagnose failed:") ||
+    text.startsWith("validate failed:") ||
+    text.startsWith("fix failed:")
+  );
 }

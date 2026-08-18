@@ -215,6 +215,15 @@ export function applyStaticProp(
       if (targetUniform) Object.assign(targetUniform, nextUniform);
       else uniforms[name] = { ...nextUniform };
     }
+  } else if (
+    typeof target === "function" &&
+    (Array.isArray(value) || value?.isVector3 === true)
+  ) {
+    // Camera.lookAt / Object3D.lookAt — an array or Vector3 must invoke
+    // the method, not overwrite it. `raycast: null` (and any other
+    // function slot assigned a non-vector) still falls through to assign.
+    if (Array.isArray(value)) target.apply(root, value);
+    else target.call(root, value);
   } else {
     root[resolvedKey] = value;
 

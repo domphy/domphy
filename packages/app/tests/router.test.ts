@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { ElementNode } from "@domphy/core";
+import { ElementNode, toState } from "@domphy/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createApp,
@@ -89,6 +89,16 @@ function buildRoutes(): Route[] {
             throw new Error("boom");
           },
           page: () => ({ h1: "Broken" }),
+        },
+        {
+          path: "meta-go",
+          page: () => ({ h1: "Meta Go" }),
+          metadata: () => redirect("/about"),
+        },
+        {
+          path: "meta-gone",
+          page: () => ({ h1: "Meta Gone" }),
+          metadata: () => notFound(),
         },
       ],
     },
@@ -231,6 +241,25 @@ describe("AppRouter", () => {
     await app.router.navigate("/totally/missing");
     await flush();
     expect(container.textContent).toContain("App 404");
+  });
+
+  it("follows redirect() thrown from metadata", async () => {
+    await startApp();
+    await app.router.navigate("/meta-go");
+    await flush();
+    expect(container.textContent).toContain("About");
+    expect(app.router.state.get("pathname")).toBe("/about");
+  });
+
+  it("renders not-found when metadata throws notFound()", async () => {
+    await startApp();
+    await app.router.navigate("/meta-gone");
+    await flush();
+    // Metadata notFound() is rethrown to transition(), which uses the
+    // app-level not-found block (same path as middleware notFound()).
+    expect(container.textContent).not.toContain("Meta Gone");
+    expect(container.textContent).toContain("404");
+    expect(app.router.state.get("status")).toBe("notfound");
   });
 
   it("renders the nearest error block when a loader throws", async () => {
@@ -406,6 +435,116 @@ describe("navLink", () => {
     anchor.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true }));
     await flush(40);
     expect(loaderCalls).toEqual(["hover"]);
+
+    node.remove();
+    linkContainer.remove();
+  });
+
+  it("prefetches the updated href when a reused visible link changes", async () => {
+    await startApp();
+    class ImmediateObserver {
+      callback: IntersectionObserverCallback;
+      constructor(callback: IntersectionObserverCallback) {
+        this.callback = callback;
+      }
+      observe() {
+        this.callback(
+          [{ isIntersecting: true } as IntersectionObserverEntry],
+          this as unknown as IntersectionObserver,
+        );
+      }
+      disconnect() {}
+      unobserve() {}
+      takeRecords() {
+        return [];
+      }
+      root = null;
+      rootMargin = "";
+      thresholds = [];
+    }
+    vi.stubGlobal("IntersectionObserver", ImmediateObserver);
+
+    const href = toState("/blog/first");
+    const node = new ElementNode({
+      div: (listener) => [
+        {
+          a: "Post",
+          $: [
+            navLink({
+              href: href.get(listener),
+              prefetch: "visible",
+              router: app.router,
+            }),
+          ],
+          _key: "link",
+        },
+      ],
+    });
+    const linkContainer = document.createElement("div");
+    document.body.appendChild(linkContainer);
+    node.render(linkContainer);
+    await flush(40);
+    expect(loaderCalls).toEqual(["first"]);
+
+    href.set("/blog/second");
+    await flush(40);
+    expect(loaderCalls).toEqual(["first", "second"]);
+
+    node.remove();
+    linkContainer.remove();
+  });
+
+  it("prevents default on javascript: and data: hrefs", async () => {
+    await startApp();
+    const node = new ElementNode({
+      div: [
+        {
+          a: "xss",
+          $: [
+            navLink({
+              href: "javascript:alert(1)",
+              prefetch: false,
+              router: app.router,
+            }),
+          ],
+          _key: "js",
+        },
+        {
+          a: "data",
+          $: [
+            navLink({
+              href: "data:text/html,x",
+              prefetch: false,
+              router: app.router,
+            }),
+          ],
+          _key: "data",
+        },
+      ],
+    });
+    const linkContainer = document.createElement("div");
+    document.body.appendChild(linkContainer);
+    node.render(linkContainer);
+    await flush();
+
+    const [scriptLink, dataLink] = Array.from(
+      linkContainer.querySelectorAll("a"),
+    ) as HTMLAnchorElement[];
+    const scriptClick = new MouseEvent("click", {
+      bubbles: true,
+      cancelable: true,
+    });
+    const dataClick = new MouseEvent("click", {
+      bubbles: true,
+      cancelable: true,
+    });
+    scriptLink.dispatchEvent(scriptClick);
+    dataLink.dispatchEvent(dataClick);
+    await flush();
+
+    expect(scriptClick.defaultPrevented).toBe(true);
+    expect(dataClick.defaultPrevented).toBe(true);
+    expect(app.router.state.get("pathname")).toBe("/");
 
     node.remove();
     linkContainer.remove();

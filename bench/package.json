@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "bench": "tsx src/index.ts",
-    "bench:dry": "tsx src/index.ts --dry-run"
+    "bench:dry": "tsx src/index.ts --dry-run",
+    "test": "tsx src/self-test.ts"
   },
   "dependencies": {
     "openai": "^4.0.0",

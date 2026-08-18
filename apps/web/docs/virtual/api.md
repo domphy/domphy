@@ -1,6 +1,6 @@
 ---
 title: "API Reference"
-description: "Virtualizer, createVirtualizer adapter, VirtualizerOptions, VirtualItem, and all methods."
+description: "Virtualizer, createVirtualizer / createWindowVirtualizer adapters, VirtualizerOptions, VirtualItem, and all methods."
 ---
 
 # API Reference
@@ -24,12 +24,12 @@ const list = createVirtualizer<HTMLDivElement, HTMLDivElement>(options)
 | `getVirtualItems(l)` | `VirtualItem[]` | Reactive list of items currently in range. Pass a listener to subscribe. |
 | `getTotalSize(l?)` | `number` | Total scroll size in px. Pass listener to subscribe reactively. |
 | `setScrollElement(el)` | `void` | Wire the scroll container. Call from `_onMount`. |
-| `measureElement(el)` | `void` | Measure an item element. Call from item `_onMount` for variable heights. The element must carry `"data-index": item.index` (see `indexAttribute`) — without it the index cannot be resolved and measurement is skipped with a console warning. |
+| `measureElement(el)` | `void` | Measure an item element. Call from item `_onMount` for variable heights, and `measureElement(null)` from `_onRemove` so disconnected nodes are unobserved. The element must carry `"data-index": item.index` (see `indexAttribute`) — without it the index cannot be resolved and measurement is skipped with a console warning. |
 | `scrollToIndex(i, opts?)` | `void` | Scroll to item at index. |
 | `scrollToOffset(px, opts?)` | `void` | Scroll to an absolute offset. |
 | `scrollBy(delta, opts?)` | `void` | Scroll by a relative pixel delta from the current position. |
 | `scrollToEnd(opts?)` | `void` | Scroll to the last item. |
-| `setOptions(opts)` | `void` | Update `count`, `estimateSize`, or other options reactively. |
+| `setOptions(opts)` | `void` | Update `count`, `estimateSize`, or other options reactively. Preserves `itemSizeCache` — a count-only change does not remeasure. Call `virtualizer.measure()` to force a full remeasure. |
 | `version(l)` | `number` | Raw change counter — subscribe to know when any item changes. |
 | `destroy()` | `void` | Detach resize observers. Call from `_onRemove`. |
 
@@ -42,6 +42,16 @@ The `virtualizer` property exposes the underlying `Virtualizer` instance with ad
 | `isAtEnd(threshold?)` | `true` if within `threshold` (default `1`) px of the end. |
 | `resizeItem(index, size)` | Programmatically override a single item's size. |
 | `measure()` | Clear all cached sizes and force full re-measurement. |
+
+## `createWindowVirtualizer(options)` <Badge text="Domphy adapter" />
+
+```ts
+import { createWindowVirtualizer } from "@domphy/virtual/domphy"
+
+const list = createWindowVirtualizer<HTMLDivElement>(options)
+```
+
+Same handle as `createVirtualizer` with `TScroll` fixed to `Window` and `observeWindowRect` / `observeWindowOffset` / `windowScroll` as defaults. No `as any` — wire `window` from `_onMount`: `_onMount: () => list.setScrollElement(window)`. Construction is SSR-safe.
 
 ---
 
@@ -93,7 +103,7 @@ interface VirtualizerOptions<TScrollElement, TItemElement> {
   laneAssignmentMode?: "estimate" | "measured"
 
   // Miscellaneous
-  enabled?: boolean                      // default true; false renders all items without virtualization
+  enabled?: boolean                      // default true; false pauses the virtualizer (getVirtualItems() is [], observers detach, getTotalSize() is 0)
   useScrollendEvent?: boolean            // use native scrollend event (default false)
   useAnimationFrameWithResizeObserver?: boolean  // rAF-gate ResizeObserver callbacks
   scrollEndThreshold?: number            // px from end to fire isAtEnd (default 1)

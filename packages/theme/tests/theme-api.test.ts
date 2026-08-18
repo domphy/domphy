@@ -11,7 +11,12 @@ import {
   themeTokens,
   themeVars,
 } from "../src/theme.ts";
-import { ElementTones, themeColor, themeColorToken } from "../src/tone.ts";
+import {
+  ElementTones,
+  resolveThemeColor,
+  themeColor,
+  themeColorToken,
+} from "../src/tone.ts";
 
 function createAttributes(values: Record<string, string> = {}) {
   return {
@@ -306,7 +311,7 @@ describe("themeColor custom-role baseline error", () => {
     );
   });
 
-  // NOTE: mutates the shared "light" theme — must stay the LAST test in this
+  // NOTE: mutates the shared "light" theme — must stay the LAST tests in this
   // file (COLOR_ROLES above asserts light's color keys exactly).
   it("resolves once the role is also registered on light", () => {
     const name = `vitest-${Math.random().toString(36).slice(2)}`;
@@ -318,5 +323,26 @@ describe("themeColor custom-role baseline error", () => {
 
     expect(themeColor(node as any, "inherit", "brand")).toBe("var(--brand-0)");
     expect(themeColor(node as any, "shift-3", "brand")).toBe("var(--brand-3)");
+  });
+
+  it("throws an actionable error when themeColor(..., 'base') has no baseTones entry", () => {
+    const ramp = Array.from({ length: 18 }, () => "#123456");
+    setTheme("light", { colors: { brand: ramp } });
+    expect(getTheme("light").baseTones.brand).toBeUndefined();
+
+    expect(() => themeColor(null, "base", "brand")).toThrow(
+      /baseTones\.brand is not defined on theme "light"/,
+    );
+    expect(() => themeColor(null, "base", "brand")).toThrow(/setTheme/);
+    const node = createNode({ dataTheme: "light" });
+    expect(() => themeColor(node as any, "base", "brand")).toThrow(
+      /baseTones\.brand is not defined on theme "light"/,
+    );
+    expect(() => themeColorToken(null, "base", "brand")).toThrow(
+      /baseTones\.brand is not defined on theme "light"/,
+    );
+    expect(() => resolveThemeColor({ tone: "base", color: "brand" })).toThrow(
+      /baseTones\.brand is not defined on theme "light"/,
+    );
   });
 });

@@ -275,6 +275,72 @@ describe("createDomphyTable.setOptions", () => {
 
     expect(dTable.version()).toBe(before);
   });
+
+  it("raw object merges with previous options and keeps the adapter onStateChange", () => {
+    const dTable = setup();
+    const before = dTable.version();
+
+    dTable.setOptions({ data: people.slice(0, 1) });
+
+    expect(dTable.version()).toBe(before + 1);
+    expect(dTable.table.options.columns).toBe(columns);
+    expect(dTable.getRowModel().rows.length).toBe(1);
+
+    // Adapter wrapper still applies state — sorting would be a no-op if
+    // onStateChange was dropped by the raw object.
+    dTable.table.getColumn("name")?.toggleSorting(false);
+    expect(dTable.table.getState().sorting).toEqual([{ id: "name", desc: false }]);
+  });
+
+  it("function updater cannot replace the adapter onStateChange wrapper", () => {
+    const dTable = setup();
+    const hijack = vi.fn();
+
+    dTable.setOptions((prev) => ({ ...prev, onStateChange: hijack }));
+    dTable.table.getColumn("age")?.toggleSorting(false);
+
+    expect(hijack).not.toHaveBeenCalled();
+    expect(dTable.table.getState().sorting).toEqual([{ id: "age", desc: false }]);
+  });
+});
+
+describe("createDomphyTable getRowId", () => {
+  it("defaults row.id to the row index when getRowId is omitted", () => {
+    const dTable = createDomphyTable<Person>({
+      data: people,
+      columns,
+      getCoreRowModel: getCoreRowModel(),
+    });
+    expect(dTable.table.getRowModel().rows.map((row) => row.id)).toEqual([
+      "0",
+      "1",
+      "2",
+    ]);
+  });
+
+  it("getRowId keys rows by the provided id across data reorder", () => {
+    const dTable = createDomphyTable<Person>({
+      data: people,
+      columns,
+      getCoreRowModel: getCoreRowModel(),
+      getRowId: (person) => String(person.id),
+    });
+
+    expect(dTable.table.getRowModel().rows.map((row) => row.id)).toEqual([
+      "1",
+      "2",
+      "3",
+    ]);
+
+    dTable.setOptions((prev) => ({ ...prev, data: [...people].reverse() }));
+
+    expect(dTable.table.getRowModel().rows.map((row) => row.id)).toEqual([
+      "3",
+      "2",
+      "1",
+    ]);
+    expect(dTable.table.getRow("2").original.name).toBe("Alice");
+  });
 });
 
 describe("createDomphyTable destroy", () => {

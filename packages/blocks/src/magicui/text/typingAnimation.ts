@@ -10,12 +10,14 @@
 // support delete/cycle through multiple phrases.
 
 import type {
+  BehaviorInstance,
   DomphyElement,
   ElementNode,
+  Listener,
   State,
   StyleObject,
 } from "@domphy/core";
-import { hashString, toState } from "@domphy/core";
+import { behavior, hashString, toState } from "@domphy/core";
 import { themeColor } from "@domphy/theme";
 import { fixed } from "../../shared/typography.js";
 
@@ -58,6 +60,173 @@ export interface TypingAnimationProps {
   style?: StyleObject;
 }
 
+const TYPING_ANIMATION_BEHAVIOR_KEY = "magicui-typing-animation";
+
+interface TypingAnimationBehaviorProps {
+  revealedText: State<string>;
+  cursorVisible: State<boolean>;
+  phraseGraphemes: string[][];
+  phrases: string[];
+  typingSpeed: number;
+  deletingSpeed: number;
+  pauseDuration: number;
+  startDelay: number;
+  loop: boolean;
+  startOnView: boolean;
+  hasMultipleWords: boolean;
+}
+
+interface TypingAnimationBehavior
+  extends BehaviorInstance<TypingAnimationBehaviorProps> {
+  revealedText: State<string>;
+  cursorVisible: State<boolean>;
+}
+
+function attachTypingAnimation(
+  node: ElementNode,
+  initialProps: TypingAnimationBehaviorProps,
+): TypingAnimationBehavior {
+  const revealedText = initialProps.revealedText;
+  const cursorVisible = initialProps.cursorVisible;
+  let props = initialProps;
+  let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+  let displayed = "";
+  let wordIndex = 0;
+  let charIndex = 0;
+  let phase: "typing" | "pause" | "deleting" = "typing";
+  let observer: IntersectionObserver | null = null;
+
+  const step = () => {
+    const graphemes = props.phraseGraphemes[wordIndex];
+    let changed = false;
+    switch (phase) {
+      case "typing":
+        if (charIndex < graphemes.length) {
+          displayed = graphemes.slice(0, charIndex + 1).join("");
+          charIndex += 1;
+          changed = true;
+        } else if (props.hasMultipleWords || props.loop) {
+          const isLastWord = wordIndex === props.phrases.length - 1;
+          if (!isLastWord || props.loop) {
+            phase = "pause";
+            changed = true;
+          }
+        }
+        break;
+      case "pause":
+        phase = "deleting";
+        changed = true;
+        break;
+      case "deleting":
+        if (charIndex > 0) {
+          displayed = graphemes.slice(0, charIndex - 1).join("");
+          charIndex -= 1;
+          changed = true;
+        } else {
+          wordIndex = (wordIndex + 1) % props.phrases.length;
+          phase = "typing";
+          changed = true;
+        }
+        break;
+    }
+    revealedText.set(displayed);
+    const activeGraphemes = props.phraseGraphemes[wordIndex];
+    const isComplete =
+      !props.loop &&
+      wordIndex === props.phrases.length - 1 &&
+      charIndex >= activeGraphemes.length &&
+      phase !== "deleting";
+    cursorVisible.set(
+      !isComplete &&
+        (props.hasMultipleWords ||
+          props.loop ||
+          charIndex < activeGraphemes.length),
+    );
+    if (changed) scheduleTick();
+  };
+
+  const scheduleTick = () => {
+    const timeoutDelay =
+      props.startDelay > 0 && displayed === ""
+        ? props.startDelay
+        : phase === "typing"
+          ? props.typingSpeed
+          : phase === "deleting"
+            ? props.deletingSpeed
+            : props.pauseDuration;
+    timeoutHandle = setTimeout(step, timeoutDelay);
+  };
+
+  const begin = () => {
+    scheduleTick();
+  };
+
+  if (typeof window !== "undefined") {
+    if (!props.startOnView) {
+      begin();
+    } else if (typeof IntersectionObserver !== "function") {
+      begin();
+    } else {
+      const element = node.domElement as Element;
+      observer = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((entry) => entry.isIntersecting)) {
+            begin();
+            observer?.disconnect();
+            observer = null;
+          }
+        },
+        { threshold: 0.3 },
+      );
+      observer.observe(element);
+    }
+  }
+
+  return {
+    revealedText,
+    cursorVisible,
+    update(next) {
+      props = {
+        ...next,
+        revealedText,
+        cursorVisible,
+      };
+    },
+    destroy() {
+      if (timeoutHandle) clearTimeout(timeoutHandle);
+      observer?.disconnect();
+    },
+  };
+}
+
+function elementNodeOf(listener: Listener): ElementNode | null {
+  const fromListener = (listener as { elementNode?: ElementNode }).elementNode;
+  if (fromListener && typeof fromListener.getBehavior === "function") {
+    return fromListener;
+  }
+  if (typeof (listener as ElementNode).getBehavior === "function") {
+    return listener as ElementNode;
+  }
+  return null;
+}
+
+function typingStates(
+  listener: Listener,
+  fallbackText: State<string>,
+  fallbackCursor: State<boolean>,
+): { revealedText: State<string>; cursorVisible: State<boolean> } {
+  const instance = elementNodeOf(
+    listener,
+  )?.getBehavior<TypingAnimationBehavior>(TYPING_ANIMATION_BEHAVIOR_KEY);
+  if (instance?.revealedText && instance.cursorVisible) {
+    return {
+      revealedText: instance.revealedText,
+      cursorVisible: instance.cursorVisible,
+    };
+  }
+  return { revealedText: fallbackText, cursorVisible: fallbackCursor };
+}
+
 const CURSOR_KEYFRAMES = {
   "0%,49%": { opacity: 1 },
   "50%,100%": { opacity: 0 },
@@ -93,12 +262,18 @@ function cursorGlyph(
   cursorStyle: TypingCursorStyle,
   blink: boolean,
   visible: State<boolean>,
+  revealedText: State<string>,
 ): DomphyElement<"span"> {
   return {
     span: CURSOR_GLYPH_BY_STYLE[cursorStyle],
     ariaHidden: "true",
     style: {
-      display: (listener) => (visible.get(listener) ? "inline-block" : "none"),
+      display: (listener: Listener) =>
+        typingStates(listener, revealedText, visible).cursorVisible.get(
+          listener,
+        )
+          ? "inline-block"
+          : "none",
       color: (listener) => themeColor(listener, "shift-9"),
       animation: blink
         ? `${CURSOR_ANIMATION_NAME} 1.2s step-end infinite`
@@ -140,14 +315,22 @@ function typingAnimation(props: TypingAnimationProps = {}): DomphyElement {
 
   const outerChildren: DomphyElement[] = [
     {
-      span: (listener) => revealedText.get(listener),
+      span: (listener: Listener) =>
+        typingStates(listener, revealedText, cursorVisible).revealedText.get(
+          listener,
+        ),
       _key: "revealed",
       dataTypingRevealed: "true",
     },
     ...(showCursor
       ? [
           {
-            ...cursorGlyph(cursorStyle, cursorBlink, cursorVisible),
+            ...cursorGlyph(
+              cursorStyle,
+              cursorBlink,
+              cursorVisible,
+              revealedText,
+            ),
             _key: "cursor",
           },
         ]
@@ -167,112 +350,23 @@ function typingAnimation(props: TypingAnimationProps = {}): DomphyElement {
       ...(wrapperTag === "span" ? { display: "inline-block" } : {}),
       ...(props.style ?? {}),
     } as StyleObject,
-    _onMount: (node: ElementNode) => {
-      if (typeof window === "undefined") return;
-      let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
-      // Direct translation of upstream's `phase`/index state machine so the
-      // timing matches exactly: the per-step delay is computed BEFORE each
-      // transition from the (possibly empty) currently-displayed text, so
-      // `startDelay` re-applies before the first character of every new word
-      // and a finished word is held for `typingSpeed + pauseDuration`.
-      let displayed = "";
-      let wordIndex = 0;
-      let charIndex = 0;
-      let phase: "typing" | "pause" | "deleting" = "typing";
-
-      const step = () => {
-        const graphemes = phraseGraphemes[wordIndex];
-        let changed = false;
-        switch (phase) {
-          case "typing":
-            if (charIndex < graphemes.length) {
-              displayed = graphemes.slice(0, charIndex + 1).join("");
-              charIndex += 1;
-              changed = true;
-            } else if (hasMultipleWords || loop) {
-              const isLastWord = wordIndex === phrases.length - 1;
-              if (!isLastWord || loop) {
-                phase = "pause";
-                changed = true;
-              }
-            }
-            break;
-          case "pause":
-            phase = "deleting";
-            changed = true;
-            break;
-          case "deleting":
-            if (charIndex > 0) {
-              displayed = graphemes.slice(0, charIndex - 1).join("");
-              charIndex -= 1;
-              changed = true;
-            } else {
-              wordIndex = (wordIndex + 1) % phrases.length;
-              phase = "typing";
-              changed = true;
-            }
-            break;
-        }
-        revealedText.set(displayed);
-        // Mirror upstream `shouldShowCursor` (its `showCursor` gate is handled
-        // when the cursor element is built): hide once the last word is fully
-        // typed with no loop, otherwise keep it visible.
-        const activeGraphemes = phraseGraphemes[wordIndex];
-        const isComplete =
-          !loop &&
-          wordIndex === phrases.length - 1 &&
-          charIndex >= activeGraphemes.length &&
-          phase !== "deleting";
-        cursorVisible.set(
-          !isComplete &&
-            (hasMultipleWords || loop || charIndex < activeGraphemes.length),
-        );
-        // No transition means the terminal freeze (single/last word done, no
-        // loop) — stop scheduling, matching upstream's effect no longer re-running.
-        if (changed) scheduleTick();
-      };
-
-      const scheduleTick = () => {
-        const timeoutDelay =
-          startDelay > 0 && displayed === ""
-            ? startDelay
-            : phase === "typing"
-              ? typingSpeed
-              : phase === "deleting"
-                ? deletingSpeed
-                : pauseDuration;
-        timeoutHandle = setTimeout(step, timeoutDelay);
-      };
-
-      const begin = () => {
-        scheduleTick();
-      };
-
-      if (!startOnView) {
-        begin();
-      } else if (typeof IntersectionObserver !== "function") {
-        // No IntersectionObserver support (e.g. non-browser test runtime) —
-        // fail open and start immediately rather than never playing.
-        begin();
-      } else {
-        const element = node.domElement as Element;
-        const observer = new IntersectionObserver(
-          (entries) => {
-            if (entries.some((entry) => entry.isIntersecting)) {
-              begin();
-              observer.disconnect();
-            }
-          },
-          { threshold: 0.3 },
-        );
-        observer.observe(element);
-        node.addHook("Remove", () => observer.disconnect());
-      }
-
-      node.addHook("Remove", () => {
-        if (timeoutHandle) clearTimeout(timeoutHandle);
-      });
-    },
+    ...behavior<TypingAnimationBehaviorProps>(
+      TYPING_ANIMATION_BEHAVIOR_KEY,
+      attachTypingAnimation,
+      {
+        revealedText,
+        cursorVisible,
+        phraseGraphemes,
+        phrases,
+        typingSpeed,
+        deletingSpeed,
+        pauseDuration,
+        startDelay,
+        loop,
+        startOnView,
+        hasMultipleWords,
+      },
+    ),
   } as unknown as DomphyElement;
 
   return outer;

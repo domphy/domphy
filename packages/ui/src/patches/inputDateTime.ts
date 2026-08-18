@@ -13,7 +13,7 @@ type InputDateTimeMode = "date" | "time" | "week" | "month" | "datetime-local";
 /**
  * Styles a native date/time input with themed border, padding, hover, focus,
  * invalid and disabled states. The `mode` selects the input `type`. Apply to
- * an `<input>` element (the patch sets `type` to the chosen `mode`).
+ * an `<input>` element (the patch default `type` is the chosen `mode`; a native `type` wins).
  *
  * @hostTag input
  * @param props.mode - Input mode selecting the host `type`: `"date" | "time" | "week" | "month" | "datetime-local"`. Defaults to `"datetime-local"`.
@@ -33,12 +33,13 @@ function inputDateTime(
   const accentColor = toState(props.accentColor ?? "primary", "accentColor");
 
   return {
+    // Declared like any other attribute — the native element still wins over
+    // this patch default if the host declares its own `type`.
     type: mode,
-    _onSchedule: (node, element) => {
+    _onInsert: (node) => {
       if (node.tagName !== "input") {
         console.warn(`"inputDateTime" primitive patch must use input tag`);
       }
-      (element as any).type = mode;
     },
     style: {
       fontFamily: "inherit",

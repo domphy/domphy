@@ -11,6 +11,7 @@ import {
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
+import { writeScaffoldFiles } from "../src/write.ts";
 
 const PACKAGE_DIR = resolve(__dirname, "..");
 const DIST_CLI = join(PACKAGE_DIR, "dist", "index.js");
@@ -18,24 +19,31 @@ const DIST_CLI = join(PACKAGE_DIR, "dist", "index.js");
 const NPM_COMMAND = process.platform === "win32" ? "npm.cmd" : "npm";
 
 // Same freshness guard as tests/e2e.test.ts: the spawned artifact is
-// dist/index.js, so rebuild it when any source file is newer.
+// dist/index.js, so rebuild it when any source file is newer. Use
+// build:bundle (tsup only) — `npm run build` would regenerate
+// src/versions.generated.ts as a test side-effect.
 function buildCliIfStale(): void {
-  const sources = ["index.ts", "templates.ts", "versions.generated.ts"].map(
-    (file) => join(PACKAGE_DIR, "src", file),
-  );
+  const sources = [
+    "index.ts",
+    "templates.ts",
+    "versions.generated.ts",
+    "write.ts",
+  ].map((file) => join(PACKAGE_DIR, "src", file));
   const distFresh =
     existsSync(DIST_CLI) &&
     sources.every(
-      (source) => statSync(source).mtimeMs <= statSync(DIST_CLI).mtimeMs,
+      (source) =>
+        existsSync(source) &&
+        statSync(source).mtimeMs <= statSync(DIST_CLI).mtimeMs,
     );
   if (distFresh) return;
-  const build = spawnSync(NPM_COMMAND, ["run", "build"], {
+  const build = spawnSync(NPM_COMMAND, ["run", "build:bundle"], {
     cwd: PACKAGE_DIR,
     stdio: "inherit",
     shell: process.platform === "win32",
   });
   if (build.status !== 0) {
-    throw new Error("create-domphy build failed — cannot run CLI tests");
+    throw new Error("create-domphy bundle failed — cannot run CLI tests");
   }
 }
 
@@ -125,6 +133,71 @@ describe("create-domphy CLI", () => {
     const run = runCli([projectDir]);
     expect(run.status, run.output).toBe(0);
     expect(existsSync(join(projectDir, "src", "main.ts"))).toBe(true);
+  });
+
+  it("does not overwrite an existing .gitignore", () => {
+    // A dir with only .gitignore is treated as empty-enough so `git init` +
+    // a user ignore file can still be scaffolded into — but that file is
+    // the user's, not a blank canvas. Overwriting it used to clobber
+    // whatever they already listed.
+    const projectDir = makeTempDir("create-domphy-gitignore-");
+    const original = "# user ignore\nsecret\n";
+    writeFileSync(join(projectDir, ".gitignore"), original, "utf8");
+    const run = runCli([projectDir]);
+    expect(run.status, run.output).toBe(0);
+    expect(readFileSync(join(projectDir, ".gitignore"), "utf8")).toBe(original);
+    expect(existsSync(join(projectDir, "src", "main.ts"))).toBe(true);
+  });
+
+  it("rolls back created directories when a later write fails", () => {
+    // Mid-scaffold failure used to delete written files but leave mkdir'd
+    // parents (src/). A retry then hit isDirectoryUsable's "not empty"
+    // check and could not recover. Plant a directory on a later path so
+    // writeFileSync throws after src/ has been created.
+    const projectDir = makeTempDir("create-domphy-rollback-");
+    mkdirSync(join(projectDir, ".git"));
+    mkdirSync(join(projectDir, "tsconfig.json"));
+    expect(() =>
+      writeScaffoldFiles(projectDir, [
+        { path: "package.json", contents: "{}\n" },
+        { path: "src/main.ts", contents: "export {}\n" },
+        { path: "tsconfig.json", contents: "{}\n" },
+      ]),
+    ).toThrow();
+    expect(existsSync(join(projectDir, "package.json"))).toBe(false);
+    expect(existsSync(join(projectDir, "src"))).toBe(false);
+    expect(existsSync(join(projectDir, ".git"))).toBe(true);
+    expect(existsSync(join(projectDir, "tsconfig.json"))).toBe(true);
+  });
+
+  it("removes a newly created target directory when a later write fails", () => {
+    const parent = makeTempDir("create-domphy-rollback-new-");
+    const projectDir = join(parent, "brand-new");
+    expect(() =>
+      writeScaffoldFiles(projectDir, [
+        { path: "src", contents: "not-a-directory\n" },
+        { path: "src/main.ts", contents: "export {}\n" },
+      ]),
+    ).toThrow();
+    expect(existsSync(projectDir)).toBe(false);
+  });
+
+  it("rebuilds a stale dist via tsup only, without regenerating versions.generated.ts", () => {
+    // `npm run build` runs generate:versions first, which rewrites
+    // src/versions.generated.ts. Tests must bundle from the committed
+    // source so a rebuild is not a hidden source mutation.
+    const helper = readFileSync(join(__dirname, "cli.test.ts"), "utf8");
+    expect(helper).toContain("build:bundle");
+    expect(helper).not.toMatch(/["']run["'],\s*\[["']build["']\]/);
+    const e2e = readFileSync(join(__dirname, "e2e.test.ts"), "utf8");
+    expect(e2e).toContain("build:bundle");
+    expect(e2e).not.toMatch(/["']run["'],\s*\[["']build["']\]/);
+    const packageJson = JSON.parse(
+      readFileSync(join(PACKAGE_DIR, "package.json"), "utf8"),
+    ) as { scripts: Record<string, string> };
+    expect(packageJson.scripts["build:bundle"]).toMatch(/^tsup\b/);
+    expect(packageJson.scripts.build).toContain("generate:versions");
+    expect(packageJson.scripts.test).not.toContain("generate:versions");
   });
 
   it("rejects an unknown template with exit 1", () => {

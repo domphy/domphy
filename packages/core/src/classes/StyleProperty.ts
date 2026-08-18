@@ -1,7 +1,22 @@
 import { PrefixCSS } from "../constants.js";
 import { camelToKebab } from "../helpers.js";
 import type { Listener, StyleValue } from "../types.js";
+import { runUntracked } from "./Collector.js";
 import type { StyleRule } from "./StyleRule.js";
+
+// Style values are interpolated raw into generateCSS() / insertRule()
+// strings. `}` closes the rule, `;` starts another declaration, and
+// `</style>` breaks out of the host <style> element — same threat model
+// as theme assertCssSafe. CSS hex escapes neutralize the characters
+// without changing how the CSS parser reconstructs the intended value.
+function escapeCssValue(value: string | number): string {
+  const text = String(value);
+  if (!/[;}]|<\/style/i.test(text)) return text;
+  return text
+    .replace(/<\/style/gi, "\\3C /style")
+    .replace(/;/g, "\\3B ")
+    .replace(/}/g, "\\7D ");
+}
 
 export class StyleProperty {
   name: string;
@@ -18,6 +33,10 @@ export class StyleProperty {
   // be kept, not just the last one. Mirrors ElementAttribute's `_releases`
   // array pattern.
   private _releases: (() => void)[] = [];
+  // Declared reactive function, kept so a pre-mount (SSR generate) evaluation
+  // can stay untracked and the live stylesheet path can subscribe later.
+  private _fn: ((listener: Listener) => string | number) | null = null;
+  private _bound = false;
 
   constructor(name: string, value: StyleValue, parentRule: StyleRule) {
     this.name = name;
@@ -51,8 +70,36 @@ export class StyleProperty {
       for (const release of this._releases) release();
       this._releases = [];
     }
+    this._fn = null;
+    this._bound = false;
     this.value = "";
     this.parentRule = null as any;
+  }
+
+  private _bind(fn: (listener: Listener) => string | number): void {
+    const listener = (() => {
+      if (!this.parentRule || this.parentRule.parentNode?._disposed) return;
+      this.value = fn(listener);
+      this._domUpdate();
+    }) as unknown as Listener;
+
+    listener.onSubscribe = (release: () => void) => {
+      this._releases.push(release);
+    };
+
+    listener.elementNode = this.parentRule!.root!;
+    listener.debug = `class:${this.parentRule?.root?.tagName}_${this.parentRule?.root?.nodeId} style:${this.name}`;
+    this.value = fn(listener);
+    this._bound = true;
+  }
+
+  // Subscribe a pre-mount reactive value once the rule has a live CSSOM
+  // binding (client render / hydration). SSR generateCSS/HTML never calls
+  // this, so those one-shot trees do not leak State listeners.
+  activate(): void {
+    if (!this._fn || this._bound) return;
+    this._bind(this._fn);
+    this._domUpdate();
   }
 
   set(value: StyleValue): void {
@@ -61,21 +108,21 @@ export class StyleProperty {
       for (const release of this._releases) release();
       this._releases = [];
     }
+    this._bound = false;
+    this._fn = null;
 
     if (typeof value === "function") {
-      const listener = (() => {
-        if (!this.parentRule || this.parentRule.parentNode?._disposed) return;
-        this.value = value(listener);
-        this._domUpdate();
-      }) as unknown as Listener;
-
-      listener.onSubscribe = (release: () => void) => {
-        this._releases.push(release);
-      };
-
-      listener.elementNode = this.parentRule!.root!;
-      listener.debug = `class:${this.parentRule?.root?.tagName}_${this.parentRule?.root?.nodeId} style:${this.name}`;
-      this.value = value(listener);
+      this._fn = value;
+      // A live (mounted) node must subscribe now. A generateCSS/HTML tree
+      // has no DOM — resolve once, untracked, and leave subscription to
+      // activate() on render/hydrate.
+      if (this.parentRule?.parentNode?.domElement) {
+        this._bind(value);
+      } else {
+        this.value = runUntracked(() =>
+          value(undefined as unknown as Listener),
+        );
+      }
     } else {
       this.value = value;
     }
@@ -101,10 +148,11 @@ export class StyleProperty {
   }
 
   cssText(): string {
-    let str = `${this.cssName}: ${this.value}`;
+    const cssValue = escapeCssValue(this.value as string | number);
+    let str = `${this.cssName}: ${cssValue}`;
     if (PrefixCSS[this.name]) {
       PrefixCSS[this.name].forEach((prefix) => {
-        str += `; -${prefix}-${this.cssName}: ${this.value}`;
+        str += `; -${prefix}-${this.cssName}: ${cssValue}`;
       });
     }
     return str;

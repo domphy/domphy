@@ -1,7 +1,11 @@
 import {
+  type BehaviorInstance,
+  behavior,
   type DomphyElement,
+  type ElementNode,
   merge,
   type PartialElement,
+  type State,
   type StyleObject,
   toState,
   type ValueOrState,
@@ -15,7 +19,7 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { elevation } from "../utils/elevation.js";
-import { createFloating } from "../utils/floating.js";
+import { createFloating, floatingPanelId } from "../utils/floating.js";
 import { focusRing } from "../utils/focusRing.js";
 import { tag } from "./tag.js";
 
@@ -100,59 +104,124 @@ function combobox(props: {
     backgroundColor: (listener: any) => themeColor(listener, "inherit", color),
   };
 
-  let inputElement: DomphyElement;
-  if (props.input) {
-    const inputPartial: PartialElement = {
-      onFocus: (_e, node) => show(node),
-      style: inputStyle,
-      _key: "combobox-input",
-    };
-    merge(props.input, inputPartial);
-    inputElement = props.input;
-  } else {
-    inputElement = {
+  type InnerProps = {
+    options: Array<{ label: string; value: string }>;
+    multiple: boolean;
+    color: ThemeColor;
+    state: State<
+      | Array<number | string | null | undefined>
+      | number
+      | string
+      | null
+      | undefined
+    >;
+    input?: DomphyElement;
+  };
+
+  type ComboboxInner = BehaviorInstance<InnerProps> & {
+    query: State<string>;
+  };
+
+  const readQuery = (listener?: { elementNode?: ElementNode }) =>
+    listener?.elementNode?.getBehavior<ComboboxInner>("comboboxInner")?.query;
+
+  const findComboboxAnchor = (from: ElementNode): ElementNode => {
+    let current: ElementNode | null = from;
+    while (current) {
+      if (current._behaviorInstances.has("floating:combobox")) return current;
+      current = current.parent;
+    }
+    return from;
+  };
+
+  const inputAria: PartialElement = {
+    role: "combobox",
+    ariaHaspopup: "listbox",
+    ariaExpanded: (listener) => openState.get(listener),
+    ariaControls: (listener) =>
+      listener?.elementNode
+        ? floatingPanelId(
+            "combobox",
+            findComboboxAnchor(listener.elementNode),
+          )
+        : undefined,
+  };
+
+  const buildInput = (custom?: DomphyElement): DomphyElement => {
+    if (custom) {
+      merge(custom, {
+        onFocus: (_e: Event, node: ElementNode) => show(node),
+        style: inputStyle,
+        _key: "combobox-input",
+        ...inputAria,
+      });
+      return custom;
+    }
+    return {
       input: null,
       // Accessible name for the filter field (critical for axe label rule).
-      // Native text input (not role=combobox) — full combobox ARIA needs a
-      // stable aria-controls target id for the floating list; label is enough
-      // for WCAG name/role/value of the filter field.
       ariaLabel: "Filter options",
-      onFocus: (_e, node) => show(node),
-      value: (listener: any) => {
-        state.get(listener);
-        return "";
+      onFocus: (_e: Event, node: ElementNode) => show(node),
+      value: (listener: { elementNode?: ElementNode }) =>
+        readQuery(listener)?.get(listener as never) ?? "",
+      onInput: (event: Event, node: ElementNode) => {
+        node
+          .getBehavior<ComboboxInner>("comboboxInner")
+          ?.query.set((event.target as HTMLInputElement).value);
       },
       style: inputStyle,
       _key: "combobox-input",
+      ...inputAria,
     };
-  }
+  };
 
-  const wrap: DomphyElement<"div"> = {
+  const buildWrap = (inner: InnerProps): DomphyElement<"div"> => ({
     div: (listener) => {
-      const val = state.get(listener);
+      openState.get(listener);
+      const val = inner.state.get(listener);
       const vals = Array.isArray(val) ? val : [val];
-      const opts = options.filter((opt) => vals.includes(opt.value));
+      const opts = inner.options.filter((opt) => vals.includes(opt.value));
       const items: DomphyElement[] = opts.map((opt) => {
         return {
           span: opt.label,
-          $: [tag({ color, removable: true })],
+          $: [tag({ color: inner.color, removable: true })],
           _key: opt.value,
-          _onRemove: (_node) => {
-            const cur = state.get();
+          _onRemove: (_node: ElementNode) => {
+            const cur = inner.state.get();
             const curVals = Array.isArray(cur) ? cur : [cur];
             const filter = curVals.filter((v) => v !== opt.value);
-            multiple ? state.set(filter as any) : state.set(filter[0] as any);
+            inner.multiple
+              ? inner.state.set(filter as any)
+              : inner.state.set(filter[0] as any);
           },
         };
       });
-      items.push(inputElement);
+      items.push(buildInput(inner.input));
       return items;
     },
+    _key: "comboboxWrap",
     style: {
       display: "flex",
       flexWrap: "wrap",
       gap: themeSpacing(1),
     },
+  });
+
+  const attachInner = (
+    node: ElementNode,
+    inner: InnerProps,
+  ): ComboboxInner => {
+    let query = node.getMetadata("comboboxQuery") as State<string> | undefined;
+    if (!query) {
+      query = toState("");
+      node.setMetadata("comboboxQuery", query);
+    }
+    return {
+      query,
+      update(next) {
+        node.children.update([buildWrap(next)]);
+      },
+    };
   };
 
   const partial: PartialElement = {
@@ -161,7 +230,24 @@ function combobox(props: {
         console.warn(`"combobox" primitive patch must use div tag`);
       }
     },
-    _onInit: (node) => node.children.insert(wrap),
+    _onSchedule: (node, element) => {
+      (element as Record<string, unknown>)[node.tagName] = [
+        buildWrap({
+          options,
+          multiple,
+          color,
+          state,
+          input: props.input,
+        }),
+      ];
+    },
+    ...behavior<InnerProps>("comboboxInner", attachInner, {
+      options,
+      multiple,
+      color,
+      state,
+      input: props.input,
+    }),
     style: {
       minWidth: themeSpacing(32),
       outlineOffset: "-1px",

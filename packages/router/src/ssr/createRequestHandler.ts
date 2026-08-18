@@ -1,4 +1,5 @@
 import { createMemoryHistory } from '@tanstack/history'
+import { isDangerousProtocol } from '../utils'
 import { mergeHeaders } from './headers'
 import {
   attachRouterServerSsrUtils,
@@ -77,6 +78,19 @@ export function createRequestHandler<TRouter extends AnyRouter>({
   }
 }
 
+function sanitizeRedirectLocationHeaders(
+  headers: Headers,
+  allowlist: Set<string>,
+): Headers {
+  const location = headers.get('Location')
+  if (!location || !isDangerousProtocol(location, allowlist)) {
+    return headers
+  }
+  const sanitized = new Headers(headers)
+  sanitized.delete('Location')
+  return sanitized
+}
+
 function getRequestHeaders(opts: { router: AnyRouter }): Headers {
   const matchHeaders: Array<AnyHeaders> = []
   for (const match of opts.router.stores.matches.get()) {
@@ -86,7 +100,12 @@ function getRequestHeaders(opts: { router: AnyRouter }): Headers {
   // Handle Redirects
   const redirect = opts.router.stores.redirect.get()
   if (redirect) {
-    matchHeaders.push(redirect.headers)
+    matchHeaders.push(
+      sanitizeRedirectLocationHeaders(
+        redirect.headers,
+        opts.router.protocolAllowlist,
+      ),
+    )
   }
 
   return mergeHeaders(

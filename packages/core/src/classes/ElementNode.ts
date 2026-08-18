@@ -6,6 +6,7 @@ import {
   ensureDomStyle,
   getTagName,
   mergePartial,
+  normalizeSelectorKey,
   validate,
 } from "../helpers.js";
 import type {
@@ -228,6 +229,24 @@ export class ElementNode {
       }
     }
 
+    // Always release children subscriptions and destroy behaviors, even when
+    // BeforeRemove already fired and a composed hook threw before later
+    // composed cleanup (the _childrenRelease / behavior.destroy hooks).
+    try {
+      this._childrenRelease?.();
+    } catch (error) {
+      this._handleError(error);
+    }
+    this._childrenRelease = undefined;
+    for (const instance of this._behaviorInstances.values()) {
+      try {
+        instance.destroy?.();
+      } catch (error) {
+        this._handleError(error);
+      }
+    }
+    this._behaviorInstances.clear();
+
     if (this.children) {
       this.children._dispose();
     }
@@ -351,13 +370,14 @@ export class ElementNode {
     element = mergePartial(element);
 
     // Children / content — recurse so grandchildren are reused/patched too.
-    // Reactive function always wins: release old binding and re-setup with the
-    // new closure so the node reflects the new data source, not the stale one.
-    // Nullish content means "no children declared" — same as the constructor —
-    // NOT "remove all children". Treating it as [] here used to wipe children
-    // that a patch inserted imperatively (node.children.insert in _onInit, e.g.
-    // selectBox/combobox's inner tag list + input) on every ancestor re-render,
-    // since lifecycle hooks don't re-run on a reused node to put them back.
+    // Always drop the previous function-children subscription first: otherwise
+    // a function → static (or nullish) patch would leave the old listener live
+    // and overwriting the new children. Nullish content still means "no
+    // children declared" — same as the constructor — NOT "remove all children".
+    // Treating it as [] here used to wipe children that a patch inserted
+    // imperatively (node.children.insert in _onInit, e.g. selectBox/combobox's
+    // inner tag list + input) on every ancestor re-render, since lifecycle
+    // hooks don't re-run on a reused node to put them back.
     const content = element[this.tagName];
     if (
       __DEV__ &&
@@ -367,9 +387,9 @@ export class ElementNode {
     ) {
       devWarnVoidContent(this.tagName);
     }
+    this._childrenRelease?.();
+    this._childrenRelease = undefined;
     if (typeof content === "function") {
-      this._childrenRelease?.();
-      this._childrenRelease = undefined;
       this._setupFunctionChildren(content);
     } else if (content != null) {
       const next = Array.isArray(content) ? content : [content];
@@ -378,7 +398,7 @@ export class ElementNode {
 
     if (element._context) merge(this._context, element._context);
     if (element._metadata) merge(this._metadata, element._metadata);
-    this._processBehaviors(element._behaviors);
+    this._processBehaviors(element._behaviors, true);
 
     this.styles.patchCSS(
       element.style || {},
@@ -499,8 +519,19 @@ export class ElementNode {
 
     if (typeof current === "function") {
       const composed = ((...args: any[]) => {
-        (current as Function)(...args);
-        (callback as Function)(...args);
+        let firstError: unknown;
+        try {
+          (current as Function)(...args);
+        } catch (error) {
+          firstError = error;
+        }
+        try {
+          (callback as Function)(...args);
+        } catch (error) {
+          if (firstError === undefined) firstError = error;
+          else this._handleError(error);
+        }
+        if (firstError !== undefined) throw firstError;
       }) as HookMap[K];
       // Preserve the maximum declared arity across composed hooks. Removal logic
       // inspects BeforeRemove.length (>= 2 means the hook owns `done()`, e.g. an
@@ -536,10 +567,14 @@ export class ElementNode {
   // key attaches immediately if the DOM element already exists (the patch()/
   // reused-node path), or is queued for the node's one-time Mount hook
   // (the merge()/construction path, where domElement doesn't exist yet).
-  _processBehaviors(behaviors?: Record<string, BehaviorSpec>): void {
-    if (!behaviors) return;
-    for (const key of Object.keys(behaviors)) {
-      const spec = behaviors[key];
+  _processBehaviors(
+    behaviors?: Record<string, BehaviorSpec>,
+    prune = false,
+  ): void {
+    if (!behaviors && !prune) return;
+    const next = behaviors ?? {};
+    for (const key of Object.keys(next)) {
+      const spec = next[key];
       const instance = this._behaviorInstances.get(key);
       if (instance) {
         instance.update?.(spec.props);
@@ -549,6 +584,20 @@ export class ElementNode {
         this._pendingBehaviors.set(key, spec);
         this._ensureBehaviorMountHook();
       }
+    }
+    if (!prune) return;
+    for (const key of [...this._behaviorInstances.keys()]) {
+      if (Object.hasOwn(next, key)) continue;
+      const instance = this._behaviorInstances.get(key);
+      this._behaviorInstances.delete(key);
+      try {
+        instance?.destroy?.();
+      } catch (error) {
+        this._handleError(error);
+      }
+    }
+    for (const key of [...this._pendingBehaviors.keys()]) {
+      if (!Object.hasOwn(next, key)) this._pendingBehaviors.delete(key);
     }
   }
 
@@ -587,7 +636,13 @@ export class ElementNode {
     if (this._behaviorTeardownHooked) return;
     this._behaviorTeardownHooked = true;
     this.addHook("BeforeRemove", () => {
-      this._behaviorInstances.forEach((instance) => instance.destroy?.());
+      for (const instance of this._behaviorInstances.values()) {
+        try {
+          instance.destroy?.();
+        } catch (error) {
+          this._handleError(error);
+        }
+      }
       this._behaviorInstances.clear();
     });
   }
@@ -793,8 +848,14 @@ export class ElementNode {
     }
   }
 
-  _hydrateStyles(domRuleMap: Map<string, CSSRule>): void {
-    this.styles?.hydrate(domRuleMap);
+  _hydrateStyles(domRuleMap: Map<string, CSSRule[]>): void {
+    if (this.styles?.items) {
+      for (const rule of this.styles.items) {
+        const queue = domRuleMap.get(normalizeSelectorKey(rule.selectorText));
+        const domRule = queue?.shift();
+        if (domRule) rule.mount(domRule);
+      }
+    }
     if (this.children) {
       for (const child of this.children.items) {
         if (child instanceof ElementNode) child._hydrateStyles(domRuleMap);

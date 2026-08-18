@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ElementNode } from "@domphy/core";
 import { createI18n } from "../src/index.ts";
 
 const en = {
@@ -55,6 +56,32 @@ describe("t()", () => {
     const i18n = makeI18n();
     await i18n.initI18n("en");
     expect(i18n.t("nested.key" as any)).toBe("Nested value");
+  });
+
+  it("t(listener, key) reads localeState and re-renders on setLocale()", async () => {
+    const i18n = makeI18n();
+    await i18n.initI18n("en");
+
+    const listener = vi.fn();
+    expect(i18n.t(listener as any, "hello")).toBe("Hello");
+
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const node = new ElementNode({
+      p: (l) => i18n.t(l, "hello"),
+    });
+    node.render(host);
+    expect(host.textContent).toBe("Hello");
+
+    await i18n.setLocale("vi");
+    await new Promise<void>((resolve) => queueMicrotask(resolve));
+
+    expect(listener).toHaveBeenCalled();
+    expect(i18n.t(() => {}, "hello")).toBe("Xin chào");
+    expect(host.textContent).toBe("Xin chào");
+
+    node.remove();
+    host.remove();
   });
 });
 

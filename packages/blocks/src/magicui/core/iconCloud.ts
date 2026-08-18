@@ -26,6 +26,7 @@
 // way the per-frame draw path is a single `drawImage`, uniform across sources.
 
 import type { DomphyElement, ElementNode } from "@domphy/core";
+import { behavior } from "@domphy/core";
 import { themeColorToken } from "@domphy/theme";
 
 export interface IconCloudItem {
@@ -215,9 +216,28 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
       marginInline: "auto",
       touchAction: "none",
     },
-    _onMount: (node: ElementNode) => {
-      const container = node.domElement as HTMLElement | null;
-      if (!container || typeof document === "undefined") return;
+    ...behavior<IconCloudProps>(
+      "magicui-icon-cloud",
+      attachIconCloud,
+      props,
+    ),
+  };
+}
+
+function attachIconCloud(node: ElementNode, initialProps: IconCloudProps) {
+  let props = initialProps;
+  const size = () => props.size ?? DEFAULT_SIZE;
+  const autoRotateSpeed = () =>
+    props.autoRotateSpeed ?? DEFAULT_AUTO_ROTATE_SPEED;
+  const dragSensitivity = () =>
+    props.dragSensitivity ?? DEFAULT_DRAG_SENSITIVITY;
+  const scaleRange = () => props.iconScaleRange ?? DEFAULT_ICON_SCALE_RANGE;
+  const opacityRange = () =>
+    props.iconOpacityRange ?? DEFAULT_ICON_OPACITY_RANGE;
+  const container = node.domElement as HTMLElement | null;
+  if (!container || typeof document === "undefined") {
+    return { update() {}, destroy() {} };
+  }
 
       const canvas = document.createElement("canvas");
       canvas.setAttribute("aria-hidden", "true");
@@ -312,7 +332,7 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
       let pointerDownY = 0;
       let pointerMovedFar = false;
       let focusTarget: FocusTarget | null = null;
-      let width = container.clientWidth || size;
+      let width = container.clientWidth || size();
       let frameHandle: number | null = null;
       let resizeObserver: ResizeObserver | null = null;
 
@@ -323,7 +343,7 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
           : Date.now();
 
       const resizeCanvas = () => {
-        width = container.clientWidth || size;
+        width = container.clientWidth || size();
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         canvas.width = width * dpr;
         canvas.height = width * dpr;
@@ -353,6 +373,8 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
         for (const entry of projected) {
           const source = loaded[entry.index].source;
           if (!source) continue;
+          const [nearSize, farSize] = scaleRange();
+          const [nearOpacity, farOpacity] = opacityRange();
           const iconSize = lerp(farSize, nearSize, entry.depth);
           const opacity = lerp(farOpacity, nearOpacity, entry.depth);
           context.globalAlpha = opacity;
@@ -398,6 +420,7 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
           const depth = (rotated.z + 1) / 2;
           const screenX = centerX + rotated.x * sphereRadius;
           const screenY = centerY + rotated.y * sphereRadius;
+          const [nearSize, farSize] = scaleRange();
           const hitRadius = lerp(farSize, nearSize, depth) / 2;
           const dx = canvasX - screenX;
           const dy = canvasY - screenY;
@@ -469,7 +492,7 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
                 ? Math.hypot(offsetX, offsetY) / maxOffsetDistance
                 : 0;
             const speed =
-              autoRotateSpeed + offsetRatio * AUTO_ROTATE_HOVER_SPEED_BOOST;
+              autoRotateSpeed() + offsetRatio * AUTO_ROTATE_HOVER_SPEED_BOOST;
             yaw += (offsetX / width) * speed;
             pitch += (offsetY / width) * speed;
           }
@@ -511,8 +534,8 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
             pointerMovedFar = true;
           }
         }
-        yaw += deltaX * dragSensitivity;
-        pitch += deltaY * dragSensitivity;
+        yaw += deltaX * dragSensitivity();
+        pitch += deltaY * dragSensitivity();
       };
       // Tracks the pointer position (in the canvas's own drawing space)
       // continuously, drag or not — the only input the idle-drift branch of
@@ -552,14 +575,17 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
 
       frameHandle = requestAnimationFrame(tick);
 
-      node.addHook("Remove", () => {
-        if (frameHandle !== null) cancelAnimationFrame(frameHandle);
-        resizeObserver?.disconnect();
-        canvas.removeEventListener("pointerdown", handlePointerDown);
-        canvas.removeEventListener("pointermove", handleHoverMove);
-        window.removeEventListener("pointermove", handlePointerMove);
-        window.removeEventListener("pointerup", handlePointerUp);
-      });
+  return {
+    update(next: IconCloudProps) {
+      props = next;
+    },
+    destroy() {
+      if (frameHandle !== null) cancelAnimationFrame(frameHandle);
+      resizeObserver?.disconnect();
+      canvas.removeEventListener("pointerdown", handlePointerDown);
+      canvas.removeEventListener("pointermove", handleHoverMove);
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
     },
   };
 }

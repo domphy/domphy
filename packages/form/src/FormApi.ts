@@ -2431,6 +2431,14 @@ export class FormApi<
    * Handles the form submission, performs validation, and calls the appropriate onSubmit or onSubmitInvalid callbacks.
    */
   _handleSubmit = async (submitMeta?: TSubmitMeta): Promise<void> => {
+    // A second handleSubmit while a previous run is still in flight must
+    // not start another submit (and must not call onSubmit again).
+    // Sequential re-submission after the previous run finishes is still
+    // allowed so stale field errors can be re-validated (attempts > 1).
+    if (this.state.isSubmitting && !this._devtoolsSubmissionOverride) {
+      return
+    }
+
     this.baseStore.setState((old) => ({
       ...old,
       // Submission attempts mark the form as not submitted
@@ -2702,9 +2710,11 @@ export class FormApi<
   }
 
   deleteField = <TField extends DeepKeys<TFormData>>(field: TField) => {
+    const fieldStr = field.toString()
     const subFieldsToDelete = Object.keys(this.fieldInfo).filter((f) => {
-      const fieldStr = field.toString()
-      return f !== fieldStr && f.startsWith(fieldStr)
+      // Path-boundary: "email" must not match "emailConfirm", and
+      // "tags[1]" / "tags.1" must not match "tags[10]" / "tags.10".
+      return f !== fieldStr && isFieldInGroup(fieldStr, f)
     })
 
     const fieldsToDelete = [...subFieldsToDelete, field]

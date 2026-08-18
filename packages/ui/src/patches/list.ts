@@ -16,7 +16,8 @@ import { focusRing } from "../utils/focusRing.js";
  * @param props.color - Surface color tone. Optional `ThemeColor`, defaults to `"neutral"`.
  * @example { ul: [...], $: [list()] }
  */
-function list(_props: { color?: ThemeColor } = {}): PartialElement {
+function list(props: { color?: ThemeColor } = {}): PartialElement {
+  const color = props.color ?? "neutral";
   return {
     style: {
       listStyle: "none",
@@ -24,6 +25,8 @@ function list(_props: { color?: ThemeColor } = {}): PartialElement {
       padding: 0,
       display: "flex",
       flexDirection: "column",
+      backgroundColor: (listener) => themeColor(listener, "inherit", color),
+      color: (listener) => themeColor(listener, "text", color),
     },
   };
 }

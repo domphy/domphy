@@ -22,7 +22,12 @@ import { createInstance, type i18n } from "i18next";
 
 export type { i18n };
 
-declare const process: { env: Record<string, string | undefined> } | undefined;
+declare const process:
+  | {
+      env: Record<string, string | undefined>;
+      getBuiltinModule?: (id: string) => unknown;
+    }
+  | undefined;
 
 // Dev-only warning guard, same pattern as @domphy/core's dev.ts: bundlers
 // statically replace `process.env.NODE_ENV`, so production builds fold this to
@@ -85,6 +90,80 @@ interface Store<TLocale extends string> {
   // In-flight init() promise — lets concurrent initI18n()/setLocale() calls
   // await the same init instead of racing store.initialized.
   initPromise?: Promise<void>;
+}
+
+// Request-scoped locale on the server. Client / jsdom keep a single locale on
+// the globalThis store (Vite chunk-split dedup). `document` is the isomorphic
+// signal: Node SSR has none; jsdom/browser tests and apps do.
+//
+// AsyncLocalStorage is loaded via process.getBuiltinModule so the module
+// graph stays free of `node:*` specifiers (browser bundles must not resolve
+// them). runWithI18n() / Node HTTP each own a RequestScope bag; initI18n
+// writes locale onto that bag so two concurrent initI18n('en') /
+// initI18n('vi') calls do not clobber each other.
+type RequestScope = { locale?: string };
+
+type Als<T> = {
+  getStore(): T | undefined;
+  enterWith(store: T): void;
+  run<R>(store: T, fn: () => R): R;
+};
+
+let requestLocaleAls: Als<RequestScope> | null | undefined;
+
+function getRequestLocaleAls(): Als<RequestScope> | undefined {
+  if (requestLocaleAls !== undefined) return requestLocaleAls ?? undefined;
+  if (typeof document !== "undefined") {
+    requestLocaleAls = null;
+    return undefined;
+  }
+  try {
+    if (
+      typeof process === "undefined" ||
+      typeof process.getBuiltinModule !== "function"
+    ) {
+      requestLocaleAls = null;
+      return undefined;
+    }
+    const asyncHooks = process.getBuiltinModule("node:async_hooks") as {
+      AsyncLocalStorage: new <T>() => Als<T>;
+    };
+    requestLocaleAls = new asyncHooks.AsyncLocalStorage<RequestScope>();
+    return requestLocaleAls;
+  } catch {
+    requestLocaleAls = null;
+    return undefined;
+  }
+}
+
+function getRequestLocale(): string | undefined {
+  return getRequestLocaleAls()?.getStore()?.locale;
+}
+
+function bindRequestLocale(locale: string): void {
+  const als = getRequestLocaleAls();
+  if (!als) return;
+  const scope = als.getStore();
+  // Prefer mutating the current run() bag — enterWith would pin the locale
+  // onto the parent async resource and leak after runWithI18n() returns.
+  if (scope) {
+    scope.locale = locale;
+    return;
+  }
+  // Node HTTP: the request is already its own async resource, no wrapper.
+  als.enterWith({ locale });
+}
+
+/**
+ * Run `fn` in a fresh request-locale scope. On the client this is a no-op
+ * (globalThis store is the single locale). SSR tests and frameworks that
+ * do not already have a per-request async context (Node HTTP does) should
+ * wrap each request so `initI18n` / `t` / `getLocale` stay isolated.
+ */
+export function runWithI18n<T>(fn: () => T): T {
+  const als = getRequestLocaleAls();
+  if (!als) return fn();
+  return als.run({}, fn);
 }
 
 function getOrCreateStore<TLocale extends string>(
@@ -154,18 +233,7 @@ export function createI18n<
   // the createI18n() call that caused it — instead of on first use.
   getStore();
 
-  async function initI18n(locale: TLocale = defaultLocale): Promise<void> {
-    const store = getStore();
-    if (store.initialized) {
-      await setLocale(locale);
-      return;
-    }
-    // Await the in-flight init instead of starting a second one — otherwise a
-    // concurrent call could flip store.initialized early and clobber locale.
-    if (store.initPromise) {
-      await store.initPromise;
-      return setLocale(locale);
-    }
+  function startInit(store: Store<TLocale>, locale: TLocale): Promise<void> {
     store.initPromise = store.instance
       .init({
         lng: locale,
@@ -190,10 +258,50 @@ export function createI18n<
         store.initPromise = undefined;
         throw error;
       });
-    await store.initPromise;
+    return store.initPromise;
+  }
+
+  async function ensureInitialized(): Promise<Store<TLocale>> {
+    const store = getStore();
+    if (store.initialized) return store;
+    if (store.initPromise) {
+      await store.initPromise;
+      return store;
+    }
+    // SSR never pins the shared instance to a request locale — init at the
+    // default so concurrent requests can overlay their own via ALS + t({lng}).
+    await startInit(store, defaultLocale);
+    return store;
+  }
+
+  async function initI18n(locale: TLocale = defaultLocale): Promise<void> {
+    const requestAls = getRequestLocaleAls();
+    if (requestAls) {
+      bindRequestLocale(locale);
+      await ensureInitialized();
+      return;
+    }
+    const store = getStore();
+    if (store.initialized) {
+      await setLocale(locale);
+      return;
+    }
+    // Await the in-flight init instead of starting a second one — otherwise a
+    // concurrent call could flip store.initialized early and clobber locale.
+    if (store.initPromise) {
+      await store.initPromise;
+      return setLocale(locale);
+    }
+    await startInit(store, locale);
   }
 
   async function setLocale(locale: TLocale): Promise<void> {
+    const requestAls = getRequestLocaleAls();
+    if (requestAls) {
+      bindRequestLocale(locale);
+      await ensureInitialized();
+      return;
+    }
     const store = getStore();
     if (!store.initialized) {
       await initI18n(locale);
@@ -205,6 +313,10 @@ export function createI18n<
   }
 
   function getLocale(): TLocale {
+    const request = getRequestLocale();
+    if (request !== undefined && localeKeys.has(request)) {
+      return request as TLocale;
+    }
     const lang = getStore().instance.language;
     return (localeKeys.has(lang) ? lang : defaultLocale) as TLocale;
   }
@@ -243,28 +355,53 @@ export function createI18n<
           `Call initI18n() during app startup (globalKey: "${globalKey}").`,
       );
     }
+    const request = getRequestLocale();
+    const lngOpts =
+      request !== undefined && localeKeys.has(request) ? { lng: request } : undefined;
     if (typeof a === "function") {
       store.localeState.get(a as Listener);
-      return store.instance.t(b as string, c) as string;
+      return store.instance.t(b as string, { ...c, ...lngOpts }) as string;
     }
-    return store.instance.t(
-      a as string,
-      b as Record<string, unknown> | undefined,
-    ) as string;
+    return store.instance.t(a as string, {
+      ...(b as Record<string, unknown> | undefined),
+      ...lngOpts,
+    }) as string;
   }
 
   function currentLocale(listener: Listener): TLocale {
+    const request = getRequestLocale();
+    if (request !== undefined && localeKeys.has(request)) {
+      return request as TLocale;
+    }
     return getStore().localeState.get(listener) as TLocale;
   }
 
   function exists(key: string): boolean {
+    const request = getRequestLocale();
+    if (request !== undefined && localeKeys.has(request)) {
+      return getStore().instance.exists(key, { lng: request });
+    }
     return getStore().instance.exists(key);
   }
 
   return {
     t,
     get locale() {
-      return getStore().localeState;
+      const inner = getStore().localeState;
+      const requestAls = getRequestLocaleAls();
+      if (!requestAls) return inner;
+      const view = Object.create(inner) as typeof inner;
+      view.get = ((listener?: Listener) => {
+        const request = requestAls.getStore()?.locale;
+        if (request !== undefined && localeKeys.has(request)) {
+          return request as TLocale;
+        }
+        return inner.get(listener);
+      }) as typeof inner.get;
+      view.set = ((value: TLocale) => {
+        bindRequestLocale(value);
+      }) as typeof inner.set;
+      return view;
     },
     currentLocale,
     exists,

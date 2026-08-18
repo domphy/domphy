@@ -7,6 +7,7 @@ import type {
   MutationObserverOptions,
   MutationObserverResult,
 } from "../types.js"
+import { shouldThrowError } from "../utils.js"
 import { bindResult } from "./bindResult.js"
 
 declare const process:
@@ -32,6 +33,11 @@ type MutationResult<TData, TError, TVariables, TContext> =
  * DOM that uses them. Skipping it leaks the subscription for the mutation's
  * whole cache lifetime. As a cheap tripwire, the handle dev-warns when a
  * field is read after `destroy()` and when `destroy()` is called twice.
+ *
+ * When `throwOnError` is true (or a function that returns true), reading any
+ * field **with a listener** (render path) throws `result.error` so a parent
+ * `_onError` / `errorBoundary()` can catch it — same contract as TanStack
+ * React Query's `useMutation` render-time throw.
  */
 export interface MutationHandle<
   TData = unknown,
@@ -73,6 +79,21 @@ export interface MutationHandle<
   destroy(): void
 }
 
+function throwOnErrorIfNeeded(
+  observer: MutationObserver<any, any, any, any>,
+  listener?: Listener,
+): void {
+  // Imperative reads (no listener) never throw — only the reactive render path.
+  if (!listener) return
+  const result = observer.getCurrentResult()
+  if (
+    result.error != null &&
+    shouldThrowError(observer.options.throwOnError, [result.error])
+  ) {
+    throw result.error
+  }
+}
+
 export function createMutation<
   TData = unknown,
   TError = DefaultError,
@@ -107,7 +128,12 @@ export function createMutation<
           "above that subtree from reading it afterwards.",
       )
     }
-    return field(key, listener)
+    // Subscribe first so a later reset notifies this render. Throwing
+    // before field() leaves the listener unsubscribed — same order as
+    // TanStack React Query's useMutation (useSyncExternalStore then throw).
+    const value = field(key, listener)
+    throwOnErrorIfNeeded(observer, listener)
+    return value
   }
 
   return {

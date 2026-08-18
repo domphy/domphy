@@ -12,7 +12,7 @@
  */
 
 import { flushSync, type Listener } from "@domphy/core"
-import { Model, ParameterNode } from "@parashape/parametric"
+import { Model, ParameterNode } from "../../engine/index.js"
 import { describe, expect, it, vi } from "vitest"
 import { pageParamBridge } from "../paramBridge.js"
 

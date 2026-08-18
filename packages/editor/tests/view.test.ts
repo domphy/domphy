@@ -268,6 +268,41 @@ describe("mount / unmount", () => {
   });
 });
 
+describe("autofocus", () => {
+  it("focuses after construction when element is already set", () => {
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const editor = new Editor({
+      element: host,
+      extensions: testExtensions,
+      content: docOf(p("hello")),
+      autofocus: true,
+    });
+    mounted.push(editor);
+    expect(document.activeElement).toBe(host);
+    expect(editor.isFocused).toBe(true);
+  });
+
+  it("retries on mount when the view did not exist at construction", () => {
+    const editor = new Editor({
+      extensions: testExtensions,
+      content: docOf(p("hello")),
+      autofocus: "end",
+    });
+    mounted.push(editor);
+    expect(editor.view).toBeNull();
+    expect(editor.isFocused).toBe(false);
+
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    editor.mount(host);
+
+    expect(document.activeElement).toBe(host);
+    expect(editor.isFocused).toBe(true);
+    expect(editor.state.selection.from).toBe(editor.selectionBounds.end);
+  });
+});
+
 describe("DOM selection mapping", () => {
   it("reads the DOM selection back into model positions", () => {
     const { editor, host } = mount(docOf(p("hello")));

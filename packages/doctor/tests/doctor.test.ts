@@ -31,6 +31,9 @@ describe("diagnose", () => {
   it("flags unknown/typo tags", () => {
     expect(rules({ dvi: "typo" })).toContain("unknown-tag");
     expect(rules({ div: "ok" })).toEqual([]);
+    // First own key is the tag (core validate() contract). A later valid
+    // tag must not hide a leading typo.
+    expect(rules({ dvi: "typo", div: "ok" })).toContain("unknown-tag");
   });
 
   it("flags missing _key only in dynamic lists", () => {

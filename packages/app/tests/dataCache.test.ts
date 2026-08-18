@@ -86,6 +86,43 @@ describe("DataCache.invalidate", () => {
     }
   });
 
+  it("drops inflight so a later load does not reuse the old promise", async () => {
+    const cache = new DataCache();
+    let calls = 0;
+    const loader = () => {
+      calls++;
+      const value = `v${calls}`;
+      return new Promise((resolve) => setTimeout(() => resolve(value), 20));
+    };
+
+    const first = cache.load("k|/", loader, context(), undefined);
+    cache.invalidate();
+    const second = cache.load("k|/", loader, context(), undefined);
+
+    const [firstValue, secondValue] = await Promise.all([first, second]);
+    expect(calls).toBe(2);
+    expect(firstValue).toBe("v1");
+    expect(secondValue).toBe("v2");
+  });
+
+  it("drops prefix-matching inflight so a later load does not reuse", async () => {
+    const cache = new DataCache();
+    let calls = 0;
+    const loader = () => {
+      calls++;
+      return new Promise((resolve) =>
+        setTimeout(() => resolve(`v${calls}`), 20),
+      );
+    };
+
+    const first = cache.load("user|/a", loader, context("/a"), undefined);
+    cache.invalidate("user|");
+    const second = cache.load("user|/a", loader, context("/a"), undefined);
+
+    await Promise.all([first, second]);
+    expect(calls).toBe(2);
+  });
+
   it("drops every queued revalidation thunk when no prefix is given", async () => {
     vi.useFakeTimers();
     try {

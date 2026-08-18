@@ -1,4 +1,9 @@
-import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
+import {
+  behavior,
+  type PartialElement,
+  toState,
+  type ValueOrState,
+} from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
@@ -15,7 +20,7 @@ import { focusRing } from "../utils/focusRing.js";
  * @hostTag textarea
  * @param props.color - Theme color for the border and text. Optional, accepts a value or state. Defaults to `"neutral"`.
  * @param props.accentColor - Theme color for hover/focus outline. Optional, accepts a value or state. Defaults to `"primary"`.
- * @param props.autoResize - When true, grows the textarea height to fit its content on input. Optional. Defaults to `false`.
+ * @param props.autoResize - When true, grows the textarea height to fit its content on input and when `value` updates. Optional. Defaults to `false`.
  * @example { textarea: null, $: [textarea({ autoResize: true })] }
  */
 function textarea(
@@ -35,18 +40,40 @@ function textarea(
         console.warn(`"textarea" primitive patch must use textarea tag`);
       }
     },
-    _onMount: (node) => {
-      if (autoResize) {
+    // Resize on mount, on input, and when the host `value` attribute updates
+    // (controlled writes skip the input event).
+    ...behavior(
+      "textarea-auto-resize",
+      (node, initial) => {
         const el = node.domElement as HTMLTextAreaElement;
-        el.style.overflow = "hidden";
+        let enabled = initial.autoResize;
         const resize = () => {
+          if (!enabled) return;
+          el.style.overflow = "hidden";
           el.style.height = "auto";
           el.style.height = `${el.scrollHeight}px`;
         };
         el.addEventListener("input", resize);
-        resize();
-        node.addHook("Remove", () => el.removeEventListener("input", resize));
-      }
+        node.attributes.addListener("value", resize);
+        if (enabled) resize();
+        return {
+          resize,
+          update(next) {
+            enabled = next.autoResize;
+            node.attributes.addListener("value", resize);
+            if (enabled) resize();
+          },
+          destroy() {
+            el.removeEventListener("input", resize);
+          },
+        };
+      },
+      { autoResize },
+    ),
+    _onUpdate: (node) => {
+      node
+        .getBehavior<{ resize: () => void }>("textarea-auto-resize")
+        ?.resize();
     },
     style: {
       fontFamily: "inherit",

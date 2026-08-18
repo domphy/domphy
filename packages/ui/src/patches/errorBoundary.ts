@@ -1,4 +1,20 @@
-import type { DomphyElement, PartialElement } from "@domphy/core";
+import type { DomphyElement, ElementNode, PartialElement } from "@domphy/core";
+
+const ORIGINAL_CHILDREN = "errorBoundaryOriginal";
+
+function restoreOriginalChildren(node: ElementNode): void {
+  const original = node.getMetadata(ORIGINAL_CHILDREN);
+  if (typeof original === "function") {
+    node._childrenRelease?.();
+    node._setupFunctionChildren(original);
+    return;
+  }
+  if (original != null) {
+    node.children.update(Array.isArray(original) ? original : [original]);
+    return;
+  }
+  node.children.update([]);
+}
 
 /**
  * Catches errors thrown inside reactive child expressions and renders a
@@ -7,6 +23,10 @@ import type { DomphyElement, PartialElement } from "@domphy/core";
  * Only errors in *reactive* children (functions returning element arrays) are
  * caught. Errors during static construction propagate normally — those are
  * programming errors, not runtime data errors.
+ *
+ * `reset()` restores the original children (including a reactive children
+ * function) so the next evaluation runs again — it does not leave the host
+ * empty.
  *
  * @hostTag any
  * @param props.fallback - Fallback element or factory `(error, reset) => element`. Defaults to a plain error message div.
@@ -22,8 +42,16 @@ function errorBoundary(
   } = {},
 ): PartialElement {
   return {
-    _onError: (node, error, reset) => {
+    _onSchedule: (node, element) => {
+      if (node.getMetadata(ORIGINAL_CHILDREN) !== undefined) return;
+      node.setMetadata(
+        ORIGINAL_CHILDREN,
+        (element as Record<string, unknown>)[node.tagName],
+      );
+    },
+    _onError: (node, error) => {
       props.onError?.(error);
+      const reset = () => restoreOriginalChildren(node);
       const fallbackEl =
         typeof props.fallback === "function"
           ? props.fallback(error, reset)

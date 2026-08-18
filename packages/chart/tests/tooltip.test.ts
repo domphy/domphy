@@ -243,3 +243,37 @@ describe("tooltip formatter returning a DomphyElement", () => {
     tooltip.destroy();
   });
 });
+
+// Regression: tooltip.appendToBody was typed and listed on the option surface
+// but createTooltip always parented into the chart container, so overflow:hidden
+// (on the host or an ancestor) clipped it. appendToBody mounts on document.body.
+describe("tooltip appendToBody", () => {
+  it("appends the tooltip to document.body and uses position:fixed", () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const tooltip = createTooltip(container, { appendToBody: true });
+
+    expect(container.querySelector(".dc-tooltip")).toBeNull();
+    const el = document.body.querySelector(":scope > .dc-tooltip") as HTMLElement;
+    expect(el).not.toBeNull();
+    expect(el.parentElement).toBe(document.body);
+    expect(el.style.position).toBe("fixed");
+
+    tooltip.destroy();
+    expect(document.body.querySelector(":scope > .dc-tooltip")).toBeNull();
+  });
+
+  it("still parents into the chart container when appendToBody is unset", () => {
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const tooltip = createTooltip(container, {});
+
+    const el = container.querySelector(".dc-tooltip") as HTMLElement;
+    expect(el).not.toBeNull();
+    expect(el.parentElement).toBe(container);
+    expect(el.style.position).toBe("absolute");
+    expect(document.body.querySelector(":scope > .dc-tooltip")).toBeNull();
+
+    tooltip.destroy();
+  });
+});

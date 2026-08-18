@@ -8,7 +8,11 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { buildSite, mermaidSanitizeSource } from "../src/build.ts";
+import {
+  buildSite,
+  mermaidHeadScript,
+  mermaidSanitizeSource,
+} from "../src/build.ts";
 import { defineConfig } from "../src/config.ts";
 
 // Evaluate the exact inline sanitizer source the head script embeds, so the
@@ -124,4 +128,23 @@ describe("mermaid head script in built site", () => {
     expect(html).not.toContain("mermaid.esm.min.mjs");
     expect(html).not.toContain("function sanitize(");
   }, 30_000);
+});
+
+describe("mermaidHeadScript CDN interpolation", () => {
+  const fallback =
+    "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+
+  it("JSON-stringifies a custom https CDN so quotes cannot break out of import()", () => {
+    const cdn = "https://evil.example/m.js');alert(1)//";
+    const script = mermaidHeadScript({ cdn }, "");
+    expect(script).toContain(`import(${JSON.stringify(cdn)})`);
+    // A single-quoted interpolation would close at the ' in m.js');alert
+    expect(script).not.toMatch(/import\('https:\/\/evil\.example[^']*'\)/);
+  });
+
+  it("rejects a non-http(s) CDN and falls back to the default", () => {
+    const script = mermaidHeadScript({ cdn: "javascript:alert(1)" }, "");
+    expect(script).toContain(`import(${JSON.stringify(fallback)})`);
+    expect(script).not.toMatch(/import\(["']javascript:/);
+  });
 });

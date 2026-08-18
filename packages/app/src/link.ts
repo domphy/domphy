@@ -1,4 +1,4 @@
-import type { PartialElement } from "@domphy/core";
+import { behavior, type PartialElement } from "@domphy/core";
 import { type AppRouter, getRouter } from "./router.js";
 
 export interface NavLinkProps {
@@ -29,6 +29,16 @@ function isModifiedClick(event: MouseEvent): boolean {
     event.altKey
   );
 }
+
+function isHttpProtocol(url: URL): boolean {
+  return url.protocol === "http:" || url.protocol === "https:";
+}
+
+type VisiblePrefetchProps = {
+  href: string;
+  prefetch: "visible" | "hover" | false;
+  run: (href: string) => void;
+};
 
 /**
  * Patch for `a` elements, the equivalent of `next/link`: client-side
@@ -82,11 +92,21 @@ export function navLink(props: NavLinkProps): PartialElement<"a"> {
       if (isModifiedClick(mouseEvent)) return;
       if (anchor.target && anchor.target !== "_self") return;
       if (anchor.hasAttribute("download")) return;
-      if (
-        new URL(anchor.href, window.location.href).origin !==
-        window.location.origin
-      )
+      let targetUrl: URL;
+      try {
+        targetUrl = new URL(anchor.href, window.location.href);
+      } catch {
+        mouseEvent.preventDefault();
         return;
+      }
+      // javascript:/data:/etc. parse with origin "null" and would skip the
+      // same-origin check below, letting the browser follow the scheme.
+      // Block non-http(s) the same way navigate() does.
+      if (!isHttpProtocol(targetUrl)) {
+        mouseEvent.preventDefault();
+        return;
+      }
+      if (targetUrl.origin !== window.location.origin) return;
       mouseEvent.preventDefault();
       void router().navigate(href, { replace, scroll });
     },
@@ -96,26 +116,58 @@ export function navLink(props: NavLinkProps): PartialElement<"a"> {
     onFocus: () => {
       if (prefetch === "hover") prefetchOnce();
     },
-    _onMount: (node) => {
-      if (prefetch !== "visible") return;
-      if (typeof IntersectionObserver === "undefined") {
-        prefetchOnce();
-        return;
-      }
-      const observer = new IntersectionObserver((entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          prefetchOnce();
-          observer.disconnect();
-        }
-      });
-      observer.observe(node.domElement as Element);
-      node.setMetadata("navLinkObserver", observer);
-    },
-    _onRemove: (node) => {
-      const observer = node.getMetadata("navLinkObserver") as
-        | IntersectionObserver
-        | undefined;
-      observer?.disconnect();
-    },
+    // IntersectionObserver must live in behavior() so a reused node whose
+    // href changes (reactive parent) prefetches the new target — _onMount
+    // only runs for the first generation.
+    ...behavior<VisiblePrefetchProps>(
+      "navLinkPrefetch",
+      (node, initial) => {
+        let props = initial;
+        let observer: IntersectionObserver | undefined;
+        let prefetchedHref: string | undefined;
+
+        const syncObserver = () => {
+          if (props.prefetch !== "visible") {
+            observer?.disconnect();
+            observer = undefined;
+            return;
+          }
+          if (prefetchedHref === props.href) return;
+          if (typeof IntersectionObserver === "undefined") {
+            prefetchedHref = props.href;
+            props.run(props.href);
+            return;
+          }
+          observer?.disconnect();
+          observer = new IntersectionObserver((entries) => {
+            if (entries.some((entry) => entry.isIntersecting)) {
+              if (prefetchedHref === props.href) return;
+              prefetchedHref = props.href;
+              props.run(props.href);
+              observer?.disconnect();
+            }
+          });
+          observer.observe(node.domElement as Element);
+        };
+
+        syncObserver();
+        return {
+          update(next) {
+            props = next;
+            syncObserver();
+          },
+          destroy() {
+            observer?.disconnect();
+          },
+        };
+      },
+      {
+        href,
+        prefetch,
+        run: (target) => {
+          void router().prefetch(target);
+        },
+      },
+    ),
   };
 }

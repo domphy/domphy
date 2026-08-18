@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
 
+import {
+  Table,
+  TableCell,
+  TableHeader,
+  TableRow,
+} from "../src/extensions/table.js";
 import { fromJSON, toJSON } from "../src/serialize/json.js";
 import { block, createTestEditor, docOf, h, p } from "./fixtures.js";
 
@@ -223,6 +229,16 @@ describe("list commands", () => {
     expect(editor.getHTML()).toBe("<ol><li><p>one</p></li></ol>");
   });
 
+  it("toggleList can() matches dispatch on a heading (clearNodes path)", () => {
+    const editor = createTestEditor(docOf(h(2, "Title")));
+    editor.commands.setTextSelection(2);
+    const allowed = editor.can().toggleList("bulletList", "listItem");
+    const applied = editor.commands.toggleList("bulletList", "listItem");
+    expect(allowed).toBe(applied);
+    expect(applied).toBe(true);
+    expect(editor.getHTML()).toBe("<ul><li><p>Title</p></li></ul>");
+  });
+
   it("splitListItem creates a sibling item", () => {
     const editor = createTestEditor(docOf(p("ab")));
     editor.commands.setTextSelection(2);
@@ -338,6 +354,35 @@ describe("structure commands", () => {
     editor.commands.deleteSelection();
     expect(editor.getJSON()).toEqual(docOf(p()));
     expect(editor.isEmpty).toBe(true);
+  });
+});
+
+describe("isEmpty", () => {
+  it("treats a vacant document and a single empty paragraph as empty", () => {
+    expect(createTestEditor(docOf(p())).isEmpty).toBe(true);
+    expect(createTestEditor(null).isEmpty).toBe(true);
+  });
+
+  it("treats a paragraph with text as non-empty", () => {
+    expect(createTestEditor(docOf(p("x"))).isEmpty).toBe(false);
+  });
+
+  it("treats an atom such as a horizontal rule as non-empty", () => {
+    expect(createTestEditor(docOf({ type: "horizontalRule" })).isEmpty).toBe(
+      false,
+    );
+  });
+
+  it("treats an empty table as non-empty structure", () => {
+    const editor = createTestEditor(docOf(p()), [
+      Table,
+      TableRow,
+      TableCell,
+      TableHeader,
+    ]);
+    editor.commands.insertTable({ rows: 1, cols: 1, withHeaderRow: false });
+    expect(editor.getText().trim()).toBe("");
+    expect(editor.isEmpty).toBe(false);
   });
 });
 

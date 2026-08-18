@@ -1,4 +1,4 @@
-import { merge, type PartialElement, toState } from "@domphy/core";
+import { ElementNode, merge, type PartialElement, toState } from "@domphy/core";
 import { themeColor, themeSpacing } from "@domphy/theme";
 import { focusRing } from "../utils/focusRing.js";
 
@@ -37,8 +37,8 @@ function splitter(
             size: toState(defaultSize),
             min,
             max,
-            // Mutable bookkeeping (not reactive state) so splitterPanel can
-            // tell the first panel from later ones — see its own comment.
+            // Legacy bookkeeping kept on the context object for compatibility.
+            // First-vs-second assignment uses sibling order (see splitterPanel).
             panelCount: 0,
           },
         },
@@ -63,8 +63,20 @@ function splitter(
  *
  * @example { div: [...], $: [splitterPanel()] }
  */
+function isFirstSplitterPanel(node: ElementNode): boolean {
+  const parent = node.parent;
+  if (!parent) return true;
+  for (const item of parent.children.items) {
+    if (item instanceof ElementNode && item.getMetadata("splitterPanel")) {
+      return item === node;
+    }
+  }
+  return true;
+}
+
 function splitterPanel(): PartialElement {
   return {
+    _metadata: { splitterPanel: true },
     _onMount: (node) => {
       const ctx = node.getContext("splitter");
       if (!ctx) {
@@ -73,17 +85,19 @@ function splitterPanel(): PartialElement {
       }
       const el = node.domElement as HTMLElement;
       const prop = ctx.direction === "horizontal" ? "width" : "height";
-      const isFirst = ctx.panelCount++ === 0;
 
       const apply = (size: number) => {
-        el.style[prop] = `${isFirst ? size : 100 - size}%`;
+        el.style[prop] = `${isFirstSplitterPanel(node) ? size : 100 - size}%`;
       };
       apply(ctx.size.get());
       el.style.flexShrink = "0";
       el.style.overflow = "auto";
 
       const release = ctx.size.addListener(apply);
-      node.addHook("Remove", release);
+      node.addHook("Remove", () => {
+        ctx.panelCount = Math.max(0, (ctx.panelCount ?? 1) - 1);
+        release();
+      });
     },
   };
 }

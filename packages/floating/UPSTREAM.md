@@ -27,9 +27,11 @@ Sync history:
   rebuilds the layout-shift observer on root resize; `getClippingRect` filters
   clipping ancestors correctly for fixed-position elements; `platform.getClientRects`
   no longer throws for a virtual element without `getClientRects`; plus the new
-  `'layoutViewport'` `rootBoundary` option. Pinned by new fixtures in
+  `'layoutViewport'` `rootBoundary` option. Pinned by fixtures in
   `tests/middleware.test.ts` (size centered-overflow, inline empty-rects,
-  RTL alignment) and `tests/floating.test.ts` (autoUpdate cleanup).
+  RTL alignment) and `tests/floating.test.ts` (autoUpdate cleanup,
+  `layoutViewport` vs visual viewport, virtual `getClientRects`,
+  fixed-position clipping-ancestor filter).
 - Initial pin: core 1.7.5 / dom 1.7.6 / utils 0.2.11.
 
 ## Deviation list

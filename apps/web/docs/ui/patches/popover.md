@@ -6,7 +6,7 @@ import Popover from "../../demos/patches/Popover.ts?raw"
 
 # Popover
 
-Apply the `popover` patch to any trigger element (typically a `button`). It attaches a floating content panel anchored to the trigger, positioned via `@domphy/floating`. The content is rendered into a fixed overlay layer and dismissed when the trigger loses focus (blur).
+Apply the `popover` patch to any trigger element (typically a `button`). It attaches a floating content panel anchored to the trigger, positioned via `@domphy/floating`. The content is rendered into a fixed overlay layer. Hover-mode popovers dismiss when the trigger loses focus (blur); click-mode popovers ignore focus.
 
 The patch wires accessibility automatically: `aria-haspopup="dialog"`, `aria-expanded`, `aria-controls`, and focus/blur dismissal.
 

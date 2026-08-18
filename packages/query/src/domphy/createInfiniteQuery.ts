@@ -13,9 +13,34 @@ import type {
 import { shouldThrowError } from "../utils.js"
 import { bindResult } from "./bindResult.js"
 
+declare const process:
+  | { env: Record<string, string | undefined> }
+  | undefined
+
+// Dev-only warning guard, same pattern as @domphy/core's dev.ts — production
+// bundlers fold this to `false` and tree-shake the guarded warnings away.
+const __DEV__: boolean =
+  typeof process !== "undefined" &&
+  process.env != null &&
+  process.env.NODE_ENV !== "production"
+
 type InfiniteResult<TData, TError> = InfiniteQueryObserverResult<TData, TError>
 
-/** Reactive handle around an `InfiniteQueryObserver`. */
+/**
+ * Reactive handle around an `InfiniteQueryObserver`.
+ *
+ * **Lifecycle contract (recommended):** `destroy()` is manual — call it from
+ * the owning subtree's `_onRemove` (or a `behavior()` instance's `destroy`)
+ * so the observer subscription and the reactive state are released with the
+ * DOM that uses them. Skipping it leaks the subscription for the query's
+ * whole cache lifetime. As a cheap tripwire, the handle dev-warns when a
+ * field is read after `destroy()` and when `destroy()` is called twice.
+ *
+ * When `throwOnError` is true (or a function that returns true), reading any
+ * field **with a listener** (render path) throws `result.error` so a parent
+ * `_onError` / `errorBoundary()` can catch it — same contract as TanStack
+ * React Query's render-time throw.
+ */
 export interface InfiniteQueryHandle<TData = unknown, TError = DefaultError> {
   state: ReturnType<typeof bindResult<InfiniteResult<TData, TError>>>["state"]
   observer: InfiniteQueryObserver<any, TError, TData, any, any>
@@ -43,6 +68,11 @@ export interface InfiniteQueryHandle<TData = unknown, TError = DefaultError> {
     options?: FetchPreviousPageOptions,
   ): Promise<InfiniteResult<TData, TError>>
   refetch(options?: RefetchOptions): Promise<InfiniteResult<TData, TError>>
+  /**
+   * Unsubscribes the observer and disposes the reactive state. Call it once,
+   * from the owning subtree's `_onRemove` (see the contract note above);
+   * dev-warns on a second call and on field reads after destruction.
+   */
   destroy(): void
 }
 
@@ -93,12 +123,29 @@ export function createInfiniteQuery<
     (callback) => observer.subscribe(callback as any),
   )
 
+  let destroyed = false
+  let readAfterDestroyWarned = false
+
   const read = <K extends keyof InfiniteResult<TData, TError>>(
     key: K,
     listener?: Listener,
   ): InfiniteResult<TData, TError>[K] => {
+    if (__DEV__ && destroyed && !readAfterDestroyWarned) {
+      readAfterDestroyWarned = true
+      console.warn(
+        "[@domphy/query] InfiniteQueryHandle field read after destroy(). The value is " +
+          "stale — the observer was unsubscribed. Call destroy() only from " +
+          "_onRemove of the subtree that owns the handle, and keep renders " +
+          "above that subtree from reading it afterwards.",
+      )
+    }
+    // Subscribe first so a later recover (reset/refetch) notifies this
+    // render. Throwing before field() leaves the listener unsubscribed —
+    // recover then has no one to wake, matching TanStack React Query's
+    // useSyncExternalStore-then-throw order.
+    const value = field(key, listener)
     throwOnErrorIfNeeded(observer, listener)
-    return field(key, listener)
+    return value
   }
 
   return {
@@ -125,6 +172,15 @@ export function createInfiniteQuery<
     refetch: (refetchOptions) =>
       observer.refetch(refetchOptions) as Promise<InfiniteResult<TData, TError>>,
     destroy: () => {
+      if (__DEV__ && destroyed) {
+        console.warn(
+          "[@domphy/query] InfiniteQueryHandle.destroy() called twice — the second " +
+            "call is a no-op. This usually means two owners think they own " +
+            "the handle; keep exactly one _onRemove responsible for it.",
+        )
+      }
+      if (destroyed) return
+      destroyed = true
       release()
       observer.destroy()
     },

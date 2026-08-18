@@ -115,6 +115,7 @@ const RESERVED = new Set([
   "_portal",
   "_context",
   "_metadata",
+  "_behaviors",
   "_doctorDisable", // suppress annotation — treated as metadata, not a tag candidate
 ]);
 

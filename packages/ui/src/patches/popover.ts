@@ -95,6 +95,9 @@ function popover(props: {
     },
     onFocus: (_e, node) => openOn === "hover" && show(node),
     onBlur: (e, node) => {
+      // Docs: focus has no effect when openOn is click — only hover-mode
+      // blur dismisses (and even then, not when focus moved INTO the panel).
+      if (openOn !== "hover") return;
       const related = (e as FocusEvent).relatedTarget as Node | null;
       const root = node.getRoot().domElement as Element;
       // Tabbing from the trigger INTO the panel must not close the popover.

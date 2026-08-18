@@ -234,17 +234,24 @@ export const RowPinning: TableFeature = {
       const rows =
         table.options.keepPinnedRows ?? true
           ? //get all rows that are pinned even if they would not be otherwise visible
-            //account for expanded parent rows, but not pagination or filtering
+            //account for expanded parent rows, but not pagination or filtering.
+            //Skip ids that left the data — `getRow` throws on a missing id.
             (pinnedRowIds ?? []).map(rowId => {
-              const row = table.getRow(rowId, true)
+              const row =
+                table.getPrePaginationRowModel().rowsById[rowId] ??
+                table.getCoreRowModel().rowsById[rowId]
+              if (!row) return null
               return row.getIsAllParentsExpanded() ? row : null
             })
           : //else get only visible rows that are pinned
-            (pinnedRowIds ?? []).map(
-              rowId => visibleRows.find(row => row.id === rowId)!
+            (pinnedRowIds ?? []).map(rowId =>
+              visibleRows.find(row => row.id === rowId)
             )
 
-      return rows.filter(Boolean).map(d => ({ ...d, position })) as Row<TData>[]
+      return rows.filter((row): row is Row<TData> => Boolean(row)).map(d => ({
+        ...d,
+        position,
+      })) as Row<TData>[]
     }
 
     table.getTopRows = memo(

@@ -9,6 +9,7 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
+  redirect,
 } from "../src/index";
 import { createRequestHandler } from "../src/ssr/server";
 
@@ -72,4 +73,64 @@ describe("ssr/server createRequestHandler", () => {
       }),
     ).rejects.toThrow("handler boom");
   });
+
+  it("does not emit Location: //host from a protocol-relative redirect href", async () => {
+    const response = await handleRedirectingRequest(() => {
+      throw redirect({ href: "//evil.com" });
+    });
+    const location = response.headers.get("Location");
+    expect(location).not.toBe("//evil.com");
+    expect(location?.startsWith("//")).toBeFalsy();
+  });
+
+  it("does not emit a pre-set Location: //host when merging redirect headers", async () => {
+    const response = await handleRedirectingRequest(() => {
+      throw redirect({
+        href: "/safe",
+        headers: { Location: "//evil.com" },
+      });
+    });
+    const location = response.headers.get("Location");
+    expect(location).not.toBe("//evil.com");
+    expect(location?.startsWith("//")).toBeFalsy();
+  });
+
+  it("does not emit Location: javascript: from a redirect", async () => {
+    const response = await handleRedirectingRequest(() => {
+      throw redirect({ href: "javascript:alert(1)" });
+    });
+    const location = response.headers.get("Location");
+    expect(location?.toLowerCase().startsWith("javascript:")).toBeFalsy();
+  });
+
+  it("still emits Location for a same-origin path redirect", async () => {
+    const response = await handleRedirectingRequest(() => {
+      throw redirect({ href: "/login" });
+    });
+    expect(response.headers.get("Location")).toBe("/login");
+  });
 });
+
+async function handleRedirectingRequest(loader: () => never) {
+  const rootRoute = createRootRoute();
+  const indexRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "/",
+  });
+  const trapRoute = createRoute({
+    getParentRoute: () => rootRoute,
+    path: "trap",
+    loader,
+  });
+  const handle = createRequestHandler({
+    createRouter: () =>
+      createRouter({
+        routeTree: rootRoute.addChildren([indexRoute, trapRoute]),
+        history: createMemoryHistory({ initialEntries: ["/"] }),
+      }),
+    request: new Request("http://localhost/trap"),
+  });
+  return handle(async ({ responseHeaders }) => {
+    return new Response("ok", { status: 200, headers: responseHeaders });
+  });
+}

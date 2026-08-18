@@ -36,12 +36,21 @@ export function serve(port = 4190) {
       res.end("not found");
     }
   });
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
+    const onListenError = (err) => reject(err);
+    server.once("error", onListenError);
     server.listen(port, "127.0.0.1", () => {
+      server.removeListener("error", onListenError);
+      server.on("error", (err) => {
+        console.error("serve error:", err);
+      });
       resolve({
         server,
         url: `http://127.0.0.1:${port}`,
-        close: () => server.close(),
+        close: () =>
+          new Promise((done, fail) => {
+            server.close((closeErr) => (closeErr ? fail(closeErr) : done()));
+          }),
       });
     });
   });

@@ -103,6 +103,7 @@ const App = {
             "data-index": item.index,
             _onMount: (node) =>
               list.measureElement(node.domElement as HTMLDivElement),
+            _onRemove: () => list.measureElement(null),
             style: {
               position: "absolute",
               top: 0,

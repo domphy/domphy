@@ -50,9 +50,15 @@ export function createTooltip(
     ? `dc-tooltip ${option.className}`
     : "dc-tooltip";
 
+  // appendToBody escapes overflow:hidden on the chart host and any ancestor.
+  // position:fixed + floating-ui's fixed strategy keep coords viewport-relative.
+  const appendToBody = option.appendToBody === true;
+  const host =
+    appendToBody && typeof document !== "undefined" ? document.body : container;
+
   const textStyle = option.textStyle ?? {};
   el.style.cssText = [
-    "position:absolute",
+    `position:${appendToBody ? "fixed" : "absolute"}`,
     "top:0",
     "left:0",
     "pointer-events:none",
@@ -87,7 +93,7 @@ export function createTooltip(
     option.extraCssText ?? "",
   ].join(";");
 
-  container.appendChild(el);
+  host.appendChild(el);
 
   // A formatter returning a DomphyElement is mounted imperatively (one
   // ElementNode per update, disposed on the next) instead of being coerced
@@ -177,8 +183,11 @@ export function createTooltip(
     if (option.confine) middleware.push(shift({ padding: 8 }));
     computePosition(reference, el, {
       placement: "right",
+      strategy: appendToBody ? "fixed" : "absolute",
       middleware,
-      platform: { ...platform, getOffsetParent: () => container },
+      platform: appendToBody
+        ? platform
+        : { ...platform, getOffsetParent: () => container },
     }).then((coords) => {
       // A later update/hide supersedes this async result.
       if (ticket !== positionTicket) return;

@@ -23,13 +23,15 @@
 // visual fidelity; the icon glyphs are this package's own hand-authored SVGs.
 
 import type {
+  BehaviorInstance,
   DomphyElement,
   ElementNode,
   Listener,
+  State,
   StyleObject,
   ValueOrState,
 } from "@domphy/core";
-import { flushSync, toState } from "@domphy/core";
+import { behavior, flushSync, toState } from "@domphy/core";
 import { themeSpacing } from "@domphy/theme";
 import { buttonGhost } from "@domphy/ui";
 
@@ -73,6 +75,94 @@ export interface AnimatedThemeTogglerProps {
 }
 
 let themeTogglerInstanceCounter = 0;
+
+const THEME_TOGGLER_BEHAVIOR_KEY = "magicui-animated-theme-toggler";
+
+interface ThemeTogglerBehaviorProps {
+  theme: State<ThemeTogglerTheme>;
+  isControlled: boolean;
+  variant: ThemeWipeVariant;
+  duration: number;
+  fromCenter: boolean;
+  onThemeChange?: (nextTheme: ThemeTogglerTheme) => void;
+}
+
+interface ThemeTogglerBehavior extends BehaviorInstance<ThemeTogglerBehaviorProps> {
+  theme: State<ThemeTogglerTheme>;
+  buttonElement: HTMLButtonElement | null;
+  props: ThemeTogglerBehaviorProps;
+}
+
+function attachThemeToggler(
+  node: ElementNode,
+  initialProps: ThemeTogglerBehaviorProps,
+): ThemeTogglerBehavior {
+  // Persist generation 1's theme State on this real DOM node. Later factory
+  // closures create a fresh toState("light") that must not replace it.
+  const theme = initialProps.theme;
+  let props = { ...initialProps, theme };
+  const buttonElement = node.domElement as HTMLButtonElement | null;
+  let themeObserver: MutationObserver | null = null;
+
+  if (
+    !props.isControlled &&
+    typeof document !== "undefined" &&
+    typeof MutationObserver !== "undefined"
+  ) {
+    const syncFromDocument = () => {
+      theme.set(
+        document.documentElement.classList.contains("dark") ? "dark" : "light",
+      );
+    };
+    syncFromDocument();
+    themeObserver = new MutationObserver(() => {
+      if (buttonElement && !buttonElement.isConnected) return;
+      syncFromDocument();
+    });
+    themeObserver.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+  }
+
+  return {
+    theme,
+    buttonElement,
+    get props() {
+      return props;
+    },
+    update(next) {
+      props = { ...next, theme };
+    },
+    destroy() {
+      themeObserver?.disconnect();
+      themeObserver = null;
+    },
+  };
+}
+
+function elementNodeOf(listener: Listener): ElementNode | null {
+  const fromListener = (listener as { elementNode?: ElementNode }).elementNode;
+  if (fromListener && typeof fromListener.getBehavior === "function") {
+    return fromListener;
+  }
+  if (typeof (listener as ElementNode).getBehavior === "function") {
+    return listener as ElementNode;
+  }
+  return null;
+}
+
+function themeFromListener(
+  listener: Listener,
+  fallback: State<ThemeTogglerTheme>,
+): State<ThemeTogglerTheme> {
+  const node = elementNodeOf(listener);
+  const instance = node?.getBehavior<ThemeTogglerBehavior>(
+    THEME_TOGGLER_BEHAVIOR_KEY,
+  );
+  if (instance?.theme) return instance.theme;
+  return fallback;
+}
 
 /** Simple radiating-rays sun glyph, painted via `fill="currentColor"` /
  * `stroke="currentColor"` so it inherits the button's icon-color idiom
@@ -296,12 +386,21 @@ function animatedThemeToggler(
   const lightIcon = props.lightIcon ?? moonGlyph(moonMaskId);
   const darkIcon = props.darkIcon ?? sunGlyph();
 
-  let buttonElement: HTMLButtonElement | null = null;
-  let themeObserver: MutationObserver | null = null;
+  function handleToggle(_event: MouseEvent, node: ElementNode): void {
+    const instance = node.getBehavior<ThemeTogglerBehavior>(
+      THEME_TOGGLER_BEHAVIOR_KEY,
+    );
+    const liveTheme = instance?.theme ?? theme;
+    const liveProps = instance?.props;
+    const liveButton = instance?.buttonElement ?? null;
+    const liveVariant = liveProps?.variant ?? variant;
+    const liveDuration = liveProps?.duration ?? duration;
+    const liveFromCenter = liveProps?.fromCenter ?? fromCenter;
+    const liveControlled = liveProps?.isControlled ?? isControlled;
+    const liveOnThemeChange = liveProps?.onThemeChange ?? onThemeChange;
 
-  function handleToggle(): void {
     const nextTheme: ThemeTogglerTheme =
-      theme.get() === "dark" ? "light" : "dark";
+      liveTheme.get() === "dark" ? "light" : "dark";
 
     const applyTheme = () => {
       // Drive the whole page: flip the `.dark` class on <html> itself so the
@@ -310,10 +409,10 @@ function animatedThemeToggler(
       if (typeof document !== "undefined") {
         document.documentElement.classList.toggle("dark", nextTheme === "dark");
       }
-      theme.set(nextTheme);
-      onThemeChange?.(nextTheme);
+      liveTheme.set(nextTheme);
+      liveOnThemeChange?.(nextTheme);
       // Uncontrolled mode owns persistence; controlled callers own their store.
-      if (!isControlled && typeof localStorage !== "undefined") {
+      if (!liveControlled && typeof localStorage !== "undefined") {
         localStorage.setItem("theme", nextTheme);
       }
       // Apply the reactive icon swap synchronously so the
@@ -327,7 +426,7 @@ function animatedThemeToggler(
       typeof document.documentElement.animate === "function" &&
       typeof window !== "undefined";
 
-    if (!supportsViewTransition || !buttonElement) {
+    if (!supportsViewTransition || !liveButton) {
       // Graceful fallback: instant theme swap, no wipe animation.
       applyTheme();
       return;
@@ -337,11 +436,11 @@ function animatedThemeToggler(
     const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
     let originX: number;
     let originY: number;
-    if (fromCenter) {
+    if (liveFromCenter) {
       originX = viewportWidth / 2;
       originY = viewportHeight / 2;
     } else {
-      const rect = buttonElement.getBoundingClientRect();
+      const rect = liveButton.getBoundingClientRect();
       originX = rect.left + rect.width / 2;
       originY = rect.top + rect.height / 2;
     }
@@ -350,7 +449,7 @@ function animatedThemeToggler(
       Math.max(originY, viewportHeight - originY),
     );
     const [fromClipPath, toClipPath] = getThemeTransitionClipPaths(
-      variant,
+      liveVariant,
       originX,
       originY,
       maxRadius,
@@ -367,7 +466,7 @@ function animatedThemeToggler(
     // Sync the ::view-transition-group(root) animation-duration to `duration`.
     root.style.setProperty(
       "--magicui-theme-toggle-vt-duration",
-      `${duration}ms`,
+      `${liveDuration}ms`,
     );
     // Pin the collapsed clip so Firefox does not paint the new theme unclipped
     // between the snapshot and the ready.then() JS animation starting.
@@ -392,8 +491,8 @@ function animatedThemeToggler(
         document.documentElement.animate(
           [{ clipPath: fromClipPath }, { clipPath: toClipPath }],
           {
-            duration,
-            easing: variant === "star" ? "linear" : "ease-in-out",
+            duration: liveDuration,
+            easing: liveVariant === "star" ? "linear" : "ease-in-out",
             // Hold the final expanded clip so the last wipe frame is retained.
             fill: "forwards",
             pseudoElement: "::view-transition-new(root)",
@@ -412,7 +511,9 @@ function animatedThemeToggler(
     position: "absolute",
     inset: 0,
     display: (listener: Listener) =>
-      theme.get(listener) === visibleWhen ? "flex" : "none",
+      themeFromListener(listener, theme).get(listener) === visibleWhen
+        ? "flex"
+        : "none",
     alignItems: "center",
     justifyContent: "center",
   });
@@ -432,43 +533,20 @@ function animatedThemeToggler(
     ],
     type: "button",
     ariaLabel,
-    onClick: () => handleToggle(),
+    onClick: handleToggle,
     $: [buttonGhost({ color: "neutral" })],
-    _onMount: (node: ElementNode) => {
-      buttonElement = node.domElement as HTMLButtonElement;
-      // Uncontrolled mode: reflect the page's current `.dark` class into the
-      // icon, and keep it in sync with external theme switches (another
-      // toggle, a system-preference script, etc.) via a MutationObserver —
-      // exactly as the upstream component does in its `useEffect`.
-      if (
-        !isControlled &&
-        typeof document !== "undefined" &&
-        typeof MutationObserver !== "undefined"
-      ) {
-        const syncFromDocument = () => {
-          theme.set(
-            document.documentElement.classList.contains("dark")
-              ? "dark"
-              : "light",
-          );
-        };
-        syncFromDocument();
-        themeObserver = new MutationObserver(() => {
-          // Ignore stray callbacks after the button has left the DOM.
-          if (buttonElement && !buttonElement.isConnected) return;
-          syncFromDocument();
-        });
-        themeObserver.observe(document.documentElement, {
-          attributes: true,
-          attributeFilter: ["class"],
-        });
-      }
-    },
-    _onRemove: () => {
-      buttonElement = null;
-      themeObserver?.disconnect();
-      themeObserver = null;
-    },
+    ...behavior<ThemeTogglerBehaviorProps>(
+      THEME_TOGGLER_BEHAVIOR_KEY,
+      attachThemeToggler,
+      {
+        theme,
+        isControlled,
+        variant,
+        duration,
+        fromCenter,
+        onThemeChange,
+      },
+    ),
     style: {
       position: "relative",
       width: themeSpacing(9),

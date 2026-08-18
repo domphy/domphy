@@ -59,6 +59,15 @@ jobs:
       - name: Test
         run: pnpm -r test
 
+      - name: Scripts tests
+        run: node --test scripts/scripts.test.mjs
+
+      - name: Stable readiness matrix
+        run: node scripts/stable-readiness-check.mjs
+
+      - name: Verify publish tarballs
+        run: node scripts/verify-publish.mjs --all
+
   # Tarball-install smoke test: packs all publishable packages and installs
   # the tarballs into the smoke/ fixture consumers (a Vite app and a
   # plain-Node SSR script) with npm, so workspace `link:` resolution cannot

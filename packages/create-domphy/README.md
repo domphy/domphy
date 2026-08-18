@@ -9,8 +9,8 @@ npm init domphy@latest my-app
 ```
 
 This creates a Vite + TypeScript project wired to `@domphy/ui`, with a working
-reactive counter, theming via `themeApply()`, and an `AGENTS.md` so AI tools in
-the project produce idiomatic Domphy code.
+reactive counter, theming via `themeApply()` + `applySystemTheme()`, and an
+`AGENTS.md` so AI tools in the project produce idiomatic Domphy code.
 
 ## Usage
 

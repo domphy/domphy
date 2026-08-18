@@ -45,7 +45,8 @@ if (negated.has("reactive")) values.reactive = false;
 if (negated.has("output")) values.output = false;
 if (negated.has("factory-exec")) values["factory-exec"] = false;
 
-// --no-factory-exec: never invoke exported functions as zero-arg factories.
+// --no-factory-exec: never invoke exported functions as zero-arg factories,
+// and skip Layer 4 `new ElementNode` (that constructor runs `_onInit`).
 // Component-library files export factories that genuinely require props —
 // invoking them only produces `factory-threw` noise. This is a CLI-extraction
 // concern, so there is intentionally no matching DiagnoseOptions option:
@@ -66,7 +67,8 @@ Options:
   --no-output          Skip Layer 4 HTML+CSS linting (htmlhint + stylelint)
   --no-factory-exec    Never invoke exported functions as zero-arg factories
                        (suppresses factory-threw warnings on component-library
-                       files whose factories require props)
+                       files whose factories require props); also skip Layer 4
+                       ElementNode construction, which would run _onInit
   --format text|json   Output format (default: text)
   -h, --help           Show this help
 
@@ -357,8 +359,9 @@ async function main(): Promise<void> {
 
       // Layer 4: HTML + CSS output analysis via htmlhint + stylelint.
       // ElementNode needs a single element root, so array units are audited
-      // per element.
-      if (values.output !== false) {
+      // per element. `new ElementNode` runs `_onInit` — skip the construct
+      // when --no-factory-exec, which means "do not execute user functions".
+      if (values.output !== false && factoryExec) {
         const elements = Array.isArray(unit)
           ? unit.filter((item) => isPlainObject(item) && findTag(item))
           : [unit];

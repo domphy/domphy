@@ -22,7 +22,6 @@ import {
   chartBarHiddenValueXAxis,
   chartBarHorizontalHoverOverlay,
   chartBarSeriesColor,
-  chartBarTooltipRow,
   chartBarTrendFooter,
   chartBarValueDomain,
 } from "./chart-bar-shared.js";
@@ -97,12 +96,7 @@ function chartBarMixed(props: ChartBarMixedProps = {}): DomphyElement<"div"> {
             chartBarHorizontalHoverOverlay({
               categories,
               grid,
-              valueLabel: (index) =>
-                chartBarTooltipRow(
-                  `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${colorHexes[index]};margin-right:6px;"></span>`,
-                  seriesLabel,
-                  String(values[index] ?? ""),
-                ),
+              valueLabel: (index) => String(values[index] ?? ""),
             }),
           ],
         }),

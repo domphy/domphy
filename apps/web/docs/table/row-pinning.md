@@ -17,6 +17,7 @@ const table = createDomphyTable({
   columns,
   enableRowPinning: true,
   keepPinnedRows: true,   // keep pinned rows visible even when filtered out
+  getRowId: (row) => row.id, // default row.id is the row index
 })
 
 // Pin a row to the top
@@ -165,8 +166,8 @@ const table = createDomphyTable({
 | `row.pin(false)` | Unpin row |
 | `row.getIsPinned()` | `"top"` \| `"bottom"` \| `false` |
 | `row.getPinnedIndex()` | Position in the pinned list |
-| `table.getTopRows(l)` | Reactive list of top-pinned rows |
-| `table.getBottomRows(l)` | Reactive list of bottom-pinned rows |
+| `table.getTopRows(l)` | Top-pinned rows; ids that left the data are skipped (no throw) |
+| `table.getBottomRows(l)` | Bottom-pinned rows; missing ids skipped the same way |
 | `table.getCenterRows(l)` | Non-pinned rows (between top and bottom) |
 | `table.setRowPinning(updater)` | Programmatically set pinning state |
 | `table.resetRowPinning()` | Unpin all rows |

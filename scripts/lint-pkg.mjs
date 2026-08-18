@@ -5,9 +5,10 @@
  * Runs two linters against each publishable package (packed contents, i.e.
  * what consumers actually install):
  *
- *   1. publint (programmatic API, `pack: "npm"`) — package.json / exports /
- *      files correctness. Errors and warnings fail the gate; suggestions are
- *      reported as info.
+ *   1. publint (programmatic API, `pack: "pnpm"`) — package.json / exports /
+ *      files correctness. pnpm pack rewrites `workspace:` deps; npm pack
+ *      would leave them. Errors and warnings fail the gate; suggestions are
+ *      reported as info. A packed `workspace:` value is always an error.
  *   2. @arethetypeswrong/cli (`attw --pack . --format json`) — TypeScript
  *      types resolution across node10 / node16 (CJS & ESM) / bundler. Any
  *      problem fails the gate unless it is listed in ATTW_IGNORES below with
@@ -102,18 +103,39 @@ function listPublishablePackages() {
   return result.sort((a, b) => a.name.localeCompare(b.name));
 }
 
+const DEP_FIELDS = [
+  "dependencies",
+  "devDependencies",
+  "peerDependencies",
+  "optionalDependencies",
+];
+
 async function runPublint(pkgDir) {
   const { messages, pkg } = await publint({
     pkgDir,
-    pack: "npm",
+    pack: "pnpm",
     level: "suggestion",
     strict: false,
   });
-  return messages.map((message) => ({
+  const findings = messages.map((message) => ({
     severity: message.type, // "error" | "warning" | "suggestion"
     code: message.code,
     text: formatMessage(message, pkg),
   }));
+  for (const field of DEP_FIELDS) {
+    const deps = pkg[field];
+    if (!deps || typeof deps !== "object") continue;
+    for (const [depName, version] of Object.entries(deps)) {
+      if (typeof version === "string" && version.includes("workspace:")) {
+        findings.push({
+          severity: "error",
+          code: "workspace-protocol",
+          text: `packed ${field}.${depName}=${version} still uses workspace: protocol`,
+        });
+      }
+    }
+  }
+  return findings;
 }
 
 function flattenAttwProblems(problems) {

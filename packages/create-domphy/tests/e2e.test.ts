@@ -32,23 +32,30 @@ const NPM_COMMAND = process.platform === "win32" ? "npm.cmd" : "npm";
 
 // The published artifact is dist/index.js; rebuild it when any source file is
 // newer so the e2e test exercises the current templates, not a stale build.
+// Use build:bundle (tsup only) — `npm run build` would regenerate
+// src/versions.generated.ts as a test side-effect.
 function buildCliIfStale(): void {
-  const sources = ["index.ts", "templates.ts", "versions.generated.ts"].map(
-    (file) => join(PACKAGE_DIR, "src", file),
-  );
+  const sources = [
+    "index.ts",
+    "templates.ts",
+    "versions.generated.ts",
+    "write.ts",
+  ].map((file) => join(PACKAGE_DIR, "src", file));
   const distFresh =
     existsSync(DIST_CLI) &&
     sources.every(
-      (source) => statSync(source).mtimeMs <= statSync(DIST_CLI).mtimeMs,
+      (source) =>
+        existsSync(source) &&
+        statSync(source).mtimeMs <= statSync(DIST_CLI).mtimeMs,
     );
   if (distFresh) return;
-  const build = spawnSync(NPM_COMMAND, ["run", "build"], {
+  const build = spawnSync(NPM_COMMAND, ["run", "build:bundle"], {
     cwd: PACKAGE_DIR,
     stdio: "inherit",
     shell: process.platform === "win32",
   });
   if (build.status !== 0) {
-    throw new Error("create-domphy build failed — cannot run e2e test");
+    throw new Error("create-domphy bundle failed — cannot run e2e test");
   }
 }
 

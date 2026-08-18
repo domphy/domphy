@@ -160,6 +160,7 @@ export interface ThreeOptions {
   raycast: null,                              // excluded from pointer raycasting
   _key: "a",                                  // reconcile identity (same semantics as core)
   position: [0, 1, 0],                        // duck-typed: .set(...) / .copy() / .setScalar() / assign
+  lookAt: [0, 0, 0],                          // method call (array/Vector3), never overwrites Camera.lookAt
   "rotation-z": (l) => spin.get(l),          // pierced prop, reactive
   object: someObject3D,                       // primitive tag only
   onClick: (event) => {},                     // raycast pointer events (whitelist below)
@@ -269,8 +270,11 @@ precedent — read `packages/chart/src/patch.ts` and follow its shape):
   `camera.instance`), apply `camera` props via props.ts (including `up`),
   `ResizeObserver` → size state + renderer.setSize + camera
   aspect/frustum update + invalidate, connect events (unless
-  `events: false`), mount scene children through reconciler, start loop,
-  `onCreated(root)`.
+  `events: false`), register Remove teardown (before scene apply — an
+  instantiate throw must still dispose the GL context), mount scene
+  children through reconciler, start loop, `onCreated(root)`. A throw
+  after renderer creation runs teardown immediately (idempotent with the
+  Remove hook).
 - Reactive `scene` function → ONE Domphy listener driving root children
   reconcile (mirror core `_setupFunctionChildren` release pattern).
 - Option as `ReadableState` → subscribe, re-apply camera/dpr/frameloop/scene
@@ -326,7 +330,7 @@ to physical units), `additive-blowout`
 explicitly opaque (`transparent: false`) materials are exempt because three's
 opaque pass forces NoBlending and never applies the additive blend),
 `camera-missing-lookat` (warning — off-axis camera position with no
-onCreated and no explicit `rotation` prop). Per-node suppression via `_doctorDisable: true | "rule-id" |
+onCreated and no explicit `rotation` or `lookAt` prop). Per-node suppression via `_doctorDisable: true | "rule-id" |
 string[]` — same convention as core elements. Reactive values are resolved
 with a no-op listener; values needing a live root are skipped, never guessed.
 Self-referencing (cyclic) scene descriptions are walked with a seen-set

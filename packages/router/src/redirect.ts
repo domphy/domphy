@@ -1,6 +1,12 @@
+import {
+  DEFAULT_PROTOCOL_ALLOWLIST,
+  isDangerousProtocol,
+} from './utils'
 import type { NavigateOptions } from './link'
 import type { AnyRouter, RegisteredRouter } from './router'
 import type { ParsedLocation } from './location'
+
+const DEFAULT_PROTOCOL_ALLOWLIST_SET = new Set(DEFAULT_PROTOCOL_ALLOWLIST)
 
 export type AnyRedirect = Redirect<any, any, any, any, any>
 
@@ -135,7 +141,20 @@ export function redirect<
   }
 
   const headers = new Headers(opts.headers)
-  if (opts.href && headers.get('Location') === null) {
+  const incomingLocation = headers.get('Location')
+  if (
+    incomingLocation &&
+    isDangerousProtocol(incomingLocation, DEFAULT_PROTOCOL_ALLOWLIST_SET)
+  ) {
+    // Never emit raw `//host` / `javascript:` Location — SSR merges these
+    // onto the document response as an open-redirect / XSS vector.
+    headers.delete('Location')
+  }
+  if (
+    opts.href &&
+    headers.get('Location') === null &&
+    !isDangerousProtocol(opts.href, DEFAULT_PROTOCOL_ALLOWLIST_SET)
+  ) {
     headers.set('Location', opts.href)
   }
 

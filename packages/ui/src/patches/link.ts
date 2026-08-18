@@ -31,6 +31,16 @@ function link(
         console.warn(`"link" primitive patch must use a tag`);
       }
     },
+    // `<a disabled>` is not a native navigation block — stop click/Enter.
+    onClick: (event, node) => {
+      const el = node.domElement;
+      if (
+        el?.hasAttribute("disabled") ||
+        el?.getAttribute("aria-disabled") === "true"
+      ) {
+        event.preventDefault();
+      }
+    },
     style: {
       fontSize: (listener) => themeSize(listener, "inherit"),
       backgroundColor: (listener) => themeColor(listener),
@@ -58,6 +68,7 @@ function link(
       "&[disabled]": {
         opacity: 0.7,
         cursor: "not-allowed",
+        pointerEvents: "none",
         color: (listener) => themeColor(listener, "muted", "neutral"),
       },
     },

@@ -1,5 +1,13 @@
 import { type DomphyElement, type RawHTML, rawHtml } from "@domphy/core";
-import type { Code, ListItem, Nodes, Root, Table } from "mdast";
+import type {
+  Code,
+  Definition,
+  FootnoteDefinition,
+  ListItem,
+  Nodes,
+  Root,
+  Table,
+} from "mdast";
 import type { Highlight, TocEntry } from "./types.js";
 
 /** Public walk helper passed to custom node handlers. */
@@ -16,7 +24,14 @@ interface WalkContext {
   slug: (text: string) => string;
   toc: TocEntry[];
   onCustom?: (node: Nodes, helper: WalkHelper) => DomphyElement | string | null;
+  definitions: Map<string, Definition>;
+  footnoteDefinitions: Map<string, FootnoteDefinition>;
+  footnoteOrder: string[];
+  footnoteCounts: Map<string, number>;
 }
+
+/** Inherited: mdast-util-to-hast default `clobberPrefix` (GitHub GFM). */
+const FOOTNOTE_CLOBBER_PREFIX = "user-content-";
 
 /** Public options for {@link walkMdast}. */
 export interface MdastWalkOptions {
@@ -125,29 +140,31 @@ function walkNode(node: Nodes, ctx: WalkContext): Child | null {
     case "delete":
       return { s: walkChildren(node, ctx) } as DomphyElement;
 
-    case "link": {
-      const href = sanitizeUrl(node.url);
-      const el: Record<string, unknown> = {
-        a: walkChildren(node, ctx),
-        href,
-      };
-      if (node.title) el.title = node.title;
-      if (href.startsWith("http://") || href.startsWith("https://")) {
-        el.target = "_blank";
-        el.rel = "noopener noreferrer";
+    case "link":
+      return buildLink(node.url, node.title, walkChildren(node, ctx));
+
+    case "image":
+      return buildImage(node.url, node.alt ?? "", node.title);
+
+    case "linkReference": {
+      const definition = ctx.definitions.get(node.identifier);
+      if (!definition) {
+        const children = walkChildren(node, ctx);
+        if (children.length === 0) return null;
+        if (children.length === 1) return children[0];
+        return { span: children } as DomphyElement;
       }
-      return el as DomphyElement;
+      return buildLink(
+        definition.url,
+        definition.title,
+        walkChildren(node, ctx),
+      );
     }
 
-    case "image": {
-      const el: Record<string, unknown> = {
-        img: null,
-        src: sanitizeUrl(node.url),
-        alt: node.alt ?? "",
-        loading: "lazy",
-      };
-      if (node.title) el.title = node.title;
-      return el as DomphyElement;
+    case "imageReference": {
+      const definition = ctx.definitions.get(node.identifier);
+      if (!definition) return node.alt ?? null;
+      return buildImage(definition.url, node.alt ?? "", definition.title);
     }
 
     case "blockquote":
@@ -167,9 +184,11 @@ function walkNode(node: Nodes, ctx: WalkContext): Child | null {
       return buildTable(node, ctx);
 
     case "definition":
-    case "linkReference":
-    case "imageReference":
+    case "footnoteDefinition":
       return null;
+
+    case "footnoteReference":
+      return buildFootnoteReference(node.identifier, ctx);
 
     default: {
       if (ctx.onCustom) {
@@ -190,6 +209,169 @@ function walkNode(node: Nodes, ctx: WalkContext): Child | null {
       }
       if ("value" in node && typeof node.value === "string") return node.value;
       return null;
+    }
+  }
+}
+
+function buildLink(
+  url: string,
+  title: string | null | undefined,
+  children: Child[],
+): DomphyElement {
+  const href = sanitizeUrl(url);
+  const el: Record<string, unknown> = { a: children, href };
+  if (title) el.title = title;
+  if (href.startsWith("http://") || href.startsWith("https://")) {
+    el.target = "_blank";
+    el.rel = "noopener noreferrer";
+  }
+  return el as DomphyElement;
+}
+
+function buildImage(
+  url: string,
+  alt: string,
+  title: string | null | undefined,
+): DomphyElement {
+  const el: Record<string, unknown> = {
+    img: null,
+    src: sanitizeUrl(url),
+    alt,
+    loading: "lazy",
+  };
+  if (title) el.title = title;
+  return el as DomphyElement;
+}
+
+function buildFootnoteReference(
+  identifier: string,
+  ctx: WalkContext,
+): Child | null {
+  if (!ctx.footnoteDefinitions.has(identifier)) return null;
+
+  let reuse = ctx.footnoteCounts.get(identifier);
+  let counter: number;
+  if (reuse === undefined) {
+    reuse = 0;
+    ctx.footnoteOrder.push(identifier);
+    counter = ctx.footnoteOrder.length;
+  } else {
+    counter = ctx.footnoteOrder.indexOf(identifier) + 1;
+  }
+  reuse += 1;
+  ctx.footnoteCounts.set(identifier, reuse);
+
+  return {
+    sup: [
+      {
+        a: String(counter),
+        href: `#${FOOTNOTE_CLOBBER_PREFIX}fn-${identifier}`,
+        id:
+          `${FOOTNOTE_CLOBBER_PREFIX}fnref-${identifier}` +
+          (reuse > 1 ? `-${reuse}` : ""),
+        dataFootnoteRef: true,
+        "aria-describedby": "footnote-label",
+      } as DomphyElement,
+    ],
+  } as DomphyElement;
+}
+
+function buildFootnoteBackref(
+  identifier: string,
+  referenceIndex: number,
+  rereferenceIndex: number,
+): DomphyElement {
+  const label =
+    `Back to reference ${referenceIndex + 1}` +
+    (rereferenceIndex > 1 ? `-${rereferenceIndex}` : "");
+  const content: Child | Child[] =
+    rereferenceIndex > 1 ? ["↩", { sup: String(rereferenceIndex) }] : "↩";
+  return {
+    a: content,
+    href:
+      `#${FOOTNOTE_CLOBBER_PREFIX}fnref-${identifier}` +
+      (rereferenceIndex > 1 ? `-${rereferenceIndex}` : ""),
+    dataFootnoteBackref: true,
+    ariaLabel: label,
+    class: "data-footnote-backref",
+  } as unknown as DomphyElement;
+}
+
+function buildFootnotesSection(ctx: WalkContext): DomphyElement | null {
+  const items: DomphyElement[] = [];
+
+  for (
+    let referenceIndex = 0;
+    referenceIndex < ctx.footnoteOrder.length;
+    referenceIndex++
+  ) {
+    const identifier = ctx.footnoteOrder[referenceIndex];
+    const definition = ctx.footnoteDefinitions.get(identifier);
+    if (!definition) continue;
+
+    const children = walkChildren(definition, ctx);
+    const counts = ctx.footnoteCounts.get(identifier) ?? 0;
+    const backrefs: Child[] = [];
+    for (
+      let rereferenceIndex = 1;
+      rereferenceIndex <= counts;
+      rereferenceIndex++
+    ) {
+      if (backrefs.length > 0) backrefs.push(" ");
+      backrefs.push(
+        buildFootnoteBackref(identifier, referenceIndex, rereferenceIndex),
+      );
+    }
+
+    const last = children[children.length - 1];
+    if (last && typeof last === "object" && "p" in last) {
+      const paragraphChildren = (last as { p: Child[] }).p;
+      if (Array.isArray(paragraphChildren)) {
+        paragraphChildren.push(" ", ...backrefs);
+      }
+    } else {
+      children.push(...backrefs);
+    }
+
+    items.push({
+      li: children,
+      id: `${FOOTNOTE_CLOBBER_PREFIX}fn-${identifier}`,
+      _key: referenceIndex,
+    } as unknown as DomphyElement);
+  }
+
+  if (items.length === 0) return null;
+
+  return {
+    section: [
+      {
+        h2: "Footnotes",
+        id: "footnote-label",
+        class: "sr-only",
+      } as DomphyElement,
+      { ol: items } as DomphyElement,
+    ],
+    class: "footnotes",
+    dataFootnotes: true,
+  } as unknown as DomphyElement;
+}
+
+function collectAssociations(node: Nodes, ctx: WalkContext): void {
+  if (node.type === "definition") {
+    if (!ctx.definitions.has(node.identifier)) {
+      ctx.definitions.set(node.identifier, node);
+    }
+    return;
+  }
+  if (node.type === "footnoteDefinition") {
+    if (!ctx.footnoteDefinitions.has(node.identifier)) {
+      ctx.footnoteDefinitions.set(node.identifier, node);
+    }
+    return;
+  }
+  if ("children" in node && Array.isArray(node.children)) {
+    for (const child of node.children) {
+      collectAssociations(child as Nodes, ctx);
     }
   }
 }
@@ -304,8 +486,16 @@ export function walkMdast(
     slug: options.slug,
     toc: options.toc,
     onCustom: options.onCustom,
+    definitions: new Map(),
+    footnoteDefinitions: new Map(),
+    footnoteOrder: [],
+    footnoteCounts: new Map(),
   };
-  return root.children
+  collectAssociations(root, ctx);
+  const body = root.children
     .map((child) => walkNode(child, ctx))
     .filter((el): el is Child => el !== null) as DomphyElement[];
+  const footnotes = buildFootnotesSection(ctx);
+  if (footnotes) body.push(footnotes);
+  return body;
 }

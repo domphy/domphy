@@ -1,4 +1,12 @@
-import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
+import {
+  type BehaviorInstance,
+  behavior,
+  type ElementNode,
+  type PartialElement,
+  type State,
+  toState,
+  type ValueOrState,
+} from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
@@ -37,6 +45,146 @@ function resolvePhysical(
   return placement;
 }
 
+type DrawerProps = {
+  state: State<boolean>;
+  placement: Placement;
+  size?: string;
+};
+
+type DrawerInstance = BehaviorInstance<DrawerProps> & {
+  requestClose: () => void;
+};
+
+function attachDrawer(
+  node: ElementNode,
+  initialProps: DrawerProps,
+): DrawerInstance {
+  let { state, placement, size } = initialProps;
+
+  const dlg = node.domElement as HTMLDialogElement;
+  dlg.setAttribute("aria-modal", "true");
+
+  const onCancel = (e: Event) => {
+    e.preventDefault();
+    state.set(false);
+  };
+  dlg.addEventListener("cancel", onCancel);
+
+  const resolve = (nextPlacement: Placement, nextSize?: string) => {
+    const isLogical = nextPlacement === "start" || nextPlacement === "end";
+    const isRTL =
+      isLogical &&
+      (dlg.ownerDocument.documentElement.dir === "rtl" ||
+        dlg.ownerDocument.dir === "rtl");
+    const physical = resolvePhysical(nextPlacement, isRTL);
+    const drawerSize =
+      nextSize ??
+      (isVertical(physical) ? themeSpacing(80) : themeSpacing(64));
+    dlg.style.margin = marginMap[physical];
+    dlg.style.width = isVertical(physical) ? drawerSize : "100dvw";
+    dlg.style.height = isVertical(physical) ? "100dvh" : drawerSize;
+    return physical;
+  };
+
+  let physical = resolve(placement, size);
+
+  let closing = false;
+  let scrollLocked = false;
+  let closeTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const finishClose = () => {
+    closeTimer = null;
+    if (!closing) return;
+    closing = false;
+    // Guard for environments with HTMLDialogElement but no close()
+    // implementation (e.g. jsdom in tests).
+    if (typeof dlg.close === "function") dlg.close();
+    // Same fix as dialog.ts: the closed state was only ever represented
+    // by an off-screen `transform`, never visibility/pointer-events — a
+    // closed drawer stayed fully reachable by Tab and exposed to the
+    // accessibility tree (a CSS transform, like opacity, does neither),
+    // and a consumer's own `style: { display: ... }` overrides the UA
+    // stylesheet's `dialog:not([open])` rule anyway. Set INLINE so it
+    // always wins.
+    dlg.style.visibility = "hidden";
+    dlg.style.pointerEvents = "none";
+    if (scrollLocked) {
+      unlockScroll();
+      scrollLocked = false;
+    }
+  };
+
+  const onTransitionEnd = (e: Event) => {
+    if (e.target !== dlg) return;
+    if ((e as TransitionEvent).propertyName !== "transform") return;
+    finishClose();
+  };
+  dlg.addEventListener("transitionend", onTransitionEnd);
+
+  const update = (val: boolean) => {
+    if (val) {
+      // Cancel any in-flight close: a pending fallback timer or a leftover
+      // `closing` flag would otherwise finalize-close the just-opened drawer
+      // when the open slide's own transitionend (or the 350ms timer) fires.
+      closing = false;
+      if (closeTimer) {
+        clearTimeout(closeTimer);
+        closeTimer = null;
+      }
+      dlg.style.visibility = "visible";
+      dlg.style.pointerEvents = "auto";
+      // Guard for environments with HTMLDialogElement but no showModal()
+      // implementation (e.g. jsdom in tests). Also guard against re-entering
+      // on an already-open dialog — showModal() throws InvalidStateError in
+      // real browsers when the dialog is already open.
+      if (typeof dlg.showModal === "function" && !dlg.open) dlg.showModal();
+      if (!scrollLocked) {
+        lockScroll();
+        scrollLocked = true;
+      }
+      requestAnimationFrame(() => {
+        dlg.style.transform = "translate(0, 0)";
+      });
+    } else {
+      closing = true;
+      dlg.style.transform = translateOut[physical];
+      closeTimer = setTimeout(finishClose, 350);
+    }
+  };
+  update(state.get());
+  let release = state.addListener(update);
+
+  return {
+    requestClose: () => state.set(false),
+    update(props) {
+      if (props.state !== state) {
+        release();
+        state = props.state;
+        release = state.addListener(update);
+      }
+      if (props.placement !== placement || props.size !== size) {
+        placement = props.placement;
+        size = props.size;
+        physical = resolve(placement, size);
+        if (!state.get()) dlg.style.transform = translateOut[physical];
+      }
+    },
+    destroy() {
+      if (closeTimer) {
+        clearTimeout(closeTimer);
+        closeTimer = null;
+      }
+      release();
+      dlg.removeEventListener("cancel", onCancel);
+      dlg.removeEventListener("transitionend", onTransitionEnd);
+      if (scrollLocked) {
+        unlockScroll();
+        scrollLocked = false;
+      }
+    },
+  };
+}
+
 /**
  * Edge-anchored modal drawer driven by an `open` State. Slides in/out from a
  * chosen edge via a 250 ms transform transition, calls `showModal()`/`close()`,
@@ -70,7 +218,6 @@ function drawer(
 ): PartialElement {
   const { color = "neutral", open = false, placement = "end", size } = props;
   const state = toState(open);
-  const isLogical = placement === "start" || placement === "end";
 
   // For static rendering / SSR assume LTR as fallback; corrected at mount time.
   const physicalFallback = resolvePhysical(placement, false);
@@ -85,104 +232,16 @@ function drawer(
         console.warn(`"drawer" patch must use dialog tag`);
       }
     },
+    ...behavior<DrawerProps>("drawer", attachDrawer, { state, placement, size }),
     onClick: (e: MouseEvent, node) => {
       if (e.target !== node.domElement) return;
-      state.set(false);
-    },
-    _onMount: (node) => {
-      const dlg = node.domElement as HTMLDialogElement;
-      dlg.setAttribute("aria-modal", "true");
-
-      const onCancel = (e: Event) => {
-        e.preventDefault();
-        state.set(false);
-      };
-      dlg.addEventListener("cancel", onCancel);
-
-      // Resolve logical placements at mount time using document direction.
-      const isRTL =
-        isLogical &&
-        (dlg.ownerDocument.documentElement.dir === "rtl" ||
-          dlg.ownerDocument.dir === "rtl");
-      const physical = resolvePhysical(placement, isRTL);
-
-      // Correct initial styles for logical placements whose physical direction
-      // may differ from the LTR fallback used in the static style block.
-      if (isLogical) {
-        dlg.style.transform = translateOut[physical];
-        dlg.style.margin = marginMap[physical];
-        dlg.style.width = isVertical(physical) ? drawerSize : "100dvw";
-        dlg.style.height = isVertical(physical) ? "100dvh" : drawerSize;
-      }
-
-      let closing = false;
-      let scrollLocked = false;
-      let closeTimer: ReturnType<typeof setTimeout> | null = null;
-      const finishClose = () => {
-        closeTimer = null;
-        if (!closing) return;
-        closing = false;
-        // Guard for environments with HTMLDialogElement but no close()
-        // implementation (e.g. jsdom in tests).
-        if (typeof dlg.close === "function") dlg.close();
-        // Same fix as dialog.ts: the closed state was only ever represented
-        // by an off-screen `transform`, never visibility/pointer-events — a
-        // closed drawer stayed fully reachable by Tab and exposed to the
-        // accessibility tree (a CSS transform, like opacity, does neither),
-        // and a consumer's own `style: { display: ... }` overrides the UA
-        // stylesheet's `dialog:not([open])` rule anyway. Set INLINE so it
-        // always wins.
-        dlg.style.visibility = "hidden";
-        dlg.style.pointerEvents = "none";
-        if (scrollLocked) {
-          unlockScroll();
-          scrollLocked = false;
-        }
-      };
-
-      const onTransitionEnd = (e: Event) => {
-        if (e.target !== dlg) return;
-        if ((e as TransitionEvent).propertyName !== "transform") return;
-        finishClose();
-      };
-      dlg.addEventListener("transitionend", onTransitionEnd);
-
-      const update = (val: boolean) => {
-        if (val) {
-          closing = false;
-          dlg.style.visibility = "visible";
-          dlg.style.pointerEvents = "auto";
-          // Guard for environments with HTMLDialogElement but no showModal()
-          // implementation (e.g. jsdom in tests).
-          if (typeof dlg.showModal === "function") dlg.showModal();
-          if (!scrollLocked) {
-            lockScroll();
-            scrollLocked = true;
-          }
-          requestAnimationFrame(() => {
-            dlg.style.transform = "translate(0, 0)";
-          });
-        } else {
-          closing = true;
-          dlg.style.transform = translateOut[physical];
-          closeTimer = setTimeout(finishClose, 350);
-        }
-      };
-      update(state.get());
-      const release = state.addListener(update);
-      node.addHook("Remove", () => {
-        if (closeTimer) {
-          clearTimeout(closeTimer);
-          closeTimer = null;
-        }
-        release();
-        dlg.removeEventListener("cancel", onCancel);
-        dlg.removeEventListener("transitionend", onTransitionEnd);
-        if (scrollLocked) {
-          unlockScroll();
-          scrollLocked = false;
-        }
-      });
+      const r = node.domElement!.getBoundingClientRect();
+      const inside =
+        e.clientX >= r.left &&
+        e.clientX <= r.right &&
+        e.clientY >= r.top &&
+        e.clientY <= r.bottom;
+      if (!inside) node.getBehavior<DrawerInstance>("drawer")?.requestClose();
     },
     style: {
       transform: translateOut[physicalFallback],

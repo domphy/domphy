@@ -279,3 +279,111 @@ describe("FieldApi array ops: meta reindexing", () => {
     await flush();
   });
 });
+
+describe("FormApi.deleteField: path-boundary", () => {
+  it("does not delete a sibling whose name only shares a prefix", () => {
+    const form = createHeadlessForm({
+      defaultValues: { email: "a@b.com", emailConfirm: "a@b.com" },
+    });
+    mountField(form, "email");
+    mountField(form, "emailConfirm");
+
+    form.deleteField("email" as never);
+
+    expect((form.state.values as any).email).toBeUndefined();
+    expect((form.state.values as any).emailConfirm).toBe("a@b.com");
+    expect("email" in form.fieldInfo).toBe(false);
+    expect("emailConfirm" in form.fieldInfo).toBe(true);
+    expect(form.getFieldMeta("emailConfirm" as never)).toBeDefined();
+  });
+
+  it("does not delete tags[10] when deleting tags[1]", () => {
+    const tags = [
+      "t0",
+      "t1",
+      "t2",
+      "t3",
+      "t4",
+      "t5",
+      "t6",
+      "t7",
+      "t8",
+      "t9",
+      "t10",
+    ];
+    const form = createHeadlessForm({ defaultValues: { tags } });
+    mountField(form, "tags[1]");
+    mountField(form, "tags[10]");
+
+    form.deleteField("tags[1]" as never);
+
+    expect("tags[1]" in form.fieldInfo).toBe(false);
+    expect("tags[10]" in form.fieldInfo).toBe(true);
+    expect(form.getFieldMeta("tags[10]" as never)).toBeDefined();
+    // deleteBy splices index 1 only; the original tags[10] value shifts to [9].
+    expect((form.state.values as any).tags).toEqual([
+      "t0",
+      "t2",
+      "t3",
+      "t4",
+      "t5",
+      "t6",
+      "t7",
+      "t8",
+      "t9",
+      "t10",
+    ]);
+  });
+
+  it("does not delete a dotted index sibling (tags.1 must not take tags.10)", () => {
+    const form = createHeadlessForm({
+      defaultValues: {
+        tags: [
+          "t0",
+          "t1",
+          "t2",
+          "t3",
+          "t4",
+          "t5",
+          "t6",
+          "t7",
+          "t8",
+          "t9",
+          "t10",
+        ],
+      },
+    });
+    mountField(form, "tags.1");
+    mountField(form, "tags.10");
+
+    form.deleteField("tags.1" as never);
+
+    expect("tags.1" in form.fieldInfo).toBe(false);
+    expect("tags.10" in form.fieldInfo).toBe(true);
+    expect(form.getFieldMeta("tags.10" as never)).toBeDefined();
+  });
+
+  it("still deletes real children of the field (dot and bracket)", () => {
+    const form = createHeadlessForm({
+      defaultValues: {
+        user: { name: "Ada" },
+        tags: [{ label: "a" }, { label: "b" }],
+      },
+    });
+    mountField(form, "user");
+    mountField(form, "user.name");
+    mountField(form, "tags");
+    mountField(form, "tags[0]");
+    mountField(form, "tags[0].label");
+    mountField(form, "tags[1]");
+
+    form.deleteField("user" as never);
+    expect("user" in form.fieldInfo).toBe(false);
+    expect("user.name" in form.fieldInfo).toBe(false);
+
+    form.deleteField("tags[0]" as never);
+    expect("tags[0]" in form.fieldInfo).toBe(false);
+    expect("tags[0].label" in form.fieldInfo).toBe(false);
+    expect("tags[1]" in form.fieldInfo).toBe(true);
+  });
+});

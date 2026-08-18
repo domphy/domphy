@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import type { DomphyElement } from "@domphy/core";
-import { ElementNode, flushSync } from "@domphy/core";
+import { ElementNode, flushSync, toState } from "@domphy/core";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   type TweetData,
@@ -65,5 +65,45 @@ describe("tweetCard", () => {
     flushSync();
 
     expect(host.textContent).toContain("unavailable");
+  });
+});
+
+describe("tweetCard — reused-node lifecycle", () => {
+  it("applies a fetch that resolves after an ancestor re-render", async () => {
+    let resolveTweet!: (data: TweetData) => void;
+    const fetchTweet = () =>
+      new Promise<TweetData>((resolve) => {
+        resolveTweet = resolve;
+      });
+    const refresh = toState(0);
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const node = new ElementNode({
+      div: (listener: unknown) => {
+        (refresh.get as (l: unknown) => number)(listener);
+        return [
+          tweetCard({ tweetId: "t-reused", fetchTweet }) as DomphyElement,
+        ];
+      },
+    } as DomphyElement);
+    node.render(host);
+    flushSync();
+    expect(host.querySelector('[aria-label="Loading tweet"]')).toBeTruthy();
+
+    // Fresh factory closure (new phase/tweetState) on the SAME article.
+    refresh.set(1);
+    flushSync();
+
+    resolveTweet({
+      id: "t-reused",
+      author: { name: "Reuse Hopper", handle: "reuse" },
+      text: "Persisted across generations.",
+      createdAt: "2026-01-01T00:00:00Z",
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    flushSync();
+
+    expect(host.textContent).toContain("Reuse Hopper");
+    expect(host.querySelector('[aria-label="Loading tweet"]')).toBeNull();
   });
 });

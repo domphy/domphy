@@ -3,6 +3,7 @@ import * as THREE from "three";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   applyProps,
+  applyStaticProp,
   attach,
   detach,
   POINTER_EVENT_KEYS,
@@ -269,6 +270,56 @@ describe("applyProps — static duck-typed values", () => {
     // .set, never replaced by the raw string.
     expect(set).toHaveBeenCalledWith("#ff0000");
     expect(instance.tint).toBe(fakeColor);
+  });
+
+  it("calls Camera.lookAt(...) instead of overwriting the method when given an array", () => {
+    const camera = new THREE.PerspectiveCamera();
+    camera.position.set(3, 3, 3);
+    const node = createNode(camera, root);
+    const lookAt = vi.spyOn(camera, "lookAt");
+
+    applyProps(node, { lookAt: [0, 0, 0] });
+
+    expect(lookAt).toHaveBeenCalledWith(0, 0, 0);
+    expect(typeof camera.lookAt).toBe("function");
+    const direction = new THREE.Vector3();
+    camera.getWorldDirection(direction);
+    expect(direction.x).toBeCloseTo(-1 / Math.sqrt(3));
+    expect(direction.y).toBeCloseTo(-1 / Math.sqrt(3));
+    expect(direction.z).toBeCloseTo(-1 / Math.sqrt(3));
+  });
+
+  it("calls lookAt with a Vector3 argument without replacing the method", () => {
+    const camera = new THREE.PerspectiveCamera();
+    const node = createNode(camera, root);
+    const target = new THREE.Vector3(1, 2, 3);
+    const lookAt = vi.spyOn(camera, "lookAt");
+
+    applyProps(node, { lookAt: target });
+
+    expect(lookAt).toHaveBeenCalledWith(target);
+    expect(typeof camera.lookAt).toBe("function");
+  });
+
+  it("assigns raycast: null instead of calling Mesh.raycast(null)", () => {
+    const instance = new THREE.Mesh();
+    const node = createNode(instance, root);
+
+    applyProps(node, { raycast: null });
+
+    expect(instance.raycast).toBeNull();
+  });
+
+  it("still assigns a function onto a function-valued slot (custom raycast)", () => {
+    const instance = new THREE.Mesh();
+    const node = createNode(instance, root);
+    const customRaycast = vi.fn();
+
+    // applyProps treats a function value as reactive (rule 7); a function
+    // only reaches applyStaticProp when a reactive prop resolves to one.
+    applyStaticProp(node, "raycast", customRaycast);
+
+    expect(instance.raycast).toBe(customRaycast);
   });
 
   it("merges uniforms on a duck-typed isShaderMaterial root (second three copy)", () => {

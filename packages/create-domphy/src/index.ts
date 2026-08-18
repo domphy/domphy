@@ -1,11 +1,5 @@
-import {
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { existsSync, readdirSync } from "node:fs";
+import { resolve } from "node:path";
 import { stdin, stdout } from "node:process";
 import { createInterface } from "node:readline/promises";
 import { templateFiles } from "./templates.js";
@@ -14,6 +8,7 @@ import {
   THEME_VERSION,
   UI_VERSION,
 } from "./versions.generated.js";
+import { writeScaffoldFiles } from "./write.js";
 
 const KNOWN_TEMPLATES = ["spa"] as const;
 type TemplateName = (typeof KNOWN_TEMPLATES)[number];
@@ -148,29 +143,7 @@ async function main(): Promise<void> {
     ui: `^${UI_VERSION}`,
   });
 
-  const targetDirExisted = existsSync(targetDir);
-  mkdirSync(targetDir, { recursive: true });
-
-  const writtenPaths: string[] = [];
-  try {
-    for (const file of files) {
-      const fullPath = join(targetDir, file.path);
-      mkdirSync(dirname(fullPath), { recursive: true });
-      writeFileSync(fullPath, file.contents, "utf8");
-      writtenPaths.push(fullPath);
-    }
-  } catch (error) {
-    // Leave the target directory in the state it was in before this run so a
-    // retry is not blocked by isDirectoryUsable's "not empty" check.
-    if (targetDirExisted) {
-      for (const writtenPath of writtenPaths) {
-        rmSync(writtenPath, { force: true });
-      }
-    } else {
-      rmSync(targetDir, { recursive: true, force: true });
-    }
-    throw error;
-  }
+  writeScaffoldFiles(targetDir, files);
 
   const relativeTarget = targetArgument === "." ? "." : targetArgument;
   const lines = [

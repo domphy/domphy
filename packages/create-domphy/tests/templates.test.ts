@@ -128,4 +128,25 @@ describe("templateFiles", () => {
     expect(agentsMd?.contents).toContain("row()");
     expect(agentsMd?.contents).toContain("@domphy/form");
   });
+
+  it("ships an AGENTS.md that states a string child is TEXT and requires a doctor self-check", () => {
+    // Condensed guide used to omit two rules every agent needs on first
+    // write: strings are never parsed as HTML, and diagnose() must pass.
+    const agentsMd = files.find((file) => file.path === "AGENTS.md");
+    expect(agentsMd).toBeDefined();
+    expect(agentsMd?.contents).toContain("A string child is TEXT, always");
+    expect(agentsMd?.contents).toContain("rawHtml");
+    expect(agentsMd?.contents).toContain("@domphy/doctor");
+    expect(agentsMd?.contents).toContain("diagnose");
+  });
+});
+
+describe("package README", () => {
+  it("documents applySystemTheme alongside themeApply", () => {
+    // themeApply() only injects stylesheets; without applySystemTheme() the
+    // starter is unstyled. The package README used to mention only themeApply.
+    const readme = readFileSync(resolve(__dirname, "../README.md"), "utf8");
+    expect(readme).toContain("themeApply");
+    expect(readme).toContain("applySystemTheme");
+  });
 });

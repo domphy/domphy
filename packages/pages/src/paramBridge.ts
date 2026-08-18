@@ -7,8 +7,8 @@
  */
 import type { Listener } from "@domphy/core"
 import { toState } from "@domphy/core"
-import type { Model } from "@parashape/parametric"
-import { ParameterNode } from "@parashape/parametric"
+import type { Model } from "../engine/index.js"
+import { ParameterNode } from "../engine/index.js"
 
 export type ParamBridge = {
     invalidate: (listener: Listener) => void

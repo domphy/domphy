@@ -38,7 +38,7 @@ const App = {
   style: { width: "600px", height: "400px" },
   $: [
     three({
-      camera: { position: [3, 3, 3] },
+      camera: { position: [3, 3, 3], lookAt: [0, 0, 0] },
       scene: [
         {
           mesh: [

@@ -81,6 +81,37 @@ describe("handleToolCall argument validation", () => {
     expect(result.isError).toBeFalsy();
     expect(result.content[0].text).toContain("No issues found");
   });
+
+  it("marks JSON parse failures as isError for every doctor tool", async () => {
+    for (const tool of [
+      "domphy_diagnose",
+      "domphy_validate",
+      "domphy_fix",
+    ] as const) {
+      const result = await handleToolCall(tool, { element: "{not json" });
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("Invalid JSON");
+    }
+  });
+
+  it("marks non-object JSON roots as isError", async () => {
+    for (const json of ["42", '"hi"', "null", "[1,2]", "true"]) {
+      const result = await handleToolCall("domphy_diagnose", { element: json });
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("Invalid JSON");
+      expect(result.content[0].text).toContain(
+        "expected an object element tree",
+      );
+    }
+  });
+
+  it("does not flag a successful diagnose that found issues as isError", async () => {
+    const result = await handleToolCall("domphy_diagnose", {
+      element: JSON.stringify({ input: "oops" }),
+    });
+    expect(result.isError).toBeFalsy();
+    expect(result.content[0].text).toContain("void-content");
+  });
 });
 
 describe("hostile element-tree input (doctor tools)", () => {
@@ -111,6 +142,14 @@ describe("hostile element-tree input (doctor tools)", () => {
     // And the same input through the dispatcher stays a structured result.
     const result = await handleToolCall("domphy_validate", { element: json });
     expect(typeof result.content[0].text).toBe("string");
+    // A doctor crash must not look like a successful validate report.
+    if (
+      result.content[0].text.startsWith("validate failed:") ||
+      result.content[0].text.startsWith("Invalid JSON:") ||
+      result.content[0].text.startsWith("Error:")
+    ) {
+      expect(result.isError).toBe(true);
+    }
   });
 
   it("handles moderately deep trees normally", () => {

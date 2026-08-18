@@ -3,7 +3,12 @@
 // Grid coord utilities
 export type { ZoomWindow } from "./coord/grid.js";
 // Dataset transforms
-export { applyTransforms, resolveDataset } from "./dataset/transform.js";
+export {
+  applyDatasetToSeries,
+  applyTransforms,
+  fillCategoryAxes,
+  resolveDataset,
+} from "./dataset/transform.js";
 // Engine (for advanced embedding without the Domphy patch)
 export { ChartEngine } from "./engine.js";
 export type { ColorResolver, Rgba } from "./gl/color.js";

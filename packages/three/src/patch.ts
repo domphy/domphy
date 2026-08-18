@@ -283,25 +283,17 @@ function three(
         };
         listener();
       };
-      applyScene(initialOptions.scene);
 
-      registerRoot(root);
-      root.internal.active = true;
-      // Every invalidate() up to this point (setSize's included) was a no-op
-      // against the still-inactive root (loop.ts's guard) — kick one now
-      // that the loop will honor it, so the first frame doesn't hang on the
-      // initial ResizeObserver callback (which stubs/polyfills may never
-      // fire). A no-op itself for "never" roots.
-      root.invalidate();
-
-      // Registered BEFORE onCreated fires: if onCreated throws, the root is
-      // still fully teardown-reachable — otherwise the renderer, WebGL
-      // context, and ResizeObserver above would leak for the life of the
-      // page. The closure captures optionReleases by reference and splices
-      // it at run time, so releases pushed by the State listener below are
-      // still picked up.
+      // Registered BEFORE applyScene / onCreated: an instantiate throw in
+      // applyScene (or onCreated) must still reach teardown — otherwise the
+      // renderer, WebGL context, and ResizeObserver above leak for the life
+      // of the page. optionReleases is captured by reference so the State
+      // listener below still lands in the same drain.
       const optionReleases: Array<() => void> = [];
-      node.addHook("Remove", () => {
+      let tornDown = false;
+      const teardown = (): void => {
+        if (tornDown) return;
+        tornDown = true;
         events?.disconnect();
         root.internal.active = false;
         unregisterRoot(root);
@@ -324,35 +316,55 @@ function three(
         for (const release of cameraNode.releases.splice(0)) release();
         for (const release of raycasterNode.releases.splice(0)) release();
         for (const release of optionReleases.splice(0)) release();
-      });
+      };
+      node.addHook("Remove", teardown);
 
-      initialOptions.onCreated?.(root);
+      try {
+        applyScene(initialOptions.scene);
 
-      // ReadableState option → re-apply camera/dpr/frameloop/scene on every
-      // change (SPEC.md's locked re-apply list — shadows/flat/linear/gl/
-      // raycaster/events are mount-time-only, see applyRendererConfig above).
-      if (isState(options)) {
-        const listener: Handler = (() => {
-          const next = optionsState.get(listener);
-          applyCameraConfig(cameraNode, next.camera);
-          // dpr: undefined means "keep the last resolved dpr" (rootState.ts's
-          // setSize contract) — only re-run setSize when the caller actually
-          // passed one, not on every unrelated options change.
-          if (next.dpr !== undefined) {
-            const currentSize = root.size.get();
-            root.setSize(currentSize.width, currentSize.height, next.dpr);
-          }
-          // setFrameloop stops and zeroes the clock on EVERY call — guard on
-          // a real mode change or any options update (scene/camera swap)
-          // resets elapsedTime and spikes the next frame's delta.
-          const nextFrameloop = next.frameloop ?? "always";
-          if (nextFrameloop !== root.frameloop)
-            root.setFrameloop(nextFrameloop);
-          applyScene(next.scene);
-        }) as Handler;
-        listener.onSubscribe = (release: () => void) =>
-          optionReleases.push(release);
-        optionsState.get(listener);
+        registerRoot(root);
+        root.internal.active = true;
+        // Every invalidate() up to this point (setSize's included) was a
+        // no-op against the still-inactive root (loop.ts's guard) — kick
+        // one now that the loop will honor it, so the first frame doesn't
+        // hang on the initial ResizeObserver callback (which stubs /
+        // polyfills may never fire). A no-op itself for "never" roots.
+        root.invalidate();
+
+        initialOptions.onCreated?.(root);
+
+        // ReadableState option → re-apply camera/dpr/frameloop/scene on
+        // every change (SPEC.md's locked re-apply list — shadows/flat/
+        // linear/gl/raycaster/events are mount-time-only, see
+        // applyRendererConfig above).
+        if (isState(options)) {
+          const listener: Handler = (() => {
+            const next = optionsState.get(listener);
+            applyCameraConfig(cameraNode, next.camera);
+            // dpr: undefined means "keep the last resolved dpr"
+            // (rootState.ts's setSize contract) — only re-run setSize when
+            // the caller actually passed one, not on every unrelated
+            // options change.
+            if (next.dpr !== undefined) {
+              const currentSize = root.size.get();
+              root.setSize(currentSize.width, currentSize.height, next.dpr);
+            }
+            // setFrameloop stops and zeroes the clock on EVERY call —
+            // guard on a real mode change or any options update
+            // (scene/camera swap) resets elapsedTime and spikes the next
+            // frame's delta.
+            const nextFrameloop = next.frameloop ?? "always";
+            if (nextFrameloop !== root.frameloop)
+              root.setFrameloop(nextFrameloop);
+            applyScene(next.scene);
+          }) as Handler;
+          listener.onSubscribe = (release: () => void) =>
+            optionReleases.push(release);
+          optionsState.get(listener);
+        }
+      } catch (error) {
+        teardown();
+        throw error;
       }
     },
   };

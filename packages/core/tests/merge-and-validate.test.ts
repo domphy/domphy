@@ -154,4 +154,8 @@ describe("validate", () => {
   it("allows an empty object as a partial (asPartial=true)", () => {
     expect(validate({} as any, true)).toBe(true);
   });
+
+  it("accepts the script tag", () => {
+    expect(() => validate({ script: "" } as any)).not.toThrow();
+  });
 });

@@ -16,12 +16,10 @@ import {
   type ChartTrendDirection,
   chartBarCardShell,
   chartBarCategoryYAxis,
-  chartBarColorHex,
   chartBarFrame,
   chartBarHiddenValueXAxis,
   chartBarHorizontalHoverOverlay,
   chartBarSeriesColor,
-  chartBarTooltipRow,
   chartBarTrendFooter,
   chartBarValueDomain,
 } from "./chart-bar-shared.js";
@@ -76,7 +74,6 @@ function chartBarHorizontal(
   );
   const values = orderedData.map((point) => point.value);
   const [, domainMax] = chartBarValueDomain(values);
-  const seriesColorHex = chartBarColorHex(seriesColor);
 
   const option: ChartOption = {
     tooltip: { show: false },
@@ -105,12 +102,7 @@ function chartBarHorizontal(
             chartBarHorizontalHoverOverlay({
               categories,
               grid,
-              valueLabel: (index) =>
-                chartBarTooltipRow(
-                  `<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${seriesColorHex};margin-right:6px;"></span>`,
-                  seriesLabel,
-                  String(values[index] ?? ""),
-                ),
+              valueLabel: (index) => String(values[index] ?? ""),
             }),
           ],
         }),

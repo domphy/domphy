@@ -104,12 +104,19 @@ async function verifyPackage(packageDir) {
   const name = basename(packageDir);
   let tgzPath = null;
   try {
-    const output = execFileSync("pnpm", ["pack"], {
+    const packOptions = {
       cwd: packageDir,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "pipe"],
       shell: process.platform === "win32",
-    });
+    };
+    let output;
+    try {
+      output = execFileSync("pnpm", ["pack"], packOptions);
+    } catch {
+      // Sequential `pnpm pack` can flake on Windows (store lock / AV). Retry once.
+      output = execFileSync("pnpm", ["pack"], packOptions);
+    }
     // pnpm pack prints the tarball filename as the last non-empty line
     const lines = output
       .split(/\r?\n/)
@@ -151,11 +158,15 @@ async function verifyPackage(packageDir) {
     return "OK";
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    const stderr =
-      error && typeof error === "object" && "stderr" in error
-        ? String(/** @type {{ stderr?: unknown }} */ (error).stderr ?? "")
-        : "";
-    console.error(`FAIL  ${name}: ${message}${stderr ? `\n${stderr}` : ""}`);
+    const extra =
+      error && typeof error === "object"
+        ? /** @type {{ stdout?: unknown, stderr?: unknown }} */ (error)
+        : {};
+    const details = [extra.stderr, extra.stdout]
+      .map((chunk) => String(chunk ?? "").trim())
+      .filter(Boolean)
+      .join("\n");
+    console.error(`FAIL  ${name}: ${message}${details ? `\n${details}` : ""}`);
     return "FAIL";
   } finally {
     if (tgzPath) {

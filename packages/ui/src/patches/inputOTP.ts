@@ -56,7 +56,11 @@ function inputOTP(): PartialElement {
         const found = inputs.indexOf(e.target as HTMLInputElement);
         const startIdx = found === -1 ? 0 : found;
         [...text].forEach((char, i) => {
-          if (inputs[startIdx + i]) inputs[startIdx + i].value = char;
+          const field = inputs[startIdx + i];
+          if (!field) return;
+          field.value = char;
+          field.dispatchEvent(new Event("input", { bubbles: true }));
+          field.dispatchEvent(new Event("change", { bubbles: true }));
         });
         const lastFilled = Math.min(
           startIdx + text.length - 1,

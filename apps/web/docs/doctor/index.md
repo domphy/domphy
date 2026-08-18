@@ -88,6 +88,12 @@ interface Diagnostic {
 | `unknown-tag` | warning | an element whose first key isn't a valid HTML/SVG tag (typo) |
 | `duplicate-key` | error | two siblings sharing the same `_key` value — the reconciler can't tell them apart |
 | `unstable-key` | warning | a dynamic list whose `_key`s are the array index (`0, 1, 2, …`) — index keys shift on reorder/insert |
+| `invalid-nesting` | error | HTML content-model violations the browser re-parents (breaking SSR/hydration): flow content in `<p>`, `a`/`button` inside `a`/`button`, `li`/`dt`/`dd`/`tr`/`td`/`th`/`option`/table-section tags with the wrong parent, non-`li` element child of `ul`/`ol`. Declared direct parent-child pairs only — reactive content, `rawHtml`, and SVG subtrees are exempt |
+| `click-without-keyboard` | warning | an `onClick` on a non-interactive element (not a/button/input/select/textarea/summary/label, no interactive role, no `tabIndex`) without a keyboard handler — hidden elements exempt |
+| `missing-required-attribute` | error (warning for `a`) | `<img>` without `alt` (`aria-label`/`aria-labelledby`/`role: "presentation"\|"none"` accepted), `<iframe>` without `title`; `<a>` with `onClick` but no `href`/`role` is a warning |
+| `unused-doctor-disable` | info | a `_doctorDisable` entry that suppresses nothing on its element — the named rule fired no diagnostic there, `_doctorDisable: true` consumed nothing, or the id matches no known rule (typo detection) |
+
+The doctor implements **22** built-in rules. See [Rules Reference](/docs/doctor/rules) for the full contract of each.
 
 By default the doctor invokes reactive content functions with a no-op listener to inspect their output (this is how the dynamic-list rules are found). Pass `{ runReactive: false }` if your reactive functions have side effects.
 

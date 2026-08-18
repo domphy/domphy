@@ -34,6 +34,7 @@ import type {
   JSONContent,
   RawCommands,
 } from "../types.js";
+import { isLinkUriAllowed } from "../extensions/link.js";
 import { liftListItem, setNodeTypeAt, sinkListItem } from "./list.js";
 
 function schemaOf(editor: EditorInstance): Schema {
@@ -181,22 +182,27 @@ export const generalCommands: RawCommands = {
       if (!schema.isMark(markType)) {
         return false;
       }
+      const { empty, from, to } = tr.selection;
+      const nextAttributes = empty
+        ? {
+            ...schema.defaultAttributes(markType),
+            ...getMarkAttributes(schema, state, markType),
+            ...attrs,
+          }
+        : { ...schema.defaultAttributes(markType), ...attrs };
+      if (!isLinkUriAllowed(editor, markType, nextAttributes.href)) {
+        return false;
+      }
       if (dispatch) {
-        const { empty, from, to } = tr.selection;
         if (empty) {
-          const existing = getMarkAttributes(schema, state, markType);
           tr.addStoredMark({
             type: markType,
-            attrs: {
-              ...schema.defaultAttributes(markType),
-              ...existing,
-              ...attrs,
-            },
+            attrs: nextAttributes,
           });
         } else {
           tr.addMark(from, to, {
             type: markType,
-            attrs: { ...schema.defaultAttributes(markType), ...attrs },
+            attrs: nextAttributes,
           });
         }
       }
@@ -285,27 +291,35 @@ export const generalCommands: RawCommands = {
         if (empty) {
           const range = getMarkRange(schema, state.doc, from, nodeOrMarkType);
           if (range) {
+            const attributes = {
+              ...getMarkAttributes(schema, state, nodeOrMarkType),
+              ...attrs,
+            };
+            if (!isLinkUriAllowed(editor, nodeOrMarkType, attributes.href)) {
+              return false;
+            }
             updated = true;
             if (dispatch) {
-              const attributes = getMarkAttributes(
-                schema,
-                state,
-                nodeOrMarkType,
-              );
               tr.addMark(range.from, range.to, {
                 type: nodeOrMarkType,
-                attrs: { ...attributes, ...attrs },
+                attrs: attributes,
               });
             }
           }
           return updated;
         }
+        let rejected = false;
         nodesBetween(schema, state.doc, from, to, (node, pos) => {
           const mark = (node.marks ?? []).find(
             (candidate) => candidate.type === nodeOrMarkType,
           );
           if (!mark) {
             return undefined;
+          }
+          const nextAttributes = { ...mark.attrs, ...attrs };
+          if (!isLinkUriAllowed(editor, nodeOrMarkType, nextAttributes.href)) {
+            rejected = true;
+            return false;
           }
           updated = true;
           if (dispatch) {
@@ -314,13 +328,13 @@ export const generalCommands: RawCommands = {
               Math.min(pos + nodeSize(schema, node), to),
               {
                 type: nodeOrMarkType,
-                attrs: { ...mark.attrs, ...attrs },
+                attrs: nextAttributes,
               },
             );
           }
           return undefined;
         });
-        return updated;
+        return rejected ? false : updated;
       }
 
       if (!schema.isNode(nodeOrMarkType)) {
@@ -357,10 +371,10 @@ export const generalCommands: RawCommands = {
 
   clearNodes:
     () =>
-    ({ tr, dispatch, editor }: CommandProps) => {
-      if (!dispatch) {
-        return true;
-      }
+    ({ tr, editor }: CommandProps) => {
+      // Always rewrite the draft. can() uses a throwaway transaction, and
+      // toggleList needs the cleared tree to report the same feasibility
+      // dispatch would see after this step.
       const schema = schemaOf(editor);
       const defaultType = schema.defaultTypeFor("block") ?? "paragraph";
       tr.setBlockType(tr.selection.from, tr.selection.to, defaultType);
@@ -438,23 +452,37 @@ export const generalCommands: RawCommands = {
         return true;
       }
 
-      const { from, to } = tr.selection;
-      if (tr.canWrap(from, to, listType)) {
+      const wrapSelection = (): boolean => {
+        const { from, to } = tr.selection;
+        if (!tr.canWrap(from, to, listType)) {
+          return false;
+        }
         if (dispatch) {
           tr.wrap(from, to, listType, attrs);
         }
         return true;
+      };
+
+      // Headings and other non-default textblocks must become paragraphs
+      // before wrapping (`listItem` content is `paragraph block*`).
+      const defaultType = schema.defaultTypeFor("block") ?? "paragraph";
+      let needsClear = false;
+      nodesBetween(schema, tr.doc, tr.selection.from, tr.selection.to, (node) => {
+        const name = node.type ?? "";
+        if (schema.isTextblock(name) && name !== defaultType) {
+          needsClear = true;
+          return false;
+        }
+        return undefined;
+      });
+
+      if (!needsClear && wrapSelection()) {
+        return true;
       }
-      if (!dispatch) {
-        return false;
-      }
+      // Clear then wrap — including during can(), so feasibility matches
+      // dispatch. The old `if (!dispatch) return false` disagreed.
       commands.clearNodes();
-      const cleared = tr.selection;
-      if (!tr.canWrap(cleared.from, cleared.to, listType)) {
-        return false;
-      }
-      tr.wrap(cleared.from, cleared.to, listType, attrs);
-      return true;
+      return wrapSelection();
     },
 
   splitListItem:

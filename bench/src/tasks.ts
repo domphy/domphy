@@ -92,11 +92,11 @@ export const TASKS: Task[] = [
     difficulty: "medium",
     category: "forms",
     prompt:
-      "Create a Domphy login form with email and password inputs and a submit button. Use @domphy/form (createForm from @domphy/form/domphy) for form state. Bind inputs with value: (l) => field.value(l) and onInput handlers. Use @domphy/ui input-text() patch for inputs, button() for submit, heading() for the title.",
+      "Create a Domphy login form with email and password inputs and a submit button. Use @domphy/form (createForm from @domphy/form/domphy) for form state. Bind inputs with value: (l) => field.value(l) and onInput handlers. Use @domphy/ui inputText() patch for inputs, button() for submit, heading() for the title.",
     reactPrompt:
       "Create a React login form component with email and password inputs and a submit button. Use useState for form state and handle onSubmit.",
     requiredTags: ["input:", "button:"],
-    requiredKeywords: ["createForm", "input-text(", "button("],
+    requiredKeywords: ["createForm", "inputText(", "button("],
   },
   {
     id: "nav-header",
@@ -116,11 +116,11 @@ export const TASKS: Task[] = [
     difficulty: "medium",
     category: "controls",
     prompt:
-      "Create a Domphy element tree: a search input with a live-updating results list. As the user types, filter a local array of items (at least 5 sample strings) and display matching items as a list. Use @domphy/ui input-search() patch, toState for query state, and computed() from @domphy/core for filtered results.",
+      "Create a Domphy element tree: a search input with a live-updating results list. As the user types, filter a local array of items (at least 5 sample strings) and display matching items as a list. Use @domphy/ui inputSearch() patch, toState for query state, and computed() from @domphy/core for filtered results.",
     reactPrompt:
       "Create a React search component with an input and a live-filtered results list. Use useState and useMemo.",
     requiredTags: ["input:", "ul:", "li:"],
-    requiredKeywords: ["input-search(", "toState", "computed("],
+    requiredKeywords: ["inputSearch(", "toState", "computed("],
   },
   {
     id: "tabs-panel",
@@ -154,7 +154,7 @@ export const TASKS: Task[] = [
     difficulty: "hard",
     category: "display",
     prompt:
-      "Create a Domphy element tree: three pricing tier cards (Free, Pro, Enterprise) arranged horizontally. Each card shows the tier name, price, a feature list, and a CTA button. Use @domphy/ui card(), heading(), paragraph(), button(), unordered-list() patches. Mark the Pro card as 'Most popular' with a badge(). No inline typography.",
+      "Create a Domphy element tree: three pricing tier cards (Free, Pro, Enterprise) arranged horizontally. Each card shows the tier name, price, a feature list, and a CTA button. Use @domphy/ui card(), heading(), paragraph(), button(), unorderedList() patches. Mark the Pro card as 'Most popular' with a badge(). No inline typography.",
     reactPrompt:
       "Create a React pricing section with three tier cards (Free, Pro, Enterprise), each with name, price, feature list, and CTA button.",
     requiredTags: ["ul:", "li:", "button:"],
@@ -166,11 +166,11 @@ export const TASKS: Task[] = [
     difficulty: "hard",
     category: "forms",
     prompt:
-      "Create a Domphy registration form with: name (required), email (required, email format), password (required, min 8 chars). Use @domphy/form createForm with validators. Show per-field validation error messages reactively. Use @domphy/ui input-text() for inputs, button() for submit. Bind each field's error with (l) => field.state.meta.errors.join(', ').",
+      "Create a Domphy registration form with: name (required), email (required, email format), password (required, min 8 chars). Use @domphy/form createForm with validators. Show per-field validation error messages reactively. Use @domphy/ui inputText() for inputs, button() for submit. Bind each field's error with (l) => field.state.meta.errors.join(', ').",
     reactPrompt:
       "Create a React registration form with name, email, password fields. Show validation errors for each field (required, email format, min password length). Use useState and custom validation.",
     requiredTags: ["input:", "button:", "form:"],
-    requiredKeywords: ["createForm", "input-text(", "validators"],
+    requiredKeywords: ["createForm", "inputText(", "validators"],
   },
   {
     id: "modal-confirm",
@@ -216,7 +216,7 @@ export const TASKS: Task[] = [
     difficulty: "very-hard",
     category: "overlays",
     prompt:
-      "Create a Domphy command palette (Cmd+K style). A keyboard shortcut (keydown listener) opens a dialog with a search input. Type to filter a list of 10 commands (name + shortcut). Navigate with arrow keys. Use @domphy/ui command() patch, dialog(), input-search(). Use computed() for filtered list and toState for selection index.",
+      "Create a Domphy command palette (Cmd+K style). A keyboard shortcut (keydown listener) opens a dialog with a search input. Type to filter a list of 10 commands (name + shortcut). Navigate with arrow keys. Use @domphy/ui command() patch, dialog(), inputSearch(). Use computed() for filtered list and toState for selection index.",
     reactPrompt:
       "Create a React command palette (Cmd+K opens it). Search input filters a list of 10 commands. Navigate with arrow keys. Use useState, useEffect, useMemo.",
     requiredTags: ["input:", "ul:", "li:", "dialog:"],
@@ -228,7 +228,7 @@ export const TASKS: Task[] = [
     difficulty: "very-hard",
     category: "forms",
     prompt:
-      "Create a Domphy 3-step wizard form (Step 1: personal info — name/email; Step 2: preferences — theme/language select; Step 3: review + submit). Show a progress indicator. Use @domphy/form createForm with stepped field groups. Use toState for current step. Validate each step before advancing. Use @domphy/ui input-text(), select(), button(), progress() patches.",
+      "Create a Domphy 3-step wizard form (Step 1: personal info — name/email; Step 2: preferences — theme/language select; Step 3: review + submit). Show a progress indicator. Use @domphy/form createForm with stepped field groups. Use toState for current step. Validate each step before advancing. Use @domphy/ui inputText(), select(), button(), progress() patches.",
     reactPrompt:
       "Create a React 3-step wizard form (personal info, preferences, review/submit) with a progress indicator. Use useState for step and form state.",
     requiredTags: ["input:", "button:", "select:"],
@@ -240,11 +240,11 @@ export const TASKS: Task[] = [
     difficulty: "very-hard",
     category: "data",
     prompt:
-      "Create a Domphy data grid with 10 rows of sample data (id, name, department, salary). Features: column sorting (click header toggles asc/desc), text filter input, row selection via checkboxes. Use @domphy/table (createDomphyTable from @domphy/table/domphy). Use @domphy/ui table(), input-search(), input-checkbox() patches.",
+      "Create a Domphy data grid with 10 rows of sample data (id, name, department, salary). Features: column sorting (click header toggles asc/desc), text filter input, row selection via checkboxes. Use @domphy/table (createDomphyTable from @domphy/table/domphy). Use @domphy/ui table(), inputSearch(), inputCheckbox() patches.",
     reactPrompt:
       "Create a React data grid with 10 rows (id, name, department, salary). Features: sortable columns, text filter, row selection checkboxes. Use useState, useMemo.",
     requiredTags: ["table:", "input:", "thead:", "tbody:"],
-    requiredKeywords: ["createDomphyTable", "table(", "input-search("],
+    requiredKeywords: ["createDomphyTable", "table(", "inputSearch("],
   },
   {
     id: "infinite-scroll",

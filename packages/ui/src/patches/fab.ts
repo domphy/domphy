@@ -30,6 +30,8 @@ function fab(
   const dim = themeSpacing(SIZE_MAP[props.size ?? "medium"]);
 
   return {
+    // Native `type` on the host still wins (mergePartial: native over patch).
+    type: "button",
     _onInsert: (node) => {
       if (node.tagName !== "button") {
         console.warn('"fab" patch must use button tag');

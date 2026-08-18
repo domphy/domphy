@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import type { DomphyElement } from "@domphy/core";
-import { ElementNode, flushSync } from "@domphy/core";
+import { ElementNode, flushSync, toState } from "@domphy/core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { typingAnimation } from "../../../src/magicui/text/typingAnimation.ts";
 
@@ -110,5 +110,37 @@ describe("typingAnimation", () => {
     flushSync();
     node.remove();
     expect(() => vi.advanceTimersByTime(1000)).not.toThrow();
+  });
+});
+
+describe("typingAnimation — reused-node lifecycle", () => {
+  it("keeps typing into the reused node after an ancestor re-render", () => {
+    vi.useFakeTimers();
+    const refresh = toState(0);
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    const node = new ElementNode({
+      div: (listener: unknown) => {
+        (refresh.get as (l: unknown) => number)(listener);
+        return [
+          typingAnimation({ text: "Hi", typingSpeed: 10 }) as DomphyElement,
+        ];
+      },
+    } as DomphyElement);
+    node.render(host);
+    flushSync();
+
+    vi.advanceTimersByTime(10);
+    flushSync();
+    expect(revealedTextOf(host)).toBe("H");
+
+    refresh.set(1);
+    flushSync();
+    // Persisted reveal must not reset to "" on a reused node.
+    expect(revealedTextOf(host)).toBe("H");
+
+    vi.advanceTimersByTime(10);
+    flushSync();
+    expect(revealedTextOf(host)).toBe("Hi");
   });
 });

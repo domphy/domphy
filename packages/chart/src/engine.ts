@@ -1,6 +1,12 @@
 import type { Device } from "@luma.gl/core";
 import type { ZoomWindow } from "./coord/grid.js";
 import { resolveGrid } from "./coord/grid.js";
+import { resolvePolar } from "./coord/polar.js";
+import type { PolarCoord } from "./coord/polar.js";
+import {
+  applyDatasetToSeries,
+  fillCategoryAxes,
+} from "./dataset/transform.js";
 import { BarRenderer } from "./gl/BarRenderer.js";
 import { CandlestickRenderer } from "./gl/CandlestickRenderer.js";
 import { createColorResolver, seriesColor } from "./gl/color.js";
@@ -8,7 +14,11 @@ import { getDevice, releaseDevice } from "./gl/device.js";
 import { GaugeRenderer } from "./gl/GaugeRenderer.js";
 import { HeatmapRenderer } from "./gl/HeatmapRenderer.js";
 import { LineRenderer } from "./gl/LineRenderer.js";
-import { PieRenderer } from "./gl/PieRenderer.js";
+import {
+  angleInPieSlice,
+  computePieSlices,
+  PieRenderer,
+} from "./gl/PieRenderer.js";
 import { RadarRenderer } from "./gl/RadarRenderer.js";
 import { renderGrid3D } from "./gl/Renderer3D.js";
 import { ScatterRenderer } from "./gl/ScatterRenderer.js";
@@ -33,6 +43,7 @@ import { createTooltip } from "./overlay/tooltip.js";
 import { renderTreemap } from "./overlay/treemap.js";
 import { renderVisualMap } from "./overlay/visualmap.js";
 import type {
+  AxisOption,
   Bar3DSeriesOption,
   BoxplotSeriesOption,
   ChartOption,
@@ -116,10 +127,8 @@ export function accumStackedLines(series: LineSeriesOption[]): {
   return { series: stackedSeries, baselines };
 }
 
-// Hit-test cursor position against all pie sectors. Returns params for the hit sector or null.
-// Legend-hidden slices (item names in `hiddenSeries`) are skipped — a hidden
-// slice must not fire a tooltip — but still consume their angle span so the
-// walk stays aligned with PieRenderer, which draws every slice.
+// Hit-test cursor position against all pie sectors. Geometry matches
+// PieRenderer (startAngle / clockwise / hidden slices rescale).
 function hitTestPie(
   series: any[],
   mx: number,
@@ -129,77 +138,179 @@ function hitTestPie(
   allSeries: SeriesOption[],
   hiddenSeries: ReadonlySet<string>,
 ): TooltipParams | null {
-  const PI2 = Math.PI * 2;
-  const startOffset = -Math.PI / 2;
-  const minSize = Math.min(width, height);
-
   for (const s of series) {
     if (s.type !== "pie") continue;
-
-    const center = s.center ?? ["50%", "50%"];
-    const cx =
-      typeof center[0] === "number"
-        ? center[0]
-        : (parseFloat(center[0]) / 100) * width;
-    const cy =
-      typeof center[1] === "number"
-        ? center[1]
-        : (parseFloat(center[1]) / 100) * height;
-
-    const halfMin = minSize / 2;
-    let innerR = 0;
-    let outerR = halfMin * 0.7;
-    if (s.radius) {
-      const r = s.radius;
-      if (Array.isArray(r)) {
-        innerR =
-          typeof r[0] === "number" ? r[0] : (parseFloat(r[0]) / 100) * halfMin;
-        outerR =
-          typeof r[1] === "number" ? r[1] : (parseFloat(r[1]) / 100) * halfMin;
-      } else {
-        outerR = typeof r === "number" ? r : (parseFloat(r) / 100) * halfMin;
-      }
-    }
-
+    const slices = computePieSlices(s, width, height, hiddenSeries);
+    if (slices.length === 0) continue;
+    const { cx, cy, innerR, outerR } = slices[0];
     const dist = Math.hypot(mx - cx, my - cy);
     if (dist < innerR || dist > outerR) continue;
 
-    let cursorAngle = Math.atan2(my - cy, mx - cx);
-    if (cursorAngle < startOffset) cursorAngle += PI2;
-
-    const data: any[] = s.data ?? [];
-    const total =
-      data.reduce((sum: number, item: any) => sum + (item.value ?? 0), 0) || 1;
+    const cursor = Math.atan2(my - cy, mx - cx);
     const globalIdx = allSeries.indexOf(s);
-
-    let currentAngle = startOffset;
-    for (let di = 0; di < data.length; di++) {
-      const item = data[di];
-      const fraction = (item.value ?? 0) / total;
-      const endAngle = currentAngle + fraction * PI2;
-
-      let a = cursorAngle;
-      if (a < currentAngle) a += PI2;
-      const isLegendHidden =
-        typeof item?.name === "string" && hiddenSeries.has(item.name);
-      if (!isLegendHidden && a >= currentAngle && a < endAngle) {
-        return {
-          componentType: "series",
-          seriesType: "pie",
-          seriesIndex: globalIdx,
-          seriesName: s.name ?? "",
-          name: item.name ?? String(di),
-          dataIndex: di,
-          data: item,
-          value: item.value,
-          color: seriesColor(di),
-          percent: Math.round(fraction * 1000) / 10,
-        };
-      }
-      currentAngle = endAngle;
+    for (const slice of slices) {
+      if (!angleInPieSlice(cursor, slice.startAngle, slice.endAngle)) continue;
+      return {
+        componentType: "series",
+        seriesType: "pie",
+        seriesIndex: globalIdx,
+        seriesName: s.name ?? "",
+        name: slice.item.name ?? String(slice.dataIndex),
+        dataIndex: slice.dataIndex,
+        data: slice.item,
+        value: slice.item.value,
+        color: seriesColor(slice.dataIndex),
+        percent: Math.round(slice.fraction * 1000) / 10,
+      };
     }
   }
   return null;
+}
+
+function dataItemXY(
+  item: unknown,
+  dataIndex: number,
+): { xVal: unknown; yVal: number } | null {
+  if (typeof item === "number") return { xVal: dataIndex, yVal: item };
+  if (Array.isArray(item)) {
+    const yVal = item[1];
+    if (typeof yVal !== "number") return null;
+    return { xVal: item[0], yVal };
+  }
+  if (item && typeof item === "object") {
+    const value = (item as { value?: unknown }).value;
+    if (typeof value === "number") return { xVal: dataIndex, yVal: value };
+  }
+  return null;
+}
+
+// Item-trigger hit-test for bar / line. Bars use the mapped rect (category
+// band × value-to-baseline); lines use a 20px nearest-point radius.
+function hitTestCartesianItem(
+  series: any[],
+  mx: number,
+  my: number,
+  xScales: any[],
+  yScales: any[],
+  allSeries: SeriesOption[],
+): TooltipParams | null {
+  let nearest: TooltipParams | null = null;
+  let nearestDist = 20;
+
+  for (const s of series) {
+    if (s.type !== "bar" && s.type !== "line") continue;
+    const xScale = xScales[s.xAxisIndex ?? 0];
+    const yScale = yScales[s.yAxisIndex ?? 0];
+    if (!xScale || !yScale) continue;
+    const isHorizontal = Math.abs(yScale.bandwidth()) > 0;
+    const data: unknown[] = s.data ?? [];
+    const globalIdx = allSeries.indexOf(s);
+
+    for (let dataIndex = 0; dataIndex < data.length; dataIndex++) {
+      const item = data[dataIndex];
+      const xy = dataItemXY(item, dataIndex);
+      if (!xy) continue;
+      const px = isHorizontal ? xScale.map(xy.yVal) : xScale.map(xy.xVal);
+      const py = isHorizontal ? yScale.map(dataIndex) : yScale.map(xy.yVal);
+
+      let dist: number;
+      if (s.type === "bar") {
+        const band = Math.abs((isHorizontal ? yScale : xScale).bandwidth());
+        const half = Math.max(band / 2, 8);
+        if (isHorizontal) {
+          if (Math.abs(my - py) > half) continue;
+          const baseline = xScale.map(0);
+          const lo = Math.min(px, baseline);
+          const hi = Math.max(px, baseline);
+          if (mx < lo - 2 || mx > hi + 2) continue;
+        } else {
+          if (Math.abs(mx - px) > half) continue;
+          const baseline = yScale.map(0);
+          const lo = Math.min(py, baseline);
+          const hi = Math.max(py, baseline);
+          if (my < lo - 2 || my > hi + 2) continue;
+        }
+        dist = Math.min(Math.abs(mx - px), Math.abs(my - py));
+      } else {
+        dist = Math.hypot(mx - px, my - py);
+      }
+      if (dist >= nearestDist) continue;
+      nearestDist = dist;
+      nearest = {
+        componentType: "series",
+        seriesType: s.type ?? "",
+        seriesIndex: globalIdx,
+        seriesName: s.name ?? "",
+        name: s.name || String(xy.xVal ?? ""),
+        dataIndex,
+        data: item,
+        value: xy.yVal,
+        color: seriesColor(globalIdx),
+        percent: undefined,
+      };
+    }
+  }
+  return nearest;
+}
+
+function defaultTooltipTrigger(series: SeriesOption[]): "item" | "axis" {
+  const pieLike = series.some(
+    (s) =>
+      s.type === "pie" ||
+      s.type === "funnel" ||
+      s.type === "treemap" ||
+      s.type === "gauge" ||
+      s.type === "radar",
+  );
+  const cartesian = series.some(
+    (s) =>
+      s.type === "line" ||
+      s.type === "bar" ||
+      s.type === "scatter" ||
+      s.type === "heatmap" ||
+      s.type === "candlestick" ||
+      s.type === "boxplot" ||
+      s.type === "pictorialBar",
+  );
+  return pieLike && !cartesian ? "item" : "axis";
+}
+
+function seriesNameSetKey(series: SeriesOption[]): string {
+  return [
+    ...new Set(series.map((s) => s.name ?? "").filter((name) => name !== "")),
+  ]
+    .sort()
+    .join("\0");
+}
+
+function asAxisList(
+  axis: AxisOption | AxisOption[] | undefined,
+  fallback: AxisOption,
+): AxisOption[] {
+  if (Array.isArray(axis)) return axis;
+  return axis ? [axis] : [fallback];
+}
+
+function bindDatasetOption(option: ChartOption): ChartOption {
+  const series = applyDatasetToSeries(option.series ?? [], option.dataset);
+  const next: ChartOption = { ...option, series };
+  if (option.xAxis != null || option.dataset != null) {
+    const xAxes = fillCategoryAxes(
+      asAxisList(option.xAxis, { type: "category" }),
+      series,
+      "x",
+    );
+    next.xAxis = xAxes.length === 1 ? xAxes[0] : xAxes;
+  }
+  if (option.yAxis != null) {
+    const yAxes = fillCategoryAxes(
+      asAxisList(option.yAxis, { type: "value" }),
+      series,
+      "y",
+    );
+    next.yAxis = yAxes.length === 1 ? yAxes[0] : yAxes;
+  }
+  return next;
 }
 
 // Hit-test cursor position against scatter data points. Returns params for nearest point within 20px or null.
@@ -303,6 +414,18 @@ function warnUnsupportedChartOption(option: ChartOption): void {
       "@domphy/chart: option.brush is typed for ECharts interop but is not implemented yet; it has no effect.",
     );
   }
+  const polarSeries = (
+    Array.isArray(option.series)
+      ? option.series
+      : option.series
+        ? [option.series]
+        : []
+  ).some((entry) => (entry as { coordinateSystem?: string }).coordinateSystem === "polar");
+  if (option.polar != null && polarSeries) {
+    warnOnce(
+      "@domphy/chart: polar series rendering is typed for ECharts interop but is not implemented yet; option.polar is resolved for layout only.",
+    );
+  }
   // TooltipOption keys that are typed for ECharts interop but ignored.
   // (backgroundColor/borderColor/borderWidth/padding/textStyle/extraCssText/
   // className/confine ARE implemented — do not warn for those.)
@@ -371,6 +494,8 @@ export class ChartEngine {
 
   // Interactive state
   private hiddenSeries: Set<string> = new Set();
+  private seriesNameKey = "";
+  private polarCoords: PolarCoord[] = [];
   private xZoomMap: Map<number, ZoomWindow> = new Map();
   private yZoomMap: Map<number, ZoomWindow> = new Map();
   private dataZoomCleanup: (() => void) | null = null;
@@ -415,7 +540,15 @@ export class ChartEngine {
   }
 
   async init(): Promise<void> {
-    this.device = await getDevice(this.canvas);
+    const device = await getDevice(this.canvas);
+    this.finishInit(device);
+  }
+
+  // Isolated so tests can exercise the destroy-vs-getDevice race without a
+  // real WebGL device: destroy() then finishInit() must be a no-op.
+  private finishInit(device: Device): void {
+    if (this.destroyed) return;
+    this.device = device;
     this.barRenderer = new BarRenderer(this.device);
     this.lineRenderer = new LineRenderer(this.device);
     this.scatterRenderer = new ScatterRenderer(this.device);
@@ -453,44 +586,51 @@ export class ChartEngine {
     const normalizedOption: ChartOption = Array.isArray(option.series)
       ? option
       : { ...option, series: option.series ? [option.series] : [] };
-    this.option = normalizedOption;
+    const preparedOption = bindDatasetOption(normalizedOption);
+    this.option = preparedOption;
 
     // Honest surface: type/docs may list ECharts-compatible keys that are not
     // implemented yet. Warn once per option so silent no-ops do not ship as
     // "working" enterprise charts.
-    warnUnsupportedChartOption(normalizedOption);
+    warnUnsupportedChartOption(preparedOption);
 
-    // Reset interactive state when option changes
-    this.hiddenSeries = new Set();
+    // Reset zoom on every option replace. Legend toggles persist unless the
+    // set of series names actually changed (a data-only refresh must not
+    // un-hide what the user just clicked).
     this.xZoomMap = new Map();
     this.yZoomMap = new Map();
+    const nameKey = seriesNameSetKey(preparedOption.series ?? []);
+    if (nameKey !== this.seriesNameKey) {
+      this.hiddenSeries = new Set();
+      this.seriesNameKey = nameKey;
 
-    // Seed legend toggles from `legend.selected` (ECharts semantics: a name
-    // mapped to `false` starts hidden and is restored by clicking the legend).
-    const initialLegends = Array.isArray(normalizedOption.legend)
-      ? normalizedOption.legend
-      : normalizedOption.legend
-        ? [normalizedOption.legend]
-        : [];
-    for (const legend of initialLegends) {
-      if (!legend.selected) continue;
-      for (const [name, selected] of Object.entries(legend.selected)) {
-        if (selected === false) this.hiddenSeries.add(name);
+      // Seed legend toggles from `legend.selected` (ECharts semantics: a name
+      // mapped to `false` starts hidden and is restored by clicking the legend).
+      const initialLegends = Array.isArray(preparedOption.legend)
+        ? preparedOption.legend
+        : preparedOption.legend
+          ? [preparedOption.legend]
+          : [];
+      for (const legend of initialLegends) {
+        if (!legend.selected) continue;
+        for (const [name, selected] of Object.entries(legend.selected)) {
+          if (selected === false) this.hiddenSeries.add(name);
+        }
       }
-    }
 
-    // ECharts selectedMode "single" constrains the INITIAL state too: at most
-    // one series may start visible. When the `selected` map (or the default
-    // all-visible state) leaves several visible, the first one in series
-    // order wins and the rest start hidden — matching the last-click-wins
-    // toggle behavior in render().
-    for (const legend of initialLegends) {
-      if (legend.selectedMode !== "single") continue;
-      const names = (normalizedOption.series ?? [])
-        .map((s) => s.name ?? "")
-        .filter((n) => n !== "");
-      const visible = names.filter((n) => !this.hiddenSeries.has(n));
-      for (const extra of visible.slice(1)) this.hiddenSeries.add(extra);
+      // ECharts selectedMode "single" constrains the INITIAL state too: at most
+      // one series may start visible. When the `selected` map (or the default
+      // all-visible state) leaves several visible, the first one in series
+      // order wins and the rest start hidden — matching the last-click-wins
+      // toggle behavior in render().
+      for (const legend of initialLegends) {
+        if (legend.selectedMode !== "single") continue;
+        const names = (preparedOption.series ?? [])
+          .map((s) => s.name ?? "")
+          .filter((n) => n !== "");
+        const visible = names.filter((n) => !this.hiddenSeries.has(n));
+        for (const extra of visible.slice(1)) this.hiddenSeries.add(extra);
+      }
     }
 
     // Initialize DataZoom state from option (skip "inside" — it has no initial range)
@@ -513,11 +653,14 @@ export class ChartEngine {
       this.tooltipCtrl = null;
     }
     if (normalizedOption.tooltip?.show !== false) {
-      this.tooltipCtrl = createTooltip(
-        this.container,
-        normalizedOption.tooltip ?? {},
-      );
-      this.bindTooltipEvents(normalizedOption);
+      const tooltipOption = {
+        ...(normalizedOption.tooltip ?? {}),
+        trigger:
+          normalizedOption.tooltip?.trigger ??
+          defaultTooltipTrigger(preparedOption.series ?? []),
+      };
+      this.tooltipCtrl = createTooltip(this.container, tooltipOption);
+      this.bindTooltipEvents({ ...preparedOption, tooltip: tooltipOption });
     }
 
     this.render();
@@ -609,6 +752,37 @@ export class ChartEngine {
     // through the gauge SVG renderer and every WebGL renderer below.
     const colorResolver = createColorResolver(this.container);
 
+    // Polar layout is computed whenever option.polar is set so the public
+    // polar/angleAxis/radiusAxis surface is not a silent no-op at the coord
+    // layer. Polar series drawing itself is still typed-only (see warn).
+    if (option.polar != null) {
+      const polars = Array.isArray(option.polar)
+        ? option.polar
+        : [option.polar];
+      const angleAxes = Array.isArray(option.angleAxis)
+        ? option.angleAxis
+        : option.angleAxis
+          ? [option.angleAxis]
+          : [{}];
+      const radiusAxes = Array.isArray(option.radiusAxis)
+        ? option.radiusAxis
+        : option.radiusAxis
+          ? [option.radiusAxis]
+          : [{}];
+      this.polarCoords = polars.map((polar, index) =>
+        resolvePolar(
+          polar,
+          angleAxes[index] ?? {},
+          radiusAxes[index] ?? {},
+          series,
+          width,
+          height,
+        ),
+      );
+    } else {
+      this.polarCoords = [];
+    }
+
     // ─── SVG Overlay ──────────────────────────────────────────────────────────
     if (hasCartesian)
       renderAxes(
@@ -624,13 +798,21 @@ export class ChartEngine {
         },
         this.backsvg,
       );
+    else {
+      this.overlaysvg.querySelector(".dc-axes")?.remove();
+      this.backsvg.querySelector(".dc-axes-grid")?.remove();
+    }
 
     const titles = Array.isArray(option.title)
       ? option.title
       : option.title
         ? [option.title]
         : [];
-    for (const title of titles) renderTitle(this.overlaysvg, title);
+    if (titles.length === 0)
+      this.overlaysvg
+        .querySelectorAll(".dc-title")
+        .forEach((node) => node.remove());
+    else for (const title of titles) renderTitle(this.overlaysvg, title);
 
     const legends = Array.isArray(option.legend)
       ? option.legend
@@ -638,6 +820,10 @@ export class ChartEngine {
         ? [option.legend]
         : [];
 
+    if (legends.length === 0)
+      this.overlaysvg
+        .querySelectorAll(".dc-legend")
+        .forEach((node) => node.remove());
     for (const legend of legends) {
       renderLegend(
         this.overlaysvg,
@@ -1009,6 +1195,7 @@ export class ChartEngine {
         height,
         seriesOffset,
         colorResolver,
+        this.hiddenSeries,
       );
       seriesOffset += pieSeries.length;
     }
@@ -1108,6 +1295,7 @@ export class ChartEngine {
 
     if (marksData.length > 0)
       renderMarksToSvg(this.overlaysvg, marksData as any);
+    else this.overlaysvg.querySelector(".dc-marks")?.remove();
 
     // DataZoom sliders. Sliders carry in-progress drag state on document-level
     // listeners, so they must NOT be torn down and re-created on every render
@@ -1199,6 +1387,26 @@ export class ChartEngine {
       const series = allSeries.filter(
         (s) => !s.name || !this.hiddenSeries.has(s.name),
       );
+      const trigger = option.tooltip?.trigger ?? defaultTooltipTrigger(allSeries);
+      const pieHit = hitTestPie(
+        series,
+        mx,
+        my,
+        this.width,
+        this.height,
+        allSeries,
+        this.hiddenSeries,
+      );
+      if (pieHit && trigger !== "none") {
+        this.tooltipCtrl.update({
+          visible: true,
+          x: mx,
+          y: my,
+          params: [pieHit],
+        });
+        return;
+      }
+
       const grid = resolveGrid(
         grids as any,
         xAxes as any,
@@ -1222,7 +1430,6 @@ export class ChartEngine {
         return;
       }
 
-      const trigger = option.tooltip?.trigger ?? "axis";
       const params: TooltipParams[] = [];
 
       if (trigger === "axis") {
@@ -1295,19 +1502,13 @@ export class ChartEngine {
           option.tooltip?.axisPointer?.type ?? "line",
         );
       } else if (trigger === "item") {
-        // Item trigger: hit-test pie sectors and scatter points
+        // Pie is handled above (before the grid-rect clip). Remaining
+        // item hits: scatter, then bar/line.
         renderAxisPointer(this.overlaysvg, null, null, gridRect);
 
         const hit =
-          hitTestPie(
-            series,
-            mx,
-            my,
-            this.width,
-            this.height,
-            allSeries,
-            this.hiddenSeries,
-          ) ?? hitTestScatter(series, mx, my, xScales, yScales, allSeries);
+          hitTestScatter(series, mx, my, xScales, yScales, allSeries) ??
+          hitTestCartesianItem(series, mx, my, xScales, yScales, allSeries);
         if (hit) params.push(hit);
       }
 

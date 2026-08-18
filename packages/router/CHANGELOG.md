@@ -1,5 +1,10 @@
 # @domphy/router
 
+## 0.18.2
+
+- Security: `isDangerousProtocol` treats protocol-relative URLs (`//host`) and scheme-like URL-ctor failures as dangerous. `redirect()` no longer emits raw `//host` or `javascript:` `Location` headers; SSR header merge drops them too.
+- Fix: SWR background loader redirects abort when `latestLocation` has been superseded (same identity check as `RouterCore.load()`).
+
 ## 0.18.1
 
 - Tests: SSR server surface (`createRequestHandler`) smoke coverage for production request → load → Response path. Changelog

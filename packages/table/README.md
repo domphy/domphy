@@ -32,6 +32,10 @@ const dTable = createDomphyTable({
   columns,
   getCoreRowModel: getCoreRowModel(),
   getSortedRowModel: getSortedRowModel(),
+  // Default `row.id` is the row *index* (`"0"`, `"1"`, …). Pass `getRowId`
+  // whenever you use `row.id` as a reconcile `_key`, or for selection /
+  // pinning that must survive sort, filter, or data reorder.
+  getRowId: (person) => String(person.id),
 })
 ```
 
@@ -92,9 +96,11 @@ const PrevButton = {
 
 ```ts
 dTable.setOptions((prev) => ({ ...prev, data: freshPeople }))
+// Raw object is merged onto the previous options (adapter `onStateChange` is kept):
+dTable.setOptions({ data: freshPeople })
 ```
 
-Row models re-derive on `data` identity change, and the page index clamps automatically when the dataset shrinks (`autoResetPageIndex`, default on unless `manualPagination`). Use `setState` for table state (sorting, filters, …) — not `setOptions`.
+Row models re-derive on `data` identity change, and the page index clamps automatically when the dataset shrinks (`autoResetPageIndex`, default on unless `manualPagination`). Use `setState` for table state (sorting, filters, …) — not `setOptions`. The adapter owns `onStateChange`; a raw object or updater cannot replace that wrapper.
 
 ## Cell editing (opt-in)
 
@@ -116,7 +122,7 @@ const dTable = createDomphyTable({
 })
 ```
 
-State is `cellEditing: { rowId, columnId } | null` — one cell edits at a time. Cell methods: `beginEdit()`, `commitEdit(value)` (fires `onCellEdit`, then exits), `cancelEdit()` (exits silently), `getIsEditing()`, `getCanEdit()`. Table methods: `setEditingCell`, `getEditingCell`, `resetEditingCell`.
+State is `cellEditing: { rowId, columnId } | null` — one cell edits at a time. Cell methods: `beginEdit()`, `commitEdit(value)` (fires `onCellEdit`, then **always** exits — even if `onCellEdit` throws or `initialState.cellEditing` is set), `cancelEdit()` (exits silently the same way), `getIsEditing()`, `getCanEdit()`. Table methods: `setEditingCell`, `getEditingCell`, `resetEditingCell(defaultState?)` (`true` forces `null`; without `true` restores `initialState.cellEditing`). Types expose these methods as optional because the feature is not in `builtInFeatures`.
 
 An editable `<td>` render — show an input while the cell is editing, commit on Enter/blur, cancel on Escape:
 
@@ -156,7 +162,10 @@ All TanStack Table v8 APIs are available unchanged.
 - `createTable` / `createColumnHelper` — table instance and typed column defs
 - Row models (opt-in, tree-shakeable): core, sorted, filtered, grouped, expanded, paginated, faceted
 - Built-in `sortingFns`, `filterFns`, `aggregationFns`
-- Per-feature APIs: column filtering, global filtering, sorting, pagination, row selection, expanding, grouping, column ordering/pinning/sizing/visibility, faceting
+- Per-feature APIs: column filtering, global filtering, sorting, pagination, row selection, expanding, grouping, column ordering/pinning/sizing/visibility, **row pinning**, faceting
+- **Row pinning** (built-in): `row.pin`, `getTopRows` / `getCenterRows` / `getBottomRows`. Missing pinned ids (row left the data) are skipped, not thrown
+- **`getRowId`**: default `row.id` is the row **index**. Required for stable `_key: row.id`, selection, and pinning across sort/filter/reorder — pass `getRowId: (row) => String(row.id)` when the row has an `id`
+- **Cell editing** (Domphy-original, **opt-in** — not in `builtInFeatures`; pass `_features: [CellEditing]`). Types on `Table`/`Cell`/`TableState` are optional until the feature is installed. `commitEdit` / `cancelEdit` always exit edit mode (`resetEditingCell(true)`)
 
 ## Documentation
 

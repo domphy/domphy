@@ -276,6 +276,17 @@ function announcementBar(config: SiteConfig): DomphyElement | null {
 
 // --- Locale switcher ----------------------------------------------------
 
+function localePrefix(key: string): string {
+  return key.replace(/\/$/, "");
+}
+
+// Segment-boundary match: "/vi" must not claim "/video".
+function routeBelongsToLocale(route: string, key: string): boolean {
+  if (key === "/") return false;
+  const prefix = localePrefix(key);
+  return route === prefix || route.startsWith(`${prefix}/`);
+}
+
 function localeSwitcher(ctx: LayoutContext): DomphyElement | null {
   const { config, route } = ctx;
   if (!config.locales) return null;
@@ -284,10 +295,15 @@ function localeSwitcher(ctx: LayoutContext): DomphyElement | null {
 
   let currentKey = "/";
   let barePath = route;
-  for (const [key] of entries) {
-    if (key !== "/" && route.startsWith(key.replace(/\/$/, ""))) {
+  // Longest prefix first so /zh-CN wins over /zh.
+  const prefixed = entries
+    .filter(([key]) => key !== "/")
+    .sort((a, b) => localePrefix(b[0]).length - localePrefix(a[0]).length);
+  for (const [key] of prefixed) {
+    if (routeBelongsToLocale(route, key)) {
       currentKey = key;
-      barePath = route.slice(key.replace(/\/$/, "").length) || "/";
+      const prefix = localePrefix(key);
+      barePath = route === prefix ? "/" : route.slice(prefix.length) || "/";
       break;
     }
   }

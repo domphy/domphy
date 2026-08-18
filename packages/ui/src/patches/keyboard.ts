@@ -2,6 +2,7 @@ import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
+  themeDensity,
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
@@ -31,9 +32,9 @@ function keyboard(
       color: (listener) => themeColor(listener, "text", color.get(listener)),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
-      paddingBlock: themeSpacing(0.5),
-      paddingInline: themeSpacing(1.5),
-      borderRadius: themeSpacing(1),
+      paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 0.5),
+      paddingInline: (listener) => themeSpacing(themeDensity(listener) * 1.5),
+      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
       outline: (listener) =>
         `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
     },

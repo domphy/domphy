@@ -21,8 +21,8 @@
 
 import type { ChartOption } from "@domphy/chart";
 import { chart } from "@domphy/chart";
-import type { DomphyElement } from "@domphy/core";
-import { toState } from "@domphy/core";
+import type { DomphyElement, ElementNode } from "@domphy/core";
+import { behavior, toState } from "@domphy/core";
 import { themeSpacing } from "@domphy/theme";
 import { motion, select } from "@domphy/ui";
 import {
@@ -69,6 +69,30 @@ const DEFAULT_SERIES: ChartAreaInteractiveSeries[] = [
   { key: "desktop", label: "Desktop", tone: chartAreaSeriesColor(1).tone },
 ];
 
+// Class instance so cloneDescriptor/deepClone passes it by reference —
+// a plain `{ current }` box would be cloned and replayReveal would keep
+// reading generation 2's empty copy.
+class ChartFrameRef {
+  current: HTMLElement | null = null;
+}
+
+type RevealFrameProps = {
+  frame: ChartFrameRef;
+};
+
+function attachRevealFrame(node: ElementNode, props: RevealFrameProps) {
+  const element = node.domElement as HTMLElement;
+  props.frame.current = element;
+  return {
+    update: (next: RevealFrameProps) => {
+      next.frame.current = element;
+    },
+    destroy: () => {
+      props.frame.current = null;
+    },
+  };
+}
+
 /**
  * shadcn/ui "chart-area" interactive recipe — a taller gradient-fill area
  * chart over a long daily range, with a trailing-window range select in the
@@ -89,7 +113,7 @@ function chartAreaInteractive(
     height = 64,
   } = props;
 
-  let chartFrameElement: HTMLElement | null = null;
+  const frameRef = new ChartFrameRef();
 
   function buildOption(days: number): ChartOption {
     const sliced = data.slice(-days);
@@ -136,6 +160,7 @@ function chartAreaInteractive(
   const optionState = toState(buildOption(defaultRangeDays));
 
   function replayReveal(): void {
+    const chartFrameElement = frameRef.current;
     if (!chartFrameElement || typeof chartFrameElement.animate !== "function")
       return;
     chartFrameElement.animate(
@@ -157,10 +182,12 @@ function chartAreaInteractive(
         animate: { clipPath: "inset(0% 0% 0% 0%)" },
         transition: CHART_AREA_REVEAL_TRANSITION,
       }),
+      // Persist the frame across reused-node generations so range-change
+      // replayReveal() still finds the DOM node after an ancestor remount.
+      behavior<RevealFrameProps>("chart-reveal-frame", attachRevealFrame, {
+        frame: frameRef,
+      }),
     ],
-    _onMount: (node) => {
-      chartFrameElement = node.domElement as HTMLElement;
-    },
   };
 
   const rangeAside: DomphyElement<"aside"> = {

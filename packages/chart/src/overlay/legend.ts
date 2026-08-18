@@ -1,6 +1,7 @@
 import { themeColor } from "@domphy/theme";
 import { seriesColor } from "../gl/color.js";
 import type { LegendOption, SeriesOption } from "../types.js";
+import { stampOverlayGroup, takeOverlaySlot } from "./groups.js";
 
 export function renderLegend(
   svg: SVGSVGElement,
@@ -8,15 +9,15 @@ export function renderLegend(
   series: SeriesOption[],
   hiddenSeries: Set<string>,
   onToggle: (name: string) => void,
+  index?: number,
 ): void {
-  const old = svg.querySelector(".dc-legend");
-  if (old) old.remove();
+  const { slot, root } = takeOverlaySlot(svg, "dc-legend", index);
   if (legend.show === false) return;
 
   const svgWidth = Number(svg.getAttribute("width") ?? 400);
   const svgHeight = Number(svg.getAttribute("height") ?? 300);
   const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
-  group.setAttribute("class", "dc-legend");
+  stampOverlayGroup(group, slot);
   group.setAttribute("pointer-events", "all");
   group.style.cursor = legend.selectedMode === false ? "default" : "pointer";
 
@@ -118,5 +119,5 @@ export function renderLegend(
     }
   });
 
-  svg.appendChild(group);
+  root.appendChild(group);
 }

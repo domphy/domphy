@@ -126,6 +126,16 @@ function biasContext(context: number, direction: string, bias: number): number {
   return context;
 }
 
+function requireBaseTone(theme: string, role: string): number {
+  const index = getTheme(theme).baseTones[role];
+  if (index === undefined) {
+    throw new Error(
+      `baseTones.${role} is not defined on theme "${theme}" — set a base tone index (0–${TONE_STEPS - 1}) via setTheme("${theme}", { baseTones: { ${role}: <index> } }) so themeColor(..., "base", "${role}") can resolve`,
+    );
+  }
+  return index;
+}
+
 export function themeColor(
   object: ElementNode | Listener | null,
   tone: ElementTone = "inherit",
@@ -139,23 +149,11 @@ export function themeColor(
     if (!colors) {
       throw Error(`color "${themeColor}" not found on theme "light"`);
     }
-    if (tone === "base") return colors[getTheme("light").baseTones[themeColor]];
+    if (tone === "base") return colors[requireBaseTone("light", themeColor)];
     return colors[offsetTone(0, tone)];
   }
 
   const name = themeName(object);
-  let resultTone: number;
-  if (tone === "base") {
-    resultTone = getTheme(name).baseTones[themeColor];
-  } else {
-    const theme = getTheme(name);
-    const context = biasContext(
-      contextTone(object),
-      theme.direction,
-      theme.darkBias,
-    );
-    resultTone = offsetTone(context, tone);
-  }
   const colors = themeVars()[themeColor];
   if (!colors) {
     // themeVars() is keyed on the "light" theme STRUCTURE — it emits the
@@ -169,6 +167,18 @@ export function themeColor(
     throw Error(
       `color "${themeColor}" not found on the "light" theme (required by node theme "${name}") — themeColor() var references are keyed on the "light" theme structure; register the role on "light" as well (e.g. setTheme("light", { colors: { ${themeColor}: … } })) so the shared CSS-var baseline includes it`,
     );
+  }
+  let resultTone: number;
+  if (tone === "base") {
+    resultTone = requireBaseTone(name, themeColor);
+  } else {
+    const theme = getTheme(name);
+    const context = biasContext(
+      contextTone(object),
+      theme.direction,
+      theme.darkBias,
+    );
+    resultTone = offsetTone(context, tone);
   }
   const resultColor = colors[resultTone];
 
@@ -200,14 +210,13 @@ export function themeColorToken(
   }
 
   if (!object) {
-    if (tone === "base")
-      return colorTokens[getTheme("light").baseTones[colorName]];
+    if (tone === "base") return colorTokens[requireBaseTone("light", colorName)];
     return colorTokens[offsetTone(0, tone)];
   }
 
   let resultTone: number;
   if (tone === "base") {
-    resultTone = getTheme(name).baseTones[colorName];
+    resultTone = requireBaseTone(name, colorName);
   } else {
     const theme = getTheme(name);
     const context = biasContext(
@@ -254,6 +263,6 @@ export function resolveThemeColor(
   if (!colorTokens) {
     throw Error(`color "${colorName}" not found on theme "${theme}"`);
   }
-  if (tone === "base") return colorTokens[getTheme(theme).baseTones[colorName]];
+  if (tone === "base") return colorTokens[requireBaseTone(theme, colorName)];
   return colorTokens[offsetTone(0, tone)];
 }

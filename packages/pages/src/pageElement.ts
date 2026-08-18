@@ -1,6 +1,7 @@
 /**
  * pages[] lane — the LIVE Domphy runtime. The engine side (parse, evaluate,
- * event law, validation) lives in @parashape/parametric's pages.ts; this
+ * event law, validation) lives in this package's engine/ (parked from
+ * @parashape/parametric); this
  * module bridges a page's `element`/`text` NodeJSON tree (v33, 2026-07-22 —
  * see schema/model.ts's module doc) onto Domphy's fine-grained reactivity:
  *
@@ -65,7 +66,10 @@ import {
     type OperationJSON,
     PAGE_ATTRIBUTE_SET,
     PAGE_EVENT_SET,
+    PAGE_KEYFRAME_STEP,
     PAGE_PATCH_SET,
+    PAGE_STYLE_PROPERTY_SET,
+    PAGE_STYLE_SELECTOR,
     PAGE_TAG_SET,
     type PageJSON,
     type PageScope,
@@ -73,7 +77,7 @@ import {
     type ResolvedPagePopover,
     resolvePageParameters,
     StatsNamespace,
-} from "@parashape/parametric"
+} from "../engine/index.js"
 import { type PopoverOptions, popover } from "./popover.js"
 
 // Defense-in-depth: children/patches EXPRESSIONS generate node-shaped data at
@@ -86,9 +90,11 @@ const safeTag = (tag: string): string => (PAGE_TAG_SET.has(tag) ? tag : "div")
 
 // URL-valued attributes: a whitelisted NAME (href/src/poster) still carries a
 // dangerous VALUE — `href="javascript:…"` runs on click. Neutralize the
-// executable/document schemes (keep data:image for inline images).
+// executable/document schemes. href is stricter than src/poster: a data: URL
+// there is a navigation target (svg+xml runs script; any non-http(s) data: is
+// blocked). src/poster keep raster/svg data:image for inline media / pageView.
 const URL_ATTRIBUTES = new Set(["href", "src", "poster"])
-function sanitizeUrl(value: unknown): unknown {
+export function sanitizeUrl(value: unknown, attribute?: string): unknown {
     if (typeof value !== "string") return value
     // Drop every ASCII control char + space (code <= 0x20) BEFORE the scheme
     // check. The browser's URL parser strips embedded tab/newline/CR and leading
@@ -99,7 +105,12 @@ function sanitizeUrl(value: unknown): unknown {
     let stripped = ""
     for (let i = 0; i < value.length; i++) if (value.charCodeAt(i) > 0x20) stripped += value[i]
     const s = stripped.toLowerCase()
-    if (s.startsWith("javascript:") || s.startsWith("vbscript:") || (s.startsWith("data:") && !s.startsWith("data:image/"))) return "#"
+    if (s.startsWith("javascript:") || s.startsWith("vbscript:")) return "#"
+    if (s.startsWith("data:")) {
+        if (attribute === "href") return "#"
+        if (s.startsWith("data:image/")) return value
+        return "#"
+    }
     return value
 }
 
@@ -240,6 +251,80 @@ function objectEntries(ast: AstLike): { key: string; value: AstLike }[] {
 
 const ELEMENT_META_ARGS = new Set(["tag", "style", "patches", "children"])
 
+export type AdoptGeneratedOptions = {
+    dispatch?: (result: unknown) => void
+    adoptPopover?: (content: unknown, config: Omit<ResolvedPagePopover, "content">) => unknown
+    onPopoverError?: (error: unknown) => void
+}
+
+function adoptStyle(value: unknown, inKeyframe = false): Record<string, unknown> | undefined {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return undefined
+    const out: Record<string, unknown> = {}
+    for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
+        if (nested && typeof nested === "object" && !Array.isArray(nested)) {
+            if (key.startsWith("@keyframes")) {
+                const steps = adoptStyle(nested, true)
+                if (steps) out[key] = steps
+            } else if (inKeyframe && PAGE_KEYFRAME_STEP.test(key)) {
+                const step = adoptStyle(nested, false)
+                if (step) out[key] = step
+            } else if (PAGE_STYLE_SELECTOR.test(key)) {
+                const inner = adoptStyle(nested, false)
+                if (inner) out[key] = inner
+            }
+        } else if (PAGE_STYLE_PROPERTY_SET.has(key)) {
+            out[key] = nested
+        }
+    }
+    return Object.keys(out).length ? out : undefined
+}
+
+// Generated children/patches.content are already-resolved data. Only a
+// GeneratedPageNode (string method + args) or a primitive is admitted — a
+// raw object (missing/non-string method) is dropped, not passed through, so
+// `{script, on*}` never becomes a live DOM node.
+export function adoptGenerated(value: unknown, options?: AdoptGeneratedOptions): unknown {
+    if (Array.isArray(value)) return value.map(item => adoptGenerated(item, options)).filter(item => item !== undefined)
+    if (value === null || typeof value !== "object") return value
+    if (typeof (value as { method?: unknown }).method !== "string") return undefined
+    const node = value as { method: string; key?: string; args?: { key: string; value: unknown }[]; children?: unknown[] }
+    const byKey = new Map((node.args ?? []).map(arg => [arg.key, arg.value]))
+    if (node.method === "pageText") {
+        const text = byKey.get("value") ?? ""
+        if (text !== null && typeof text === "object") return undefined
+        return text
+    }
+    if (node.method !== "pageElement") return undefined
+    const out: Record<string, unknown> = {}
+    const tag = safeTag(String(byKey.get("tag") ?? "div"))
+    out[tag] = node.children !== undefined ? adoptGenerated(node.children, options) : null
+    if (typeof node.key === "string") out._key = node.key
+    for (const [key, val] of byKey) {
+        if (ELEMENT_META_ARGS.has(key)) continue
+        if (PAGE_EVENT_SET.has(key) && typeof val === "function") {
+            const fn = val as (...args: unknown[]) => unknown
+            out[key] = options?.dispatch
+                ? (...args: unknown[]) => options.dispatch!(fn(...args))
+                : (...args: unknown[]) => fn(...args)
+        } else if (PAGE_ATTRIBUTE_SET.has(key)) {
+            out[key] = URL_ATTRIBUTES.has(key) ? sanitizeUrl(val, key) : val
+        }
+    }
+    const style = adoptStyle(byKey.get("style"))
+    if (style) out.style = style
+    const patchesValue = byKey.get("patches") as Record<string, unknown> | undefined
+    const popoverValue = patchesValue?.popover as Record<string, unknown> | undefined
+    if (popoverValue && options?.adoptPopover) {
+        const { content, ...rest } = popoverValue
+        try {
+            out.$ = [options.adoptPopover(adoptGenerated(content, options), rest as Omit<ResolvedPagePopover, "content">)]
+        } catch (error) {
+            options.onPopoverError?.(error)
+        }
+    }
+    return out
+}
+
 export function pageElement(page: PageJSON, options: PageElementOptions): PageHandle {
     const record = new RecordState<Record<string, unknown>>({})
     const scope = buildScope(options.scope, options.extra, record, options.invalidate)
@@ -280,44 +365,11 @@ export function pageElement(page: PageJSON, options: PageElementOptions): PageHa
         }
     }
 
-    // Adopt a GENERATED node (the resolved value of a `children`/patches-
-    // content expression) into Domphy content: `{method: 'pageElement', args,
-    // children}` becomes a Domphy element, `{method:'text', args}`/a bare
-    // string becomes text, an unrecognized method is dropped entirely.
-    const adoptGenerated = (value: unknown): unknown => {
-        if (Array.isArray(value)) return value.map(adoptGenerated).filter(item => item !== undefined)
-        if (!value || typeof value !== "object" || typeof (value as { method?: unknown }).method !== "string") return value
-        const node = value as { method: string; key?: string; args?: { key: string; value: unknown }[]; children?: unknown[] }
-        const byKey = new Map((node.args ?? []).map(a => [a.key, a.value]))
-        if (node.method === "pageText") return byKey.get("value") ?? ""
-        if (node.method !== "pageElement") return undefined
-        const out: Record<string, unknown> = {}
-        const tag = safeTag(String(byKey.get("tag") ?? "div"))
-        out[tag] = node.children !== undefined ? adoptGenerated(node.children) : null
-        if (typeof node.key === "string") out._key = node.key
-        for (const [key, val] of byKey) {
-            if (ELEMENT_META_ARGS.has(key)) continue
-            if (PAGE_EVENT_SET.has(key) && typeof val === "function") {
-                const fn = val as (...args: unknown[]) => unknown
-                out[key] = (...args: unknown[]) => dispatch(fn(...args))
-            } else if (PAGE_ATTRIBUTE_SET.has(key)) {
-                out[key] = URL_ATTRIBUTES.has(key) ? sanitizeUrl(val) : val
-            }
-        }
-        const styleValue = byKey.get("style")
-        if (styleValue && typeof styleValue === "object") out.style = styleValue
-        const patchesValue = byKey.get("patches") as Record<string, unknown> | undefined
-        const popoverValue = patchesValue?.popover as Record<string, unknown> | undefined
-        if (popoverValue) {
-            const { content, ...rest } = popoverValue
-            try {
-                out.$ = [makePopoverPatch(adoptGenerated(content), rest as Omit<ResolvedPagePopover, "content">)]
-            } catch (error) {
-                reportError({ kind: "popover-patch", message: "[page] generated popover patch failed:", error })
-            }
-        }
-        return out
-    }
+    const adopt = (value: unknown): unknown => adoptGenerated(value, {
+        dispatch,
+        adoptPopover: (content, rest) => makePopoverPatch(content, rest),
+        onPopoverError: error => reportError({ kind: "popover-patch", message: "[page] generated popover patch failed:", error }),
+    })
 
     // The VALUE law, compiled once: unparsable string = static literal;
     // parsable = reactive fn whose eval failure falls back to the literal
@@ -332,7 +384,7 @@ export function pageElement(page: PageJSON, options: PageElementOptions): PageHa
         }
         return (listener: Listener) => {
             try {
-                return adoptGenerated(evaluate(ast, scope.context(listener), scope.namespaces))
+                return adopt(evaluate(ast, scope.context(listener), scope.namespaces))
             } catch {
                 return expression
             }
@@ -406,7 +458,7 @@ export function pageElement(page: PageJSON, options: PageElementOptions): PageHa
         if (!popoverConfig || typeof popoverConfig !== "object" || !PAGE_PATCH_SET.has("popover")) return []
         const { content, ...rest } = popoverConfig as Record<string, unknown>
         try {
-            return [makePopoverPatch(adoptGenerated(content), rest as Omit<ResolvedPagePopover, "content">)]
+            return [makePopoverPatch(adopt(content), rest as Omit<ResolvedPagePopover, "content">)]
         } catch (error) {
             reportError({ kind: "popover-patch", message: "[page] popover patch failed:", error })
             return []
@@ -463,8 +515,8 @@ export function pageElement(page: PageJSON, options: PageElementOptions): PageHa
             const resolved = reactiveValue(arg.input)
             out[key] = URL_ATTRIBUTES.has(key)
                 ? (typeof resolved === "function"
-                    ? (listener: Listener) => sanitizeUrl((resolved as (l: Listener) => unknown)(listener))
-                    : sanitizeUrl(resolved))
+                    ? (listener: Listener) => sanitizeUrl((resolved as (l: Listener) => unknown)(listener), key)
+                    : sanitizeUrl(resolved, key))
                 : resolved
         }
         const styleInput = argInput(node, "style")

@@ -1,7 +1,11 @@
 import {
+  behavior,
   type DomphyElement,
+  type ElementNode,
+  isState,
   type Listener,
   type PartialElement,
+  type State,
   toState,
   type ValueOrState,
 } from "@domphy/core";
@@ -23,6 +27,142 @@ type TabItem = {
   /** Stable identity key. Defaults to the item's zero-based index. */
   key?: string | number;
 };
+
+type TabsLive = {
+  items: TabItem[];
+  accentColor: ThemeColor;
+  color: ThemeColor;
+};
+
+function persistValue<T>(
+  node: ElementNode,
+  key: string,
+  incoming: ValueOrState<T> | undefined,
+  fallback: T,
+): State<T> {
+  if (isState(incoming)) {
+    node.setMetadata(key, incoming);
+    return incoming as State<T>;
+  }
+  let stored = node.getMetadata(key) as State<T> | undefined;
+  if (!stored) {
+    stored = toState((incoming as T | undefined) ?? fallback);
+    node.setMetadata(key, stored);
+  }
+  return stored;
+}
+
+function buildTabsChildren(
+  node: ElementNode,
+  items: TabItem[],
+  activeKey: State<string | number>,
+  accentColor: ThemeColor,
+  color: ThemeColor,
+): DomphyElement[] {
+  const id = node.nodeId;
+
+  const buttons: DomphyElement<"button">[] = items.map((item, index) => {
+    const key = item.key ?? index;
+    const labelEl: DomphyElement =
+      typeof item.label === "string"
+        ? ({ span: item.label } as DomphyElement<"span">)
+        : item.label;
+
+    return {
+      button: [labelEl],
+      _key: key,
+      type: "button",
+      role: "tab",
+      id: `tab${id}${key}`,
+      ariaControls: `panel${id}${key}`,
+      ariaSelected: (l: Listener) => activeKey.get(l) === key,
+      // Roving tabindex (APG tabs pattern): only the selected tab is in
+      // the tab order; arrow keys move both selection and focus.
+      tabIndex: (l: Listener) => (activeKey.get(l) === key ? 0 : -1),
+      onClick: () => activeKey.set(key),
+      onKeyDown: (e: Event) => {
+        const k = (e as KeyboardEvent).key;
+        if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(k)) return;
+        e.preventDefault();
+        const keys = items.map((it, i) => it.key ?? i);
+        const idx = keys.indexOf(key);
+        let next = idx;
+        if (k === "ArrowRight") next = (idx + 1) % keys.length;
+        else if (k === "ArrowLeft")
+          next = (idx - 1 + keys.length) % keys.length;
+        else if (k === "Home") next = 0;
+        else if (k === "End") next = keys.length - 1;
+        activeKey.set(keys[next]);
+        // Focus must follow selection: without this the next arrow key
+        // fires on the OLD tab and re-navigates from its stale position,
+        // making later tabs unreachable by keyboard. Resolved via the
+        // event target's own tablist — shadow-root safe (unlike a
+        // document.getElementById lookup).
+        const list = (e.target as HTMLElement).closest("[role=tablist]");
+        list?.querySelectorAll<HTMLElement>("[role=tab]")[next]?.focus();
+      },
+      style: {
+        cursor: "pointer",
+        fontSize: (l: Listener) => themeSize(l, "inherit"),
+        height: (l: Listener) => themeSpacing(6 + themeDensity(l) * 2),
+        paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 4),
+        border: "none",
+        outline: "none",
+        // Resting tabs: shift-13 for ≥4.5:1 on surface (catalog low-contrast).
+        color: (l: Listener) => themeColor(l, "shift-13"),
+        backgroundColor: (l: Listener) => themeColor(l, "inherit"),
+        boxShadow: (l: Listener) =>
+          `inset 0 ${themeSpacing(-0.5)} 0 0 ${themeColor(l, "shift-1", color)}`,
+        transition: "box-shadow 140ms ease, color 140ms ease",
+        "&:hover:not([disabled]):not([aria-selected=true])": {
+          color: (l: Listener) => themeColor(l, "shift-13"),
+          boxShadow: (l: Listener) =>
+            `inset 0 ${themeSpacing(-0.5)} 0 0 ${themeColor(l, "shift-2", color)}`,
+        },
+        "&[aria-selected=true]:not([disabled])": {
+          color: (l: Listener) => themeColor(l, "shift-13", accentColor),
+          boxShadow: (l: Listener) =>
+            `inset 0 ${themeSpacing(-0.5)} 0 0 ${themeColor(l, "shift-8", accentColor)}`,
+        },
+        // Focus ring must compose with the selected underline (both use
+        // box-shadow) so keyboard focus doesn't erase the active indicator.
+        "&:focus-visible": {
+          boxShadow: (l: Listener) => focusRing(l, accentColor),
+        },
+        "&[aria-selected=true]:focus-visible": {
+          boxShadow: (l: Listener) =>
+            `${focusRing(l, accentColor)}, inset 0 ${themeSpacing(-0.5)} 0 0 ${themeColor(l, "shift-6", accentColor)}`,
+        },
+      },
+    } as DomphyElement<"button">;
+  });
+
+  const tablist: DomphyElement<"div"> = {
+    div: buttons,
+    _key: "tablist",
+    role: "tablist",
+    ariaOrientation: "horizontal",
+    style: { display: "flex" },
+  } as DomphyElement<"div">;
+
+  const panels: DomphyElement<"div">[] = items.map((item, index) => {
+    const key = item.key ?? index;
+    return {
+      div: [item.content],
+      _key: key,
+      role: "tabpanel",
+      id: `panel${id}${key}`,
+      ariaLabelledby: `tab${id}${key}`,
+      hidden: (l: Listener) => activeKey.get(l) !== key,
+      style: {
+        paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+        paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 2),
+      },
+    } as DomphyElement<"div">;
+  });
+
+  return [tablist, ...panels];
+}
 
 /**
  * All-in-one tabs patch. Generates a `[role=tablist]` button row and
@@ -51,114 +191,49 @@ function tabs(
   } = { items: [] },
 ): PartialElement {
   const { items = [], accentColor = "primary", color = "neutral" } = props;
-  const activeKey = toState(props.activeKey ?? items[0]?.key ?? 0);
+  const live: TabsLive = { items, accentColor, color };
 
   return {
     _onSchedule: (node, element) => {
-      const id = node.nodeId;
-
-      const buttons: DomphyElement<"button">[] = items.map((item, index) => {
-        const key = item.key ?? index;
-        const labelEl: DomphyElement =
-          typeof item.label === "string"
-            ? ({ span: item.label } as DomphyElement<"span">)
-            : item.label;
-
-        return {
-          button: [labelEl],
-          _key: key,
-          type: "button",
-          role: "tab",
-          id: `tab${id}${key}`,
-          ariaControls: `panel${id}${key}`,
-          ariaSelected: (l: Listener) => activeKey.get(l) === key,
-          // Roving tabindex (APG tabs pattern): only the selected tab is in
-          // the tab order; arrow keys move both selection and focus.
-          tabIndex: (l: Listener) => (activeKey.get(l) === key ? 0 : -1),
-          onClick: () => activeKey.set(key),
-          onKeyDown: (e: Event) => {
-            const k = (e as KeyboardEvent).key;
-            if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(k)) return;
-            e.preventDefault();
-            const keys = items.map((it, i) => it.key ?? i);
-            const idx = keys.indexOf(key);
-            let next = idx;
-            if (k === "ArrowRight") next = (idx + 1) % keys.length;
-            else if (k === "ArrowLeft")
-              next = (idx - 1 + keys.length) % keys.length;
-            else if (k === "Home") next = 0;
-            else if (k === "End") next = keys.length - 1;
-            activeKey.set(keys[next]);
-            // Focus must follow selection: without this the next arrow key
-            // fires on the OLD tab and re-navigates from its stale position,
-            // making later tabs unreachable by keyboard. Resolved via the
-            // event target's own tablist — shadow-root safe (unlike a
-            // document.getElementById lookup).
-            const list = (e.target as HTMLElement).closest("[role=tablist]");
-            list?.querySelectorAll<HTMLElement>("[role=tab]")[next]?.focus();
-          },
-          style: {
-            cursor: "pointer",
-            fontSize: (l: Listener) => themeSize(l, "inherit"),
-            height: (l: Listener) => themeSpacing(6 + themeDensity(l) * 2),
-            paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 4),
-            border: "none",
-            outline: "none",
-            // Resting tabs: shift-13 for ≥4.5:1 on surface (catalog low-contrast).
-            color: (l: Listener) => themeColor(l, "shift-13"),
-            backgroundColor: (l: Listener) => themeColor(l, "inherit"),
-            boxShadow: (l: Listener) =>
-              `inset 0 ${themeSpacing(-0.5)} 0 0 ${themeColor(l, "shift-1", color)}`,
-            transition: "box-shadow 140ms ease, color 140ms ease",
-            "&:hover:not([disabled]):not([aria-selected=true])": {
-              color: (l: Listener) => themeColor(l, "shift-13"),
-              boxShadow: (l: Listener) =>
-                `inset 0 ${themeSpacing(-0.5)} 0 0 ${themeColor(l, "shift-2", color)}`,
-            },
-            "&[aria-selected=true]:not([disabled])": {
-              color: (l: Listener) => themeColor(l, "shift-13", accentColor),
-              boxShadow: (l: Listener) =>
-                `inset 0 ${themeSpacing(-0.5)} 0 0 ${themeColor(l, "shift-8", accentColor)}`,
-            },
-            // Focus ring must compose with the selected underline (both use
-            // box-shadow) so keyboard focus doesn't erase the active indicator.
-            "&:focus-visible": {
-              boxShadow: (l: Listener) => focusRing(l, accentColor),
-            },
-            "&[aria-selected=true]:focus-visible": {
-              boxShadow: (l: Listener) =>
-                `${focusRing(l, accentColor)}, inset 0 ${themeSpacing(-0.5)} 0 0 ${themeColor(l, "shift-6", accentColor)}`,
-            },
-          },
-        } as DomphyElement<"button">;
-      });
-
-      const tablist: DomphyElement<"div"> = {
-        div: buttons,
-        role: "tablist",
-        ariaOrientation: "horizontal",
-        style: { display: "flex" },
-      } as DomphyElement<"div">;
-
-      const panels: DomphyElement<"div">[] = items.map((item, index) => {
-        const key = item.key ?? index;
-        return {
-          div: [item.content],
-          _key: key,
-          role: "tabpanel",
-          id: `panel${id}${key}`,
-          ariaLabelledby: `tab${id}${key}`,
-          hidden: (l: Listener) => activeKey.get(l) !== key,
-          style: {
-            paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 2),
-            paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 2),
-          },
-        } as DomphyElement<"div">;
-      });
-
-      // Inject generated structure into the host element's children slot.
-      (element as any)[node.tagName] = [tablist, ...panels];
+      const activeKey = persistValue(
+        node,
+        "tabsActiveKey",
+        props.activeKey,
+        items[0]?.key ?? 0,
+      );
+      (element as Record<string, unknown>)[node.tagName] = buildTabsChildren(
+        node,
+        items,
+        activeKey,
+        accentColor,
+        color,
+      );
     },
+    ...behavior<TabsLive>(
+      "tabs-items",
+      (node) => ({
+        update(snapshot) {
+          const activeKey = persistValue(
+            node,
+            "tabsActiveKey",
+            props.activeKey,
+            snapshot.items[0]?.key ?? 0,
+          );
+          node.children.update(
+            buildTabsChildren(
+              node,
+              snapshot.items,
+              activeKey,
+              snapshot.accentColor,
+              snapshot.color,
+            ),
+            !!node.domElement,
+            true,
+          );
+        },
+      }),
+      live,
+    ),
   };
 }
 

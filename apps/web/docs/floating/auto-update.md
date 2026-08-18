@@ -357,6 +357,9 @@ handle.connect(referenceEl, floatingEl)
 handle.onUpdate(({ x, y }) => {
   Object.assign(floatingEl.style, { left: `${x}px`, top: `${y}px` })
 })
+handle.onError((error) => {
+  console.error(error)
+})
 
 // When the floating element leaves the DOM:
 handle.disconnect()
@@ -413,6 +416,7 @@ interface FloatingHandle {
   disconnect(): void
   readonly position: FloatingPosition | null
   onUpdate(callback: (position: FloatingPosition) => void): () => void
+  onError(callback: (error: unknown) => void): () => void
 }
 
 interface FloatingPosition {
@@ -427,6 +431,10 @@ interface FloatingPosition {
 ## `handle.position`
 
 After the first `connect()` call resolves, `handle.position` holds the last computed result. It is `null` before the first update completes. Use `onUpdate` for reactive updates; read `position` for a synchronous snapshot after-the-fact.
+
+## `handle.onError`
+
+`computePosition` rejections are delivered to `onError` listeners. Without a listener they go to `console.error`. A late rejection after `disconnect()` (or after `connect()` retargets to a different pair) is dropped.
 
 ## Reconfiguring
 

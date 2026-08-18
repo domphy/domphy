@@ -7,6 +7,7 @@
   "scripts": {
     "build": "node build.mjs",
     "bench": "node harness/run.mjs",
-    "profile": "node harness/profile.mjs"
+    "profile": "node harness/profile.mjs",
+    "test": "node harness/assert.mjs"
   }
 }

@@ -27,8 +27,13 @@
 //                  `(r - x*z, r - y*z)` so the scaled content point (x, y)
 //                  lands on the window's center.
 
-import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
-import { effect, toState, type ValueOrState } from "@domphy/core";
+import type {
+  DomphyElement,
+  ElementNode,
+  State,
+  StyleObject,
+} from "@domphy/core";
+import { behavior, effect, toState, type ValueOrState } from "@domphy/core";
 import { themeSpacing } from "@domphy/theme";
 
 export interface LensPosition {
@@ -144,114 +149,17 @@ function lens(props: LensProps = {}): DomphyElement<"div"> {
     dataLensZoomLayer: "true",
     ariaHidden: "true",
     style: { position: "absolute", insetBlockStart: 0, insetInlineStart: 0 },
-    _onMount: (node: ElementNode) => {
-      const zoomLayer = node.domElement as HTMLElement | null;
-      const scaleWrapper = zoomLayer?.parentElement ?? null;
-      const overlay = scaleWrapper?.parentElement ?? null;
-      const wrapper = overlay?.parentElement ?? null;
-      if (
-        !zoomLayer ||
-        !scaleWrapper ||
-        !overlay ||
-        !wrapper ||
-        typeof window === "undefined"
-      )
-        return;
-      const baseContent = wrapper.querySelector(
-        '[data-lens-content="true"]',
-      ) as HTMLElement | null;
-      if (!baseContent) return;
-
-      // Duplicate the already-rendered base content once for the magnified layer.
-      const clone = baseContent.cloneNode(true) as HTMLElement;
-      clone.removeAttribute("data-lens-content");
-      zoomLayer.appendChild(clone);
-
-      let lensRadius = overlay.offsetWidth / 2;
-
-      const syncSizes = () => {
-        lensRadius = overlay.offsetWidth / 2;
-        const rect = baseContent.getBoundingClientRect();
-        zoomLayer.style.width = `${rect.width}px`;
-        zoomLayer.style.height = `${rect.height}px`;
-      };
-      syncSizes();
-
-      // Position is written straight to the untransitioned `translate(...)` on
-      // the overlay, so the lens snaps to the cursor with no lag on every move.
-      const applyLensPosition = (x: number, y: number) => {
-        overlay.style.transform = `translate(${x - lensRadius}px, ${y - lensRadius}px)`;
-        zoomLayer.style.transformOrigin = "0 0";
-        zoomLayer.style.transform =
-          `translate(${lensRadius - x * zoomFactor}px, ${lensRadius - y * zoomFactor}px) ` +
-          `scale(${zoomFactor})`;
-      };
-
-      const showLens = () => {
-        overlay.style.opacity = "1";
-        scaleWrapper.style.transform = ENTER_SCALE;
-      };
-      const hideLens = () => {
-        overlay.style.opacity = "0";
-        scaleWrapper.style.transform = EXIT_SCALE;
-      };
-
-      const positionFromEvent = (event: MouseEvent) => {
-        const rect = baseContent.getBoundingClientRect();
-        applyLensPosition(event.clientX - rect.left, event.clientY - rect.top);
-      };
-
-      let resizeObserver: ResizeObserver | null = null;
-      if (typeof ResizeObserver !== "undefined") {
-        resizeObserver = new ResizeObserver(() => syncSizes());
-        resizeObserver.observe(baseContent);
-      }
-
-      let disposeEffect: (() => void) | null = null;
-      let handleMove: ((event: MouseEvent) => void) | null = null;
-      let handleEnter: ((event: MouseEvent) => void) | null = null;
-      let handleLeave: (() => void) | null = null;
-
-      if (isStatic) {
-        // Reactive, declarative-style control: re-applies whenever the caller
-        // updates a `State<LensPosition>` passed as `props.position`. Stays
-        // visible (overlay opacity / wrapper scale start shown).
-        disposeEffect = effect(() => {
-          const position = positionState.get();
-          applyLensPosition(position.x, position.y);
-        });
-      } else if (defaultPosition) {
-        // Always visible: rest at defaultPosition, follow the cursor on hover,
-        // snap back on leave. No fade — opacity/scale stay at their shown values.
-        applyLensPosition(defaultPosition.x, defaultPosition.y);
-        handleMove = positionFromEvent;
-        handleLeave = () =>
-          applyLensPosition(defaultPosition.x, defaultPosition.y);
-        wrapper.addEventListener("mousemove", handleMove);
-        wrapper.addEventListener("mouseleave", handleLeave);
-      } else {
-        // Follow mode: hidden until hover, fades/scales in on enter and out on
-        // leave. High-frequency tracking is imperative (direct DOM writes),
-        // matching the same tradeoff pointer.ts/dock.ts make.
-        handleMove = positionFromEvent;
-        handleEnter = (event: MouseEvent) => {
-          positionFromEvent(event);
-          showLens();
-        };
-        handleLeave = hideLens;
-        wrapper.addEventListener("mousemove", handleMove);
-        wrapper.addEventListener("mouseenter", handleEnter);
-        wrapper.addEventListener("mouseleave", handleLeave);
-      }
-
-      node.addHook("Remove", () => {
-        disposeEffect?.();
-        resizeObserver?.disconnect();
-        if (handleMove) wrapper.removeEventListener("mousemove", handleMove);
-        if (handleEnter) wrapper.removeEventListener("mouseenter", handleEnter);
-        if (handleLeave) wrapper.removeEventListener("mouseleave", handleLeave);
-      });
-    },
+    ...behavior<{
+      zoomFactor: number;
+      isStatic: boolean;
+      positionState: State<LensPosition>;
+      defaultPosition?: LensPosition;
+    }>("magicui-lens", attachLens, {
+      zoomFactor,
+      isStatic,
+      positionState,
+      defaultPosition,
+    }),
   };
 
   // Clips the zoom layer and carries the radial-gradient mask (the sole reveal
@@ -321,6 +229,126 @@ function lens(props: LensProps = {}): DomphyElement<"div"> {
       overflow: "hidden",
       borderRadius: themeSpacing(3),
       ...(props.style ?? {}),
+    },
+  };
+}
+
+function attachLens(
+  node: ElementNode,
+  initialProps: {
+    zoomFactor: number;
+    isStatic: boolean;
+    positionState: State<LensPosition>;
+    defaultPosition?: LensPosition;
+  },
+) {
+  let props = initialProps;
+  const zoomLayer = node.domElement as HTMLElement | null;
+  const scaleWrapper = zoomLayer?.parentElement ?? null;
+  const overlay = scaleWrapper?.parentElement ?? null;
+  const wrapper = overlay?.parentElement ?? null;
+  if (
+    !zoomLayer ||
+    !scaleWrapper ||
+    !overlay ||
+    !wrapper ||
+    typeof window === "undefined"
+  ) {
+    return { update() {}, destroy() {} };
+  }
+  const baseContent = wrapper.querySelector(
+    '[data-lens-content="true"]',
+  ) as HTMLElement | null;
+  if (!baseContent) return { update() {}, destroy() {} };
+
+  const clone = baseContent.cloneNode(true) as HTMLElement;
+  clone.removeAttribute("data-lens-content");
+  zoomLayer.appendChild(clone);
+
+  let lensRadius = overlay.offsetWidth / 2;
+
+  const syncSizes = () => {
+    lensRadius = overlay.offsetWidth / 2;
+    const rect = baseContent.getBoundingClientRect();
+    zoomLayer.style.width = `${rect.width}px`;
+    zoomLayer.style.height = `${rect.height}px`;
+  };
+  syncSizes();
+
+  const applyLensPosition = (x: number, y: number) => {
+    overlay.style.transform = `translate(${x - lensRadius}px, ${y - lensRadius}px)`;
+    zoomLayer.style.transformOrigin = "0 0";
+    zoomLayer.style.transform =
+      `translate(${lensRadius - x * props.zoomFactor}px, ${lensRadius - y * props.zoomFactor}px) ` +
+      `scale(${props.zoomFactor})`;
+  };
+
+  const showLens = () => {
+    overlay.style.opacity = "1";
+    scaleWrapper.style.transform = ENTER_SCALE;
+  };
+  const hideLens = () => {
+    overlay.style.opacity = "0";
+    scaleWrapper.style.transform = EXIT_SCALE;
+  };
+
+  const positionFromEvent = (event: MouseEvent) => {
+    const rect = baseContent.getBoundingClientRect();
+    applyLensPosition(event.clientX - rect.left, event.clientY - rect.top);
+  };
+
+  let resizeObserver: ResizeObserver | null = null;
+  if (typeof ResizeObserver !== "undefined") {
+    resizeObserver = new ResizeObserver(() => syncSizes());
+    resizeObserver.observe(baseContent);
+  }
+
+  let disposeEffect: (() => void) | null = null;
+  let handleMove: ((event: MouseEvent) => void) | null = null;
+  let handleEnter: ((event: MouseEvent) => void) | null = null;
+  let handleLeave: (() => void) | null = null;
+
+  if (props.isStatic) {
+    disposeEffect = effect(() => {
+      const position = props.positionState.get();
+      applyLensPosition(position.x, position.y);
+    });
+  } else if (props.defaultPosition) {
+    const parked = props.defaultPosition;
+    applyLensPosition(parked.x, parked.y);
+    handleMove = positionFromEvent;
+    handleLeave = () => applyLensPosition(parked.x, parked.y);
+    wrapper.addEventListener("mousemove", handleMove);
+    wrapper.addEventListener("mouseleave", handleLeave);
+  } else {
+    handleMove = positionFromEvent;
+    handleEnter = (event: MouseEvent) => {
+      positionFromEvent(event);
+      showLens();
+    };
+    handleLeave = hideLens;
+    wrapper.addEventListener("mousemove", handleMove);
+    wrapper.addEventListener("mouseenter", handleEnter);
+    wrapper.addEventListener("mouseleave", handleLeave);
+  }
+
+  return {
+    update(next: typeof initialProps) {
+      if (next.positionState !== props.positionState && disposeEffect) {
+        disposeEffect();
+        disposeEffect = effect(() => {
+          const position = next.positionState.get();
+          applyLensPosition(position.x, position.y);
+        });
+      }
+      props = next;
+    },
+    destroy() {
+      disposeEffect?.();
+      resizeObserver?.disconnect();
+      if (handleMove) wrapper.removeEventListener("mousemove", handleMove);
+      if (handleEnter) wrapper.removeEventListener("mouseenter", handleEnter);
+      if (handleLeave) wrapper.removeEventListener("mouseleave", handleLeave);
     },
   };
 }

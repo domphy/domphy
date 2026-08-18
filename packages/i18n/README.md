@@ -89,6 +89,10 @@ t("nav.missing")  // ✗ TypeScript error
 | `getLocale` | `() → TLocale` | Current locale (non-reactive) |
 | `detectLocale` | `(opts?) → TLocale` | Detect locale from URL/localStorage |
 
+Module export `runWithI18n(fn)` — fresh request-locale scope (SSR). No-op on the client.
+
 `createI18n` also accepts an optional `interpolation: { escapeValue?: boolean }` — defaults to `true` (i18next's own safe default, HTML-escapes interpolated values); pass `false` to disable escaping globally.
+
+On the server, `initI18n` / `setLocale` do not mutate the shared `globalThis` store's language. The request locale is stored in `AsyncLocalStorage`, so two concurrent `initI18n("en")` and `initI18n("vi")` calls do not clobber each other. The client still dedups via `globalThis[globalKey]`. Node HTTP already isolates requests; wrap other SSR entry points with `runWithI18n()`.
 
 See the [full API reference](https://domphy.com/docs/i18n/api) for details.

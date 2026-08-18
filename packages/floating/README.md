@@ -4,7 +4,7 @@
 
 Anchor positioning for tooltips, popovers, dropdowns, and menus — `computePosition`, `autoUpdate`, and the `offset` / `flip` / `shift` / `arrow` / `size` middleware.
 
-This package is a **1-1 vendor of [floating-ui](https://github.com/floating-ui/floating-ui)** (`@floating-ui/dom` + `@floating-ui/core` + `@floating-ui/utils`, MIT © Floating UI contributors), bundled into a single **zero-dependency** package. The source tracks upstream byte-for-byte (cross-package imports are resolved at build time) except for a small, documented deviation list — see [UPSTREAM.md](./UPSTREAM.md) for the pinned upstream versions (`@floating-ui/core@1.7.5`, `@floating-ui/dom@1.7.6`) and the deviations — so the entire [Floating UI reference](https://floating-ui.com) applies as-is. It exists so `@domphy/ui` has **no external runtime dependency** — Domphy's overlay patches (`tooltip`, `popover`, `selectBox`, `combobox`) use it internally.
+This package is a **1-1 vendor of [floating-ui](https://github.com/floating-ui/floating-ui)** (`@floating-ui/dom` + `@floating-ui/core` + `@floating-ui/utils`, MIT © Floating UI contributors), bundled into a single **zero-dependency** package. The source tracks upstream byte-for-byte (cross-package imports are resolved at build time) except for a small, documented deviation list — see [UPSTREAM.md](./UPSTREAM.md) for the pinned upstream versions (`@floating-ui/core@1.8.0`, `@floating-ui/dom@1.8.0`) and the deviations — so the entire [Floating UI reference](https://floating-ui.com) applies as-is. It exists so `@domphy/ui` has **no external runtime dependency** — Domphy's overlay patches (`tooltip`, `popover`, `selectBox`, `combobox`) use it internally.
 
 ## Install
 
@@ -46,6 +46,9 @@ const handle = createFloating({
 handle.connect(referenceEl, floatingEl)
 handle.onUpdate(({ x, y }) => {
   Object.assign(floatingEl.style, { left: `${x}px`, top: `${y}px` })
+})
+handle.onError((error) => {
+  console.error(error)
 })
 
 // When the floating element is removed (e.g. `_onBeforeRemove`):

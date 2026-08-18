@@ -11,7 +11,7 @@ import { focusRing } from "../utils/focusRing.js";
 /**
  * Styles a native number input with themed border, padding, visible spin
  * buttons, hover, focus and disabled states. Apply to an `<input>` element of
- * type `number` (the patch sets `type: "number"`).
+ * type `number` (the patch default is `type: "number"`; a native `type` wins).
  *
  * @hostTag input
  * @param props.color - Optional theme color tone for text/border (`ValueOrState<ThemeColor>`). Defaults to `"neutral"`.
@@ -28,12 +28,13 @@ function inputNumber(
   const accentColor = toState(props.accentColor ?? "primary", "accentColor");
 
   return {
+    // Declared like any other attribute — the native element still wins over
+    // this patch default if the host declares its own `type`.
     type: "number",
-    _onSchedule: (node, element) => {
+    _onInsert: (node) => {
       if (node.tagName !== "input") {
         console.warn(`"inputNumber" primitive patch must use input tag`);
       }
-      (element as any).type = "number";
     },
     style: {
       fontFamily: "inherit",

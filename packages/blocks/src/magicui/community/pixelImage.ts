@@ -19,8 +19,15 @@
 // every duplicated tile `<img>` is `alt=""` + `aria-hidden` (decorative) —
 // the composite-image pattern, not N separately-announced images.
 
-import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
-import { toState } from "@domphy/core";
+import type {
+  BehaviorInstance,
+  DomphyElement,
+  ElementNode,
+  Listener,
+  State,
+  StyleObject,
+} from "@domphy/core";
+import { behavior, toState } from "@domphy/core";
 
 export type PixelImageGridPreset =
   | "default"
@@ -68,6 +75,75 @@ const GRID_PRESETS: Record<
 };
 
 const MAX_GRID_LINES = 16;
+
+const PIXEL_IMAGE_BEHAVIOR_KEY = "magicui-pixel-image";
+
+interface PixelImageBehaviorProps {
+  revealed: State<boolean>;
+  colorRevealed: State<boolean>;
+  colorSweep: boolean;
+  colorSweepDelay: number;
+}
+
+interface PixelImageBehavior extends BehaviorInstance<PixelImageBehaviorProps> {
+  revealed: State<boolean>;
+  colorRevealed: State<boolean>;
+}
+
+function attachPixelImage(
+  _node: ElementNode,
+  initialProps: PixelImageBehaviorProps,
+): PixelImageBehavior {
+  const revealed = initialProps.revealed;
+  const colorRevealed = initialProps.colorRevealed;
+  const revealTimeout = setTimeout(() => revealed.set(true), 0);
+  let colorTimeout: ReturnType<typeof setTimeout> | null = null;
+  if (initialProps.colorSweep) {
+    colorTimeout = setTimeout(
+      () => colorRevealed.set(true),
+      initialProps.colorSweepDelay,
+    );
+  }
+  return {
+    revealed,
+    colorRevealed,
+    update() {
+      // Timeouts already armed against the persisted States — do not reset.
+    },
+    destroy() {
+      clearTimeout(revealTimeout);
+      if (colorTimeout !== null) clearTimeout(colorTimeout);
+    },
+  };
+}
+
+function elementNodeOf(listener: Listener): ElementNode | null {
+  const fromListener = (listener as { elementNode?: ElementNode }).elementNode;
+  if (fromListener && typeof fromListener.getBehavior === "function") {
+    return fromListener;
+  }
+  if (typeof (listener as ElementNode).getBehavior === "function") {
+    return listener as ElementNode;
+  }
+  return null;
+}
+
+function pixelRevealStates(
+  listener: Listener,
+  fallbackRevealed: State<boolean>,
+  fallbackColor: State<boolean>,
+): { revealed: State<boolean>; colorRevealed: State<boolean> } {
+  const instance = elementNodeOf(listener)?.getBehavior<PixelImageBehavior>(
+    PIXEL_IMAGE_BEHAVIOR_KEY,
+  );
+  if (instance?.revealed && instance.colorRevealed) {
+    return {
+      revealed: instance.revealed,
+      colorRevealed: instance.colorRevealed,
+    };
+  }
+  return { revealed: fallbackRevealed, colorRevealed: fallbackColor };
+}
 
 // Generic abstract placeholder graphic — an inline SVG data URI, no network
 // fetch and no real photo (same idiom `avatarCircles.ts` uses for its own
@@ -142,10 +218,21 @@ function pixelImage(props: PixelImageProps = {}): DomphyElement<"div"> {
           // the per-cell clip-path then keeps only the corner tiles rounded.
           borderRadius: "2.5rem",
           clipPath: `polygon(${leftPercent}% ${topPercent}%, ${rightPercent}% ${topPercent}%, ${rightPercent}% ${bottomPercent}%, ${leftPercent}% ${bottomPercent}%)`,
-          opacity: (listener) => (revealed.get(listener) ? 1 : 0),
+          opacity: (listener: Listener) =>
+            pixelRevealStates(listener, revealed, colorRevealed).revealed.get(
+              listener,
+            )
+              ? 1
+              : 0,
           filter: colorSweep
-            ? (listener) =>
-                colorRevealed.get(listener) ? "grayscale(0)" : "grayscale(1)"
+            ? (listener: Listener) =>
+                pixelRevealStates(
+                  listener,
+                  revealed,
+                  colorRevealed,
+                ).colorRevealed.get(listener)
+                  ? "grayscale(0)"
+                  : "grayscale(1)"
             : "none",
           transition,
         } as StyleObject,
@@ -174,25 +261,11 @@ function pixelImage(props: PixelImageProps = {}): DomphyElement<"div"> {
         : { "@media (min-width: 768px)": { width: "24rem", height: "24rem" } }),
       ...(props.style ?? {}),
     } as StyleObject,
-    _onMount: (node: ElementNode) => {
-      // A plain macrotask (not a raw synchronous call) so the tiles' initial
-      // `opacity: 0` paints first and the flip to `1` is a real, observable
-      // transition rather than an instantaneous jump — the same "reveal
-      // shortly after mount" idiom `blurFade.ts` uses elsewhere in this
-      // package. Works in both browser and SSR/Node runtimes, unlike `rAF`.
-      const revealTimeout = setTimeout(() => revealed.set(true), 0);
-      let colorTimeout: ReturnType<typeof setTimeout> | null = null;
-      if (colorSweep) {
-        colorTimeout = setTimeout(
-          () => colorRevealed.set(true),
-          colorSweepDelay,
-        );
-      }
-      node.addHook("Remove", () => {
-        clearTimeout(revealTimeout);
-        if (colorTimeout !== null) clearTimeout(colorTimeout);
-      });
-    },
+    ...behavior<PixelImageBehaviorProps>(
+      PIXEL_IMAGE_BEHAVIOR_KEY,
+      attachPixelImage,
+      { revealed, colorRevealed, colorSweep, colorSweepDelay },
+    ),
   } as unknown as DomphyElement<"div">;
 }
 

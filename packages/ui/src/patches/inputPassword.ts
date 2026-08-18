@@ -1,5 +1,10 @@
-import type { DomphyElement, PartialElement, StyleObject } from "@domphy/core";
-import { rawHtml, toState, type ValueOrState } from "@domphy/core";
+import type {
+  DomphyElement,
+  Listener,
+  PartialElement,
+  StyleObject,
+} from "@domphy/core";
+import { isState, rawHtml, toState, type ValueOrState } from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
@@ -31,25 +36,71 @@ const EYE_OFF_SVG =
   `<path d="M3 3l18 18"/>` +
   `</svg>`;
 
+const HOST_FIELD_KEYS = [
+  "name",
+  "value",
+  "onInput",
+  "disabled",
+  "required",
+] as const;
+
+type HostFieldKey = (typeof HOST_FIELD_KEYS)[number];
+
+type HostFields = {
+  name?: string;
+  value?: unknown;
+  onInput?: (event: Event) => void;
+  disabled?: unknown;
+  required?: boolean;
+};
+
+function bindReadable<T>(
+  value: T | ValueOrState<T> | ((listener: Listener) => T) | undefined,
+): T | ((listener: Listener) => T) | undefined {
+  if (value == null) return undefined;
+  if (typeof value === "function") return value as (listener: Listener) => T;
+  if (isState(value)) {
+    return (listener) => (value as { get: (l?: Listener) => T }).get(listener);
+  }
+  return value as T;
+}
+
 /**
  * Password input wrapper: a styled `<div>` that inserts an `<input type="password">`
  * and a show/hide toggle button. The outer div carries the focus-ring outline via
- * `:focus-within`. Apply to an empty `<div>`.
+ * `:focus-within`. Apply to an empty `<div>`. Host `value`/`name`/`onInput`/
+ * `disabled`/`required` are forwarded onto the real input so the field
+ * participates in FormData.
  *
  * @hostTag div
  * @param props.color - Base color tone for border/background/text. Defaults to `"neutral"`.
  * @param props.accentColor - Accent outline color on focus-within. Defaults to `"primary"`.
- * @example { div: null, $: [inputPassword()] }
+ * @param props.value - Forwarded onto the inner input. Optional.
+ * @param props.name - Forwarded onto the inner input (FormData key). Optional.
+ * @param props.onInput - Forwarded onto the inner input. Optional.
+ * @param props.disabled - Forwarded onto the inner input. Optional.
+ * @param props.required - Forwarded onto the inner input. Optional.
+ * @param props.autocomplete - Native autocomplete token. Defaults to `"current-password"`.
+ * @param props.ariaLabel - Accessible name for the inner input. Defaults to `"Password"`.
+ * @example { div: null, name: "password", $: [inputPassword()] }
  */
 function inputPassword(
   props: {
     color?: ValueOrState<ThemeColor>;
     accentColor?: ValueOrState<ThemeColor>;
+    value?: ValueOrState<string>;
+    name?: string;
+    onInput?: (event: Event) => void;
+    disabled?: ValueOrState<boolean>;
+    required?: boolean;
+    autocomplete?: string;
+    ariaLabel?: string;
   } = {},
 ): PartialElement {
   const colorState = toState(props.color ?? "neutral", "color");
   const accentState = toState(props.accentColor ?? "primary", "accentColor");
   const visibleState = toState(false);
+  const hostFields: HostFields = {};
 
   return {
     _onInsert: (node) => {
@@ -57,16 +108,42 @@ function inputPassword(
         console.warn('"inputPassword" patch must use div tag');
       }
     },
+    // Lift form fields off the host before merge so they land on the real
+    // <input> (a div is not form-associated; FormData would omit them).
+    _onSchedule: (_node, element) => {
+      const host = element as PartialElement & HostFields;
+      for (const key of HOST_FIELD_KEYS) {
+        if (host[key] !== undefined) {
+          hostFields[key] = host[key] as never;
+          delete (host as Record<HostFieldKey, unknown>)[key];
+        }
+      }
+    },
     // Build the input/toggle as real child elements (not imperative DOM
     // mutation in _onMount) so generateHTML()/SSR emits the actual markup.
     _onInit: (node) => {
+      const name = props.name ?? hostFields.name;
+      const value = bindReadable<string>(
+        (props.value ?? hostFields.value) as ValueOrState<string> | undefined,
+      );
+      const onInput = props.onInput ?? hostFields.onInput;
+      const disabled = bindReadable<boolean>(
+        (props.disabled ?? hostFields.disabled) as
+          | ValueOrState<boolean>
+          | undefined,
+      );
+      const required = props.required ?? hostFields.required;
+
       const field: DomphyElement<"input"> = {
         input: null,
         type: (l) => (visibleState.get(l) ? "text" : "password"),
-        // Default accessible name; consumers can override via a wrapping label
-        // or by replacing the field through a custom composition.
-        ariaLabel: "Password",
-        autocomplete: "current-password",
+        ariaLabel: props.ariaLabel ?? "Password",
+        autocomplete: props.autocomplete ?? "current-password",
+        ...(name != null ? { name } : {}),
+        ...(value != null ? { value } : {}),
+        ...(onInput != null ? { onInput } : {}),
+        ...(disabled != null ? { disabled } : {}),
+        ...(required != null ? { required } : {}),
         style: {
           flex: 1,
           minWidth: 0,

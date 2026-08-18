@@ -48,9 +48,9 @@ const list = createVirtualizer<HTMLDivElement, HTMLDivElement>({
 | `getVirtualItems(l)` | Reactive list of visible `VirtualItem`s — read with the listener inside the items function. |
 | `getTotalSize(l)` | Reactive total scroll size, for the spacer height/width. |
 | `setScrollElement(el)` | Wire the scroll container DOM node; call from its `_onMount`. |
-| `measureElement(el)` | Dynamic measurement ref; call from each item's `_onMount` for variable sizes. The item element must carry `"data-index": item.index` — the virtualizer reads the index from that attribute and warns + skips measurement when it is missing. |
+| `measureElement(el)` | Dynamic measurement ref; call from each item's `_onMount` for variable sizes, and `measureElement(null)` from `_onRemove` so disconnected nodes are unobserved. The item element must carry `"data-index": item.index` — the virtualizer reads the index from that attribute and warns + skips measurement when it is missing. |
 | `scrollToIndex(i, opts?)` / `scrollToOffset(px, opts?)` | Imperative scrolling. |
-| `setOptions(opts)` | Update `count`/options, then re-measure. |
+| `setOptions(opts)` | Update `count`/options. Preserves measured sizes; call `virtualizer.measure()` to force a full remeasure. |
 | `virtualizer` | The underlying `Virtualizer` — the full virtual-core API including `scrollBy(delta, opts?)`, `scrollToEnd(opts?)`, `takeSnapshot()`, `getDistanceFromEnd()`, `isAtEnd(threshold?)`. |
 | `version(l)` | Raw reactive change counter. |
 | `destroy()` | Detach observers; call from `_onRemove`. |
@@ -60,6 +60,6 @@ const list = createVirtualizer<HTMLDivElement, HTMLDivElement>({
 1. Make the outer element a fixed-height scroll container and wire it: `_onMount: (node) => list.setScrollElement(node.domElement)`. Add `_onRemove: () => list.destroy()` to detach observers when the container is removed.
 2. Inside, render a relative spacer whose height is `list.getTotalSize(l)`.
 3. Map `list.getVirtualItems(l)` into absolutely-positioned children using each item's `start`/`size`, keyed by `item.key`.
-4. For variable-height rows, call `list.measureElement(node.domElement)` from each row's `_onMount` and drop the fixed `height`. Every measured row must render `"data-index": item.index` — the virtualizer resolves the item index from that attribute.
+4. For variable-height rows, call `list.measureElement(node.domElement)` from each row's `_onMount` and `list.measureElement(null)` from `_onRemove`, and drop the fixed `height`. Every measured row must render `"data-index": item.index` — the virtualizer resolves the item index from that attribute.
 
-Pass your own `observeElementRect` / `observeElementOffset` / `scrollToFn` to virtualize against the window instead of an element.
+For window scroll, use `createWindowVirtualizer` from `@domphy/virtual/domphy` instead of passing window observers into `createVirtualizer`.

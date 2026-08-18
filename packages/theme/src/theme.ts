@@ -49,14 +49,15 @@ function colorSteps(input: ThemeInput): number {
 
 // --- Validation ---
 
-// Theme values are interpolated RAW into a <style> block by buildThemeCSS() —
-// a "}" closes the rule early and "</style>" breaks out of the element
-// entirely, letting a crafted custom theme (e.g. loaded from an API response)
-// inject arbitrary CSS/markup. Reject both at validation time.
+// Theme values/names/keys are interpolated RAW into a <style> block by
+// buildThemeCSS() — ";" injects an extra declaration, "}" closes the rule
+// early, and "</style" (any whitespace/case) breaks out of the element,
+// letting a crafted custom theme (e.g. loaded from an API response) inject
+// arbitrary CSS/markup. Reject all three at validation time.
 function assertCssSafe(value: string, where: string): void {
-  if (/}/.test(value) || /<\/style/i.test(value)) {
+  if (/[;}]/.test(value) || /<\/\s*style/i.test(value)) {
     throw new Error(
-      `${where} contains unsafe CSS characters ("}" or "</style>") — theme values are interpolated into a <style> block`,
+      `${where} contains unsafe CSS characters (";", "}", or "</style") — theme values are interpolated into a <style> block`,
     );
   }
 }
@@ -141,6 +142,7 @@ function validateTheme(partial: PartialThemeInput): void {
     // (which produced literal "undefined" in styles) — and ramps of differing
     // lengths would silently disagree with each other.
     for (const name in colors) {
+      assertCssSafe(name, `colors role "${name}"`);
       const ramp = colors[name]!;
       if (ramp.length !== TONE_STEPS) {
         throw new Error(
@@ -206,16 +208,19 @@ function deepMerge(target: any, source: any): void {
 // --- Builders (pure functions) ---
 
 function buildThemeCSS(name: string, input: ThemeInput): string {
+  assertCssSafe(name, "theme name");
   const styles: Record<string, string | number> = {};
   const toneSteps = colorSteps(input);
+  const safeName = escapeKey(name);
 
   for (const key in input) {
     const value = input[key as keyof ThemeInput];
 
     if (key === "colors") {
       for (const colorName in input.colors) {
+        const safeColor = escapeKey(colorName);
         [...Array(toneSteps).keys()].forEach(
-          (i) => (styles[`--${colorName}-${i}`] = input.colors[colorName][i]),
+          (i) => (styles[`--${safeColor}-${i}`] = input.colors[colorName][i]),
         );
       }
     } else if (key === "fontSizes") {
@@ -238,7 +243,7 @@ function buildThemeCSS(name: string, input: ThemeInput): string {
   for (const prop in styles) {
     text += `  ${prop}: ${styles[prop]};\n`;
   }
-  return `[data-theme="${name}"] {\n${text}}`;
+  return `[data-theme="${safeName}"] {\n${text}}`;
 }
 
 // --- Public API ---
@@ -249,6 +254,7 @@ export function getTheme(name: string): ThemeInput {
 }
 
 export function setTheme(name: string, input: PartialThemeInput): void {
+  assertCssSafe(name, "theme name");
   validateTheme(input);
   if (!themes[name]) themes[name] = clone(light);
   deepMerge(themes[name], input);
@@ -315,9 +321,10 @@ export function themeVars(): ThemeVars {
 
     if (key === "colors") {
       for (const name in input.colors) {
+        const safeName = escapeKey(name);
         const colorTones = {} as Partial<Record<number, string>>;
         [...Array(toneSteps).keys()].forEach(
-          (i) => (colorTones[i] = `var(--${name}-${i})`),
+          (i) => (colorTones[i] = `var(--${safeName}-${i})`),
         );
         theme[name] = colorTones as Record<number, string>;
       }

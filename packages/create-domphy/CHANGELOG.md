@@ -1,5 +1,13 @@
 # create-domphy Changelog
 
+## 0.18.7
+
+- Pin scaffolded `@domphy/core` / `theme` / `ui` to the current sibling versions (0.21.1 / 0.22.0 / 0.21.1).
+- Rollback after a mid-scaffold write failure now removes directories this run created (not just files), so a leftover `src/` cannot block retry.
+- An existing `.gitignore` is left untouched instead of being overwritten.
+- Package README documents `applySystemTheme()`; scaffolded `AGENTS.md` includes the string-is-TEXT rule and the `@domphy/doctor` self-check.
+- Tests bundle via `build:bundle` (tsup only) so they no longer regenerate `versions.generated.ts`.
+
 ## 0.18.6
 
 - Pin scaffolded `@domphy/ui` to 0.20.12.

@@ -111,12 +111,83 @@ describe("dragDrop reorder -> bound State", () => {
     await waitFrame();
     expect(parents.get(ul)).toBeDefined();
 
-    // The behavior's destroy() runs on removal and must call FormKit's
-    // tearDown() — which disconnects the MutationObserver, aborts the
-    // parent-level listeners, and deletes the parent from the registry.
+    // destroy() must run tearDownFully: abort parent-level listeners,
+    // disconnect FormKit's setup MutationObserver, and drop the registry
+    // entry. Upstream tearDown() only aborts listeners.
     node.remove();
 
     expect(parents.get(ul)).toBeUndefined();
+  });
+
+  it("disconnects FormKit's MutationObserver on tearDown+rebind and destroy", async () => {
+    // FormKit's dragAndDrop() creates a MutationObserver it never stores
+    // and never disconnects. tearDownFully must hold a handle and
+    // disconnect it — otherwise each config rebind stacks another
+    // observer, and destroy leaves one firing remapNodes() on a detached
+    // parent.
+    const watching = new Map<
+      MutationObserver,
+      { target: Node; disconnected: boolean }
+    >();
+    const proto = MutationObserver.prototype;
+    const originalObserve = proto.observe;
+    const originalDisconnect = proto.disconnect;
+    proto.observe = function (
+      this: MutationObserver,
+      target: Node,
+      options?: MutationObserverInit,
+    ) {
+      watching.set(this, { target, disconnected: false });
+      return originalObserve.call(this, target, options);
+    };
+    proto.disconnect = function (this: MutationObserver) {
+      const record = watching.get(this);
+      if (record) record.disconnected = true;
+      return originalDisconnect.call(this);
+    };
+
+    const items = toState<Item[]>([{ id: 1, label: "A" }]);
+    const handleSelector = toState(".handle-a");
+
+    try {
+      const { host, node } = mount({
+        div: (l) => ({
+          ul: (ll: Parameters<State<Item[]>["get"]>[0]) =>
+            items.get(ll).map((item) => ({ li: item.label, _key: item.id })),
+          $: [dragDrop(items, { dragHandle: handleSelector.get(l) })],
+        }),
+      } as DomphyElement);
+
+      await waitFrame();
+      await waitFrame();
+      const ul = host.querySelector("ul") as HTMLUListElement;
+
+      const onParent = () =>
+        [...watching.entries()].filter(([, record]) => record.target === ul);
+      const activeOnParent = () =>
+        onParent().filter(([, record]) => !record.disconnected);
+
+      expect(activeOnParent().length).toBe(1);
+      const [firstObserver] = activeOnParent()[0]!;
+
+      // Config change forces tearDown+re-register. The first observer
+      // must be disconnected so it does not stack with the new one.
+      handleSelector.set(".handle-b");
+      await flush();
+      await waitFrame();
+      await waitFrame();
+
+      expect(watching.get(firstObserver)?.disconnected).toBe(true);
+      expect(activeOnParent().length).toBe(1);
+
+      node.remove();
+
+      expect(activeOnParent().length).toBe(0);
+      expect(onParent().every(([, record]) => record.disconnected)).toBe(true);
+    } finally {
+      proto.observe = originalObserve;
+      proto.disconnect = originalDisconnect;
+    }
   });
 });
 
@@ -161,6 +232,47 @@ describe("dragDrop cross-generation re-renders (reused-node behavior)", () => {
     setParentValues(ul, secondData as never, [{ id: 7, label: "Q" }]);
 
     // The new binding drives listB; listA is left untouched.
+    expect(listB.get().map((item) => item.id)).toEqual([7]);
+    expect(listA.get().map((item) => item.id)).toEqual([2]);
+
+    node.remove();
+  });
+
+  it("setValues after a State swap hits the new State before the rAF re-register lands", async () => {
+    const listA = toState<Item[]>([{ id: 1, label: "A" }]);
+    const listB = toState<Item[]>([{ id: 9, label: "Z" }]);
+    const current = new StateClass<State<Item[]>>(listA);
+
+    const { host, node } = mount({
+      div: (l) => {
+        const items = current.get(l);
+        return {
+          ul: (ll: Parameters<State<Item[]>["get"]>[0]) =>
+            items.get(ll).map((item) => ({ li: item.label, _key: item.id })),
+          $: [dragDrop(items)],
+        };
+      },
+    } as DomphyElement);
+
+    await waitFrame();
+    await waitFrame();
+    const ul = host.querySelector("ul") as HTMLUListElement;
+
+    const firstData = parents.get(ul);
+    expect(firstData).toBeDefined();
+    setParentValues(ul, firstData as never, [{ id: 2, label: "B" }]);
+    expect(listA.get().map((item) => item.id)).toEqual([2]);
+
+    // update() has swapped props and scheduled a 2-rAF re-register.
+    // The still-installed FormKit getValues/setValues must not keep
+    // closing over listA for those two frames.
+    current.set(listB);
+    await flush();
+
+    const midData = parents.get(ul);
+    expect(midData).toBeDefined();
+    setParentValues(ul, midData as never, [{ id: 7, label: "Q" }]);
+
     expect(listB.get().map((item) => item.id)).toEqual([7]);
     expect(listA.get().map((item) => item.id)).toEqual([2]);
 

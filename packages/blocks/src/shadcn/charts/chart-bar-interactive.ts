@@ -12,8 +12,8 @@
 
 import type { ChartOption, TooltipParams } from "@domphy/chart";
 import { chart } from "@domphy/chart";
-import type { DomphyElement, Listener } from "@domphy/core";
-import { toState } from "@domphy/core";
+import type { DomphyElement, ElementNode, Listener } from "@domphy/core";
+import { behavior, toState } from "@domphy/core";
 import { themeColor, themeSpacing } from "@domphy/theme";
 import { card, heading, paragraph, small } from "@domphy/ui";
 import {
@@ -26,6 +26,32 @@ import {
 } from "./chart-bar-shared.js";
 
 type SeriesKey = "desktop" | "mobile";
+
+// Class instance so cloneDescriptor/deepClone passes it by reference —
+// a plain `{ current }` box would be cloned and sweepReveal would keep
+// reading generation 2's empty copy.
+class ChartFrameRef {
+  current: HTMLElement | null = null;
+}
+
+type RevealFrameProps = {
+  frame: ChartFrameRef;
+  onAttach?: () => void;
+};
+
+function attachRevealFrame(node: ElementNode, props: RevealFrameProps) {
+  const element = node.domElement as HTMLElement;
+  props.frame.current = element;
+  props.onAttach?.();
+  return {
+    update: (next: RevealFrameProps) => {
+      next.frame.current = element;
+    },
+    destroy: () => {
+      props.frame.current = null;
+    },
+  };
+}
 
 function escapeHtml(text: string): string {
   return text
@@ -171,8 +197,9 @@ function chartBarInteractive(
   // via `.addListener`, which only a real State instance exposes.
   const optionState = toState<ChartOption>(buildOption(initialSeries));
 
-  let plotElement: HTMLElement | null = null;
+  const plotFrame = new ChartFrameRef();
   function sweepReveal(): void {
+    const plotElement = plotFrame.current;
     if (!plotElement || typeof plotElement.animate !== "function") return;
     plotElement.animate(
       [
@@ -273,10 +300,12 @@ function chartBarInteractive(
       } as DomphyElement<"div">,
     ],
     style: { position: "relative", width: "100%", height: themeSpacing(72) },
-    _onMount(node) {
-      plotElement = node.domElement as HTMLElement;
-      sweepReveal();
-    },
+    $: [
+      behavior<RevealFrameProps>("chart-reveal-frame", attachRevealFrame, {
+        frame: plotFrame,
+        onAttach: sweepReveal,
+      }),
+    ],
   } as DomphyElement<"div">;
 
   return {

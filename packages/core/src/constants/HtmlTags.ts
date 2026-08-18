@@ -72,6 +72,7 @@ export const HtmlTags = [
   "ruby",
   "s",
   "samp",
+  "script",
   "section",
   "select",
   "slot",

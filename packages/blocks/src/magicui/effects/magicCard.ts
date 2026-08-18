@@ -23,11 +23,12 @@
 // tab is hidden, matching upstream's global reset handlers.
 
 import type {
+  BehaviorInstance,
   DomphyElement,
-  ElementNode,
   Listener,
   StyleObject,
 } from "@domphy/core";
+import { behavior, ElementNode } from "@domphy/core";
 import type { ThemeColor } from "@domphy/theme";
 import { themeColor, themeSpacing } from "@domphy/theme";
 import { heading, paragraph } from "@domphy/ui";
@@ -67,6 +68,209 @@ const ORB_MASS = 0.6;
 const ORB_VISIBLE_STIFFNESS = 300;
 const ORB_VISIBLE_DAMPING = 35;
 
+const MAGIC_CARD_BEHAVIOR_KEY = "magicui-magic-card";
+const MAGIC_CARD_GLOW_KEY = "magicui-magic-card-glow";
+
+interface MagicCardGlowBehavior extends BehaviorInstance {
+  element: HTMLElement | null;
+}
+
+interface MagicCardBehaviorProps {
+  variant: "border" | "orb";
+  spotlightSize: number;
+  orbOpacity: number;
+  offCard: string;
+}
+
+function attachGlowCapture(node: ElementNode): MagicCardGlowBehavior {
+  return {
+    element: node.domElement as HTMLElement,
+    update() {},
+    destroy() {},
+  };
+}
+
+function glowElementOf(node: ElementNode): HTMLElement | null {
+  const items = node.children?.items ?? [];
+  for (const child of items) {
+    if (child instanceof ElementNode) {
+      const glow = child.getBehavior<MagicCardGlowBehavior>(MAGIC_CARD_GLOW_KEY);
+      if (glow?.element) return glow.element;
+    }
+  }
+  return null;
+}
+
+function attachMagicCard(
+  node: ElementNode,
+  initialProps: MagicCardBehaviorProps,
+) {
+  let props = initialProps;
+  const rootElement = node.domElement as HTMLElement | null;
+  if (!rootElement || typeof window === "undefined") {
+    return { update() {}, destroy() {} };
+  }
+
+  if (props.variant === "orb") {
+    let positionX = -props.spotlightSize;
+    let positionY = -props.spotlightSize;
+    let velocityX = 0;
+    let velocityY = 0;
+    let targetX = -props.spotlightSize;
+    let targetY = -props.spotlightSize;
+    let visible = 0;
+    let visibleVelocity = 0;
+    let targetVisible = 0;
+    let frameHandle: number | null = null;
+    let lastTime = 0;
+
+    const apply = () => {
+      const glowElement = glowElementOf(node);
+      if (!glowElement) return;
+      glowElement.style.transform = `translate(${positionX}px, ${positionY}px) translate(-50%, -50%)`;
+      glowElement.style.opacity = String(visible);
+    };
+
+    const step = (time: number) => {
+      if (!rootElement.isConnected) {
+        frameHandle = null;
+        return;
+      }
+      const deltaSeconds = Math.min((time - lastTime) / 1000, 1 / 30);
+      lastTime = time;
+
+      const accelerationX =
+        (-ORB_STIFFNESS * (positionX - targetX) - ORB_DAMPING * velocityX) /
+        ORB_MASS;
+      const accelerationY =
+        (-ORB_STIFFNESS * (positionY - targetY) - ORB_DAMPING * velocityY) /
+        ORB_MASS;
+      velocityX += accelerationX * deltaSeconds;
+      velocityY += accelerationY * deltaSeconds;
+      positionX += velocityX * deltaSeconds;
+      positionY += velocityY * deltaSeconds;
+
+      const visibleAcceleration =
+        -ORB_VISIBLE_STIFFNESS * (visible - targetVisible) -
+        ORB_VISIBLE_DAMPING * visibleVelocity;
+      visibleVelocity += visibleAcceleration * deltaSeconds;
+      visible += visibleVelocity * deltaSeconds;
+
+      apply();
+
+      const settled =
+        Math.abs(positionX - targetX) < 0.01 &&
+        Math.hypot(velocityX, velocityY) < 0.01 &&
+        Math.abs(visible - targetVisible) < 0.001 &&
+        Math.abs(visibleVelocity) < 0.001;
+      frameHandle = settled ? null : requestAnimationFrame(step);
+    };
+
+    const ensureLoopRunning = () => {
+      if (frameHandle === null) {
+        lastTime = performance.now();
+        frameHandle = requestAnimationFrame(step);
+      }
+    };
+
+    const onMove = (event: MouseEvent) => {
+      const rect = rootElement.getBoundingClientRect();
+      targetX = event.clientX - rect.left;
+      targetY = event.clientY - rect.top;
+      rootElement.style.setProperty("--magic-card-x", `${targetX}px`);
+      rootElement.style.setProperty("--magic-card-y", `${targetY}px`);
+      ensureLoopRunning();
+    };
+    const onEnter = () => {
+      targetVisible = props.orbOpacity;
+      ensureLoopRunning();
+    };
+    const onLeave = () => {
+      targetVisible = 0;
+      ensureLoopRunning();
+    };
+    const onGlobalPointerOut = (event: PointerEvent) => {
+      if (!event.relatedTarget) onLeave();
+    };
+    const onBlur = () => onLeave();
+    const onVisibility = () => {
+      if (document.visibilityState !== "visible") onLeave();
+    };
+
+    rootElement.addEventListener("mousemove", onMove);
+    rootElement.addEventListener("mouseenter", onEnter);
+    rootElement.addEventListener("mouseleave", onLeave);
+    window.addEventListener("pointerout", onGlobalPointerOut);
+    window.addEventListener("blur", onBlur);
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return {
+      update(next: MagicCardBehaviorProps) {
+        props = next;
+      },
+      destroy() {
+        rootElement.removeEventListener("mousemove", onMove);
+        rootElement.removeEventListener("mouseenter", onEnter);
+        rootElement.removeEventListener("mouseleave", onLeave);
+        window.removeEventListener("pointerout", onGlobalPointerOut);
+        window.removeEventListener("blur", onBlur);
+        document.removeEventListener("visibilitychange", onVisibility);
+        if (frameHandle !== null) cancelAnimationFrame(frameHandle);
+      },
+    };
+  }
+
+  const setOff = () => {
+    rootElement.style.setProperty("--magic-card-x", props.offCard);
+    rootElement.style.setProperty("--magic-card-y", props.offCard);
+  };
+  const onMove = (event: MouseEvent) => {
+    const rect = rootElement.getBoundingClientRect();
+    rootElement.style.setProperty(
+      "--magic-card-x",
+      `${event.clientX - rect.left}px`,
+    );
+    rootElement.style.setProperty(
+      "--magic-card-y",
+      `${event.clientY - rect.top}px`,
+    );
+    const glowElement = glowElementOf(node);
+    if (glowElement) glowElement.style.opacity = String(GRADIENT_OPACITY);
+  };
+  const hide = () => {
+    setOff();
+    const glowElement = glowElementOf(node);
+    if (glowElement) glowElement.style.opacity = "0";
+  };
+  const onGlobalPointerOut = (event: PointerEvent) => {
+    if (!event.relatedTarget) hide();
+  };
+  const onBlur = () => hide();
+  const onVisibility = () => {
+    if (document.visibilityState !== "visible") hide();
+  };
+
+  setOff();
+  rootElement.addEventListener("mousemove", onMove);
+  rootElement.addEventListener("mouseleave", hide);
+  window.addEventListener("pointerout", onGlobalPointerOut);
+  window.addEventListener("blur", onBlur);
+  document.addEventListener("visibilitychange", onVisibility);
+
+  return {
+    update(next: MagicCardBehaviorProps) {
+      props = next;
+    },
+    destroy() {
+      rootElement.removeEventListener("mousemove", onMove);
+      rootElement.removeEventListener("mouseleave", hide);
+      window.removeEventListener("pointerout", onGlobalPointerOut);
+      window.removeEventListener("blur", onBlur);
+      document.removeEventListener("visibilitychange", onVisibility);
+    },
+  };
+}
+
 /**
  * A card whose border/background glow tracks the mouse cursor, fading in on
  * hover and out on leave (or when the pointer leaves the window / the tab is
@@ -90,23 +294,16 @@ function magicCard(props: MagicCardProps = {}): DomphyElement<"div"> {
     ],
   } = props;
 
-  let rootElement: HTMLElement | null = null;
-  let glowElement: HTMLElement | null = null;
-  let removeListeners: (() => void) | null = null;
-
   // Before any pointer input the spotlight/glow sits off-card (upstream seeds
   // its motion values to -gradientSize), so the border shows only its neutral
   // colour and the interior glow is invisible.
   const offCard = `-${spotlightSize}px`;
 
-  const captureGlow = {
-    _onMount: (node: ElementNode) => {
-      glowElement = node.domElement as HTMLElement;
-    },
-    _onRemove: () => {
-      glowElement = null;
-    },
-  };
+  const captureGlow = behavior(
+    MAGIC_CARD_GLOW_KEY,
+    attachGlowCapture,
+    {},
+  );
 
   const glowLayer: DomphyElement =
     variant === "orb"
@@ -172,180 +369,13 @@ function magicCard(props: MagicCardProps = {}): DomphyElement<"div"> {
     },
   } as DomphyElement;
 
-  // ── Border ("gradient") mode: raw pointer tracking + 300ms interior fade ──
-  const mountBorder = (node: ElementNode) => {
-    rootElement = node.domElement as HTMLElement;
-    if (typeof window === "undefined") return;
-
-    const setOff = () => {
-      rootElement?.style.setProperty("--magic-card-x", offCard);
-      rootElement?.style.setProperty("--magic-card-y", offCard);
-    };
-    const onMove = (event: MouseEvent) => {
-      if (!rootElement) return;
-      const rect = rootElement.getBoundingClientRect();
-      rootElement.style.setProperty(
-        "--magic-card-x",
-        `${event.clientX - rect.left}px`,
-      );
-      rootElement.style.setProperty(
-        "--magic-card-y",
-        `${event.clientY - rect.top}px`,
-      );
-      if (glowElement) glowElement.style.opacity = String(GRADIENT_OPACITY);
-    };
-    // Reset: park the spotlight off-card and fade the interior glow out.
-    const hide = () => {
-      setOff();
-      if (glowElement) glowElement.style.opacity = "0";
-    };
-    const onGlobalPointerOut = (event: PointerEvent) => {
-      if (!event.relatedTarget) hide();
-    };
-    const onBlur = () => hide();
-    const onVisibility = () => {
-      if (document.visibilityState !== "visible") hide();
-    };
-
-    setOff();
-    rootElement.addEventListener("mousemove", onMove);
-    rootElement.addEventListener("mouseleave", hide);
-    window.addEventListener("pointerout", onGlobalPointerOut);
-    window.addEventListener("blur", onBlur);
-    document.addEventListener("visibilitychange", onVisibility);
-
-    removeListeners = () => {
-      rootElement?.removeEventListener("mousemove", onMove);
-      rootElement?.removeEventListener("mouseleave", hide);
-      window.removeEventListener("pointerout", onGlobalPointerOut);
-      window.removeEventListener("blur", onBlur);
-      document.removeEventListener("visibilitychange", onVisibility);
-    };
-  };
-
-  // ── Orb mode: spring-smoothed position + spring visibility on a rAF loop ──
-  const mountOrb = (node: ElementNode) => {
-    rootElement = node.domElement as HTMLElement;
-    if (typeof window === "undefined") return;
-
-    let positionX = -spotlightSize;
-    let positionY = -spotlightSize;
-    let velocityX = 0;
-    let velocityY = 0;
-    let targetX = -spotlightSize;
-    let targetY = -spotlightSize;
-    let visible = 0;
-    let visibleVelocity = 0;
-    let targetVisible = 0;
-    let frameHandle: number | null = null;
-    let lastTime = 0;
-
-    const apply = () => {
-      if (!glowElement) return;
-      glowElement.style.transform = `translate(${positionX}px, ${positionY}px) translate(-50%, -50%)`;
-      glowElement.style.opacity = String(visible);
-    };
-
-    const step = (time: number) => {
-      // Stop if the node was torn out without the Remove hook firing.
-      if (!rootElement || !rootElement.isConnected) {
-        frameHandle = null;
-        return;
-      }
-      // Clamp so a backgrounded tab doesn't produce a huge delta on resume.
-      const deltaSeconds = Math.min((time - lastTime) / 1000, 1 / 30);
-      lastTime = time;
-
-      // Position spring-damper: the orb eases toward and lags behind the cursor.
-      const accelerationX =
-        (-ORB_STIFFNESS * (positionX - targetX) - ORB_DAMPING * velocityX) /
-        ORB_MASS;
-      const accelerationY =
-        (-ORB_STIFFNESS * (positionY - targetY) - ORB_DAMPING * velocityY) /
-        ORB_MASS;
-      velocityX += accelerationX * deltaSeconds;
-      velocityY += accelerationY * deltaSeconds;
-      positionX += velocityX * deltaSeconds;
-      positionY += velocityY * deltaSeconds;
-
-      // Visibility spring (mass 1): fades the orb in on enter, out on leave.
-      const visibleAcceleration =
-        -ORB_VISIBLE_STIFFNESS * (visible - targetVisible) -
-        ORB_VISIBLE_DAMPING * visibleVelocity;
-      visibleVelocity += visibleAcceleration * deltaSeconds;
-      visible += visibleVelocity * deltaSeconds;
-
-      apply();
-
-      const settled =
-        Math.abs(positionX - targetX) < 0.01 &&
-        Math.hypot(velocityX, velocityY) < 0.01 &&
-        Math.abs(visible - targetVisible) < 0.001 &&
-        Math.abs(visibleVelocity) < 0.001;
-      frameHandle = settled ? null : requestAnimationFrame(step);
-    };
-
-    const ensureLoopRunning = () => {
-      if (frameHandle === null) {
-        lastTime = performance.now();
-        frameHandle = requestAnimationFrame(step);
-      }
-    };
-
-    const onMove = (event: MouseEvent) => {
-      if (!rootElement) return;
-      const rect = rootElement.getBoundingClientRect();
-      targetX = event.clientX - rect.left;
-      targetY = event.clientY - rect.top;
-      // The border spotlight (root background) still tracks the raw pointer in
-      // orb mode too — only the orb blob is spring-smoothed.
-      rootElement.style.setProperty("--magic-card-x", `${targetX}px`);
-      rootElement.style.setProperty("--magic-card-y", `${targetY}px`);
-      ensureLoopRunning();
-    };
-    const onEnter = () => {
-      targetVisible = orbOpacity;
-      ensureLoopRunning();
-    };
-    const onLeave = () => {
-      targetVisible = 0;
-      ensureLoopRunning();
-    };
-    const onGlobalPointerOut = (event: PointerEvent) => {
-      if (!event.relatedTarget) onLeave();
-    };
-    const onBlur = () => onLeave();
-    const onVisibility = () => {
-      if (document.visibilityState !== "visible") onLeave();
-    };
-
-    rootElement.addEventListener("mousemove", onMove);
-    rootElement.addEventListener("mouseenter", onEnter);
-    rootElement.addEventListener("mouseleave", onLeave);
-    window.addEventListener("pointerout", onGlobalPointerOut);
-    window.addEventListener("blur", onBlur);
-    document.addEventListener("visibilitychange", onVisibility);
-
-    removeListeners = () => {
-      rootElement?.removeEventListener("mousemove", onMove);
-      rootElement?.removeEventListener("mouseenter", onEnter);
-      rootElement?.removeEventListener("mouseleave", onLeave);
-      window.removeEventListener("pointerout", onGlobalPointerOut);
-      window.removeEventListener("blur", onBlur);
-      document.removeEventListener("visibilitychange", onVisibility);
-      if (frameHandle !== null) cancelAnimationFrame(frameHandle);
-    };
-  };
-
   return {
     div: [glowLayer, content],
-    _onMount: variant === "orb" ? mountOrb : mountBorder,
-    _onRemove: () => {
-      removeListeners?.();
-      removeListeners = null;
-      rootElement = null;
-      glowElement = null;
-    },
+    ...behavior<MagicCardBehaviorProps>(
+      MAGIC_CARD_BEHAVIOR_KEY,
+      attachMagicCard,
+      { variant, spotlightSize, orbOpacity, offCard },
+    ),
     style: {
       position: "relative",
       // Own stacking context so the orb's mix-blend-mode composites only within

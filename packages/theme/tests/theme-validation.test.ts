@@ -177,6 +177,70 @@ describe("CSS breakout guards", () => {
       /unsafe CSS characters/,
     );
   });
+
+  it("rejects a semicolon that would inject an extra CSS declaration", () => {
+    const ramp = ramp18();
+    ramp[0] = "#fff; --injected: red";
+    expect(() =>
+      setTheme("light", { colors: { primary: ramp } } as any),
+    ).toThrow(/unsafe CSS characters/);
+    expect(() =>
+      setTheme("light", { custom: { shadow: "0 1px 2px #000; color: red" } }),
+    ).toThrow(/unsafe CSS characters/);
+  });
+
+  it("rejects </style variants that would break out of the element", () => {
+    const spaced = ramp18();
+    spaced[0] = "</ style><script>alert(1)</script>";
+    expect(() =>
+      setTheme("light", { colors: { primary: spaced } } as any),
+    ).toThrow(/unsafe CSS characters/);
+
+    const newline = ramp18();
+    newline[0] = "</\nstyle><b>";
+    expect(() =>
+      setTheme("light", { colors: { primary: newline } } as any),
+    ).toThrow(/unsafe CSS characters/);
+
+    expect(() =>
+      setTheme("light", { custom: { x: "</STYLE >" } } as any),
+    ).toThrow(/unsafe CSS characters/);
+  });
+
+  it("rejects a theme name that would break out of the <style> block", () => {
+    expect(() =>
+      setTheme('x"] { } body { color: red } [data-x="', { darkBias: 1 }),
+    ).toThrow(/unsafe CSS characters/);
+    expect(() => setTheme("x; --injected: red", { darkBias: 1 })).toThrow(
+      /unsafe CSS characters/,
+    );
+    expect(() => setTheme("</style><script>", { darkBias: 1 })).toThrow(
+      /unsafe CSS characters/,
+    );
+  });
+
+  it("rejects a color role key that would inject extra CSS declarations", () => {
+    expect(() =>
+      setTheme("light", {
+        colors: { "x; --evil": ramp18() },
+      } as any),
+    ).toThrow(/unsafe CSS characters/);
+  });
+
+  it("escapes theme names and color role keys in generated CSS", () => {
+    const name = `vitest-x"][data-injected="yes-${Math.random().toString(36).slice(2)}`;
+    setTheme(name, {
+      colors: { "brand/primary": ramp18("#123456") },
+      baseTones: { "brand/primary": 0 },
+    });
+    const css = themeCSS();
+    const escapedName = name.replace(/[^a-zA-Z0-9_-]/g, "_");
+    expect(css).toContain(`[data-theme="${escapedName}"]`);
+    expect(css).not.toContain(`data-theme="${name}"`);
+    expect(css).not.toContain('[data-injected');
+    expect(css).toContain("--brand_primary-0:");
+    expect(css).not.toContain("--brand/primary-0");
+  });
 });
 
 describe("applySystemTheme SSR behavior", () => {

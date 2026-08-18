@@ -32,6 +32,11 @@ type BubbleMenuProps = {
 const BUBBLE_MENU_SHADOW =
   "0 2px 4px rgba(0,0,0,0.10), 0 10px 24px rgba(0,0,0,0.14)";
 
+// Shared overlay the toolbar portals into. Never a child of the
+// contenteditable host: EditorView.render() wipes that element's children
+// and never reinserts the menu.
+const BUBBLE_OVERLAY_ID = "domphy-editor-bubble";
+
 const ZERO_RECT = {
   x: 0,
   y: 0,
@@ -105,6 +110,43 @@ function attachBubbleMenu(
     });
   };
 
+  // Overlay parent is the app root when that root is not the contenteditable
+  // host, otherwise document.body (or the hosting shadow root). Never the
+  // host itself — a later EditorView.render() would wipe the toolbar.
+  const overlayParent = (): ParentNode => {
+    const rootElement = rootNode.domElement as HTMLElement | null;
+    if (rootElement && rootElement !== host) return rootElement;
+    const scope = host.getRootNode();
+    return scope instanceof ShadowRoot ? scope : host.ownerDocument.body;
+  };
+
+  const ensureOverlay = (): HTMLElement => {
+    const parent = overlayParent();
+    const existing = parent.querySelector<HTMLElement>(`#${BUBBLE_OVERLAY_ID}`);
+    if (existing) return existing;
+    if (parent === rootNode.domElement) {
+      const overlayNode = rootNode.children!.insert({
+        div: [],
+        id: BUBBLE_OVERLAY_ID,
+        style: {
+          position: "fixed",
+          inset: 0,
+          zIndex: 20,
+          pointerEvents: "none",
+        },
+      }) as ElementNode;
+      return overlayNode.domElement as HTMLElement;
+    }
+    const overlay = host.ownerDocument.createElement("div");
+    overlay.id = BUBBLE_OVERLAY_ID;
+    overlay.style.position = "fixed";
+    overlay.style.inset = "0";
+    overlay.style.zIndex = "20";
+    overlay.style.pointerEvents = "none";
+    parent.appendChild(overlay);
+    return overlay;
+  };
+
   const buildPanel = (): DomphyElement<"div"> => ({
     div: [children],
     role: "toolbar",
@@ -112,6 +154,7 @@ function attachBubbleMenu(
     // a blur would collapse the selection (and hide this menu) before the
     // button's own click handler ever runs its command.
     onMouseDown: (event) => event.preventDefault(),
+    _portal: () => ensureOverlay(),
     style: {
       position: "fixed",
       insetBlockStart: 0,
@@ -162,6 +205,23 @@ function attachBubbleMenu(
     stopAutoUpdate = null;
   };
 
+  const teardownPanel = () => {
+    hide();
+    const overlay = panelElement?.parentElement;
+    panelNode?.remove();
+    panelNode = null;
+    panelElement = null;
+    // Drop a document/shadow overlay we created; a Domphy-owned overlay
+    // under the app root stays, matching the shared floating overlay.
+    if (
+      overlay?.id === BUBBLE_OVERLAY_ID &&
+      overlay.childElementCount === 0 &&
+      overlay !== rootNode.domElement
+    ) {
+      overlay.remove();
+    }
+  };
+
   const sync = () => {
     if (editor.isDestroyed) return hide();
     if (shouldShow(editor)) show();
@@ -176,12 +236,14 @@ function attachBubbleMenu(
     target.on("update", sync);
     target.on("focus", sync);
     target.on("blur", hide);
+    target.on("destroy", teardownPanel);
   };
   const unbind = (target: EditorInstance) => {
     target.off("selectionUpdate", sync);
     target.off("update", sync);
     target.off("focus", sync);
     target.off("blur", hide);
+    target.off("destroy", teardownPanel);
   };
 
   bind(editor);
@@ -205,11 +267,7 @@ function attachBubbleMenu(
     },
     destroy() {
       unbind(editor);
-      stopAutoUpdate?.();
-      stopAutoUpdate = null;
-      panelNode?.remove();
-      panelNode = null;
-      panelElement = null;
+      teardownPanel();
     },
   };
 }
@@ -218,9 +276,11 @@ function attachBubbleMenu(
  * Floating menu anchored to the current text selection.
  *
  * Apply it to the same host element as {@link editorContent}. The menu is
- * inserted next to the app root (so it escapes the editor's overflow/stacking
- * context), positioned with `@domphy/floating` against a virtual element that
- * tracks the live selection rect, and shown whenever `shouldShow` passes.
+ * portaled into a document/root overlay (never inside the contenteditable
+ * host — `EditorView.render()` wipes that element's children), positioned
+ * with `@domphy/floating` against a virtual element that tracks the live
+ * selection rect, and shown whenever `shouldShow` passes. Destroying the
+ * editor hides and removes the toolbar.
  *
  * @hostTag div
  * @param editor - The editor whose selection anchors the menu.

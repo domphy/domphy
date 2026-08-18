@@ -23,6 +23,7 @@
 // component's `fidelityNotes` for that tradeoff.
 
 import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
+import { behavior } from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
@@ -50,6 +51,155 @@ export interface FlickeringGridProps {
   children?: DomphyElement | DomphyElement[];
   /** Passthrough style merged onto the outer container. */
   style?: StyleObject;
+}
+
+const FLICKERING_GRID_BEHAVIOR_KEY = "magicui-flickering-grid";
+
+interface FlickeringGridBehaviorProps {
+  squareSize: number;
+  gridGap: number;
+  flickerChance: number;
+  color: ThemeColor;
+  fixedWidth?: number;
+  fixedHeight?: number;
+  maxOpacity: number;
+}
+
+function attachFlickeringGrid(
+  node: ElementNode,
+  initialProps: FlickeringGridBehaviorProps,
+) {
+  let props = initialProps;
+  const canvas = node.domElement as HTMLCanvasElement | null;
+  const containerElement = canvas?.parentElement ?? null;
+  if (!canvas || !containerElement || typeof window === "undefined") {
+    return { update() {}, destroy() {} };
+  }
+
+  const context = canvas.getContext("2d");
+  if (!context) return { update() {}, destroy() {} };
+
+  const devicePixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+  let cssWidth = 0;
+  let cssHeight = 0;
+  let columns = 0;
+  let rows = 0;
+  let opacities = new Float32Array(0);
+  let lastFrameTime = 0;
+  let animationFrameId: number | null = null;
+  let resizeObserver: ResizeObserver | null = null;
+  let intersectionObserver: IntersectionObserver | null = null;
+
+  const fillColor = (() => {
+    try {
+      return themeColorToken(node, "shift-6", props.color);
+    } catch {
+      return "#888888";
+    }
+  })();
+
+  function resizeCanvas(): void {
+    const rect = containerElement.getBoundingClientRect();
+    cssWidth = props.fixedWidth ?? rect.width;
+    cssHeight = props.fixedHeight ?? rect.height;
+    canvas.width = Math.max(1, Math.floor(cssWidth * devicePixelRatio));
+    canvas.height = Math.max(1, Math.floor(cssHeight * devicePixelRatio));
+    context.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+
+    const dimensions = computeGridDimensions(
+      cssWidth,
+      cssHeight,
+      props.squareSize,
+      props.gridGap,
+    );
+    columns = dimensions.columns;
+    rows = dimensions.rows;
+    const nextOpacities = new Float32Array(Math.max(1, columns * rows));
+    for (let index = 0; index < nextOpacities.length; index += 1) {
+      nextOpacities[index] = Math.random() * props.maxOpacity;
+    }
+    opacities = nextOpacities;
+  }
+
+  function drawGrid(): void {
+    context.clearRect(0, 0, cssWidth, cssHeight);
+    context.fillStyle = fillColor;
+    const cellSpan = props.squareSize + props.gridGap;
+    for (let row = 0; row < rows; row += 1) {
+      for (let column = 0; column < columns; column += 1) {
+        const index = row * columns + column;
+        context.globalAlpha = opacities[index] ?? 0;
+        context.fillRect(
+          column * cellSpan,
+          row * cellSpan,
+          props.squareSize,
+          props.squareSize,
+        );
+      }
+    }
+    context.globalAlpha = 1;
+  }
+
+  function tick(time: number): void {
+    if (!canvas.isConnected) {
+      stopLoop();
+      return;
+    }
+    const deltaSeconds = Math.min((time - lastFrameTime) / 1000, 0.2);
+    lastFrameTime = time;
+    for (let index = 0; index < opacities.length; index += 1) {
+      if (Math.random() < props.flickerChance * deltaSeconds) {
+        opacities[index] = Math.random() * props.maxOpacity;
+      }
+    }
+    drawGrid();
+    animationFrameId = window.requestAnimationFrame(tick);
+  }
+
+  function startLoop(): void {
+    if (animationFrameId !== null) return;
+    lastFrameTime = performance.now();
+    animationFrameId = window.requestAnimationFrame(tick);
+  }
+  function stopLoop(): void {
+    if (animationFrameId === null) return;
+    window.cancelAnimationFrame(animationFrameId);
+    animationFrameId = null;
+  }
+
+  resizeCanvas();
+  drawGrid();
+
+  if (typeof ResizeObserver !== "undefined") {
+    resizeObserver = new ResizeObserver(() => {
+      resizeCanvas();
+      drawGrid();
+    });
+    resizeObserver.observe(containerElement);
+  }
+
+  if (typeof IntersectionObserver === "function") {
+    intersectionObserver = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) startLoop();
+        else stopLoop();
+      }
+    });
+    intersectionObserver.observe(containerElement);
+  } else {
+    startLoop();
+  }
+
+  return {
+    update(next: FlickeringGridBehaviorProps) {
+      props = next;
+    },
+    destroy() {
+      stopLoop();
+      resizeObserver?.disconnect();
+      intersectionObserver?.disconnect();
+    },
+  };
 }
 
 function computeGridDimensions(
@@ -107,143 +257,19 @@ function flickeringGrid(props: FlickeringGridProps = {}): DomphyElement<"div"> {
       height: fixedHeight ? `${fixedHeight}px` : "100%",
       pointerEvents: "none",
     },
-    _onMount: (node: ElementNode) => {
-      const canvas = node.domElement as HTMLCanvasElement | null;
-      const containerElement = canvas?.parentElement ?? null;
-      if (!canvas || !containerElement || typeof window === "undefined") return;
-
-      // Headless/test runtimes without a real 2D canvas backend resolve
-      // `getContext` to `null` rather than throwing — bail before starting.
-      const context = canvas.getContext("2d");
-      if (!context) return;
-
-      const devicePixelRatio = Math.min(window.devicePixelRatio || 1, 2);
-      let cssWidth = 0;
-      let cssHeight = 0;
-      let columns = 0;
-      let rows = 0;
-      let opacities = new Float32Array(0);
-      let lastFrameTime = 0;
-      let animationFrameId: number | null = null;
-      let resizeObserver: ResizeObserver | null = null;
-      let intersectionObserver: IntersectionObserver | null = null;
-
-      // shift-6 (a dim, muted step) so the flicker reads as a faint texture
-      // against the container's own dark shift-15 surface — the per-cell
-      // random alpha (capped at `maxOpacity`) on top does the rest.
-      const fillColor = (() => {
-        try {
-          return themeColorToken(node, "shift-6", color);
-        } catch {
-          return "#888888";
-        }
-      })();
-
-      function resizeCanvas(): void {
-        const rect = containerElement!.getBoundingClientRect();
-        cssWidth = fixedWidth ?? rect.width;
-        cssHeight = fixedHeight ?? rect.height;
-        canvas!.width = Math.max(1, Math.floor(cssWidth * devicePixelRatio));
-        canvas!.height = Math.max(1, Math.floor(cssHeight * devicePixelRatio));
-        // `setTransform` (not `scale`) so repeated resizes never compound the
-        // device-pixel-ratio scale factor onto itself.
-        context!.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
-
-        const dimensions = computeGridDimensions(
-          cssWidth,
-          cssHeight,
-          squareSize,
-          gridGap,
-        );
-        columns = dimensions.columns;
-        rows = dimensions.rows;
-        const nextOpacities = new Float32Array(Math.max(1, columns * rows));
-        for (let index = 0; index < nextOpacities.length; index += 1) {
-          nextOpacities[index] = Math.random() * maxOpacity;
-        }
-        opacities = nextOpacities;
-      }
-
-      function drawGrid(): void {
-        context!.clearRect(0, 0, cssWidth, cssHeight);
-        context!.fillStyle = fillColor;
-        const cellSpan = squareSize + gridGap;
-        for (let row = 0; row < rows; row += 1) {
-          for (let column = 0; column < columns; column += 1) {
-            const index = row * columns + column;
-            context!.globalAlpha = opacities[index] ?? 0;
-            context!.fillRect(
-              column * cellSpan,
-              row * cellSpan,
-              squareSize,
-              squareSize,
-            );
-          }
-        }
-        context!.globalAlpha = 1;
-      }
-
-      function tick(time: number): void {
-        // Belt-and-suspenders: bail without rescheduling once the canvas is
-        // no longer in the document, even if the IntersectionObserver above
-        // never fires (e.g. unsupported in a test runtime, or the framework's
-        // own "Remove" hook didn't run because of a raw DOM wipe).
-        if (!canvas!.isConnected) {
-          stopLoop();
-          return;
-        }
-        const deltaSeconds = Math.min((time - lastFrameTime) / 1000, 0.2);
-        lastFrameTime = time;
-        for (let index = 0; index < opacities.length; index += 1) {
-          if (Math.random() < flickerChance * deltaSeconds) {
-            opacities[index] = Math.random() * maxOpacity;
-          }
-        }
-        drawGrid();
-        animationFrameId = window.requestAnimationFrame(tick);
-      }
-
-      function startLoop(): void {
-        if (animationFrameId !== null) return;
-        lastFrameTime = performance.now();
-        animationFrameId = window.requestAnimationFrame(tick);
-      }
-      function stopLoop(): void {
-        if (animationFrameId === null) return;
-        window.cancelAnimationFrame(animationFrameId);
-        animationFrameId = null;
-      }
-
-      resizeCanvas();
-      drawGrid();
-
-      if (typeof ResizeObserver !== "undefined") {
-        resizeObserver = new ResizeObserver(() => {
-          resizeCanvas();
-          drawGrid();
-        });
-        resizeObserver.observe(containerElement);
-      }
-
-      if (typeof IntersectionObserver === "function") {
-        intersectionObserver = new IntersectionObserver((entries) => {
-          for (const entry of entries) {
-            if (entry.isIntersecting) startLoop();
-            else stopLoop();
-          }
-        });
-        intersectionObserver.observe(containerElement);
-      } else {
-        // No IntersectionObserver support — fail open and animate always.
-        startLoop();
-      }
-
-      node.addHook("Remove", () => {
-        stopLoop();
-        resizeObserver?.disconnect();
-        intersectionObserver?.disconnect();
-      });
-    },
+    ...behavior<FlickeringGridBehaviorProps>(
+      FLICKERING_GRID_BEHAVIOR_KEY,
+      attachFlickeringGrid,
+      {
+        squareSize,
+        gridGap,
+        flickerChance,
+        color,
+        fixedWidth,
+        fixedHeight,
+        maxOpacity,
+      },
+    ),
   } as DomphyElement<"canvas">;
 
   return {

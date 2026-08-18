@@ -47,6 +47,26 @@ describe("@domphy/press markdown end-to-end with @domphy/core", () => {
     expect(html).toContain("<td");
   });
 
+  it("renders resolved reference-style links and GFM footnotes in HTML", () => {
+    const md = [
+      "See the [docs][home] and a note.[^1]",
+      "",
+      '[home]: https://example.com "Docs"',
+      "",
+      "[^1]: Footnote body.",
+    ].join("\n");
+    const { body } = parseMarkdown(md);
+    const html = new ElementNode({ div: body }).generateHTML();
+    expect(html).toContain('href="https://example.com"');
+    expect(html).toContain('href="#user-content-fn-1"');
+    expect(html).toContain('id="user-content-fnref-1"');
+    expect(html).toContain('id="user-content-fn-1"');
+    expect(html).toContain("Footnote body.");
+    expect(html).toContain("↩");
+    expect(html).toContain("footnotes");
+    expect(html).toContain('data-footnotes="true"');
+  });
+
   it("renders the heading id so anchors work in the generated HTML", () => {
     const { body } = parseMarkdown("## My Section");
     const html = new ElementNode({ div: body }).generateHTML();

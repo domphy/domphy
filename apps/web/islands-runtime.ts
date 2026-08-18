@@ -112,14 +112,20 @@ export interface MermaidBrowserModule {
  * diagrams re-render when `[data-theme]` flips. `loadMermaid` is injectable
  * for tests.
  */
+/** Press emits mermaid as `div.dp-mermaid.language-mermaid`; keep the older `pre>code` forms too. */
+export const MERMAID_BLOCK_SELECTOR = [
+  "pre > code.language-mermaid",
+  'code[data-language="mermaid"]',
+  ".dp-mermaid",
+  "div.language-mermaid",
+].join(", ");
+
 export async function renderMermaidBlocks(
   loadMermaid: () => Promise<MermaidBrowserModule> = async () =>
     (await import("mermaid")).default,
 ): Promise<void> {
   const blocks = Array.from(
-    document.querySelectorAll<HTMLElement>(
-      'pre > code.language-mermaid, code[data-language="mermaid"]',
-    ),
+    document.querySelectorAll<HTMLElement>(MERMAID_BLOCK_SELECTOR),
   );
   if (blocks.length === 0) return;
 
@@ -232,15 +238,29 @@ export function bootstrap(previewRegistry: PreviewRegistry): void {
         if (spec.kind === "search") {
           mountSearch(host);
         } else if (spec.kind === "editor" && spec.code != null) {
-          mountEditor(host, spec.code, spec.storageKey);
+          void mountEditor(host, spec.code, spec.storageKey).catch(
+            (mountError) => {
+              console.error(
+                `Island ${spec.id} (${spec.kind}) failed to mount`,
+                mountError,
+              );
+            },
+          );
         } else if (spec.kind === "preview" && spec.source) {
           const loader = previewRegistry[spec.source];
           if (loader) {
-            loader().then((module) =>
-              spec.bare
-                ? mountBare(host, module.default)
-                : mountPreview(host, module.default),
-            );
+            void loader()
+              .then((module) =>
+                spec.bare
+                  ? mountBare(host, module.default)
+                  : mountPreview(host, module.default),
+              )
+              .catch((mountError) => {
+                console.error(
+                  `Island ${spec.id} (${spec.kind}) failed to mount`,
+                  mountError,
+                );
+              });
           }
         }
       } catch (error) {

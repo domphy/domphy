@@ -24,8 +24,8 @@
 // inside the Domphy element tree and layer an absolutely-positioned HTML
 // tooltip + label overlay on top — no WebGL/ResizeObserver dependency needed.
 
-import type { DomphyElement, Listener } from "@domphy/core";
-import { type State, toState } from "@domphy/core";
+import type { DomphyElement, ElementNode, Listener } from "@domphy/core";
+import { behavior, type State, toState } from "@domphy/core";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import { card, heading, motion, paragraph, small } from "@domphy/ui";
 import { fixed } from "../../shared/typography.js";
@@ -342,6 +342,26 @@ export interface RadialTooltipController {
   show: (event: MouseEvent, entry: RadialTooltipEntry) => void;
   move: (event: MouseEvent) => void;
   hide: () => void;
+}
+
+type RadialTooltipContainerProps = {
+  tooltip: RadialTooltipController;
+};
+
+function attachRadialTooltipContainer(
+  node: ElementNode,
+  props: RadialTooltipContainerProps,
+) {
+  const element = node.domElement as HTMLElement;
+  props.tooltip.bindContainer(element);
+  return {
+    update: (next: RadialTooltipContainerProps) => {
+      next.tooltip.bindContainer(element);
+    },
+    destroy: () => {
+      props.tooltip.bindContainer(null);
+    },
+  };
 }
 
 /** One tooltip controller per chart instance — tracks the hovered ring + cursor position. */
@@ -686,12 +706,13 @@ export function renderRadialRingsChart(
       maxHeight: themeSpacing(heightUnits),
       marginInline: "auto",
     },
-    _onMount(node) {
-      tooltip.bindContainer(node.domElement as HTMLElement);
-    },
-    _onRemove() {
-      tooltip.bindContainer(null);
-    },
+    // Re-bind the factory-local tooltip to this (reused) node on every
+    // generation — `_onMount` would leave generation 2's container null.
+    ...behavior<RadialTooltipContainerProps>(
+      "radial-tooltip-container",
+      attachRadialTooltipContainer,
+      { tooltip },
+    ),
   } as DomphyElement<"div">;
 }
 
@@ -883,11 +904,12 @@ export function renderRadialStackedGauge(
       maxHeight: themeSpacing(heightUnits),
       marginInline: "auto",
     },
-    _onMount(node) {
-      tooltip.bindContainer(node.domElement as HTMLElement);
-    },
-    _onRemove() {
-      tooltip.bindContainer(null);
-    },
+    // Same reused-node bind as renderRadialRingsChart — stacked hover
+    // handlers close over a fresh tooltip each factory generation.
+    ...behavior<RadialTooltipContainerProps>(
+      "radial-tooltip-container",
+      attachRadialTooltipContainer,
+      { tooltip },
+    ),
   } as DomphyElement<"div">;
 }

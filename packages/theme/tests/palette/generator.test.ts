@@ -53,6 +53,27 @@ describe("generateRamp", () => {
     ramp.forEach((hex) => expect(hex).toMatch(HEX_RE));
   });
 
+  // Mid-lightness brand colors that sort-by-L would reorder (yellow is
+  // lighter than blue, pink sits between them). Input order is the
+  // intended waypoint sequence, not an L ranking.
+  const MID_ANCHORS = ["#4a7ff4", "#e8b923", "#d8597d"] as const;
+
+  it("round-trips each mid-anchor hex as a waypoint", () => {
+    const ramp = generateRamp([...MID_ANCHORS], 18);
+    for (const hex of MID_ANCHORS) {
+      expect(ramp).toContain(hex);
+    }
+  });
+
+  it("keeps waypoints in input order, not sorted by lightness", () => {
+    const ramp = generateRamp([...MID_ANCHORS], 18);
+    const indices = MID_ANCHORS.map((hex) => ramp.indexOf(hex));
+    expect(indices.every((index) => index >= 0)).toBe(true);
+    for (let i = 1; i < indices.length; i++) {
+      expect(indices[i]).toBeGreaterThan(indices[i - 1]);
+    }
+  });
+
   // The generator's whole purpose is to make the Ramp evaluator (Ramp.ts,
   // ported from the chromametry paper) score well — this is the end-to-end
   // proof that the warp/unwarp tuning actually achieves its target.

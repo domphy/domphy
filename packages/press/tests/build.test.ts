@@ -318,6 +318,110 @@ describe("buildSite base prefixing (non-root deployment)", () => {
   }, 60_000);
 });
 
+describe("buildSite locale discovery", () => {
+  let srcDir: string;
+  let outDir: string;
+
+  afterEach(() => {
+    rmSync(srcDir, { recursive: true, force: true });
+    rmSync(outDir, { recursive: true, force: true });
+  });
+
+  it("does not rediscover locale-dir files as default-locale routes", async () => {
+    srcDir = mkdtempSync(join(tmpdir(), "press-locale-src-"));
+    outDir = mkdtempSync(join(tmpdir(), "press-locale-out-"));
+    mkdirSync(join(srcDir, "guide"));
+    writeFileSync(join(srcDir, "index.md"), "# Home EN\n");
+    writeFileSync(join(srcDir, "guide", "index.md"), "# Guide EN\n");
+    mkdirSync(join(srcDir, "vi", "guide"), { recursive: true });
+    writeFileSync(join(srcDir, "vi", "index.md"), "# Trang chủ\n");
+    writeFileSync(join(srcDir, "vi", "guide", "index.md"), "# Hướng dẫn\n");
+
+    await buildSite({
+      config: defineConfig({
+        title: "EN Site",
+        description: "",
+        hostname: "https://example.com",
+        srcDir,
+        outDir,
+        locales: {
+          "/": { label: "English", lang: "en", title: "EN Site" },
+          "/vi/": { label: "Tiếng Việt", lang: "vi", title: "VI Site" },
+        },
+      }),
+      srcDir,
+      outDir,
+    });
+
+    const viGuide = readFileSync(join(outDir, "vi", "guide", "index.html"), "utf8");
+    expect(viGuide).toMatch(/<html lang="vi"/);
+    expect(viGuide).toContain("VI Site");
+    expect(viGuide).not.toMatch(/<html lang="en"/);
+
+    const enGuide = readFileSync(join(outDir, "guide", "index.html"), "utf8");
+    expect(enGuide).toMatch(/<html lang="en"/);
+    expect(enGuide).toContain("EN Site");
+
+    const sitemap = readFileSync(join(outDir, "sitemap.xml"), "utf8");
+    const locs = [...sitemap.matchAll(/<loc>([^<]*)<\/loc>/g)].map((m) => m[1]);
+    expect(locs.filter((url) => url === "https://example.com/vi/guide/")).toHaveLength(
+      1,
+    );
+    expect(locs.filter((url) => url === "https://example.com/guide/")).toHaveLength(1);
+
+    const index = JSON.parse(
+      readFileSync(join(outDir, "search-index.json"), "utf8"),
+    ) as { entries: Array<{ route: string; isPage: boolean }> };
+    expect(
+      index.entries.filter((e) => e.route === "/vi/guide/" && e.isPage),
+    ).toHaveLength(1);
+  }, 60_000);
+});
+
+describe("buildSite html dir", () => {
+  let srcDir: string;
+  let outDir: string;
+
+  afterEach(() => {
+    rmSync(srcDir, { recursive: true, force: true });
+    rmSync(outDir, { recursive: true, force: true });
+  });
+
+  it("emits dir=rtl on <html> for RTL langs and dir=ltr otherwise", async () => {
+    srcDir = mkdtempSync(join(tmpdir(), "press-rtl-src-"));
+    outDir = mkdtempSync(join(tmpdir(), "press-rtl-out-"));
+    writeFileSync(join(srcDir, "index.md"), "# Home\n");
+    mkdirSync(join(srcDir, "ar"));
+    writeFileSync(join(srcDir, "ar", "index.md"), "# الرئيسية\n");
+    mkdirSync(join(srcDir, "he"));
+    writeFileSync(join(srcDir, "he", "index.md"), "# בית\n");
+
+    await buildSite({
+      config: defineConfig({
+        title: "Docs",
+        description: "",
+        hostname: "https://example.com",
+        srcDir,
+        outDir,
+        locales: {
+          "/": { label: "English", lang: "en" },
+          "/ar/": { label: "العربية", lang: "ar" },
+          "/he/": { label: "עברית", lang: "he-IL" },
+        },
+      }),
+      srcDir,
+      outDir,
+    });
+
+    const en = readFileSync(join(outDir, "index.html"), "utf8");
+    expect(en).toMatch(/<html lang="en" dir="ltr"/);
+    const ar = readFileSync(join(outDir, "ar", "index.html"), "utf8");
+    expect(ar).toMatch(/<html lang="ar" dir="rtl"/);
+    const he = readFileSync(join(outDir, "he", "index.html"), "utf8");
+    expect(he).toMatch(/<html lang="he-IL" dir="rtl"/);
+  }, 60_000);
+});
+
 describe("buildSite cspNonce", () => {
   let srcDir: string;
   let outDir: string;

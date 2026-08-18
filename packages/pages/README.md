@@ -1,8 +1,8 @@
 # @domphy/pages — PARKED
 
-Not wired into the workspace build. No scripts, so `pnpm -r` sweeps are a
-no-op here; `biome.json` excludes it. It is an idea archive, kept whole so it
-can be revived without an archaeology dig.
+Not wired into the workspace build. `biome.json` excludes it. It is an idea
+archive, kept whole so it can be revived without an archaeology dig. `pnpm
+test` in this package runs the runtime sanitizer + pageElement suite.
 
 ## Provenance
 
@@ -17,11 +17,14 @@ not CAD code.
 
 - **`src/pageElement.ts`** — the renderer. Takes a resolved `PageJSON` and
   produces a mountable Domphy element tree with fine-grained reactivity: one
-  compiled jsep AST per arg, one reactive function per `RecordState` key it
+  compiled AST per arg, one reactive function per `RecordState` key it
   reads (style leaves get their own bindings; tag/patches resolve once). Also
-  exports `adoptGenerated`, the ONE DOM consumer of a `children`-arg subtree —
-  it is the whole sanitizer surface (`safeTag`→div, attribute whitelist skip,
-  `sanitizeUrl`, unknown method dropped).
+  exports `adoptGenerated` and `sanitizeUrl`, the sanitizer surface
+  (`safeTag`→div, attribute whitelist skip, `sanitizeUrl` on href/src/poster,
+  unknown method dropped, unknown object without a string `method` dropped —
+  never passed through — generated `style` filtered through
+  `PAGE_STYLE_PROPERTY_SET`). href rejects every `data:` URL (including
+  `image/svg+xml`); src/poster still allow `data:image/*` for inline media.
 - **`src/paramBridge.ts`** — `pageParamBridge`, re-runs the page's parameter
   resolution when a host model parameter changes.
 - **`src/popover.ts`** — a Domphy patch wrapping `@floating-ui/dom`
@@ -36,31 +39,27 @@ not CAD code.
 - **`src/index.ts`** — the public surface.
 - **`src/__tests__/`** — the runtime's own tests (jsdom).
 
-## Engine coupling — what it needs to run again
+## Engine coupling
 
-`pageElement.ts` / `paramBridge.ts` / `index.ts` import these from the
-ParaShape engine (`@parashape/parametric`). Nothing else. `popover.ts` imports
-none of them.
+`pageElement.ts` / `paramBridge.ts` import from **`engine/` in this package**,
+not from `@parashape/parametric` (that package is not in this workspace).
+`popover.ts` imports none of them.
 
-Values:
+Runnable local surface (`engine/index.ts`):
 `createTableNamespace` · `encodeBase64` · `evaluate` · `interpretEventResult` ·
-`isContainerJSON` · `PAGE_ATTRIBUTE_SET` · `PAGE_EVENT_SET` · `PAGE_PATCH_SET` ·
-`PAGE_TAG_SET` · `parse` · `resolvePageParameters` · `StatsNamespace` ·
-`ParameterNode` (runtime class).
+`isContainerJSON` · `PAGE_*_SET` (incl. `PAGE_STYLE_PROPERTY_SET`) · `parse` ·
+`resolvePageParameters` · `StatsNamespace` · `ParameterNode` / `Model` · types
+(`Expression` · `NodeJSON` · `OperationJSON` · `PageJSON` · `PageScope` ·
+`ResolvedPagePopover`).
 
-Types:
-`Expression` · `NodeJSON` · `OperationJSON` · `PageJSON` · `PageScope` ·
-`ResolvedPagePopover` · `Model`.
-
-**`evaluate`/`parse` are not bare jsep.** The engine configures jsep with the
-arrow-function, object-literal and ternary plugins; a stock jsep parses the
-same strings differently (or throws). Reviving this outside ParaShape means
-porting that configured expression layer too, not swapping in `jsep`.
+`evaluate`/`parse` are a self-contained recursive-descent stand-in for the
+ParaShape jsep + arrow/object/ternary stack — same expression surface the
+runtime tests need (literals, members, calls, arrows, object/array literals).
 
 ## `engine/` — the deleted engine side, verbatim
 
-Snapshots taken from ParaShape `HEAD` at the moment of the cut, so the symbols
-above have a reference implementation:
+Snapshots taken from ParaShape `HEAD` at the moment of the cut. The live
+runtime no longer imports them:
 
 | file | was |
 |---|---|
@@ -69,5 +68,6 @@ above have a reference implementation:
 | `engine/pageTypes.ts` | `packages/parametric/src/graph/page.ts` — `PageJSON`, `PageScope`, `ResolvedPagePopover`, `GeneratedPageNode` |
 | `engine/pages.test.ts` | `packages/parametric/src/__tests__/pages.test.ts` |
 
-These are snapshots, not a build target. They still import from the ParaShape
-engine's own internals and will not typecheck standalone.
+These snapshots still import from the ParaShape engine's own internals and
+will not typecheck standalone. The runnable replacements are `engine/index.ts`
+and its siblings (`types.ts`, `expression.ts`, `runtime.ts`, `model.ts`).

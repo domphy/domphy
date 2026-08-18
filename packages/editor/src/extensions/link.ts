@@ -100,6 +100,87 @@ function validationContext(options: LinkOptions): UriValidationContext {
   };
 }
 
+function linkExtensionOf(
+  editor: EditorInstance,
+): { options: LinkOptions } | undefined {
+  const manager = (
+    editor as {
+      extensionManager?: {
+        extensions: Array<{ name: string; options: LinkOptions }>;
+      };
+    }
+  ).extensionManager;
+  const extension = manager?.extensions.find((item) => item.name === "link");
+  if (!extension || typeof extension.options.isAllowedUri !== "function") {
+    return undefined;
+  }
+  return extension;
+}
+
+/** False when the Link extension is loaded and rejects `href`. */
+export function isLinkUriAllowed(
+  editor: EditorInstance,
+  markType: string,
+  href: unknown,
+): boolean {
+  if (markType !== "link") {
+    return true;
+  }
+  const extension = linkExtensionOf(editor);
+  if (!extension) {
+    return true;
+  }
+  const uri = typeof href === "string" ? href : undefined;
+  return extension.options.isAllowedUri(uri, validationContext(extension.options));
+}
+
+function stripLinkMarks(node: JSONContent, allow: (href: string | undefined) => boolean): JSONContent {
+  let marks = node.marks;
+  if (marks?.length) {
+    const kept = marks.filter((mark) => {
+      if (mark.type !== "link") {
+        return true;
+      }
+      const href = mark.attrs?.href;
+      return allow(typeof href === "string" ? href : undefined);
+    });
+    marks = kept.length > 0 ? kept : undefined;
+  }
+  const content = node.content?.map((child) => stripLinkMarks(child, allow));
+  if (marks === node.marks && content === undefined) {
+    return node;
+  }
+  const next: JSONContent = { ...node };
+  if (marks !== node.marks) {
+    if (marks) {
+      next.marks = marks;
+    } else {
+      delete next.marks;
+    }
+  }
+  if (content) {
+    next.content = content;
+  }
+  return next;
+}
+
+/**
+ * Drop `link` marks whose href the loaded Link extension rejects.
+ * No-op when the fixture/schema link has no `isAllowedUri`.
+ */
+export function stripDisallowedLinkHrefs(
+  editor: EditorInstance,
+  node: JSONContent,
+): JSONContent {
+  const extension = linkExtensionOf(editor);
+  if (!extension) {
+    return node;
+  }
+  return stripLinkMarks(node, (href) =>
+    extension.options.isAllowedUri(href, validationContext(extension.options)),
+  );
+}
+
 // ponytail: strict `http(s)://` and `www.` matcher — no bare domains, no
 // custom protocols, no IDN. Swap in linkifyjs if bare-domain autolink matters.
 const AUTOLINK_PATTERN = /^(?:https?:\/\/\S+|www\.\S+\.\S+)$/i;

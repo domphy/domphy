@@ -54,11 +54,17 @@ export interface DomphyTable<TData extends RowData> {
    * feature callbacks, …) and bumps the version counter so reactive readers
    * re-render. The row models re-derive automatically on a `data` identity
    * change (including `autoResetPageIndex` page-index clamping on data
-   * shrink). Do NOT use this for `state` or `onStateChange` — state updates
-   * go through `setState`, and `onStateChange` is owned by the adapter.
+   * shrink). A raw object is merged onto the previous options. The adapter
+   * `onStateChange` wrapper is always kept — do not pass `onStateChange`
+   * here (the create-time handler is the user notification). State updates
+   * go through `setState`.
    */
   setOptions(
-    updater: Updater<TableOptionsResolved<TData>>,
+    updater:
+      | Partial<TableOptionsResolved<TData>>
+      | ((
+          old: TableOptionsResolved<TData>,
+        ) => TableOptionsResolved<TData>),
   ): void
 
   /** Releases the version state's listeners. Call from `_onRemove`. */
@@ -188,13 +194,23 @@ export function createDomphyTable<TData extends RowData>(
       // Resolve the updater here (table-core's setOptions always merges into
       // a fresh object, so post-hoc identity can't detect a no-op): an
       // identity-returning updater changes nothing — skip apply + bump.
-      const next =
-        typeof updater === "function"
-          ? (updater as (old: TableOptionsResolved<TData>) => TableOptionsResolved<TData>)(
-              table.options,
-            )
-          : updater
-      if (next === table.options) return
+      // A raw object is merged onto the previous options so callers can pass
+      // `{ data }` without dropping columns / row-model factories / the
+      // adapter onStateChange wrapper.
+      const previous = table.options
+      const isFunction = typeof updater === "function"
+      const resolved = isFunction
+        ? (
+            updater as (
+              old: TableOptionsResolved<TData>,
+            ) => TableOptionsResolved<TData>
+          )(previous)
+        : { ...previous, ...updater }
+      if (isFunction && resolved === previous) return
+      const next = {
+        ...resolved,
+        onStateChange: previous.onStateChange,
+      }
       table.setOptions(() => next)
       // Post-destroy the version state is disposed; skip the write.
       if (destroyed) return

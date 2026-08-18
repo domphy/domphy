@@ -16,6 +16,7 @@
 // rAF loop rather than through `State.set()` on every frame.
 
 import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
+import { behavior } from "@domphy/core";
 import { type ThemeColor, themeColor } from "@domphy/theme";
 import { fixed } from "../../shared/typography.js";
 
@@ -103,80 +104,108 @@ function numberTicker(props: NumberTickerProps = {}): DomphyElement<"span"> {
       color: (listener) => themeColor(listener, "shift-14", color),
       ...(props.style ?? {}),
     },
-    _onMount: (node: ElementNode) => {
-      const element = node.domElement as HTMLElement;
-      let frameHandle: number | null = null;
-      let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
-      let observer: IntersectionObserver | null = null;
-      let hasPlayed = false;
+    ...behavior<{
+      from: number;
+      to: number;
+      delaySeconds: number;
+      once: boolean;
+      spring: Required<NumberTickerSpring>;
+      formatter: Intl.NumberFormat;
+    }>("magicui-number-ticker", attachNumberTicker, {
+      from,
+      to,
+      delaySeconds,
+      once,
+      spring,
+      formatter,
+    }),
+  };
+}
 
-      const runSpring = () => {
-        // Guard against overlapping runs (relevant when `once: false` and the
-        // element re-enters view before the previous spring settled).
-        if (frameHandle !== null) cancelAnimationFrame(frameHandle);
+function attachNumberTicker(
+  node: ElementNode,
+  initialProps: {
+    from: number;
+    to: number;
+    delaySeconds: number;
+    once: boolean;
+    spring: Required<NumberTickerSpring>;
+    formatter: Intl.NumberFormat;
+  },
+) {
+  let props = initialProps;
+  const element = node.domElement as HTMLElement;
+  let frameHandle: number | null = null;
+  let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+  let observer: IntersectionObserver | null = null;
+  let hasPlayed = false;
 
-        let position = from;
-        let velocity = 0;
-        let lastTime = performance.now();
+  const runSpring = () => {
+    if (frameHandle !== null) cancelAnimationFrame(frameHandle);
 
-        const step = (time: number) => {
-          const deltaSeconds = Math.min((time - lastTime) / 1000, 1 / 30);
-          lastTime = time;
+    let position = props.from;
+    let velocity = 0;
+    let lastTime = performance.now();
 
-          // Spring-damper: force = -stiffness * displacement - damping * velocity.
-          const acceleration =
-            (-spring.stiffness * (position - to) - spring.damping * velocity) /
-            spring.mass;
-          velocity += acceleration * deltaSeconds;
-          position += velocity * deltaSeconds;
+    const step = (time: number) => {
+      const deltaSeconds = Math.min((time - lastTime) / 1000, 1 / 30);
+      lastTime = time;
 
-          const settled =
-            Math.abs(to - position) < spring.restDelta &&
-            Math.abs(velocity) < spring.restDelta;
+      const acceleration =
+        (-props.spring.stiffness * (position - props.to) -
+          props.spring.damping * velocity) /
+        props.spring.mass;
+      velocity += acceleration * deltaSeconds;
+      position += velocity * deltaSeconds;
 
-          element.textContent = formatter.format(settled ? to : position);
+      const settled =
+        Math.abs(props.to - position) < props.spring.restDelta &&
+        Math.abs(velocity) < props.spring.restDelta;
 
-          frameHandle = settled ? null : requestAnimationFrame(step);
-        };
-        frameHandle = requestAnimationFrame(step);
-      };
+      element.textContent = props.formatter.format(
+        settled ? props.to : position,
+      );
 
-      const trigger = () => {
-        if (hasPlayed && once) return;
-        hasPlayed = true;
-        if (timeoutHandle !== null) clearTimeout(timeoutHandle);
-        timeoutHandle = setTimeout(runSpring, delaySeconds * 1000);
-      };
+      frameHandle = settled ? null : requestAnimationFrame(step);
+    };
+    frameHandle = requestAnimationFrame(step);
+  };
 
-      if (typeof IntersectionObserver !== "function") {
-        // No IntersectionObserver support (e.g. a non-browser test runtime)
-        // — fail open and play immediately rather than never playing.
-        trigger();
-      } else {
-        observer = new IntersectionObserver(
-          (entries) => {
-            for (const entry of entries) {
-              if (!entry.isIntersecting) continue;
-              trigger();
-              if (once) {
-                observer?.disconnect();
-                observer = null;
-              }
-            }
-          },
-          // Upstream useInView({ margin: "0" }) fires the moment any part of
-          // the element edge enters the viewport — threshold 0, not 0.1.
-          { threshold: 0 },
-        );
-        observer.observe(element);
-      }
+  const trigger = () => {
+    if (hasPlayed && props.once) return;
+    hasPlayed = true;
+    if (timeoutHandle !== null) clearTimeout(timeoutHandle);
+    timeoutHandle = setTimeout(runSpring, props.delaySeconds * 1000);
+  };
 
-      node.addHook("Remove", () => {
-        if (frameHandle !== null) cancelAnimationFrame(frameHandle);
-        if (timeoutHandle !== null) clearTimeout(timeoutHandle);
-        observer?.disconnect();
-        observer = null;
-      });
+  if (typeof IntersectionObserver !== "function") {
+    trigger();
+  } else {
+    observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          trigger();
+          if (props.once) {
+            observer?.disconnect();
+            observer = null;
+          }
+        }
+      },
+      { threshold: 0 },
+    );
+    observer.observe(element);
+  }
+
+  return {
+    update(next: typeof initialProps) {
+      props = next;
+    },
+    destroy() {
+      if (frameHandle !== null) cancelAnimationFrame(frameHandle);
+      if (timeoutHandle !== null) clearTimeout(timeoutHandle);
+      observer?.disconnect();
+      observer = null;
     },
   };
 }

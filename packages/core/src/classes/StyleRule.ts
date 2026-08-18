@@ -81,6 +81,11 @@ export class StyleRule {
   mount(domRule: CSSRule | CSSKeyframesRule): void {
     if (!domRule || !this.styleList) return;
     this.domRule = domRule;
+    if (this.styleBlock) {
+      for (const prop of Object.values(this.styleBlock)) {
+        prop.activate();
+      }
+    }
     if ("cssRules" in domRule) {
       this.styleList.mount(domRule.cssRules as CSSRuleList);
     }

@@ -58,4 +58,4 @@ The engine is **pointer-based** — keyboard drag-and-drop is not implemented up
 
 ## Cleanup
 
-The FormKit registration lives in a per-node `behavior()` instance; on element removal its `destroy` runs FormKit's `tearDown()` (aborting the parent-level listeners) and clears the entry from FormKit's `parents` registry. (Upstream `tearDown()` cannot disconnect the setup MutationObserver — no handle is exposed — but with the registry entry gone its callback no-ops.)
+The FormKit registration lives in a per-node `behavior()` instance; on element removal its `destroy` runs FormKit's `tearDown()` (aborting the parent-level listeners), disconnects the setup MutationObserver FormKit never exposes a handle for, and clears the entry from FormKit's `parents` registry.

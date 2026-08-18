@@ -267,15 +267,217 @@ describe("pie hit-test ignores legend-hidden slices", () => {
         }),
       );
 
-    // Right half — the hidden "Books" slice: no tooltip.
+    // Hidden "Books" is removed from the pie (remaining slices rescale), so
+    // hovering the old Books half must not name Books — Games owns the ring.
     hoverIn(250, 150);
-    expect(tooltipEl().style.opacity).toBe("0");
+    expect(tooltipEl().style.opacity).toBe("1");
+    expect(tooltipEl().textContent).toContain("Games");
+    expect(tooltipEl().textContent).not.toContain("Books");
 
-    // Left half — the visible "Games" slice: tooltip fires and names it.
     hoverIn(150, 150);
     expect(tooltipEl().style.opacity).toBe("1");
     expect(tooltipEl().textContent).toContain("Games");
 
+    engine.destroy();
+  });
+});
+
+describe("tooltip trigger defaults and item hit-tests", () => {
+  function tooltipEl(): HTMLElement {
+    return document.querySelector<HTMLElement>(".dc-tooltip")!;
+  }
+
+  function hover(container: HTMLElement, x: number, y: number) {
+    container.dispatchEvent(
+      new MouseEvent("mousemove", {
+        bubbles: true,
+        cancelable: true,
+        clientX: x,
+        clientY: y,
+      }),
+    );
+  }
+
+  it("defaults a pie-only chart to item trigger so a slice fires without trigger: item", () => {
+    const engine = makeEngine(400, 300);
+    engine.setOption({
+      series: [
+        {
+          type: "pie",
+          name: "Sales",
+          data: [
+            { name: "Books", value: 1 },
+            { name: "Games", value: 1 },
+          ],
+        },
+      ],
+    });
+    const container = tooltipEl().parentElement!;
+    // Right half of the default pie (starts at 12 o'clock, clockwise) is Books.
+    hover(container, 250, 150);
+    expect(tooltipEl().style.opacity).toBe("1");
+    expect(tooltipEl().textContent).toContain("Books");
+    engine.destroy();
+  });
+
+  it("hit-tests line points when tooltip.trigger is item", () => {
+    const engine = makeEngine(400, 300);
+    engine.setOption({
+      tooltip: { trigger: "item" },
+      xAxis: { type: "value", min: 0, max: 100 },
+      yAxis: { type: "value", min: 0, max: 100 },
+      series: [{ type: "line", name: "Trend", data: [[50, 50]] }],
+    });
+    const container = tooltipEl().parentElement!;
+    // grid: x 60–380 (width 320), y 40–250 (height 210, flipped).
+    // 50/100 → x=220, y=145.
+    hover(container, 220, 145);
+    expect(tooltipEl().style.opacity).toBe("1");
+    expect(tooltipEl().textContent).toContain("Trend");
+    engine.destroy();
+  });
+
+  it("hit-tests a bar when tooltip.trigger is item", () => {
+    const engine = makeEngine(400, 300);
+    engine.setOption({
+      tooltip: { trigger: "item" },
+      xAxis: { type: "category", data: ["A", "B"] },
+      yAxis: { type: "value", min: 0, max: 20 },
+      series: [{ type: "bar", name: "Sales", data: [10, 20] }],
+    });
+    const container = tooltipEl().parentElement!;
+    // Category A band center: 60 + 320/4 = 140. Value 10 is halfway down
+    // the 0–20 axis → y = 40 + 210/2 = 145.
+    hover(container, 140, 145);
+    expect(tooltipEl().style.opacity).toBe("1");
+    expect(tooltipEl().textContent).toContain("Sales");
+    engine.destroy();
+  });
+});
+
+describe("ChartEngine wipes stale overlay groups", () => {
+  it("removes title, legend, axes and marks when the next option leaves them empty", () => {
+    const engine = makeEngine();
+    engine.setOption({
+      title: { text: "Hello" },
+      legend: {},
+      xAxis: { type: "category", data: ["a", "b"] },
+      yAxis: { type: "value" },
+      series: [
+        {
+          type: "bar",
+          name: "s1",
+          data: [1, 2],
+          markPoint: { data: [{ type: "max" }] } as any,
+        },
+      ],
+    });
+    const overlaysvg = (engine as any).overlaysvg as SVGSVGElement;
+    const backsvg = (engine as any).backsvg as SVGSVGElement;
+    expect(overlaysvg.querySelector(".dc-title")).not.toBeNull();
+    expect(overlaysvg.querySelector(".dc-legend")).not.toBeNull();
+    expect(overlaysvg.querySelector(".dc-axes")).not.toBeNull();
+    expect(backsvg.querySelector(".dc-axes-grid")).not.toBeNull();
+    expect(overlaysvg.querySelector(".dc-marks")).not.toBeNull();
+
+    engine.setOption({
+      series: [
+        {
+          type: "pie",
+          data: [
+            { name: "A", value: 1 },
+            { name: "B", value: 1 },
+          ],
+        },
+      ],
+    });
+    expect(overlaysvg.querySelector(".dc-title")).toBeNull();
+    expect(overlaysvg.querySelector(".dc-legend")).toBeNull();
+    expect(overlaysvg.querySelector(".dc-axes")).toBeNull();
+    expect(backsvg.querySelector(".dc-axes-grid")).toBeNull();
+    expect(overlaysvg.querySelector(".dc-marks")).toBeNull();
+    engine.destroy();
+  });
+});
+
+describe("hiddenSeries survives setOption when the series name set is unchanged", () => {
+  function clickLegend(name: string) {
+    const texts = [...document.querySelectorAll(".dc-legend text")];
+    const index = texts.findIndex((node) => node.textContent === name);
+    const hitAreas = document.querySelectorAll(".dc-legend rect");
+    (hitAreas[index * 2] as SVGRectElement).dispatchEvent(
+      new MouseEvent("click", { bubbles: true }),
+    );
+  }
+
+  it("keeps a user toggle across a data-only setOption", () => {
+    const engine = makeEngine();
+    engine.setOption({
+      xAxis: { type: "category", data: ["a", "b"] },
+      yAxis: { type: "value" },
+      legend: {},
+      series: [
+        { type: "line", name: "s1", data: [1, 2] },
+        { type: "line", name: "s2", data: [3, 4] },
+      ],
+    });
+    clickLegend("s1");
+    expect((engine as any).hiddenSeries.has("s1")).toBe(true);
+
+    engine.setOption({
+      xAxis: { type: "category", data: ["a", "b"] },
+      yAxis: { type: "value" },
+      legend: {},
+      series: [
+        { type: "line", name: "s1", data: [9, 8] },
+        { type: "line", name: "s2", data: [7, 6] },
+      ],
+    });
+    expect((engine as any).hiddenSeries.has("s1")).toBe(true);
+    engine.destroy();
+  });
+
+  it("resets toggles when the series name set actually changes", () => {
+    const engine = makeEngine();
+    engine.setOption({
+      xAxis: { type: "category", data: ["a"] },
+      yAxis: { type: "value" },
+      legend: {},
+      series: [
+        { type: "line", name: "s1", data: [1] },
+        { type: "line", name: "s2", data: [2] },
+      ],
+    });
+    clickLegend("s1");
+    expect((engine as any).hiddenSeries.has("s1")).toBe(true);
+
+    engine.setOption({
+      xAxis: { type: "category", data: ["a"] },
+      yAxis: { type: "value" },
+      legend: {},
+      series: [
+        { type: "line", name: "s1", data: [1] },
+        { type: "line", name: "s3", data: [3] },
+      ],
+    });
+    expect((engine as any).hiddenSeries.has("s1")).toBe(false);
+    engine.destroy();
+  });
+});
+
+describe("resolvePolar is invoked when option.polar is present", () => {
+  it("stores polar coords computed from the polar option", () => {
+    const engine = makeEngine(400, 300);
+    engine.setOption({
+      polar: {},
+      angleAxis: { type: "value" },
+      radiusAxis: { type: "value" },
+      series: [{ type: "bar", coordinateSystem: "polar", data: [1, 2, 3] } as any],
+    });
+    const coords = (engine as any).polarCoords;
+    expect(coords).toHaveLength(1);
+    expect(coords[0].center).toEqual([200, 150]);
+    expect(coords[0].outerRadius).toBeGreaterThan(0);
     engine.destroy();
   });
 });

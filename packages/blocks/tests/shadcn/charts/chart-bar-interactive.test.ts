@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
 
 import type { DomphyElement } from "@domphy/core";
-import { ElementNode, flushSync } from "@domphy/core";
-import { afterEach, describe, expect, it } from "vitest";
+import { ElementNode, flushSync, toState } from "@domphy/core";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { chartBarInteractive } from "../../../src/shadcn/charts/chart-bar-interactive.ts";
+
+vi.setConfig({ testTimeout: 20000 });
 
 if (!("ResizeObserver" in globalThis)) {
   (globalThis as any).ResizeObserver = class {
@@ -51,5 +53,39 @@ describe("chartBarInteractive", () => {
 
     expect(mobileTile.getAttribute("data-active")).toBe("true");
     expect(desktopTile.getAttribute("data-active")).toBe("false");
+  });
+
+  it("replays the series-change reveal after an ancestor re-render reuses the plot", () => {
+    const animate = vi.fn(() => ({
+      finished: Promise.resolve(),
+      cancel() {},
+    }));
+    HTMLElement.prototype.animate = animate as unknown as typeof Element.prototype.animate;
+
+    const refresh = toState(0);
+    const host = document.createElement("div");
+    document.body.appendChild(host);
+    new ElementNode({
+      div: (listener: unknown) => {
+        (refresh.get as (l: unknown) => number)(listener);
+        return [chartBarInteractive() as DomphyElement];
+      },
+    } as DomphyElement).render(host);
+    flushSync();
+
+    const canvas = host.querySelector("canvas");
+    refresh.set(1);
+    flushSync();
+    expect(host.querySelector("canvas")).toBe(canvas);
+    animate.mockClear();
+
+    const tiles = host.querySelectorAll("aside button");
+    tiles[1].dispatchEvent(
+      new MouseEvent("click", { bubbles: true, cancelable: true }),
+    );
+    flushSync();
+    // Generation-2 sweepReveal used to close over a fresh null `plotElement`
+    // (`_onMount` does not re-run) and skip animate().
+    expect(animate).toHaveBeenCalled();
   });
 });

@@ -957,6 +957,24 @@ describe("unknown-tag fires per unknown key", () => {
     );
     expect(issues).toHaveLength(1);
   });
+
+  it("uses the first own key as the tag, like core validate()", () => {
+    // { dvi, div } — first own key is the typo. findTag must not skip past it
+    // to the later valid "div"; core validate() rejects the first key.
+    const issues = diagnose({ dvi: "typo", div: "ok" }).filter(
+      (d) => d.rule === "unknown-tag",
+    );
+    expect(issues.length).toBeGreaterThan(0);
+    expect(issues.map((d) => d.message).join("\n")).toContain('"dvi"');
+  });
+
+  it("does not flag unknown-tag when the first own key is a valid tag", () => {
+    expect(
+      diagnose({ div: "ok", dvi: "attr" }).filter(
+        (d) => d.rule === "unknown-tag",
+      ),
+    ).toEqual([]);
+  });
 });
 
 describe("custom rules that throw", () => {

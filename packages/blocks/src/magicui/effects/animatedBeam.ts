@@ -10,6 +10,7 @@
 // upstream Magic UI source was viewed or copied.
 
 import type { DomphyElement, ElementNode } from "@domphy/core";
+import { behavior } from "@domphy/core";
 import type { ThemeColor } from "@domphy/theme";
 import { themeColor, themeSpacing } from "@domphy/theme";
 
@@ -95,10 +96,22 @@ function beamNodeElement(
       nodeSpec.content ?? defaultBeamGlyph(nodeSpec.accentColor ?? "primary"),
     ],
     _key: nodeSpec.id,
-    _onMount: (node: ElementNode) => {
-      registerNode(nodeSpec.id, node.domElement as HTMLElement);
-    },
-    _onRemove: () => registerNode(nodeSpec.id, null),
+    ...behavior<{
+      id: string;
+      registerNode: (id: string, element: HTMLElement | null) => void;
+    }>(
+      `magicui-animated-beam-node-${nodeSpec.id}`,
+      (node, props) => {
+        props.registerNode(props.id, node.domElement as HTMLElement);
+        return {
+          update() {},
+          destroy() {
+            props.registerNode(props.id, null);
+          },
+        };
+      },
+      { id: nodeSpec.id, registerNode },
+    ),
     style: {
       position: "absolute",
       top: nodeSpec.top,
@@ -320,13 +333,20 @@ function animatedBeam(props: AnimatedBeamProps = {}): DomphyElement<"div"> {
       strokeWidth: String(connection.pathWidth ?? 2),
       strokeLinecap: "round",
       _key: `static-${index}`,
-      _onMount: (node: ElementNode) => {
-        runtimes[index].staticPathElement =
-          node.domElement as unknown as SVGPathElement;
-      },
-      _onRemove: () => {
-        runtimes[index].staticPathElement = null;
-      },
+      ...behavior(
+        `magicui-animated-beam-static-${index}`,
+        (node) => {
+          runtimes[index].staticPathElement =
+            node.domElement as unknown as SVGPathElement;
+          return {
+            update() {},
+            destroy() {
+              runtimes[index].staticPathElement = null;
+            },
+          };
+        },
+        {},
+      ),
       style: {
         color: (listener) =>
           themeColor(listener, "shift-4", connection.pathColor ?? "neutral"),
@@ -349,13 +369,20 @@ function animatedBeam(props: AnimatedBeamProps = {}): DomphyElement<"div"> {
       strokeWidth: String(connection.pathWidth ?? 2),
       strokeLinecap: "round",
       _key: `glow-${index}`,
-      _onMount: (node: ElementNode) => {
-        runtimes[index].glowPathElement =
-          node.domElement as unknown as SVGPathElement;
-      },
-      _onRemove: () => {
-        runtimes[index].glowPathElement = null;
-      },
+      ...behavior(
+        `magicui-animated-beam-glow-${index}`,
+        (node) => {
+          runtimes[index].glowPathElement =
+            node.domElement as unknown as SVGPathElement;
+          return {
+            update() {},
+            destroy() {
+              runtimes[index].glowPathElement = null;
+            },
+          };
+        },
+        {},
+      ),
     } as DomphyElement;
   }
 
@@ -394,13 +421,20 @@ function animatedBeam(props: AnimatedBeamProps = {}): DomphyElement<"div"> {
       x2: "0",
       y2: "0",
       _key: `gradient-${index}`,
-      _onMount: (node: ElementNode) => {
-        runtimes[index].gradientElement =
-          node.domElement as unknown as SVGLinearGradientElement;
-      },
-      _onRemove: () => {
-        runtimes[index].gradientElement = null;
-      },
+      ...behavior(
+        `magicui-animated-beam-gradient-${index}`,
+        (node) => {
+          runtimes[index].gradientElement =
+            node.domElement as unknown as SVGLinearGradientElement;
+          return {
+            update() {},
+            destroy() {
+              runtimes[index].gradientElement = null;
+            },
+          };
+        },
+        {},
+      ),
     } as DomphyElement;
   }
 
@@ -425,22 +459,29 @@ function animatedBeam(props: AnimatedBeamProps = {}): DomphyElement<"div"> {
         height: "100%",
         xmlns: "http://www.w3.org/2000/svg",
         ariaHidden: "true",
-        _onMount: (node: ElementNode) => {
-          svgElement = node.domElement as unknown as SVGSVGElement;
-        },
-        _onRemove: () => {
-          svgElement = null;
-        },
+        ...behavior(
+          "magicui-animated-beam-svg",
+          (node) => {
+            svgElement = node.domElement as unknown as SVGSVGElement;
+            return {
+              update() {},
+              destroy() {
+                svgElement = null;
+              },
+            };
+          },
+          {},
+        ),
         style: { position: "absolute", inset: 0, pointerEvents: "none" },
       } as DomphyElement,
     ],
-    _onMount: (node: ElementNode) => {
+    ...behavior("magicui-animated-beam", (node: ElementNode) => {
       containerElement = node.domElement as HTMLElement;
       if (
         typeof window === "undefined" ||
         typeof window.requestAnimationFrame !== "function"
       ) {
-        return;
+        return { update() {}, destroy() {} };
       }
 
       recomputeFrameId = window.requestAnimationFrame(() => {
@@ -460,18 +501,22 @@ function animatedBeam(props: AnimatedBeamProps = {}): DomphyElement<"div"> {
         window.removeEventListener("resize", onLayoutChange);
         window.removeEventListener("scroll", onLayoutChange, true);
       };
-    },
-    _onRemove: () => {
-      if (recomputeFrameId !== null)
-        window.cancelAnimationFrame(recomputeFrameId);
-      if (animationFrameId !== null)
-        window.cancelAnimationFrame(animationFrameId);
-      resizeObserver?.disconnect();
-      resizeObserver = null;
-      removeWindowListeners?.();
-      removeWindowListeners = null;
-      containerElement = null;
-    },
+
+      return {
+        update() {},
+        destroy() {
+          if (recomputeFrameId !== null)
+            window.cancelAnimationFrame(recomputeFrameId);
+          if (animationFrameId !== null)
+            window.cancelAnimationFrame(animationFrameId);
+          resizeObserver?.disconnect();
+          resizeObserver = null;
+          removeWindowListeners?.();
+          removeWindowListeners = null;
+          containerElement = null;
+        },
+      };
+    }, {}),
     style: {
       position: "relative",
       width: "100%",

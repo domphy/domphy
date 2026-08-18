@@ -289,25 +289,29 @@ When `option` is a `State<ChartOption>`, the `chart()` patch re-renders the char
 ## Low-level utilities
 
 ```ts
-import { resolveDataset, applyTransforms } from "@domphy/chart"
+import { resolveDataset, applyTransforms, applyDatasetToSeries } from "@domphy/chart"
 import type { DatasetOption, DatasetRef } from "@domphy/chart"
 ```
 
-These are the internal functions the engine uses to process datasets before rendering. Useful for custom series or pre-processing data outside the chart.
+These are the functions the engine uses to process datasets before rendering. Useful for custom series or pre-processing data outside the chart.
 
-**`resolveDataset(datasets, ref)`** — resolves a `DatasetRef` (series `datasetIndex`/`datasetId`) to the corresponding raw dataset after applying its transforms.
+**`resolveDataset(dataset)`** — resolves one `DatasetOption` (array-of-arrays with optional header, object rows, or column-object source, plus inline `transform[]`) into a row array.
 
-**`applyTransforms(dataset, allDatasets)`** — runs the `transform` pipeline on a dataset, returning the derived rows as a 2D array.
+**`applyDatasetToSeries(series, dataset)`** — joins `option.dataset` onto series that have no own `data`, honoring `datasetIndex` / `datasetId` and `encode` (`x`/`y`/`value`/`itemName`). This is what `ChartEngine.setOption` runs before render.
+
+**`applyTransforms(source, transforms)`** — runs a `TransformOption[]` pipeline (filter / sort) on a row array.
 
 ```ts
-const datasets: DatasetOption[] = [
-  { source: [["x", "y"], [1, 10], [2, 20], [3, 15]] },
-  {
-    fromDatasetIndex: 0,
-    transform: { type: "sort", config: { dimension: "y", order: "desc" } },
-  },
-]
-
-const rows = applyTransforms(datasets[1], datasets)
-// → [["x","y"],[2,20],[3,15],[1,10]]
+const source = resolveDataset({
+  source: [
+    ["x", "y"],
+    [1, 10],
+    [2, 20],
+    [3, 15],
+  ],
+})
+const rows = applyTransforms(source, [
+  { type: "sort", config: { dimension: "y", order: "desc" } },
+])
+// → [{ x: 2, y: 20 }, { x: 3, y: 15 }, { x: 1, y: 10 }]
 ```

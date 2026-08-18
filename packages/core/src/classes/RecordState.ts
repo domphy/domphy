@@ -29,6 +29,7 @@ export class RecordState<T extends Record<string, any> = Record<string, any>> {
   }
 
   set<K extends keyof T>(key: K, value: T[K]): void {
+    if (Object.is(this._record[key], value)) return;
     this._record[key] = value;
     this._notifier.notify(key as string, value);
   }

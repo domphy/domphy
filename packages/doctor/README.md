@@ -90,7 +90,7 @@ By default the doctor **invokes reactive content functions** with a no-op listen
 npx domphy-doctor src/
 ```
 
-Flags: `--only <rules>`, `--exclude <rules>`, `--no-reactive`, `--no-output` (skip Layer 4, see below), `--no-factory-exec` (never invoke exported functions as zero-arg factories — suppresses `factory-threw` warnings on component-library files whose factories require props), `--format text|json`. Exit code `1` when any error-severity diagnostic is found, `2` on a CLI/usage error. See the [configuration docs](https://domphy.com/docs/doctor/configuration) for the full flag reference.
+Flags: `--only <rules>`, `--exclude <rules>`, `--no-reactive`, `--no-output` (skip Layer 4, see below), `--no-factory-exec` (never invoke exported functions as zero-arg factories — suppresses `factory-threw` warnings on component-library files whose factories require props; also skips Layer 4 `ElementNode` construction, which would run `_onInit`), `--format text|json`. Exit code `1` when any error-severity diagnostic is found, `2` on a CLI/usage error. See the [configuration docs](https://domphy.com/docs/doctor/configuration) for the full flag reference.
 
 ## Layer 4: HTML/CSS output linting
 

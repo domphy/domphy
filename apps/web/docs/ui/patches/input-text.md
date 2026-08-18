@@ -6,12 +6,17 @@ import InputText from "../../demos/patches/InputText.ts?raw"
 
 # Input Text
 
-Use `inputText` on a native `input` element. It automatically sets `type="text"` and applies themed border, focus ring, placeholder, disabled, and validation (`data-status`) states. Use standard HTML attributes (`placeholder`, `value`, `disabled`) directly on the element.
+Use `inputText` on a native `input` element. It sets `type` (default `"text"`) and applies themed border, focus ring, placeholder, disabled, and validation (`data-status`) states. Use standard HTML attributes (`placeholder`, `value`, `disabled`) directly on the element. A `type` declared on the host still wins over the patch default.
+
+```ts
+{ input: null, placeholder: "Email", $: [inputText({ type: "email" })] }
+```
 
 ## Props
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
+| `type` | `string` | `"text"` | The input's `type` attribute (e.g. `"email"`, `"url"`, `"tel"`). |
 | `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Text/border color tone. |
 | `accentColor` | `ValueOrState<ThemeColor>` | `"primary"` | Hover/focus ring color tone. |
 
