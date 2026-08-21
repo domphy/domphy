@@ -105,7 +105,7 @@ assert.ok(computeScore(true, true, false, "C") < PASS_SCORE);
 assert.equal(computeScore(true, true, true, "C"), 100);
 
 const loginResult = await evaluate(
-  "```ts\n" + COUNTER + "\n```",
+  `\`\`\`ts\n${COUNTER}\n\`\`\``,
   task("login-form"),
   "C",
   0,
@@ -117,7 +117,7 @@ assert.ok(
 );
 
 const counterResult = await evaluate(
-  "```ts\n" + COUNTER + "\n```",
+  `\`\`\`ts\n${COUNTER}\n\`\`\``,
   task("counter"),
   "C",
   0,
@@ -127,7 +127,7 @@ assert.ok(counterResult.compiles);
 
 // Dry-run shape: same Counter against every task must not all "pass"
 const cScores = await Promise.all(
-  TASKS.map((t) => evaluate("```ts\n" + COUNTER + "\n```", t, "C", 0)),
+  TASKS.map((t) => evaluate(`\`\`\`ts\n${COUNTER}\n\`\`\``, t, "C", 0)),
 );
 const wouldPass = cScores.filter((r) => r.score >= PASS_SCORE);
 assert.ok(

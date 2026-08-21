@@ -927,12 +927,11 @@ Series: `parallel`, `themeRiver`, `map`, `scatter3D`, `bar3D`, `line3D`, `surfac
 Calendar coordinate system (`calendar` + `heatmap[coordinateSystem:"calendar"]`)  
 Geo/map (`geo` + `map` series, GeoJSON via `registerMap`)  
 3D charts (`grid3D`, `xAxis3D`, `yAxis3D`, `zAxis3D`) — SVG perspective projection, no extra package required  
-Polar layout (`option.polar` / `angleAxis` / `radiusAxis`) is resolved via `resolvePolar` when present  
 
 ### Phase 3 typed only (not rendered)
 
 `custom` series — `setOption` warns once; the series is ignored.  
-Polar *series drawing* (`coordinateSystem: "polar"` on bar/line/scatter) is not implemented; only the coord is computed.  
+`polar` / `angleAxis` / `radiusAxis` — present on `ChartOption` for ECharts interop; `setOption` warns once when a polar series is present and they have no effect. Polar *series drawing* (`coordinateSystem: "polar"` on bar/line/scatter) is not implemented. `resolvePolar` remains for unit tests and future wiring.  
 
 ### New series types (Phase 3)
 

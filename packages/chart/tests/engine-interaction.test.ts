@@ -465,25 +465,6 @@ describe("hiddenSeries survives setOption when the series name set is unchanged"
   });
 });
 
-describe("resolvePolar is invoked when option.polar is present", () => {
-  it("stores polar coords computed from the polar option", () => {
-    const engine = makeEngine(400, 300);
-    engine.setOption({
-      polar: {},
-      angleAxis: { type: "value" },
-      radiusAxis: { type: "value" },
-      series: [
-        { type: "bar", coordinateSystem: "polar", data: [1, 2, 3] } as any,
-      ],
-    });
-    const coords = (engine as any).polarCoords;
-    expect(coords).toHaveLength(1);
-    expect(coords[0].center).toEqual([200, 150]);
-    expect(coords[0].outerRadius).toBeGreaterThan(0);
-    engine.destroy();
-  });
-});
-
 describe("series as a single object (ECharts interop)", () => {
   // ECharts accepts `series: {…}` (non-array). Previously every render path
   // treated it as an array and crashed on .filter — normalize once up front.

@@ -67,31 +67,32 @@ function hyperText(props: HyperTextProps = {}): DomphyElement {
   ).fill(null);
 
   const characterSpans: DomphyElement<"span">[] = characters.map(
-    (character, index) => ({
-      // Upstream renders every character via `letter.toUpperCase()`, so the
-      // initial (pre-scramble) glyph reads uppercase too.
-      span: character === " " ? " " : character.toUpperCase(),
-      _key: `character-${index}`,
-      // Space cells get upstream's fixed `w-3` (0.75rem) width so gaps don't
-      // depend on the font's space-glyph width.
-      style:
-        character === " "
-          ? { display: "inline-block", width: "0.75rem" }
-          : { display: "inline-block" },
-      ...behavior(
-        `magicui-hyper-text-char-${index}`,
-        (node) => {
-          characterElementRefs[index] = node.domElement as HTMLElement;
-          return {
-            update() {},
-            destroy() {
-              characterElementRefs[index] = null;
-            },
-          };
-        },
-        {},
-      ),
-    }) as DomphyElement<"span">,
+    (character, index) =>
+      ({
+        // Upstream renders every character via `letter.toUpperCase()`, so the
+        // initial (pre-scramble) glyph reads uppercase too.
+        span: character === " " ? " " : character.toUpperCase(),
+        _key: `character-${index}`,
+        // Space cells get upstream's fixed `w-3` (0.75rem) width so gaps don't
+        // depend on the font's space-glyph width.
+        style:
+          character === " "
+            ? { display: "inline-block", width: "0.75rem" }
+            : { display: "inline-block" },
+        ...behavior(
+          `magicui-hyper-text-char-${index}`,
+          (node) => {
+            characterElementRefs[index] = node.domElement as HTMLElement;
+            return {
+              update() {},
+              destroy() {
+                characterElementRefs[index] = null;
+              },
+            };
+          },
+          {},
+        ),
+      }) as DomphyElement<"span">,
   );
 
   const randomCharacterGlyph = () =>

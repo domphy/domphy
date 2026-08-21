@@ -125,7 +125,7 @@ export class Ramp {
 
     const apcaContrast = (yText: number, yBg: number) => {
       const Bc = 0.022,
-        Bl = 1.414;
+        Bl = Math.SQRT2;
       const txt = yText < Bc ? yText + (Bc - yText) ** Bl : yText;
       const bg = yBg < Bc ? yBg + (Bc - yBg) ** Bl : yBg;
 
@@ -264,7 +264,7 @@ export class Ramp {
     const normalized = values.map((value) => (value / cMaxInput) * cRef);
     const cMin = Math.min(...normalized);
     const cMax = Math.max(...normalized);
-    const peakIndex = normalized.findIndex((value) => value === cMax);
+    const peakIndex = normalized.indexOf(cMax);
     const spline = createMonotone([
       [0, normalized[0]],
       [peakIndex, cMax],

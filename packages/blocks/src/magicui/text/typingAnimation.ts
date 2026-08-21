@@ -204,9 +204,7 @@ function elementNodeOf(listener: Listener): ElementNode | null {
   if (fromListener && typeof fromListener.getBehavior === "function") {
     return fromListener;
   }
-  if (
-    typeof (listener as unknown as ElementNode).getBehavior === "function"
-  ) {
+  if (typeof (listener as unknown as ElementNode).getBehavior === "function") {
     return listener as unknown as ElementNode;
   }
   return null;

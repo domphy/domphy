@@ -225,7 +225,7 @@ try {
 
   const ops = OPS.map((op) => op.name);
   const header = ["op", ...IMPLS].join("\t");
-  console.log("\n=== median of " + RUNS + " isolated runs (ms) ===");
+  console.log(`\n=== median of ${RUNS} isolated runs (ms) ===`);
   console.log(header);
   for (const op of ops) {
     console.log(

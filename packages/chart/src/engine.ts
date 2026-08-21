@@ -1,8 +1,6 @@
 import type { Device } from "@luma.gl/core";
 import type { ZoomWindow } from "./coord/grid.js";
 import { resolveGrid } from "./coord/grid.js";
-import type { PolarCoord } from "./coord/polar.js";
-import { resolvePolar } from "./coord/polar.js";
 import { applyDatasetToSeries, fillCategoryAxes } from "./dataset/transform.js";
 import { BarRenderer } from "./gl/BarRenderer.js";
 import { CandlestickRenderer } from "./gl/CandlestickRenderer.js";
@@ -423,7 +421,7 @@ function warnUnsupportedChartOption(option: ChartOption): void {
   );
   if (option.polar != null && polarSeries) {
     warnOnce(
-      "@domphy/chart: polar series rendering is typed for ECharts interop but is not implemented yet; option.polar is resolved for layout only.",
+      "@domphy/chart: polar series rendering is typed for ECharts interop but is not implemented yet; option.polar has no effect.",
     );
   }
   // TooltipOption keys that are typed for ECharts interop but ignored.
@@ -495,7 +493,6 @@ export class ChartEngine {
   // Interactive state
   private hiddenSeries: Set<string> = new Set();
   private seriesNameKey = "";
-  private polarCoords: PolarCoord[] = [];
   private xZoomMap: Map<number, ZoomWindow> = new Map();
   private yZoomMap: Map<number, ZoomWindow> = new Map();
   private dataZoomCleanup: (() => void) | null = null;
@@ -751,37 +748,6 @@ export class ChartEngine {
     // (see gl/color.ts createColorResolver). One per render pass, threaded
     // through the gauge SVG renderer and every WebGL renderer below.
     const colorResolver = createColorResolver(this.container);
-
-    // Polar layout is computed whenever option.polar is set so the public
-    // polar/angleAxis/radiusAxis surface is not a silent no-op at the coord
-    // layer. Polar series drawing itself is still typed-only (see warn).
-    if (option.polar != null) {
-      const polars = Array.isArray(option.polar)
-        ? option.polar
-        : [option.polar];
-      const angleAxes = Array.isArray(option.angleAxis)
-        ? option.angleAxis
-        : option.angleAxis
-          ? [option.angleAxis]
-          : [{}];
-      const radiusAxes = Array.isArray(option.radiusAxis)
-        ? option.radiusAxis
-        : option.radiusAxis
-          ? [option.radiusAxis]
-          : [{}];
-      this.polarCoords = polars.map((polar, index) =>
-        resolvePolar(
-          polar,
-          angleAxes[index] ?? {},
-          radiusAxes[index] ?? {},
-          series,
-          width,
-          height,
-        ),
-      );
-    } else {
-      this.polarCoords = [];
-    }
 
     // ─── SVG Overlay ──────────────────────────────────────────────────────────
     if (hasCartesian)

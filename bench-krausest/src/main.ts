@@ -214,7 +214,7 @@ function createFineImpl(opts: { tuned?: boolean; memo?: boolean } = {}) {
       const rows = data.get();
       for (let i = 0; i < rows.length; i += 10) {
         const s = rows[i].label;
-        s.set(s.get() + " !!!");
+        s.set(`${s.get()} !!!`);
       }
     },
     swapRows() {
@@ -299,7 +299,7 @@ function createCoarseImpl() {
         data
           .get()
           .map((r, i) =>
-            i % 10 === 0 ? { ...r, label: r.label + " !!!" } : r,
+            i % 10 === 0 ? { ...r, label: `${r.label} !!!` } : r,
           ),
       );
     },
