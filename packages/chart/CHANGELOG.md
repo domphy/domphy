@@ -1,5 +1,9 @@
 # @domphy/chart Changelog
 
+## 0.3.2
+
+- `option.polar` no longer precomputes unused layout coords; `setOption` warns that polar has no effect. `resolvePolar` stays exported for tests and future wiring.
+
 ## 0.3.1
 
 - Engine/dataset/grid/tooltip audit-fix pass: mixed-sign stacking, legend single-mode, pie hit-test, overlay groups keep every title/legend entry.

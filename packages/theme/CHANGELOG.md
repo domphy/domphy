@@ -1,5 +1,9 @@
 # @domphy/theme Changelog
 
+## 0.22.2
+
+- APCA `Bl` uses `Math.SQRT2` (was the `1.414` literal); chroma-peak index via `indexOf`.
+
 ## 0.22.1
 
 - Palette engine / tone validation audit-fix pass (`Generator`, `Ramp`, `Swatch`, utils, actionable `themeVars` errors).

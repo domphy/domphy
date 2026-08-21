@@ -16,7 +16,7 @@ Enterprise gate for the first **official stable** public cut of every publishabl
 | Package | Version | React / ecosystem peers | P0 | P1 | P2 | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
 | `@domphy/core` | 0.21.2 | React / Solid (runtime model) | none | SSR edge cases vs React 19 streaming | Docs deep-dives | SSR + hydration + behavior() shipped; tests cover reconcile/lifecycle. |
-| `@domphy/theme` | 0.22.1 | CSS vars / design tokens (no React peer) | none | Dark-mode OS sync docs | Token export helpers | solid-role ramps distinct (warning≠primary, error≠danger). |
+| `@domphy/theme` | 0.22.2 | CSS vars / design tokens (no React peer) | none | Dark-mode OS sync docs | Token export helpers | solid-role ramps distinct (warning≠primary, error≠danger). |
 | `@domphy/ui` | 0.21.2 | Radix UI / shadcn/ui | none | Storybook-class docs; SR manual smoke each release | — | Interactive-patch axe matrix (critical/serious) + keyboard contracts (dialog/menu/tabs/selectBox Enter-open/combobox); dialog focus trap/restore. |
 | `@domphy/floating` | 0.18.3 | Floating UI | none | — | Size middleware parity | Zero-dep vendored positioning. |
 | `@domphy/doctor` | 0.19.2 | eslint-plugin-jsx-a11y / Stylelint | none | Optional htmlhint/stylelint peers docs | Custom rule marketplace | diagnose/validate/fix API + tests. |
@@ -27,8 +27,8 @@ Enterprise gate for the first **official stable** public cut of every publishabl
 | `@domphy/router` | 0.18.3 | TanStack Router | none | File-route codegen; deeper stream/hydrate suite; Link helper | Devtools | SSR `createRequestHandler` smoke tests + match/loader core. |
 | `@domphy/dnd` | 0.18.6 | FormKit DnD (list model; not dnd-kit canvas) | none | Keyboard sortable a11y suite; drag sim tests | — | Thin FormKit adapter for sortable/multi-list. |
 | `@domphy/app` | 0.18.4 | Next.js App Router | none | Edge middleware cookbook; page SSR Set-Cookie/headers; revalidateTag | Deploy adapters | Loaders, lazy, i18n, cookies(read), SSR tests. |
-| `@domphy/blocks` | 0.2.1 | shadcn blocks + Magic UI | none | Full visual re-baseline in CI | More device demo assets | 173 demos; SOURCES.md clean-room; visual QA harness. |
-| `@domphy/chart` | 0.3.1 | ECharts / Recharts | none | SSR canvas snapshot tests; percent stack | More series demos | Canvas engine + theme; unsupported custom/toolbox/brush warn. |
+| `@domphy/blocks` | 0.2.2 | shadcn blocks + Magic UI | none | Full visual re-baseline in CI | More device demo assets | 173 demos; SOURCES.md clean-room; visual QA harness. |
+| `@domphy/chart` | 0.3.2 | ECharts / Recharts | none | SSR canvas snapshot tests; percent stack | More series demos | Canvas engine + theme; unsupported custom/toolbox/brush warn. |
 | `@domphy/three` | 0.3.1 | @react-three/fiber | none | Asset loader error-boundary recipes | — | R3F-class reconciler port + doctor. |
 | `@domphy/editor` | 0.2.4 | Tiptap / ProseMirror | none | IME stress suite across browsers; collaborative-editing story | Merged-cell table map; image extension; NodeSelection | Tiptap-compatible API on a self-contained engine; StarterKit + underline/table/node views/autolink; 27-scenario real-browser pass. |
 | `@domphy/press` | 0.23.1 | VitePress | none | Search backend pluggability | Theme marketplace | CLI build/dev/preview. |

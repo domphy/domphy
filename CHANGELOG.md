@@ -6,6 +6,14 @@ Packages are versioned independently — each package has its own version number
 
 ---
 
+## Patch — 2026-08-21 (evening)
+
+- `@domphy/chart` [0.3.2] — polar option no longer precomputes unused layout coords.
+- `@domphy/theme` [0.22.2] — APCA `Bl` is `Math.SQRT2`; chroma peak via `indexOf`.
+- `@domphy/blocks` [0.2.2] already on npm (signup minlength / pie / confetti); matrix only.
+
+---
+
 ## Peer-range widening wave — 2026-08-10
 
 `@domphy/theme` 0.22.0 is additive (the `@domphy/palette` re-export); every theme API the dependents use is unchanged. The two packages that declared `^0.21.0` peers get a widened range so consumers on theme 0.22.x stop seeing peer warnings. No runtime change.
