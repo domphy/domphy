@@ -21,7 +21,7 @@ async function main() {
   await locate(page, BLOCK);
 
   const wedges = page.locator(
-    `[data-block="${BLOCK}"] g[aria-hidden="true"] path`,
+    `[data-block="${BLOCK}"] path[data-chart-wedge="true"]`,
   );
   const wedgeCount = await wedges.count();
   report(
@@ -30,33 +30,25 @@ async function main() {
     `expected 5 donut wedges (Chrome/Safari/Firefox/Edge/Other), got ${wedgeCount}`,
   );
 
-  // `strong` is unique in this tree — pieCenterText's donut total uses an SVG
-  // `<text>`, not `<strong>` — so it reliably identifies the tooltip layer.
-  // The card's OWN description also renders as a `<small>` though, so the
-  // tooltip's name span must be scoped to the same container as `strong`,
-  // not looked up page-wide.
+  // Tooltip is two `<small>`s (name + value) on a dedicated layer — the
+  // donut center total is SVG `<text>`, not `<strong>`. Hovering an SVG
+  // wedge via bounding-box center often lands in the donut hole, so fire
+  // mouseenter on the path itself.
   const tooltipText = () =>
     page.evaluate((block) => {
       const root = document.querySelector(`[data-block="${block}"]`);
-      const strong = root?.querySelector("strong");
-      const layer = strong?.closest(
-        "div[aria-hidden='true']",
+      const layer = root?.querySelector(
+        "[data-pie-tooltip]",
       ) as HTMLElement | null;
-      const small = layer?.querySelector("small");
+      const smalls = layer?.querySelectorAll("small");
       return {
         opacity: layer ? getComputedStyle(layer).opacity : null,
-        name: small?.textContent ?? "",
-        value: strong?.textContent ?? "",
+        name: smalls?.[0]?.textContent ?? "",
+        value: smalls?.[1]?.textContent ?? "",
       };
     }, BLOCK);
 
-  const firstWedgeBox = await wedges.first().boundingBox();
-  if (!firstWedgeBox) throw new Error("first wedge has no bounding box");
-  await page.mouse.move(
-    firstWedgeBox.x + firstWedgeBox.width / 2,
-    firstWedgeBox.y + firstWedgeBox.height / 2,
-    { steps: 5 },
-  );
+  await wedges.first().dispatchEvent("mouseenter");
   await page.waitForTimeout(200);
   const hovered = await tooltipText();
   report(
@@ -76,7 +68,7 @@ async function main() {
       const centerText =
         root?.querySelector("g[aria-hidden='true'] text")?.textContent ?? null;
       const paths = Array.from(
-        root?.querySelectorAll("g[aria-hidden='true'] path") ?? [],
+        root?.querySelectorAll('path[data-chart-wedge="true"]') ?? [],
       ) as SVGPathElement[];
       return {
         centerText,

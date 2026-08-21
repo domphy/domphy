@@ -6,6 +6,7 @@
     "dev": "pnpm -r dev",
     "build": "pnpm -r build",
     "test": "pnpm -r --workspace-concurrency=3 test",
+    "test:blocks-e2e": "pnpm --filter @domphy/blocks test:e2e",
     "check": "biome check .",
     "fix": "biome check --write .",
     "verify:publish": "node scripts/verify-publish.mjs --all",

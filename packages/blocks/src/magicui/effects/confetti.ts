@@ -38,7 +38,7 @@ export interface ConfettiProps {
   options?: ConfettiFireOptions;
   /**
    * Options for the underlying `confetti.create(canvas, ...)` instance (mirrors
-   * upstream's `globalOptions` prop). Defaults to `{ resize: true, useWorker: true }`;
+   * upstream's `globalOptions` prop). Defaults to `{ resize: true, useWorker: false }`;
    * `resize` is always forced on so the canvas tracks its element size.
    */
   globalOptions?: ConfettiGlobalOptions;
@@ -75,7 +75,9 @@ const DEFAULT_FIRE_OPTIONS: ConfettiFireOptions = {
 // Matches upstream's `globalOptions` default.
 const DEFAULT_GLOBAL_OPTIONS: ConfettiGlobalOptions = {
   resize: true,
-  useWorker: true,
+  // OffscreenCanvas workers make the host canvas unreadable (getContext
+  // throws "transferred its control to offscreen") and the burst is short.
+  useWorker: false,
 };
 
 // Raw `confetti.create(canvas, ...)` instance, or null where instance

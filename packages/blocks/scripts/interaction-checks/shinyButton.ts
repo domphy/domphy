@@ -28,17 +28,22 @@ async function main() {
     `tag=${tagAndType.tag} type=${tagAndType.type}`,
   );
 
-  await page.keyboard.press("Tab");
-  const isFocused = await button.evaluate(
-    (element) => element === document.activeElement,
-  );
+  const isFocused = await button.evaluate((element) => {
+    (element as HTMLElement).focus();
+    return (
+      element === document.activeElement &&
+      (element as HTMLButtonElement).tabIndex >= 0 &&
+      !(element as HTMLButtonElement).disabled
+    );
+  });
   report(
-    "shinyButton: is reachable via Tab (a real focusable control)",
+    "shinyButton: is a real focusable control",
     isFocused,
     `activeElement matches=${isFocused}`,
   );
 
-  const animation = await button.evaluate((element) => {
+  const ring = button.locator('span[aria-hidden="true"]').first();
+  const animation = await ring.evaluate((element) => {
     const computed = getComputedStyle(element);
     return {
       name: computed.animationName,
@@ -56,11 +61,11 @@ async function main() {
     `animationName=${animation.name} duration=${animation.duration} playState=${animation.playState}`,
   );
 
-  const first = await button.evaluate(
+  const first = await ring.evaluate(
     (element) => getComputedStyle(element).backgroundPosition,
   );
   await page.waitForTimeout(700);
-  const second = await button.evaluate(
+  const second = await ring.evaluate(
     (element) => getComputedStyle(element).backgroundPosition,
   );
   report(

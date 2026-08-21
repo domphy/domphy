@@ -57,6 +57,8 @@ apps/web/visual/.serve/
 apps/web/test-results/
 apps/web/visual/shots-review-*/
 apps/web/playwright-report/
+packages/blocks/test-results/
+packages/blocks/playwright-report/
 
 # Local GH Actions failure dumps
 .gh-action-logs/

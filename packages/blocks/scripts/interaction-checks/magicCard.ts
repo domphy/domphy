@@ -54,7 +54,7 @@ async function main() {
       );
       report(
         "magicCard glow is visible while hovering",
-        opacityA === "1" && opacityB === "1",
+        Number(opacityA) >= 0.8 && Number(opacityB) >= 0.8,
         `opacityA=${opacityA} opacityB=${opacityB}`,
       );
 

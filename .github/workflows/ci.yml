@@ -56,6 +56,11 @@ jobs:
       # Windows-specific (*-win32.png) and would not match ubuntu-latest
       # font rendering. Run them locally after UI/blocks changes — see
       # apps/web/visual/README.md.
+      #
+      # Note: @domphy/blocks Playwright e2e (`pnpm --filter @domphy/blocks
+      # test:e2e`) is also opt-in. It is a separate script from `test`
+      # (vitest/jsdom) so `pnpm -r test` never launches Chromium. Run it
+      # alone when touching blocks.
       - name: Test
         run: pnpm -r test
 

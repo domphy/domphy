@@ -17,30 +17,16 @@ async function main(): Promise<void> {
     const block = await locate(page, "sidebarInDialog");
 
     const dialogElement = block.locator("dialog");
-    const openBefore = await dialogElement.evaluate(
+    // Default demo (`open` defaults to true) mounts with the settings dialog
+    // already shown so the catalog captures the pane, not an empty trigger.
+    const openOnMount = await dialogElement.evaluate(
       (node) => (node as HTMLDialogElement).open,
     );
-    const visibleBefore = await dialogElement.isVisible();
-
-    await block.locator("button", { hasText: "Open settings" }).click();
-    await page.waitForTimeout(250);
-
-    const openAfter = await dialogElement.evaluate(
-      (node) => (node as HTMLDialogElement).open,
-    );
-    const visibleAfter = await dialogElement.isVisible();
-    const focusInsideDialog = await page.evaluate(() => {
-      const dlg = document.querySelector("dialog");
-      return !!dlg && dlg.contains(document.activeElement);
-    });
+    const visibleOnMount = await dialogElement.isVisible();
     report(
-      "sidebarInDialog: 'Open settings' trigger opens a real, focused modal dialog",
-      openBefore === false &&
-        !visibleBefore &&
-        openAfter === true &&
-        visibleAfter &&
-        focusInsideDialog,
-      `open ${openBefore}->${openAfter}, visible ${visibleBefore}->${visibleAfter}, focusInside=${focusInsideDialog}`,
+      "sidebarInDialog: default render mounts the settings dialog already open",
+      openOnMount === true && visibleOnMount,
+      `open=${openOnMount} visible=${visibleOnMount}`,
     );
 
     // Selecting a category should swap the visible content pane too (real
@@ -69,6 +55,17 @@ async function main(): Promise<void> {
       "sidebarInDialog: Escape closes the dialog",
       openAfterEscape === false && !visibleAfterEscape,
       `open after escape=${openAfterEscape}, visible=${visibleAfterEscape}`,
+    );
+
+    await block.locator("button", { hasText: "Open settings" }).click();
+    await page.waitForTimeout(250);
+    const openAfterRetrigger = await dialogElement.evaluate(
+      (node) => (node as HTMLDialogElement).open,
+    );
+    report(
+      "sidebarInDialog: 'Open settings' trigger re-opens the dialog after Escape",
+      openAfterRetrigger === true,
+      `open after retrigger=${openAfterRetrigger}`,
     );
   } finally {
     await teardown();

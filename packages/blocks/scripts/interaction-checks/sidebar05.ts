@@ -2,7 +2,7 @@
 // its own `<details>` (see `renderNavGroup` in sidebar05.ts) with a
 // plus/minus glyph swapped purely via the `[open]` CSS attribute selector —
 // clicking the summary natively toggles `open`, and multiple groups can stay
-// open at once (no cross-closing). "Getting Started" starts open
+// open at once (no cross-closing). "Build Your Application" starts open
 // (`defaultOpen: true`), the rest start closed. The sidebar itself has no
 // icon-rail collapse — its own toggle button (in the shared sticky content
 // header) fully hides it (width -> 0), not a Ctrl/Cmd+B shortcut (none is
@@ -27,7 +27,7 @@ async function main() {
     .first();
   const building = page
     .locator('[data-block="sidebar05"] aside nav li details')
-    .filter({ hasText: "Building Your Application" })
+    .filter({ hasText: "Build Your Application" })
     .first();
 
   const gettingStartedOpen = await gettingStarted.evaluate(
@@ -37,23 +37,23 @@ async function main() {
     (el) => (el as HTMLDetailsElement).open,
   );
   report(
-    "sidebar05: 'Getting Started' starts open (defaultOpen: true), 'Building Your Application' starts closed",
-    gettingStartedOpen === true && buildingOpenBefore === false,
+    "sidebar05: 'Build Your Application' starts open (defaultOpen: true), 'Getting Started' starts closed",
+    gettingStartedOpen === false && buildingOpenBefore === true,
     `gettingStartedOpen=${gettingStartedOpen} buildingOpen=${buildingOpenBefore}`,
   );
 
-  await building.locator("summary").first().click();
+  await gettingStarted.locator("summary").first().click();
   await page.waitForTimeout(150);
-  const buildingOpenAfter = await building.evaluate(
+  const gettingStartedOpenAfter = await gettingStarted.evaluate(
     (el) => (el as HTMLDetailsElement).open,
   );
-  const gettingStartedStillOpen = await gettingStarted.evaluate(
+  const buildingStillOpen = await building.evaluate(
     (el) => (el as HTMLDetailsElement).open,
   );
   report(
-    "sidebar05: opening 'Building Your Application' does not close the already-open 'Getting Started' (independent accordions)",
-    buildingOpenAfter === true && gettingStartedStillOpen === true,
-    `buildingOpen=${buildingOpenAfter} gettingStartedOpen=${gettingStartedStillOpen}`,
+    "sidebar05: opening 'Getting Started' does not close the already-open 'Build Your Application' (independent accordions)",
+    gettingStartedOpenAfter === true && buildingStillOpen === true,
+    `gettingStartedOpen=${gettingStartedOpenAfter} buildingOpen=${buildingStillOpen}`,
   );
 
   const routingVisible = await building
@@ -61,15 +61,15 @@ async function main() {
     .first()
     .isVisible();
   report(
-    "sidebar05: the newly-opened group's 'Routing' child link is now visible",
+    "sidebar05: the already-open group's 'Routing' child link is visible",
     routingVisible === true,
     `visible=${routingVisible}`,
   );
 
   const aside = page.locator('[data-block="sidebar05"] aside').first();
   const toggleButton = page
-    .locator('[data-block="sidebar05"] main header button')
-    .first();
+    .locator('[data-block="sidebar05"]')
+    .getByRole("button", { name: "Toggle sidebar" });
   const expandedWidth = await aside.evaluate(
     (el) => el.getBoundingClientRect().width,
   );

@@ -55,7 +55,8 @@ async function main(): Promise<void> {
       .getAttribute("src");
     report(
       `${NAME}: Escape closes the dialog and clears the video src`,
-      isOpenAfterEscape === false && iframeSrcAfterClose === "",
+      isOpenAfterEscape === false &&
+        (iframeSrcAfterClose === "about:blank" || iframeSrcAfterClose === ""),
       `dialog.open=${isOpenAfterEscape}, iframe src="${iframeSrcAfterClose}"`,
     );
 

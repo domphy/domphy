@@ -8,5 +8,8 @@ export default defineConfig({
   test: {
     pool: "forks",
     maxWorkers: 4,
+    // Playwright specs live in e2e/*.spec.ts — keep them out of `pnpm test`
+    // / `pnpm -r test` so Chromium never starts next to the jsdom suite.
+    exclude: ["**/node_modules/**", "**/dist/**", "**/e2e/**"],
   },
 });

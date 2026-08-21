@@ -1,5 +1,12 @@
 # @domphy/blocks Changelog
 
+## 0.2.2
+
+- Opt-in Playwright e2e: `pnpm test:e2e` (interact checks + full-catalog axe/overflow/screenshot scan). Not wired into `pnpm test`. Screenshots at `.ui-qa/blocks-e2e/`.
+- `signup01`–`signup04`: native `minlength=8` on password fields (matches the "at least 8 characters" caption).
+- `chartPieInteractive`: select `aria-label` is "Select a category"; wedges marked `data-chart-wedge`.
+- `confetti` / `confettiButton`: paint on the host 2d context (`useWorker: false`) so the burst is visible on the overlay canvas.
+
 ## 0.2.1
 
 - Magic UI / shadcn chart recipes: muted-surface contrast promoted to `text`; biome-clean; `dashboard01` README props match `pageTitle` / `navMain`.

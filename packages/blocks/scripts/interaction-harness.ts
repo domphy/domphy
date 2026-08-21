@@ -42,9 +42,20 @@ export function summarize(): never {
 
 let server: ViteDevServer | undefined;
 let browser: Browser | undefined;
+let startedServer = false;
 
-/** Boots the vite demo server + a browser once; call teardown() when done. */
+/** Boots the vite demo server + a browser once; call teardown() when done.
+ * When `BLOCKS_E2E_BASE_URL` is set (Playwright webServer already on 5611),
+ * reuse that origin and only launch Chromium. */
 export async function boot(): Promise<{ browser: Browser; demoUrl: string }> {
+  const existing = process.env.BLOCKS_E2E_BASE_URL;
+  browser = await chromium.launch({ headless: true });
+  if (existing) {
+    const base = existing.replace(/\/$/, "");
+    const demoUrl = base.endsWith("demo.html") ? base : `${base}/demo.html`;
+    return { browser, demoUrl };
+  }
+  startedServer = true;
   server = await createServer({
     root: packageRoot,
     configFile: resolve(packageRoot, "vite.demo.config.ts"),
@@ -53,13 +64,12 @@ export async function boot(): Promise<{ browser: Browser; demoUrl: string }> {
   await server.listen();
   const address = server.httpServer?.address();
   const port = typeof address === "object" && address ? address.port : 5610;
-  browser = await chromium.launch();
   return { browser, demoUrl: `http://localhost:${port}/demo.html` };
 }
 
 export async function teardown(): Promise<void> {
   await browser?.close();
-  await server?.close();
+  if (startedServer) await server?.close();
 }
 
 /** Retries `action` once if it fails because the page navigated out from
@@ -122,7 +132,7 @@ export async function mountedPage(
   });
   const page = await context.newPage();
   try {
-    await page.goto(demoUrl, { waitUntil: "networkidle" });
+    await page.goto(demoUrl, { waitUntil: "load" });
     await retryAcrossReload(page, async () => {
       await page.waitForFunction(
         () =>
@@ -182,7 +192,7 @@ export async function mountedPageWithInit(
   const page = await context.newPage();
   try {
     await beforeNavigate(page);
-    await page.goto(demoUrl, { waitUntil: "networkidle" });
+    await page.goto(demoUrl, { waitUntil: "load" });
     await retryAcrossReload(page, async () => {
       await page.waitForFunction(
         () =>

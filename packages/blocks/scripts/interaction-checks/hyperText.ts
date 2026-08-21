@@ -12,7 +12,7 @@ import {
   teardown,
 } from "../interaction-harness.js";
 
-const EXPECTED_TEXT = "Hover to Decode"; // hyperText()'s own default `children`
+const EXPECTED_TEXT = "HOVER TO DECODE"; // default children, rendered uppercase
 const DURATION_MS = 800; // hyperText()'s own default `duration`
 
 // hyperText renders space characters as U+00A0 (non-breaking space) so their
@@ -27,13 +27,15 @@ async function main() {
   const wrapper = await locate(page, "hyperText");
   const root = wrapper.locator(".block-box > *").first();
 
-  const textBeforeHover = normalizeNbsp(
+  // Auto-plays once on mount — wait for that scramble to settle first.
+  await page.waitForTimeout(DURATION_MS + 200);
+  const textAtRest = normalizeNbsp(
     await root.evaluate((element) => element.textContent),
   );
   report(
-    "hyperText: renders the intended phrase before any hover (resting state)",
-    textBeforeHover === EXPECTED_TEXT,
-    `text before hover = ${JSON.stringify(textBeforeHover)}`,
+    "hyperText: settles on the intended phrase after the mount scramble",
+    textAtRest === EXPECTED_TEXT,
+    `text at rest = ${JSON.stringify(textAtRest)}`,
   );
 
   await root.hover();

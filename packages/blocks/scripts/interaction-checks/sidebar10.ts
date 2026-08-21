@@ -21,23 +21,30 @@ async function main(): Promise<void> {
     const page = await mountedPage(demoUrl, "sidebar10");
     const block = await locate(page, "sidebar10");
 
-    // Workspace tree: "Product" starts collapsed (only "Engineering" is
-    // expanded by default) — clicking its <summary> should reveal its pages.
-    const productDetails = block.locator(
-      'details:has(summary:has-text("Product"))',
-    );
-    const productSummary = productDetails.locator("summary");
-    const beforeOpen = await productDetails.getAttribute("open");
-    await productSummary.click();
-    await page.waitForTimeout(150);
-    const afterOpen = await productDetails.getAttribute("open");
-    const childVisible = await productDetails
-      .locator("a", { hasText: "Roadmap" })
-      .isVisible();
+    // Workspaces are button+link rows, not <details>. The chevron is
+    // hover-revealed (`display:none` until the row is hovered).
+    const productToggle = block.locator('button[aria-label="Toggle Product"]');
+    const roadmap = block.locator("a", { hasText: "🗺️Roadmap" });
+    const expandedBefore = await page.evaluate(() => {
+      const button = document.querySelector(
+        '[data-block="sidebar10"] button[aria-label="Toggle Product"]',
+      );
+      return button?.getAttribute("aria-expanded") ?? null;
+    });
+    await block.locator("a", { hasText: "Product" }).first().hover();
+    await productToggle.click({ force: true });
+    await page.waitForTimeout(200);
+    const expandedAfter = await page.evaluate(() => {
+      const button = document.querySelector(
+        '[data-block="sidebar10"] button[aria-label="Toggle Product"]',
+      );
+      return button?.getAttribute("aria-expanded") ?? null;
+    });
+    const childVisible = await roadmap.isVisible();
     report(
       "sidebar10: clicking a workspace folder expands its page tree",
-      beforeOpen === null && afterOpen !== null && childVisible,
-      `open before=${beforeOpen} after=${afterOpen} childVisible=${childVisible}`,
+      expandedBefore === "false" && expandedAfter === "true" && childVisible,
+      `aria-expanded ${expandedBefore}->${expandedAfter}, childVisible=${childVisible}`,
     );
 
     // Favorites list: only 10 of 13 default favorites show initially, plus a

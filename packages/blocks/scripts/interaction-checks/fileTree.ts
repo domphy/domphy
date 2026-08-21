@@ -20,8 +20,9 @@ async function main() {
 
   const wrapper = page.locator('[data-block="fileTree"]');
   // Demo data: "src" starts expanded, "src/components" starts collapsed.
-  const componentsFolderRow = wrapper.locator('[role="treeitem"]', {
-    hasText: "components",
+  const componentsFolderRow = wrapper.getByRole("treeitem", {
+    name: "components",
+    exact: true,
   });
   const componentsChildrenGroup = componentsFolderRow.locator(
     "xpath=following-sibling::div[@role='group'][1]",
@@ -42,7 +43,7 @@ async function main() {
   const ariaExpandedAfter =
     await componentsFolderRow.getAttribute("aria-expanded");
   const buttonRowVisible = await wrapper
-    .locator('[role="treeitem"]', { hasText: "Button.tsx" })
+    .getByRole("treeitem", { name: "Button.tsx", exact: true })
     .isVisible();
 
   report(
@@ -55,35 +56,30 @@ async function main() {
     `aria-expanded ${ariaExpandedBefore}->${ariaExpandedAfter}, children height ${heightBeforeExpand}->${heightAfterExpand}, Button.tsx visible=${buttonRowVisible}`,
   );
 
-  // Demo data starts with "index.ts" selected; select "app.ts" instead and
-  // assert the highlight actually moves between the two file rows.
-  const indexFileRow = wrapper.locator('[role="treeitem"]', {
-    hasText: "index.ts",
+  // Folder rows are selectable too — the expand click above selected
+  // "components". Clicking a file must move aria-selected onto that file.
+  const appFileRow = wrapper.getByRole("treeitem", {
+    name: "app.ts",
+    exact: true,
   });
-  const appFileRow = wrapper.locator('[role="treeitem"]', {
-    hasText: "app.ts",
-  });
-
-  const [indexSelectedBefore, appSelectedBefore] = await Promise.all([
-    indexFileRow.getAttribute("aria-selected"),
-    appFileRow.getAttribute("aria-selected"),
-  ]);
+  const folderSelectedBefore =
+    await componentsFolderRow.getAttribute("aria-selected");
+  const appSelectedBefore = await appFileRow.getAttribute("aria-selected");
 
   await appFileRow.click();
   await page.waitForTimeout(100);
 
-  const [indexSelectedAfter, appSelectedAfter] = await Promise.all([
-    indexFileRow.getAttribute("aria-selected"),
-    appFileRow.getAttribute("aria-selected"),
-  ]);
+  const folderSelectedAfter =
+    await componentsFolderRow.getAttribute("aria-selected");
+  const appSelectedAfter = await appFileRow.getAttribute("aria-selected");
 
   report(
     "fileTree: clicking a file row moves the selected-state highlight to it",
-    indexSelectedBefore === "true" &&
+    folderSelectedBefore === "true" &&
       appSelectedBefore === "false" &&
-      indexSelectedAfter === "false" &&
+      folderSelectedAfter === "false" &&
       appSelectedAfter === "true",
-    `index.ts aria-selected ${indexSelectedBefore}->${indexSelectedAfter}, app.ts aria-selected ${appSelectedBefore}->${appSelectedAfter}`,
+    `components aria-selected ${folderSelectedBefore}->${folderSelectedAfter}, app.ts aria-selected ${appSelectedBefore}->${appSelectedAfter}`,
   );
 
   await teardown();

@@ -235,8 +235,7 @@ export function wedgeTooltipHandlers(
     const container =
       node?.getBehavior<BehaviorInstance & { element: HTMLElement }>(
         "pie-container",
-      )?.element ??
-      containerRef.current;
+      )?.element ?? containerRef.current;
     const rect = container?.getBoundingClientRect();
     const name = showName
       ? seriesLabel
@@ -320,6 +319,7 @@ export function pieTooltipLayer(
       },
     ],
     ariaHidden: "true",
+    dataPieTooltip: "true",
     dataTone: "shift-1",
     style: {
       position: "absolute",

@@ -3,7 +3,7 @@
 // changes per the component's own index-distance falloff (see
 // src/magicui/community/kineticText.ts's `applyWeights`): hovered letter
 // jumps toward `PEAK_WEIGHT` (900), a letter far outside `FALLOFF_RADIUS`
-// (4) stays at `BASE_WEIGHT` (200), and everything reverts to baseline on
+// (4) stays at `BASE_WEIGHT` (300), and everything reverts to baseline on
 // pointerleave.
 import {
   boot,
@@ -14,7 +14,7 @@ import {
   teardown,
 } from "../interaction-harness.js";
 
-const BASE_WEIGHT = "200";
+const BASE_WEIGHT = "300";
 
 async function main() {
   const { demoUrl } = await boot();

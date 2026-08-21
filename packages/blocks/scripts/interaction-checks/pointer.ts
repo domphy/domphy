@@ -1,8 +1,9 @@
 // Real browser interaction checks for pointer (src/magicui/core/pointer.ts).
 //
 // Moves the real mouse over the trigger zone at two distinct coordinates and
-// reads the custom cursor element's own `transform` after each, asserting it
-// actually tracks the live cursor position (not just a static "visible" flag).
+// reads the custom cursor element's own `left`/`top` after each (pointer.ts
+// writes those, not a px translate on transform), asserting it actually
+// tracks the live cursor position (not just a static "visible" flag).
 import {
   boot,
   locate,
@@ -12,10 +13,8 @@ import {
   teardown,
 } from "../interaction-harness.js";
 
-function parseTranslate(transform: string): { x: number; y: number } | null {
-  const match = transform.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/);
-  if (!match) return null;
-  return { x: parseFloat(match[1]), y: parseFloat(match[2]) };
+function parsePx(value: string): number {
+  return Number.parseFloat(value) || 0;
 }
 
 async function main() {
@@ -42,20 +41,22 @@ async function main() {
   const pointA = { x: box.x + box.width * 0.25, y: box.y + box.height * 0.3 };
   await page.mouse.move(pointA.x, pointA.y);
   await page.waitForTimeout(200); // lerp-smoothing settle (default smoothing 0.25/frame)
-  const [opacityInside, transformA] = await Promise.all([
+  const [opacityInside, leftA, topA] = await Promise.all([
     cursorElement.evaluate((el) => getComputedStyle(el).opacity),
-    cursorElement.evaluate((el) => (el as HTMLElement).style.transform),
+    cursorElement.evaluate((el) => (el as HTMLElement).style.left),
+    cursorElement.evaluate((el) => (el as HTMLElement).style.top),
   ]);
-  const pointAResult = parseTranslate(transformA);
+  const pointAResult = { x: parsePx(leftA), y: parsePx(topA) };
 
   // Second point: a clearly different spot within the same zone.
   const pointB = { x: box.x + box.width * 0.75, y: box.y + box.height * 0.7 };
   await page.mouse.move(pointB.x, pointB.y, { steps: 5 });
   await page.waitForTimeout(300);
-  const transformB = await cursorElement.evaluate(
-    (el) => (el as HTMLElement).style.transform,
-  );
-  const pointBResult = parseTranslate(transformB);
+  const [leftB, topB] = await Promise.all([
+    cursorElement.evaluate((el) => (el as HTMLElement).style.left),
+    cursorElement.evaluate((el) => (el as HTMLElement).style.top),
+  ]);
+  const pointBResult = { x: parsePx(leftB), y: parsePx(topB) };
 
   report(
     "pointer: entering the zone fades in the custom cursor and hides the native one",
@@ -63,7 +64,7 @@ async function main() {
     `opacity outside=${opacityOutside} inside=${opacityInside}`,
   );
 
-  const offset = { x: 16, y: 16 }; // DEFAULT_OFFSET
+  const offset = { x: 0, y: 0 }; // pointer.ts DEFAULT_OFFSET
   const withinTolerance = (
     actual: number,
     expected: number,
@@ -80,7 +81,7 @@ async function main() {
     withinTolerance(pointBResult.y, pointB.y - box.y + offset.y, 6);
 
   report(
-    "pointer: custom cursor's transform follows real cursor coordinates at two different points",
+    "pointer: custom cursor's left/top follows real cursor coordinates at two different points",
     pointAMatches &&
       pointBMatches &&
       !!pointAResult &&

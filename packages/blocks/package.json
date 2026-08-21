@@ -1,6 +1,6 @@
 {
   "name": "@domphy/blocks",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Large composed UI blocks for Domphy — dashboards, auth pages, sidebars, chart recipes, and marketing/effect components, independently reimplemented (clean-room) from the public behavior of shadcn/ui and Magic UI.",
   "type": "module",
   "sideEffects": false,
@@ -55,6 +55,9 @@
     "prepublishOnly": "node ../../scripts/guard-pnpm-publish.mjs && npm run build",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:e2e": "playwright test -c playwright.config.ts e2e/interactions.spec.ts e2e/all-blocks.spec.ts",
+    "test:e2e:interact": "playwright test -c playwright.config.ts e2e/interactions.spec.ts",
+    "test:e2e:scan": "playwright test -c playwright.config.ts e2e/all-blocks.spec.ts",
     "demo": "vite --config vite.demo.config.ts",
     "visual-compare": "tsx scripts/visual-compare.ts",
     "demo:qa": "node scripts/run-blocks-demo-qa.mjs"
@@ -99,6 +102,7 @@
     "@types/pngjs": "^6.0.5",
     "axe-core": "^4.12.1",
     "jsdom": "^29.1.1",
+    "@playwright/test": "^1.62.1",
     "playwright": "^1.62.1",
     "pngjs": "^7.0.0",
     "tsup": "^8.5.1",

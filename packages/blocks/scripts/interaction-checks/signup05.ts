@@ -80,7 +80,7 @@ async function main() {
   );
 
   const appleProvider = block.getByRole("button", {
-    name: "Sign up with Apple",
+    name: "Continue with Apple",
   });
   const providerType = await appleProvider.getAttribute("type");
   report(

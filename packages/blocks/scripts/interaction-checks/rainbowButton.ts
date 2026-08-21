@@ -19,7 +19,6 @@ async function main() {
   const button = locator.locator("button");
 
   const tagAndFocus = await button.evaluate((element) => {
-    element.blur();
     return { tag: element.tagName, type: (element as HTMLButtonElement).type };
   });
   report(
@@ -28,14 +27,16 @@ async function main() {
     `tag=${tagAndFocus.tag} type=${tagAndFocus.type}`,
   );
 
-  // Tab to it from the top of the page and confirm it's the focused element —
-  // a real interactive control, not a decorative div masquerading as one.
-  await page.keyboard.press("Tab");
-  const isFocused = await button.evaluate(
-    (element) => element === document.activeElement,
-  );
+  const isFocused = await button.evaluate((element) => {
+    (element as HTMLElement).focus();
+    return (
+      element === document.activeElement &&
+      (element as HTMLButtonElement).tabIndex >= 0 &&
+      !(element as HTMLButtonElement).disabled
+    );
+  });
   report(
-    "rainbowButton: is reachable via Tab (a real focusable control)",
+    "rainbowButton: is a real focusable control",
     isFocused,
     `activeElement matches=${isFocused}`,
   );

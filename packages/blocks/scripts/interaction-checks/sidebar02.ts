@@ -18,37 +18,38 @@ async function main() {
   const page = await mountedPage(demoUrl, "sidebar02");
   await locate(page, "sidebar02");
 
-  // "Platform" is the first nav group — DEFAULT_NAV_GROUPS has no
-  // `defaultOpen: false`, so every group's <details> starts open.
-  const platformDetails = page
+  // sidebar02's own nav is the docs groups (Getting Started / Build Your
+  // Application / …), not the generic Platform/Workspace DEFAULT_NAV_GROUPS.
+  // Groups with `defaultOpen` unset start open (`open: true`).
+  const gettingStarted = page
     .locator('[data-block="sidebar02"] aside nav details')
-    .filter({ hasText: "Platform" })
+    .filter({ hasText: "Getting Started" })
     .first();
-  const platformSummary = platformDetails.locator("summary").first();
+  const gettingStartedSummary = gettingStarted.locator("summary").first();
 
-  const initiallyOpen = await platformDetails.evaluate(
+  const initiallyOpen = await gettingStarted.evaluate(
     (el) => (el as HTMLDetailsElement).open,
   );
   report(
-    "sidebar02: 'Platform' nav group starts open (defaultOpen unset)",
+    "sidebar02: 'Getting Started' nav group starts open (defaultOpen unset)",
     initiallyOpen === true,
     `open=${initiallyOpen}`,
   );
 
-  await platformSummary.click();
+  await gettingStartedSummary.click();
   await page.waitForTimeout(150);
-  const afterFirstClick = await platformDetails.evaluate(
+  const afterFirstClick = await gettingStarted.evaluate(
     (el) => (el as HTMLDetailsElement).open,
   );
   report(
-    "sidebar02: clicking the 'Platform' summary closes the group",
+    "sidebar02: clicking the 'Getting Started' summary closes the group",
     afterFirstClick === false,
     `open=${afterFirstClick}`,
   );
 
-  await platformSummary.click();
+  await gettingStartedSummary.click();
   await page.waitForTimeout(150);
-  const afterSecondClick = await platformDetails.evaluate(
+  const afterSecondClick = await gettingStarted.evaluate(
     (el) => (el as HTMLDetailsElement).open,
   );
   report(
@@ -59,8 +60,8 @@ async function main() {
 
   const aside = page.locator('[data-block="sidebar02"] aside').first();
   const toggleButton = page
-    .locator('[data-block="sidebar02"] main header button')
-    .first();
+    .locator('[data-block="sidebar02"]')
+    .getByRole("button", { name: "Toggle sidebar", exact: true });
   const expandedWidth = await aside.evaluate(
     (el) => el.getBoundingClientRect().width,
   );

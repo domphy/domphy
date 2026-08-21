@@ -1,8 +1,9 @@
 // Real-browser interaction check for dock: moves the real cursor across the
-// icon row at several x-positions and asserts each icon's own `transform`
-// (imperative DOM writes driven by live cursor position, per dock.ts's own
-// "canvas loop" comment — not Domphy reactivity) actually reflects proximity
-// to the cursor — the closest icon should scale up, a far icon should not.
+// icon row at several x-positions and asserts each icon's own layout
+// width/height (imperative DOM writes driven by live cursor position, per
+// dock.ts's own "canvas loop" comment — not Domphy reactivity) actually
+// reflects proximity to the cursor — the closest icon should grow, a far
+// icon should not.
 import {
   boot,
   locate,
@@ -11,12 +12,6 @@ import {
   summarize,
   teardown,
 } from "../interaction-harness.js";
-
-function scaleOf(transform: string): number {
-  if (!transform || transform === "none") return 1;
-  const match = transform.match(/scale\(([\d.]+)\)/);
-  return match ? Number.parseFloat(match[1]) : 1;
-}
 
 async function main() {
   const { demoUrl } = await boot();
@@ -37,16 +32,19 @@ async function main() {
     if (box) boxes.push(box);
   }
 
-  const transformOf = (index: number) =>
+  const sizeOf = (index: number) =>
     page.evaluate((index_) => {
       const nodes = document.querySelectorAll('[data-block="dock"] nav > a');
       const element = nodes[index_] as HTMLElement | undefined;
-      return element ? element.style.transform : null;
+      if (!element) return { width: 0, height: 0 };
+      return {
+        width: element.getBoundingClientRect().width,
+        height: Number.parseFloat(element.style.width) || 0,
+      };
     }, index);
 
-  // Hover the leftmost icon: it should magnify while the rightmost (far
-  // enough away given the default 3.5x-icon-width proximity falloff) stays
-  // at rest.
+  // Hover the leftmost icon: it should grow in layout width (dock.ts writes
+  // width/height, not transform scale) while the rightmost stays near rest.
   const firstCenter = {
     x: boxes[0].x + boxes[0].width / 2,
     y: boxes[0].y + boxes[0].height / 2,
@@ -56,48 +54,47 @@ async function main() {
     x: boxes[lastIndex].x + boxes[lastIndex].width / 2,
     y: boxes[lastIndex].y + boxes[lastIndex].height / 2,
   };
+  const restWidth = boxes[0].width;
 
   await page.mouse.move(firstCenter.x, firstCenter.y, { steps: 10 });
-  await page.waitForTimeout(150);
-  const firstScaleWhenHovered = scaleOf((await transformOf(0)) ?? "");
-  const lastScaleWhileFarHovered = scaleOf(
-    (await transformOf(lastIndex)) ?? "",
-  );
+  await page.waitForTimeout(280);
+  const firstWhenHovered = await sizeOf(0);
+  const lastWhileFar = await sizeOf(lastIndex);
   report(
     "dock:hovered-icon-magnifies-vs-far-icon",
-    firstScaleWhenHovered > 1.05 &&
-      firstScaleWhenHovered > lastScaleWhileFarHovered,
-    `expected leftmost icon's own scale to grow well past 1 and exceed the far rightmost icon's scale while hovering the leftmost icon; leftmost=${firstScaleWhenHovered} rightmost=${lastScaleWhileFarHovered}`,
+    firstWhenHovered.width > restWidth * 1.05 &&
+      firstWhenHovered.width > lastWhileFar.width,
+    `expected leftmost icon's own width to grow well past rest (${restWidth}px) and exceed the far rightmost icon while hovering the leftmost icon; leftmost=${firstWhenHovered.width} rightmost=${lastWhileFar.width}`,
   );
 
-  // Move to the rightmost icon instead: the effect should follow the
-  // cursor — now the rightmost grows and the (now-far) leftmost relaxes.
   await page.mouse.move(lastCenter.x, lastCenter.y, { steps: 10 });
-  await page.waitForTimeout(150);
-  const lastScaleWhenHovered = scaleOf((await transformOf(lastIndex)) ?? "");
-  const firstScaleWhileFarHovered = scaleOf((await transformOf(0)) ?? "");
+  await page.waitForTimeout(280);
+  const lastWhenHovered = await sizeOf(lastIndex);
+  const firstWhileFar = await sizeOf(0);
   report(
     "dock:magnification-follows-cursor-to-other-end",
-    lastScaleWhenHovered > 1.05 &&
-      lastScaleWhenHovered > firstScaleWhileFarHovered,
-    `expected rightmost icon's own scale to grow and exceed the now-far leftmost icon's scale after moving the cursor there; rightmost=${lastScaleWhenHovered} leftmost=${firstScaleWhileFarHovered}`,
+    lastWhenHovered.width > restWidth * 1.05 &&
+      lastWhenHovered.width > firstWhileFar.width,
+    `expected rightmost icon's own width to grow and exceed the now-far leftmost icon after moving the cursor there; rightmost=${lastWhenHovered.width} leftmost=${firstWhileFar.width}`,
   );
 
-  // Cursor leaves the dock entirely: everything should relax back to rest
-  // (no inline transform at all, per dock.ts's `pointerX === null` branch).
+  // Cursor leaves the dock: inline width/height clear (pointerX === null).
   await page.mouse.move(20, 20, { steps: 5 });
-  await page.waitForTimeout(150);
-  const restTransforms = await page.evaluate(() => {
+  await page.waitForTimeout(280);
+  const restInline = await page.evaluate(() => {
     const nodes = Array.from(
       document.querySelectorAll('[data-block="dock"] nav > a'),
     ) as HTMLElement[];
-    return nodes.map((node) => node.style.transform);
+    return nodes.map((node) => ({
+      width: node.style.width,
+      height: node.style.height,
+    }));
   });
-  const allAtRest = restTransforms.every((transform) => !transform);
+  const allAtRest = restInline.every((size) => !size.width && !size.height);
   report(
     "dock:relaxes-when-cursor-leaves",
     allAtRest,
-    `expected every icon's inline transform to clear once the cursor moves off the dock, got ${JSON.stringify(restTransforms)}`,
+    `expected every icon's inline width/height to clear once the cursor moves off the dock, got ${JSON.stringify(restInline)}`,
   );
 
   await page.close();

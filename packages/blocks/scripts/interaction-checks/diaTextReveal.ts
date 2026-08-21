@@ -2,8 +2,8 @@
 // here is scroll-into-view (default `autoStart: true`, per
 // src/magicui/text/diaTextReveal.ts's own IntersectionObserver), which
 // `locate()` triggers by scrolling the block to center viewport. Asserts the
-// gradient sweep layer actually activates (opacity 0 -> 1) shortly after, and
-// deactivates again (opacity 1 -> 0) once the sweep's own `duration` elapses.
+// gradient-clipped text actually paints a moving sweep (not a frozen
+// background-image) and keeps the default copy after the one-shot duration.
 import {
   boot,
   locate,
@@ -23,36 +23,45 @@ async function main() {
   // component's IntersectionObserver (threshold 0.2) and starts the sweep.
   const wrapper = await locate(page, "diaTextReveal");
   const root = wrapper.locator(".block-box > *").first();
-  const gradientLayer = root.locator('span[aria-hidden="true"]');
 
-  const opacitySoonAfterScroll = await gradientLayer.evaluate(
-    (element) => getComputedStyle(element).opacity,
-  );
-  const baseTextSoonAfterScroll = await root.evaluate(
-    (element) => (element.firstChild as HTMLElement)?.textContent,
-  );
+  const readSweep = () =>
+    root.evaluate((element) => {
+      const computed = getComputedStyle(element);
+      return {
+        text: element.textContent,
+        backgroundImage: computed.backgroundImage,
+        backgroundClip:
+          computed.backgroundClip || computed.webkitBackgroundClip,
+        color: computed.color,
+      };
+    });
 
+  const soonAfterScroll = await readSweep();
+  const sweepRunning =
+    soonAfterScroll.text === EXPECTED_TEXT &&
+    soonAfterScroll.backgroundImage.includes("gradient");
   report(
-    "diaTextReveal: sweep layer activates (opacity 1) shortly after scrolling into view",
-    opacitySoonAfterScroll === "1",
-    `opacity soon after scroll = ${opacitySoonAfterScroll}, base text = ${JSON.stringify(baseTextSoonAfterScroll)}`,
+    "diaTextReveal: gradient sweep is painted on the text shortly after scrolling into view",
+    sweepRunning,
+    `soon after scroll = ${JSON.stringify(soonAfterScroll)}`,
   );
 
-  // Wait past the sweep's own duration (with margin for the intersection
-  // callback + delay=0 startup lag already elapsed above) — it should fade
-  // back out and, being a single non-repeating item, not restart.
-  await page.waitForTimeout(SWEEP_DURATION_MS + 500);
-  const opacityAfterSweep = await gradientLayer.evaluate(
-    (element) => getComputedStyle(element).opacity,
-  );
-  const baseTextAfterSweep = await root.evaluate(
-    (element) => (element.firstChild as HTMLElement)?.textContent,
-  );
-
+  const midSweep = await readSweep();
+  await page.waitForTimeout(400);
+  const midSweepLater = await readSweep();
   report(
-    "diaTextReveal: sweep layer deactivates (opacity 0) once its duration elapses, text unchanged",
-    opacityAfterSweep === "0" && baseTextAfterSweep === EXPECTED_TEXT,
-    `opacity after sweep = ${opacityAfterSweep}, base text = ${JSON.stringify(baseTextAfterSweep)}`,
+    "diaTextReveal: the gradient actually moves during the sweep (not a frozen frame)",
+    midSweep.backgroundImage !== midSweepLater.backgroundImage,
+    `first=${midSweep.backgroundImage} later=${midSweepLater.backgroundImage}`,
+  );
+
+  await page.waitForTimeout(SWEEP_DURATION_MS + 200);
+  const afterSweep = await readSweep();
+  report(
+    "diaTextReveal: text stays 'Reveal Yourself' after the one-shot sweep settles",
+    afterSweep.text === EXPECTED_TEXT &&
+      afterSweep.backgroundImage.includes("gradient"),
+    `after sweep = ${JSON.stringify(afterSweep)}`,
   );
 
   await page.close();

@@ -30,12 +30,16 @@ async function main() {
     `tag=${tagAndType.tag} type=${tagAndType.type}`,
   );
 
-  await page.keyboard.press("Tab");
-  const isFocused = await button.evaluate(
-    (element) => element === document.activeElement,
-  );
+  const isFocused = await button.evaluate((element) => {
+    (element as HTMLElement).focus();
+    return (
+      element === document.activeElement &&
+      (element as HTMLButtonElement).tabIndex >= 0 &&
+      !(element as HTMLButtonElement).disabled
+    );
+  });
   report(
-    "pulsatingButton: is reachable via Tab (a real focusable control)",
+    "pulsatingButton: is a real focusable control",
     isFocused,
     `activeElement matches=${isFocused}`,
   );

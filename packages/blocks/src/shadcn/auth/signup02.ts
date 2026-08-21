@@ -100,6 +100,7 @@ function field(config: FieldConfig): DomphyElement<"div"> {
         type,
         placeholder,
         required: true,
+        ...(type === "password" ? { minlength: 8 } : {}),
         $: [authFieldInput()],
       },
       caption ? { small: caption, $: [small({ color: "neutral" })] } : null,

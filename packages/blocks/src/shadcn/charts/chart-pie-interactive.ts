@@ -111,6 +111,7 @@ function chartPieInteractive(
       stroke: (l: Listener) => themeColor(l, "inherit"),
       strokeLinejoin: "round",
       cursor: "pointer",
+      dataChartWedge: "true",
       _key: slice.datum.key,
       ...wedgeTooltipHandlers(slice, {
         containerRef,
@@ -184,7 +185,7 @@ function chartPieInteractive(
           value: (l: Listener) => selectedKey.get(l),
           onChange: (e: Event) =>
             setSelection((e.target as HTMLSelectElement).value),
-          ariaLabel: "Select a value",
+          ariaLabel: "Select a category",
           $: [select()],
         },
       ],

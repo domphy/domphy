@@ -58,35 +58,49 @@ async function main() {
   );
 
   // --- icon-rail collapse: site header toggle button + window Ctrl/Cmd+B --
-  const aside = page
-    .locator('[data-block="sidebarStickyHeader"] aside')
-    .first();
   const toggleButton = page
     .locator('[data-block="sidebarStickyHeader"] header button')
     .first();
-  const expandedWidth = await aside.evaluate(
-    (el) => el.getBoundingClientRect().width,
-  );
+
+  const layoutOf = () =>
+    page.evaluate(() => {
+      const root = document.querySelector(
+        '[data-block="sidebarStickyHeader"]',
+      ) as HTMLElement | null;
+      const asideElement = root?.querySelector("aside") as HTMLElement | null;
+      const spacerElement =
+        asideElement?.previousElementSibling as HTMLElement | null;
+      return {
+        transform: asideElement
+          ? getComputedStyle(asideElement).transform
+          : null,
+        spacerWidth: spacerElement
+          ? spacerElement.getBoundingClientRect().width
+          : 0,
+      };
+    });
+
+  const expandedLayout = await layoutOf();
   await toggleButton.click();
   await page.waitForTimeout(300);
-  const collapsedWidth = await aside.evaluate(
-    (el) => el.getBoundingClientRect().width,
-  );
+  const collapsedLayout = await layoutOf();
+  const collapsedOffCanvas =
+    collapsedLayout.spacerWidth < expandedLayout.spacerWidth / 2 &&
+    collapsedLayout.transform !== "none" &&
+    collapsedLayout.transform !== expandedLayout.transform;
   report(
-    "sidebarStickyHeader: the site header's toggle button collapses the aside to the icon rail",
-    collapsedWidth < expandedWidth / 2,
-    `expanded=${expandedWidth}px collapsed=${collapsedWidth}px`,
+    "sidebarStickyHeader: the site header's toggle button slides the aside off-canvas and collapses the spacer",
+    expandedLayout.spacerWidth > 100 && collapsedOffCanvas,
+    `expanded spacer=${expandedLayout.spacerWidth}px transform=${expandedLayout.transform}; collapsed spacer=${collapsedLayout.spacerWidth}px transform=${collapsedLayout.transform}`,
   );
 
   await page.keyboard.press("Control+b");
   await page.waitForTimeout(300);
-  const reExpandedWidth = await aside.evaluate(
-    (el) => el.getBoundingClientRect().width,
-  );
+  const reExpandedLayout = await layoutOf();
   report(
-    "sidebarStickyHeader: the window-level Ctrl+B shortcut re-expands the aside back to full width",
-    reExpandedWidth > collapsedWidth * 2,
-    `collapsed=${collapsedWidth}px afterCtrlB=${reExpandedWidth}px`,
+    "sidebarStickyHeader: the window-level Ctrl+B shortcut re-expands the aside back into the flow",
+    reExpandedLayout.spacerWidth > collapsedLayout.spacerWidth * 2,
+    `collapsed spacer=${collapsedLayout.spacerWidth}px afterCtrlB spacer=${reExpandedLayout.spacerWidth}px transform=${reExpandedLayout.transform}`,
   );
 
   // --- the site header actually stays pinned while `main` scrolls -------

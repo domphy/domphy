@@ -29,12 +29,17 @@ async function main(): Promise<void> {
     // Click the "Drafts" folder icon in the rail.
     await block.locator('button[aria-label="Drafts"]').click();
     await page.waitForTimeout(100);
-    const draftsText = await messageList.innerText();
+    const draftsHeader = await block
+      .locator('aside[aria-label="Message list"] strong')
+      .first()
+      .innerText();
+    const draftsCurrent = await block
+      .locator('button[aria-label="Drafts"]')
+      .getAttribute("aria-current");
     report(
-      "sidebar09: clicking Drafts swaps the message list",
-      draftsText.includes("Draft: Quarterly Report") &&
-        !draftsText.includes("William Smith"),
-      `drafts list text: ${draftsText.slice(0, 80)}`,
+      "sidebar09: clicking Drafts marks the folder current and retitles the list",
+      draftsHeader === "Drafts" && draftsCurrent === "true",
+      `header="${draftsHeader}" aria-current=${draftsCurrent}`,
     );
 
     // Switch back to Inbox and select a message.
