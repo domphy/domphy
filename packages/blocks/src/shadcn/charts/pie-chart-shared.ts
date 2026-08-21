@@ -12,7 +12,13 @@
 // copied. The arc geometry, tooltip layer and card chrome below are original,
 // hand-rolled SVG + Domphy-patch composition.
 
-import type { DomphyElement, ElementNode, Listener, State } from "@domphy/core";
+import type {
+  BehaviorInstance,
+  DomphyElement,
+  ElementNode,
+  Listener,
+  State,
+} from "@domphy/core";
 import { behavior, toState } from "@domphy/core";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import { card, heading, icon, small } from "@domphy/ui";
@@ -227,7 +233,9 @@ export function wedgeTooltipHandlers(
   const update = (event: Event, node?: ElementNode) => {
     const mouseEvent = event as MouseEvent;
     const container =
-      node?.getBehavior<{ element: HTMLElement }>("pie-container")?.element ??
+      node?.getBehavior<BehaviorInstance & { element: HTMLElement }>(
+        "pie-container",
+      )?.element ??
       containerRef.current;
     const rect = container?.getBoundingClientRect();
     const name = showName
@@ -772,9 +780,13 @@ export function pieChartContainer(
     // Persist the plot element onto each generation's `containerRef` —
     // factories allocate a fresh `{ current: null }` and `_onMount` would
     // leave generation 2's ref empty so wedge hover positions at 0,0.
-    ...behavior<PieContainerBehaviorProps>("pie-container", attachPieContainer, {
-      containerRef,
-    }),
+    ...behavior<PieContainerBehaviorProps>(
+      "pie-container",
+      attachPieContainer,
+      {
+        containerRef,
+      },
+    ),
   };
 }
 

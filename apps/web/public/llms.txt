@@ -202,7 +202,7 @@ Extras vs upstream: iOS WebKit momentum-scroll deferral, `scrollBy`/`scrollToEnd
 
 ## Form (`@domphy/form`)
 
-Headless form state/validation — a 1-1 port of `@tanstack/form-core` (identical API; byte-level port pinned to `@tanstack/form-core@1.33.0`, see `packages/form/SOURCES.md`). Adapter `createForm` (`@domphy/form/domphy`); `form.field(name, opts)` returns a reactive field handle.
+Headless form state/validation — a 1-1 port of `@tanstack/form-core` (identical API; byte-level port pinned to `@tanstack/form-core@1.33.3`, see `packages/form/SOURCES.md`). Adapter `createForm` (`@domphy/form/domphy`); `form.field(name, opts)` returns a reactive field handle. `name` is a `DeepKeys<T>` path (unknown paths and a mismatched value generic are type errors); `getFieldValue` / `setFieldValue` / `validateField` use the same contract.
 
 **`FormHandle` reactive reads** (pass listener `l`): `form.values(l)`, `form.state(l)`, `form.canSubmit(l)`, `form.isSubmitting(l)`, `form.isValid(l)`, `form.isSubmitted(l)`, `form.isDirty(l)`, `form.isPristine(l)`, `form.isTouched(l)`, `form.isBlurred(l)`.
 **`FormHandle` imperative**: `form.getFieldValue(field)`, `form.setFieldValue(field, updater)`, `form.validateField(field, cause?)`, `form.reset(values?)`, `form.handleSubmit()`, `form.destroy()`. Raw core: `form.form` (FormApi).
@@ -405,7 +405,7 @@ First key = tag (camelCase of a THREE class, or a name registered via `extend()`
 - `three(options | ReadableState<options>)` — the patch; mounts a canvas host and owns the renderer, `RootState`, resize observer, and pointer-event wiring.
 - `extend(classes)` — register custom/3rd-party constructors so tags resolve them exactly like built-in THREE classes.
 - `loadAsset<T>(LoaderClass, url, configure?)` — reactive asset loading: `{ data: ReadableState<T|null>, error: ReadableState<Error|null>, promise: Promise<T> }`.
-- `preloadAsset(LoaderClass, url, configure?)` / `clearAsset(LoaderClass, url?)` — cache warm/clear (module-level cache keyed by `LoaderClass` + input, r3f parity).
+- `preloadAsset(LoaderClass, url, configure?)` / `clearAsset(LoaderClass, url?, { dispose?: boolean })` — cache warm/clear (module-level cache keyed by `LoaderClass` + input, r3f parity). Eviction alone does not dispose GPU resources; `{ dispose: true }` opts into disposing geometries/textures/Object3D graphs (cycle-safe). `loadAsset` dev-warns when a cache hit carries a different `configure`. Pointer NDC is `clientX/Y` minus the canvas bounding rect (correct under padding/border; not `offsetX/offsetY`).
 - `RootState`: `gl`, `scene`, `camera`, `canvas`, `raycaster`, `pointer`, `clock`, `frameloop`, `size` (reactive `State<SizeState>`), `invalidate(frames?)`, `advance(timestamp, runGlobalCallbacks?)`, `frame(callback, priority?)`, `setFrameloop(mode)`. The object handed to `onCreated(root)` additionally has `setSize(width, height, dpr?)` — its type is exported as `CreatedRootState`.
 - `ThreeOptions`: `scene`, `camera`, `orthographic`, `createRenderer` (inject a stub/WebGPU renderer), `gl` (default-`WebGLRenderer` ctor params), `frameloop: "always"|"demand"|"never"`, `dpr`, `shadows`, `flat`, `linear`, `raycaster`, `events: false` (disable the pointer-event system), `onCreated`, `onPointerMissed`.
 

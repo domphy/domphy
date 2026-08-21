@@ -280,17 +280,13 @@ function coolMode(props: CoolModeProps = {}): DomphyElement<"span"> {
       size?: number;
       driftSpeed?: number;
       launchSpeed?: number;
-    }>(
-      "magicui-cool-mode",
-      attachCoolMode,
-      {
-        appearance,
-        sizes,
-        size: props.size,
-        driftSpeed: props.driftSpeed,
-        launchSpeed: props.launchSpeed,
-      },
-    ),
+    }>("magicui-cool-mode", attachCoolMode, {
+      appearance,
+      sizes,
+      size: props.size,
+      driftSpeed: props.driftSpeed,
+      launchSpeed: props.launchSpeed,
+    }),
   } as DomphyElement<"span">;
 }
 

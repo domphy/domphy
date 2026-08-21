@@ -4,17 +4,18 @@
  */
 import assert from "node:assert/strict";
 import {
-  PASS_SCORE,
   buildDoctorFeedback,
   computeScore,
   detectIssuesForFeedback,
   evaluate,
   extractCode,
   extractTree,
+  PASS_SCORE,
 } from "./evaluator.js";
 import { TASKS } from "./tasks.js";
 
-const KEBAB_API = /input-text\(|input-search\(|unordered-list\(|input-checkbox\(/;
+const KEBAB_API =
+  /input-text\(|input-search\(|unordered-list\(|input-checkbox\(/;
 
 const COUNTER = `
 import { toState } from "@domphy/core";
@@ -81,8 +82,15 @@ assert.ok(!task("login-form").requiredKeywords!.includes("input-text("));
 
 // H27 — extractTree + diagnose actually run
 const tree = extractTree(BAD_TYPOGRAPHY);
-assert.ok(tree && typeof tree === "object", "extractTree should yield an object");
-const doctorIssues = detectIssuesForFeedback(BAD_TYPOGRAPHY, task("hello-world"), "C");
+assert.ok(
+  tree && typeof tree === "object",
+  "extractTree should yield an object",
+);
+const doctorIssues = detectIssuesForFeedback(
+  BAD_TYPOGRAPHY,
+  task("hello-world"),
+  "C",
+);
 assert.ok(
   doctorIssues.some((i) => i.includes("inline-typography")),
   `doctor should flag inline-typography, got: ${doctorIssues.join(", ")}`,
@@ -96,14 +104,24 @@ assert.equal(computeScore(true, true, false, "C"), 60);
 assert.ok(computeScore(true, true, false, "C") < PASS_SCORE);
 assert.equal(computeScore(true, true, true, "C"), 100);
 
-const loginResult = await evaluate("```ts\n" + COUNTER + "\n```", task("login-form"), "C", 0);
+const loginResult = await evaluate(
+  "```ts\n" + COUNTER + "\n```",
+  task("login-form"),
+  "C",
+  0,
+);
 assert.equal(loginResult.hasRequiredStructure, false);
 assert.ok(
   loginResult.score < PASS_SCORE,
   `C login-form scored ${loginResult.score} without createForm/inputText`,
 );
 
-const counterResult = await evaluate("```ts\n" + COUNTER + "\n```", task("counter"), "C", 0);
+const counterResult = await evaluate(
+  "```ts\n" + COUNTER + "\n```",
+  task("counter"),
+  "C",
+  0,
+);
 assert.equal(counterResult.hasRequiredStructure, true);
 assert.ok(counterResult.compiles);
 

@@ -44,7 +44,12 @@ function rollbackScaffold(
   for (const dir of [...createdDirs].reverse()) {
     // Windows EBUSY: rmdir right after deleting a child file can fail.
     // Same retry pattern as tests/cli.test.ts afterAll (maxRetries: 5).
-    rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 500 });
+    rmSync(dir, {
+      recursive: true,
+      force: true,
+      maxRetries: 5,
+      retryDelay: 500,
+    });
   }
 }
 

@@ -475,48 +475,52 @@ function animatedBeam(props: AnimatedBeamProps = {}): DomphyElement<"div"> {
         style: { position: "absolute", inset: 0, pointerEvents: "none" },
       } as DomphyElement,
     ],
-    ...behavior("magicui-animated-beam", (node: ElementNode) => {
-      containerElement = node.domElement as HTMLElement;
-      if (
-        typeof window === "undefined" ||
-        typeof window.requestAnimationFrame !== "function"
-      ) {
-        return { update() {}, destroy() {} };
-      }
+    ...behavior(
+      "magicui-animated-beam",
+      (node: ElementNode) => {
+        containerElement = node.domElement as HTMLElement;
+        if (
+          typeof window === "undefined" ||
+          typeof window.requestAnimationFrame !== "function"
+        ) {
+          return { update() {}, destroy() {} };
+        }
 
-      recomputeFrameId = window.requestAnimationFrame(() => {
-        recompute();
-        animationFrameId = window.requestAnimationFrame(tick);
-      });
+        recomputeFrameId = window.requestAnimationFrame(() => {
+          recompute();
+          animationFrameId = window.requestAnimationFrame(tick);
+        });
 
-      if (typeof ResizeObserver !== "undefined") {
-        resizeObserver = new ResizeObserver(() => recompute());
-        resizeObserver.observe(containerElement);
-      }
+        if (typeof ResizeObserver !== "undefined") {
+          resizeObserver = new ResizeObserver(() => recompute());
+          resizeObserver.observe(containerElement);
+        }
 
-      const onLayoutChange = () => recompute();
-      window.addEventListener("resize", onLayoutChange);
-      window.addEventListener("scroll", onLayoutChange, true);
-      removeWindowListeners = () => {
-        window.removeEventListener("resize", onLayoutChange);
-        window.removeEventListener("scroll", onLayoutChange, true);
-      };
+        const onLayoutChange = () => recompute();
+        window.addEventListener("resize", onLayoutChange);
+        window.addEventListener("scroll", onLayoutChange, true);
+        removeWindowListeners = () => {
+          window.removeEventListener("resize", onLayoutChange);
+          window.removeEventListener("scroll", onLayoutChange, true);
+        };
 
-      return {
-        update() {},
-        destroy() {
-          if (recomputeFrameId !== null)
-            window.cancelAnimationFrame(recomputeFrameId);
-          if (animationFrameId !== null)
-            window.cancelAnimationFrame(animationFrameId);
-          resizeObserver?.disconnect();
-          resizeObserver = null;
-          removeWindowListeners?.();
-          removeWindowListeners = null;
-          containerElement = null;
-        },
-      };
-    }, {}),
+        return {
+          update() {},
+          destroy() {
+            if (recomputeFrameId !== null)
+              window.cancelAnimationFrame(recomputeFrameId);
+            if (animationFrameId !== null)
+              window.cancelAnimationFrame(animationFrameId);
+            resizeObserver?.disconnect();
+            resizeObserver = null;
+            removeWindowListeners?.();
+            removeWindowListeners = null;
+            containerElement = null;
+          },
+        };
+      },
+      {},
+    ),
     style: {
       position: "relative",
       width: "100%",

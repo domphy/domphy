@@ -196,7 +196,12 @@ describe("createFloating", () => {
     const handle = createFloating({
       platform: {
         getElementRects: () => Promise.reject(failure),
-        getClippingRect: async () => ({ x: 0, y: 0, width: 2000, height: 2000 }),
+        getClippingRect: async () => ({
+          x: 0,
+          y: 0,
+          width: 2000,
+          height: 2000,
+        }),
         getDimensions: async () => ({ width: 0, height: 0 }),
       },
     });
@@ -230,7 +235,12 @@ describe("createFloating", () => {
     const handle = createFloating({
       platform: {
         getElementRects: () => Promise.reject(new Error("rects failed")),
-        getClippingRect: async () => ({ x: 0, y: 0, width: 2000, height: 2000 }),
+        getClippingRect: async () => ({
+          x: 0,
+          y: 0,
+          width: 2000,
+          height: 2000,
+        }),
         getDimensions: async () => ({ width: 0, height: 0 }),
       },
     });
@@ -269,7 +279,12 @@ describe("createFloating", () => {
           new Promise((_, reject) => {
             rejectors.push(reject);
           }),
-        getClippingRect: async () => ({ x: 0, y: 0, width: 2000, height: 2000 }),
+        getClippingRect: async () => ({
+          x: 0,
+          y: 0,
+          width: 2000,
+          height: 2000,
+        }),
         getDimensions: async () => ({ width: 0, height: 0 }),
       },
     });

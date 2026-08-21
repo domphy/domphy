@@ -3,8 +3,8 @@
 // `}` closes the rule, `;` starts another declaration, and `</style>`
 // breaks out of the element — same threat model as theme assertCssSafe.
 import { describe, expect, it } from "vitest";
-import { ElementNode } from "../src/index.ts";
 import type { DomphyElement } from "../src/index.ts";
+import { ElementNode } from "../src/index.ts";
 
 describe("StyleProperty.cssText: CSS value escaping", () => {
   it("does not let `;` / `}` / `</style>` break out of the generated rule", () => {

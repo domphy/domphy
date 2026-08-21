@@ -145,8 +145,10 @@ function elementNodeOf(listener: Listener): ElementNode | null {
   if (fromListener && typeof fromListener.getBehavior === "function") {
     return fromListener;
   }
-  if (typeof (listener as ElementNode).getBehavior === "function") {
-    return listener as ElementNode;
+  if (
+    typeof (listener as unknown as ElementNode).getBehavior === "function"
+  ) {
+    return listener as unknown as ElementNode;
   }
   return null;
 }
@@ -155,9 +157,9 @@ function entriesFromListener(
   listener: Listener,
   fallback: State<AnimatedListEntry[]>,
 ): State<AnimatedListEntry[]> {
-  const instance = elementNodeOf(
-    listener,
-  )?.getBehavior<AnimatedListBehavior>(ANIMATED_LIST_BEHAVIOR_KEY);
+  const instance = elementNodeOf(listener)?.getBehavior<AnimatedListBehavior>(
+    ANIMATED_LIST_BEHAVIOR_KEY,
+  );
   if (instance?.visibleEntries) return instance.visibleEntries;
   return fallback;
 }

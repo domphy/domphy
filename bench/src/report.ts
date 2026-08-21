@@ -1,4 +1,4 @@
-import { PASS_SCORE, type Condition, type EvalResult } from "./evaluator.js";
+import { type Condition, type EvalResult, PASS_SCORE } from "./evaluator.js";
 import type { Task } from "./tasks.js";
 
 const CONDITIONS: Condition[] = ["A", "B", "C", "D"];
@@ -69,7 +69,8 @@ function aggregateCondition(
           (total || 1),
     structureRate:
       filtered.filter((r) => r.hasRequiredStructure).length / (total || 1),
-    passRate: filtered.filter((r) => r.score >= PASS_SCORE).length / (total || 1),
+    passRate:
+      filtered.filter((r) => r.score >= PASS_SCORE).length / (total || 1),
     avgScore: filtered.reduce((a, r) => a + r.score, 0) / (total || 1),
     avgIterations: iters.length
       ? iters.reduce((a, b) => a + b, 0) / iters.length

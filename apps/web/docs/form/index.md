@@ -74,10 +74,10 @@ const Field = {
 | `canSubmit(l)` / `isSubmitting(l)` / `isValid(l)` / `isSubmitted(l)` | Reactive flags. |
 | `isDirty(l)` / `isPristine(l)` | Reactive: any field differs from defaultValues / no field changed. |
 | `isTouched(l)` / `isBlurred(l)` | Reactive: any field touched / any field blurred. |
-| `field<TData>(name, options?)` | Create and mount a reactive field handle, cached by `name` — repeat calls for the same name return the same handle. |
-| `getFieldValue(field)` | Read a field value imperatively (no listener). |
-| `setFieldValue(field, updater)` | Set a field value programmatically (triggers onChange validation). |
-| `validateField(field, cause?)` | Manually trigger validation for one field. Cause defaults to `"change"`. |
+| `field<TData>(name, options?)` | Create and mount a reactive field handle, cached by `name`. `name` is a `DeepKeys<T>` path (unknown paths and a mismatched `TData` are type errors); `options` is `FieldOptions` minus `name`. Repeat calls for the same name return the same handle. |
+| `getFieldValue(field)` | Read a field value imperatively (no listener). `field` is a `DeepKeys<T>` path. |
+| `setFieldValue(field, updater)` | Set a field value programmatically (triggers onChange validation). `field` is a `DeepKeys<T>` path. |
+| `validateField(field, cause?)` | Manually trigger validation for one field. `field` is a `DeepKeys<T>` path. Cause defaults to `"change"`. |
 | `handleSubmit()` | Run validation and submission. Returns `Promise<void>`. |
 | `reset(values?)` | Reset to defaults (or given values). |
 | `version(l)` | Reactive change counter — increments on every store flush. |

@@ -126,17 +126,20 @@ function attachParticles(
   initialProps: ParticlesBehaviorProps,
 ) {
   let props = initialProps;
-  const canvas = node.domElement as HTMLCanvasElement | null;
-  const containerElement = canvas?.parentElement ?? null;
-  if (!canvas || !containerElement || typeof window === "undefined") {
+  const canvasElement = node.domElement as HTMLCanvasElement | null;
+  const host = canvasElement?.parentElement ?? null;
+  if (!canvasElement || !host || typeof window === "undefined") {
     return { update() {}, destroy() {} };
   }
+  const canvas: HTMLCanvasElement = canvasElement;
+  const containerElement: HTMLElement = host;
 
   // Headless/test runtimes without a real 2D canvas backend (e.g. jsdom
   // without the optional `canvas` npm package) resolve `getContext` to
   // `null` rather than throwing — bail out before starting the loop.
-  const context = canvas.getContext("2d");
-  if (!context) return { update() {}, destroy() {} };
+  const drawingContext = canvas.getContext("2d");
+  if (!drawingContext) return { update() {}, destroy() {} };
+  const context: CanvasRenderingContext2D = drawingContext;
 
   let particleList: ParticleInstance[] = [];
   // Raw devicePixelRatio, no clamp — matches upstream (`const dpr =

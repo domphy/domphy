@@ -27,7 +27,7 @@ function parseLength(value: string | number, total: number): number {
 
 /** ECharts startAngle 90 = 12 o'clock; screen y-down uses −radians. */
 export function pieStartRadians(startAngle = 90): number {
-  return -((startAngle) * Math.PI) / 180;
+  return -(startAngle * Math.PI) / 180;
 }
 
 export function pieSweepSign(clockwise?: boolean): number {
@@ -152,7 +152,10 @@ export class PieRenderer {
       const opacity = (s.itemStyle?.opacity as number) ?? 1;
 
       for (const slice of slices) {
-        const sliceColor = color.rgba(slice.item.itemStyle?.color, slice.dataIndex);
+        const sliceColor = color.rgba(
+          slice.item.itemStyle?.color,
+          slice.dataIndex,
+        );
         const finalColor = [
           sliceColor[0],
           sliceColor[1],
@@ -188,8 +191,7 @@ export class PieRenderer {
         // the wrapped-arc branch still covers the swept wedge.
         const start = slice.startAngle;
         const end = slice.endAngle;
-        const [uStart, uEnd] =
-          end >= start ? [start, end] : [end, start];
+        const [uStart, uEnd] = end >= start ? [start, end] : [end, start];
         setUniforms(model, {
           uResolution: [width, height],
           uCenter: [slice.cx, slice.cy],

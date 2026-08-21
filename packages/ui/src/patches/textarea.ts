@@ -1,4 +1,5 @@
 import {
+  type BehaviorInstance,
   behavior,
   type PartialElement,
   toState,
@@ -72,7 +73,9 @@ function textarea(
     ),
     _onUpdate: (node) => {
       node
-        .getBehavior<{ resize: () => void }>("textarea-auto-resize")
+        .getBehavior<
+          BehaviorInstance<{ autoResize: boolean }> & { resize: () => void }
+        >("textarea-auto-resize")
         ?.resize();
     },
     style: {

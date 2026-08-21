@@ -168,170 +168,164 @@ function attachGlobe(node: ElementNode, initialProps: GlobeBehaviorProps) {
   const SPRING_STIFFNESS = 100;
 
   let phi = props.initialPhi;
-      // Accumulated drag offset (radians) — the spring's target — and the
-      // spring's own current value/velocity that ease toward it.
-      let dragTarget = 0;
-      let dragSpring = 0;
-      let dragSpringVelocity = 0;
-      // Null when not dragging; otherwise the pointer's clientX at the moment
-      // the drag began (kept fixed for the whole drag, matching upstream).
-      let pointerStartX: number | null = null;
-      let lastFrameTime = 0;
-      let width = container.clientWidth || 1;
-      let globeInstance: Globe | null = null;
-      let resizeObserver: ResizeObserver | null = null;
-      let animationFrameId: number | null = null;
+  // Accumulated drag offset (radians) — the spring's target — and the
+  // spring's own current value/velocity that ease toward it.
+  let dragTarget = 0;
+  let dragSpring = 0;
+  let dragSpringVelocity = 0;
+  // Null when not dragging; otherwise the pointer's clientX at the moment
+  // the drag began (kept fixed for the whole drag, matching upstream).
+  let pointerStartX: number | null = null;
+  let lastFrameTime = 0;
+  let width = container.clientWidth || 1;
+  let globeInstance: Globe | null = null;
+  let resizeObserver: ResizeObserver | null = null;
+  let animationFrameId: number | null = null;
 
-      const resolveColor = (
-        override: [number, number, number] | undefined,
-        tone: string,
-        colorName: ThemeColor,
-      ): [number, number, number] => {
-        if (override) return override;
-        try {
-          return hexToNormalizedRgb(themeColorToken(node, tone, colorName));
-        } catch {
-          return [0.4, 0.4, 0.45];
-        }
-      };
+  const resolveColor = (
+    override: [number, number, number] | undefined,
+    tone: string,
+    colorName: ThemeColor,
+  ): [number, number, number] => {
+    if (override) return override;
+    try {
+      return hexToNormalizedRgb(themeColorToken(node, tone, colorName));
+    } catch {
+      return [0.4, 0.4, 0.45];
+    }
+  };
 
-      const markerList: Marker[] = props.markers.map((marker) => ({
-        location: [marker.latitude, marker.longitude],
-        size: marker.size ?? 0.05,
-        color: marker.color,
-      }));
+  const markerList: Marker[] = props.markers.map((marker) => ({
+    location: [marker.latitude, marker.longitude],
+    size: marker.size ?? 0.05,
+    color: marker.color,
+  }));
 
-      const baseColor = resolveColor(props.baseColor, "shift-3", "neutral");
-      const markerColor = resolveColor(
-        props.markerColor,
-        "shift-9",
-        "attention",
-      );
-      const glowColor = resolveColor(props.glowColor, "shift-1", "neutral");
+  const baseColor = resolveColor(props.baseColor, "shift-3", "neutral");
+  const markerColor = resolveColor(props.markerColor, "shift-9", "attention");
+  const glowColor = resolveColor(props.glowColor, "shift-1", "neutral");
 
-      // Upstream hardcodes `devicePixelRatio: 2` (always supersamples, even on
-      // DPR-1 screens). cobe v2 sizes the canvas's REAL backing store itself
-      // as `opts.width * devicePixelRatio` (see its `createGlobe` — the 0.6
-      // `phenomenon` delegate that used to do this from `clientWidth` was
-      // removed), so `width`/`height` here are LOGICAL pixels and must NOT be
-      // pre-multiplied by the ratio, or the shader's resolution uniform and
-      // the actual viewport disagree and the sphere renders mis-scaled.
-      const buildOptions = (): COBEOptions => ({
-        devicePixelRatio: 2,
-        width,
-        height: width,
-        phi,
-        theta: props.initialTheta,
-        dark: props.dark ? 1 : 0,
-        diffuse: 0.4,
-        mapSamples: props.mapSamples,
-        mapBrightness: props.mapBrightness,
-        baseColor,
-        markerColor,
-        glowColor,
-        markers: markerList,
-      });
+  // Upstream hardcodes `devicePixelRatio: 2` (always supersamples, even on
+  // DPR-1 screens). cobe v2 sizes the canvas's REAL backing store itself
+  // as `opts.width * devicePixelRatio` (see its `createGlobe` — the 0.6
+  // `phenomenon` delegate that used to do this from `clientWidth` was
+  // removed), so `width`/`height` here are LOGICAL pixels and must NOT be
+  // pre-multiplied by the ratio, or the shader's resolution uniform and
+  // the actual viewport disagree and the sphere renders mis-scaled.
+  const buildOptions = (): COBEOptions => ({
+    devicePixelRatio: 2,
+    width,
+    height: width,
+    phi,
+    theta: props.initialTheta,
+    dark: props.dark ? 1 : 0,
+    diffuse: 0.4,
+    mapSamples: props.mapSamples,
+    mapBrightness: props.mapBrightness,
+    baseColor,
+    markerColor,
+    glowColor,
+    markers: markerList,
+  });
 
-      // cobe requires a real WebGL context; v2 fails soft (returns a no-op
-      // instance) in environments without one (older browsers, headless/test
-      // runtimes), and the try/catch stays as a defensive guard for runtimes
-      // that throw instead — either way the block degrades to a static empty
-      // canvas rather than crashing the whole tree.
-      try {
-        globeInstance = createGlobe(canvas, buildOptions());
-      } catch {
-        globeInstance = null;
-      }
-      setTimeout(() => {
-        canvas.style.opacity = "1";
-      }, 0);
+  // cobe requires a real WebGL context; v2 fails soft (returns a no-op
+  // instance) in environments without one (older browsers, headless/test
+  // runtimes), and the try/catch stays as a defensive guard for runtimes
+  // that throw instead — either way the block degrades to a static empty
+  // canvas rather than crashing the whole tree.
+  try {
+    globeInstance = createGlobe(canvas, buildOptions());
+  } catch {
+    globeInstance = null;
+  }
+  setTimeout(() => {
+    canvas.style.opacity = "1";
+  }, 0);
 
-      // cobe v2 renders exactly one frame per `update()` call and has no
-      // built-in animation loop or `onRender` callback (0.6's Phenomenon
-      // loop was removed), so the block drives its own requestAnimationFrame
-      // loop. Each frame advances the auto-rotation (only while at rest —
-      // upstream freezes it during a drag), eases the drag spring toward its
-      // target (semi-implicit Euler; dt is clamped so a backgrounded tab
-      // can't destabilize it), and uploads the final rotation.
-      const tick = () => {
-        if (!canvas.isConnected) return;
-        if (pointerStartX === null) phi += props.rotationSpeed;
+  // cobe v2 renders exactly one frame per `update()` call and has no
+  // built-in animation loop or `onRender` callback (0.6's Phenomenon
+  // loop was removed), so the block drives its own requestAnimationFrame
+  // loop. Each frame advances the auto-rotation (only while at rest —
+  // upstream freezes it during a drag), eases the drag spring toward its
+  // target (semi-implicit Euler; dt is clamped so a backgrounded tab
+  // can't destabilize it), and uploads the final rotation.
+  const tick = () => {
+    if (!canvas.isConnected) return;
+    if (pointerStartX === null) phi += props.rotationSpeed;
 
-        const now =
-          typeof performance !== "undefined" ? performance.now() : Date.now();
-        let dt = lastFrameTime ? (now - lastFrameTime) / 1000 : 1 / 60;
-        lastFrameTime = now;
-        if (dt > 1 / 30) dt = 1 / 30;
-        const springForce =
-          -SPRING_STIFFNESS * (dragSpring - dragTarget) -
-          SPRING_DAMPING * dragSpringVelocity;
-        dragSpringVelocity += (springForce / SPRING_MASS) * dt;
-        dragSpring += dragSpringVelocity * dt;
+    const now =
+      typeof performance !== "undefined" ? performance.now() : Date.now();
+    let dt = lastFrameTime ? (now - lastFrameTime) / 1000 : 1 / 60;
+    lastFrameTime = now;
+    if (dt > 1 / 30) dt = 1 / 30;
+    const springForce =
+      -SPRING_STIFFNESS * (dragSpring - dragTarget) -
+      SPRING_DAMPING * dragSpringVelocity;
+    dragSpringVelocity += (springForce / SPRING_MASS) * dt;
+    dragSpring += dragSpringVelocity * dt;
 
-        // Final rotation = auto-rotate accumulator + spring-eased drag
-        // offset (upstream: `state.phi = phiRef.current + rs.get()`).
-        globeInstance?.update({ phi: phi + dragSpring });
-        animationFrameId = requestAnimationFrame(tick);
-      };
-      if (globeInstance && typeof requestAnimationFrame === "function") {
-        animationFrameId = requestAnimationFrame(tick);
-      }
+    // Final rotation = auto-rotate accumulator + spring-eased drag
+    // offset (upstream: `state.phi = phiRef.current + rs.get()`).
+    globeInstance?.update({ phi: phi + dragSpring });
+    animationFrameId = requestAnimationFrame(tick);
+  };
+  if (globeInstance && typeof requestAnimationFrame === "function") {
+    animationFrameId = requestAnimationFrame(tick);
+  }
 
-      // Upstream divides the pointer delta by MOVEMENT_DAMPING (1400) before
-      // adding it to the spring target `r`.
-      const MOVEMENT_DAMPING = 1400;
+  // Upstream divides the pointer delta by MOVEMENT_DAMPING (1400) before
+  // adding it to the spring target `r`.
+  const MOVEMENT_DAMPING = 1400;
 
-      const startDrag = (clientX: number) => {
-        pointerStartX = clientX;
-        canvas.style.cursor = "grabbing";
-      };
-      // Upstream releases the drag on BOTH pointerup and pointerout: the
-      // pointer leaving the canvas cancels the drag. There is no pointer
-      // capture, so a drag does not continue while the pointer is outside.
-      const endDrag = () => {
-        if (pointerStartX === null) return;
-        pointerStartX = null;
-        canvas.style.cursor = "grab";
-      };
-      const applyMovement = (clientX: number) => {
-        if (pointerStartX === null) return;
-        // delta is measured from the drag's fixed start point (upstream keeps
-        // `pointerInteracting.current` at the down position for the whole drag).
-        const delta = clientX - pointerStartX;
-        dragTarget += delta / MOVEMENT_DAMPING;
-      };
+  const startDrag = (clientX: number) => {
+    pointerStartX = clientX;
+    canvas.style.cursor = "grabbing";
+  };
+  // Upstream releases the drag on BOTH pointerup and pointerout: the
+  // pointer leaving the canvas cancels the drag. There is no pointer
+  // capture, so a drag does not continue while the pointer is outside.
+  const endDrag = () => {
+    if (pointerStartX === null) return;
+    pointerStartX = null;
+    canvas.style.cursor = "grab";
+  };
+  const applyMovement = (clientX: number) => {
+    if (pointerStartX === null) return;
+    // delta is measured from the drag's fixed start point (upstream keeps
+    // `pointerInteracting.current` at the down position for the whole drag).
+    const delta = clientX - pointerStartX;
+    dragTarget += delta / MOVEMENT_DAMPING;
+  };
 
-      const handlePointerDown = (event: PointerEvent) =>
-        startDrag(event.clientX);
-      const handlePointerUp = () => endDrag();
-      const handlePointerOut = () => endDrag();
-      const handleMouseMove = (event: MouseEvent) =>
-        applyMovement(event.clientX);
-      const handleTouchMove = (event: TouchEvent) => {
-        const touch = event.touches[0];
-        if (touch) applyMovement(touch.clientX);
-      };
+  const handlePointerDown = (event: PointerEvent) => startDrag(event.clientX);
+  const handlePointerUp = () => endDrag();
+  const handlePointerOut = () => endDrag();
+  const handleMouseMove = (event: MouseEvent) => applyMovement(event.clientX);
+  const handleTouchMove = (event: TouchEvent) => {
+    const touch = event.touches[0];
+    if (touch) applyMovement(touch.clientX);
+  };
 
-      if (props.draggable) {
-        canvas.addEventListener("pointerdown", handlePointerDown);
-        canvas.addEventListener("pointerup", handlePointerUp);
-        canvas.addEventListener("pointerout", handlePointerOut);
-        canvas.addEventListener("mousemove", handleMouseMove);
-        canvas.addEventListener("touchmove", handleTouchMove);
-      }
+  if (props.draggable) {
+    canvas.addEventListener("pointerdown", handlePointerDown);
+    canvas.addEventListener("pointerup", handlePointerUp);
+    canvas.addEventListener("pointerout", handlePointerOut);
+    canvas.addEventListener("mousemove", handleMouseMove);
+    canvas.addEventListener("touchmove", handleTouchMove);
+  }
 
-      // cobe v2 accepts `width`/`height` through `update()` and re-sizes the
-      // backing store itself, so a meaningful container resize pushes the new
-      // logical size into the live instance instead of recreating it.
-      if (typeof ResizeObserver !== "undefined") {
-        resizeObserver = new ResizeObserver(() => {
-          const nextWidth = container.clientWidth;
-          if (Math.abs(nextWidth - width) < 4 || nextWidth === 0) return;
-          width = nextWidth;
-          globeInstance?.update({ width, height: width });
-        });
-        resizeObserver.observe(container);
-      }
+  // cobe v2 accepts `width`/`height` through `update()` and re-sizes the
+  // backing store itself, so a meaningful container resize pushes the new
+  // logical size into the live instance instead of recreating it.
+  if (typeof ResizeObserver !== "undefined") {
+    resizeObserver = new ResizeObserver(() => {
+      const nextWidth = container.clientWidth;
+      if (Math.abs(nextWidth - width) < 4 || nextWidth === 0) return;
+      width = nextWidth;
+      globeInstance?.update({ width, height: width });
+    });
+    resizeObserver.observe(container);
+  }
 
   return {
     update(next: GlobeBehaviorProps) {

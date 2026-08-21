@@ -18,12 +18,19 @@ Packages are versioned independently — each package has its own version number
 
 ---
 
-## Unreleased
+## Audit-fix wave — 2026-08-21
 
-Audit deferral-closure wave: 30 actionable fixes + 15 dependency migrations across the monorepo (landed on `main`, not yet version-bumped/published).
+Unpublished repo-audit HIGH/MEDIUM findings + production-ready P0s, now version-bumped.
+
+- `@domphy/core` [0.21.2], `@domphy/theme` [0.22.1], `@domphy/ui` [0.21.2], `@domphy/floating` [0.18.3], `@domphy/doctor` [0.19.2]
+- `@domphy/query` [0.18.3], `@domphy/table` [0.19.2], `@domphy/form` [0.18.3] (`FormHandle.field` / get/set/validateField are `DeepKeys<T>`), `@domphy/virtual` [0.18.3], `@domphy/router` [0.18.3], `@domphy/dnd` [0.18.6]
+- `@domphy/app` [0.18.4], `@domphy/blocks` [0.2.1], `@domphy/chart` [0.3.1], `@domphy/three` [0.3.1], `@domphy/editor` [0.2.4], `@domphy/press` [0.23.1], `@domphy/i18n` [0.19.4], `@domphy/mcp` [0.19.4]
+- `create-domphy` [0.18.8] pins core 0.21.2 / theme 0.22.1 / ui 0.21.2
+
+Audit deferral-closure wave: 30 actionable fixes + 15 dependency migrations across the monorepo.
 
 - **Dependency migrations:** `@modelcontextprotocol/sdk` v2 (`@domphy/mcp` — now `@modelcontextprotocol/server` + `@modelcontextprotocol/client`), cobe 2.0.1 (`@domphy/blocks`), three 0.185.1 (`@domphy/three`), `@tanstack/query-core` 5.101.4 (`@domphy/query` — vendored files still byte-identical, zero deviations), `@tanstack/form-core` 1.33.3 (`@domphy/form` — deviations #1–#3 re-applied, new deviation #4), shiki 4.4.1 + esbuild 0.28.1 (`@domphy/press`), markdown-it 15 (docs site), `@types/node` 26, puppeteer 25, playwright 1.62.1, `@tanstack/vite-config` 0.6. Dead deps pruned (markdown-it-container/emoji/include). typescript 7 and jsdom 30 stay deferred with documented blockers (tsup dts crash; chart SVG regression).
-- **Fixes per package:** `@domphy/ui` — panel surface-contract, `dialog` aria wiring, `selectBox` typeahead; `@domphy/core` — an `effect` that throws on its initial run is now disposed correctly; `@domphy/chart` — mixed-sign stacking, legend single-mode, tooltip escaping, pie hit-test; `@domphy/query` — mutation tripwires, infinite-query accessors; `@domphy/form` — async validation race tests; `@domphy/router` — `MatchSupersededError` sentinel; `@domphy/app` — `DataCache` invalidate; `@domphy/doctor` — `--no-factory-exec` CLI flag, low-contrast detection for static `var(--…)` literals; `@domphy/markdown` — ESM math import guarded via `process.getBuiltinModule`; `@domphy/three` — new `tag-not-first` diagnose rule; `@domphy/mermaid` — disposed-instance render check; `@domphy/dnd` — SSR coverage; `@domphy/virtual` — typed `createWindowVirtualizer`; `@domphy/theme` — actionable `themeVars` error; `@domphy/blocks` — muted-surface contrast promoted to `text`, biome zero-warning.
+- **Fixes per package:** `@domphy/ui` — panel surface-contract, `dialog` aria wiring, `selectBox` typeahead; `@domphy/core` — an `effect` that throws on its initial run is now disposed correctly; `@domphy/chart` — mixed-sign stacking, legend single-mode, tooltip escaping, pie hit-test; `@domphy/query` — mutation tripwires, infinite-query accessors; `@domphy/form` — async validation race tests; adapter `FormHandle.field` / `getFieldValue` / `setFieldValue` / `validateField` take `DeepKeys<T>` paths (unknown paths and a mismatched value generic are type errors); `@domphy/router` — `MatchSupersededError` sentinel; `@domphy/app` — `DataCache` invalidate; `@domphy/doctor` — `--no-factory-exec` CLI flag, low-contrast detection for static `var(--…)` literals; `@domphy/markdown` — ESM math import guarded via `process.getBuiltinModule`; `@domphy/three` — new `tag-not-first` diagnose rule; `@domphy/mermaid` — disposed-instance render check; `@domphy/dnd` — SSR coverage; `@domphy/virtual` — typed `createWindowVirtualizer`; `@domphy/theme` — actionable `themeVars` error; `@domphy/blocks` — muted-surface contrast promoted to `text`, biome zero-warning.
 
 ---
 
@@ -149,6 +156,9 @@ Repo-wide audit and hardening: every package was reviewed top-down (blocks → c
 
 ### `@domphy/query` [0.18.2]
 - `bindResult` publishes `undefined` for keys that vanish from later results; dev-time tripwires for read-after-destroy and double-destroy; the manual `destroy()` contract is documented on the interface.
+
+### `@domphy/table` [0.19.2]
+- `commitEdit` / `cancelEdit` always exit edit mode (`resetEditingCell(true)`); `commitEdit` exits in `finally` if `onCellEdit` throws. `createDomphyTable.setOptions` merges a raw options object and keeps the adapter `onStateChange` wrapper. `RowPinning._getPinnedRows` skips pinned ids no longer in the data. `CellEditing` types on `Table` / `Cell` / `TableState` are `Partial` (opt-in feature).
 
 ### `@domphy/table` [0.19.1]
 - Adapter contract documented (it applies state itself, then notifies — do not re-apply as in TanStack React); redundant version bumps skipped for no-op state updates.

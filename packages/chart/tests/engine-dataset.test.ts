@@ -4,7 +4,10 @@ import { applyDatasetToSeries } from "../src/dataset/transform.ts";
 import { ChartEngine } from "../src/engine.ts";
 import type { ChartOption } from "../src/types.ts";
 
-function makeEngine(width = 400, height = 300): {
+function makeEngine(
+  width = 400,
+  height = 300,
+): {
   engine: ChartEngine;
   overlaysvg: SVGSVGElement;
 } {

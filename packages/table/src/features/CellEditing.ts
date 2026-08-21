@@ -101,7 +101,10 @@ export const CellEditing: TableFeature = {
     table: Table<TData>
   ): CellEditingOptions<TData> => {
     return {
-      onCellEditingChange: makeStateUpdater('cellEditing', table),
+      onCellEditingChange: makeStateUpdater(
+        'cellEditing',
+        table,
+      ) as OnChangeFn<CellEditingState>,
       enableCellEditing: true,
     }
   },

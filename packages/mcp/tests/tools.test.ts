@@ -226,7 +226,9 @@ describe("readBlockSource containment", () => {
     const manifestDir = mkdtempSync(join(tmpdir(), "domphy-app-"));
     process.env.DOMPHY_APP_MANIFEST = join(manifestDir, "app-manifest.json");
     writeFileSync(process.env.DOMPHY_APP_MANIFEST, "[]");
-    const toolsFile = fileURLToPath(new URL("../src/tools.ts", import.meta.url));
+    const toolsFile = fileURLToPath(
+      new URL("../src/tools.ts", import.meta.url),
+    );
     const fromCwd = relative(process.cwd(), toolsFile);
     expect(fromCwd === "" || !fromCwd.startsWith("..")).toBe(true);
     expect(await readBlockSource(fromCwd)).toContain(

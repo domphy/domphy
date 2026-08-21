@@ -1,5 +1,9 @@
 # @domphy/router
 
+## 0.18.3
+
+- `MatchSupersededError` sentinel; SWR redirect abort when location is superseded; extra SSR/redirect tests.
+
 ## 0.18.2
 
 - Security: `isDangerousProtocol` treats protocol-relative URLs (`//host`) and scheme-like URL-ctor failures as dangerous. `redirect()` no longer emits raw `//host` or `javascript:` `Location` headers; SSR header merge drops them too.

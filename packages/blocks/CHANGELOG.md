@@ -1,5 +1,9 @@
 # @domphy/blocks Changelog
 
+## 0.2.1
+
+- Magic UI / shadcn chart recipes: muted-surface contrast promoted to `text`; biome-clean; `dashboard01` README props match `pageTitle` / `navMain`.
+
 ## 0.1.4
 - Visual-fidelity pass vs the shadcn/ui and Magic UI originals (screenshot-driven QA):
   - Sidebar/dashboard/auth: large muted surfaces from muddy `shift-2` to near-white `shift-1`; active nav items, brand/icon badges, avatar fallbacks, subscribe/CTA buttons, calendar selected day and checkboxes from bright blue `primary` to neutral near-black (matching upstream `sidebar-primary`).

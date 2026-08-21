@@ -1,5 +1,10 @@
 # create-domphy Changelog
 
+## 0.18.8
+
+- Pin scaffolded `@domphy/core` / `theme` / `ui` to 0.21.2 / 0.22.1 / 0.21.2.
+- Scaffold write/rollback audit-fix pass.
+
 ## 0.18.7
 
 - Pin scaffolded `@domphy/core` / `theme` / `ui` to the current sibling versions (0.21.1 / 0.22.0 / 0.21.1).

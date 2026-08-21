@@ -41,6 +41,8 @@ Cache key = `LoaderClass` + `input` (an array `input` joins into one key). Call 
 
 If the resolved value has a `.scene` that's an `Object3D` (a glTF result), `loadAsset` walks it once and assigns `nodes`/`materials`/`meshes` — named lookups onto the result itself, mirroring r3f's `useGLTF`.
 
+A cache **hit** that passes a different `configure` than the first load does not re-run it — the first call's configuration wins. In development, `loadAsset` warns once per cache entry (`Keep the configure function referentially stable across call sites, or clearAsset() first.`).
+
 ### Rendering the result
 
 Read `data` inside `scene`'s listener. Falsy scene children are skipped, so render a placeholder for the slot until the asset resolves:
@@ -67,20 +69,27 @@ A later `loadAsset(GLTFLoader, "/models/Duck.glb")` call hits the warmed cache a
 ## `clearAsset`
 
 ```ts
-function clearAsset(LoaderClass: Constructable, input?: string | string[]): void
+function clearAsset(
+  LoaderClass: Constructable,
+  input?: string | string[],
+  options?: { dispose?: boolean },
+): void
 ```
 
 | Call | Effect |
 |---|---|
 | `clearAsset(LoaderClass, input)` | Drops the one cached `AssetResult` for that class/input. |
 | `clearAsset(LoaderClass)` | Drops every input cached for that class. |
+| `clearAsset(LoaderClass, input, { dispose: true })` | Evicts and disposes GPU resources reachable from that result (geometries/textures/Object3D graphs, cycle-safe). |
+| `clearAsset(LoaderClass, undefined, { dispose: true })` | Evicts every input for that class and disposes each result once (shared resources across inputs are not disposed twice). |
 
 ```ts
 clearAsset(GLTFLoader, "/models/Duck.glb") // drop one cached asset
 clearAsset(GLTFLoader)                      // drop everything GLTFLoader has cached
+clearAsset(GLTFLoader, "/models/Duck.glb", { dispose: true }) // evict + dispose GPU
 ```
 
-The loader instance itself is untouched — only the `AssetResult` cache entry is dropped. The next `loadAsset` call for that class/input reloads from scratch and returns a brand-new `AssetResult`.
+Eviction alone does **not** dispose GPU resources — r3f's `clear()` is the same, because other scene objects may still reference the cached geometries/textures. Pass `{ dispose: true }` only when no mounted scene still uses the asset. Only already-resolved data is disposed; a still-pending load is simply evicted. The loader instance itself is untouched. The next `loadAsset` call for that class/input reloads from scratch and returns a brand-new `AssetResult`.
 
 ## Error handling
 

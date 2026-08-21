@@ -353,7 +353,10 @@ describe("buildSite locale discovery", () => {
       outDir,
     });
 
-    const viGuide = readFileSync(join(outDir, "vi", "guide", "index.html"), "utf8");
+    const viGuide = readFileSync(
+      join(outDir, "vi", "guide", "index.html"),
+      "utf8",
+    );
     expect(viGuide).toMatch(/<html lang="vi"/);
     expect(viGuide).toContain("VI Site");
     expect(viGuide).not.toMatch(/<html lang="en"/);
@@ -364,10 +367,12 @@ describe("buildSite locale discovery", () => {
 
     const sitemap = readFileSync(join(outDir, "sitemap.xml"), "utf8");
     const locs = [...sitemap.matchAll(/<loc>([^<]*)<\/loc>/g)].map((m) => m[1]);
-    expect(locs.filter((url) => url === "https://example.com/vi/guide/")).toHaveLength(
-      1,
-    );
-    expect(locs.filter((url) => url === "https://example.com/guide/")).toHaveLength(1);
+    expect(
+      locs.filter((url) => url === "https://example.com/vi/guide/"),
+    ).toHaveLength(1);
+    expect(
+      locs.filter((url) => url === "https://example.com/guide/"),
+    ).toHaveLength(1);
 
     const index = JSON.parse(
       readFileSync(join(outDir, "search-index.json"), "utf8"),

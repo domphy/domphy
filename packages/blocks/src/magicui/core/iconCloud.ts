@@ -196,11 +196,6 @@ function focusRotationForPoint(point: SpherePoint): {
  */
 function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
   const size = props.size ?? DEFAULT_SIZE;
-  const autoRotateSpeed = props.autoRotateSpeed ?? DEFAULT_AUTO_ROTATE_SPEED;
-  const dragSensitivity = props.dragSensitivity ?? DEFAULT_DRAG_SENSITIVITY;
-  const [nearSize, farSize] = props.iconScaleRange ?? DEFAULT_ICON_SCALE_RANGE;
-  const [nearOpacity, farOpacity] =
-    props.iconOpacityRange ?? DEFAULT_ICON_OPACITY_RANGE;
 
   return {
     div: [],
@@ -216,11 +211,7 @@ function iconCloud(props: IconCloudProps = {}): DomphyElement<"div"> {
       marginInline: "auto",
       touchAction: "none",
     },
-    ...behavior<IconCloudProps>(
-      "magicui-icon-cloud",
-      attachIconCloud,
-      props,
-    ),
+    ...behavior<IconCloudProps>("magicui-icon-cloud", attachIconCloud, props),
   };
 }
 
@@ -239,341 +230,337 @@ function attachIconCloud(node: ElementNode, initialProps: IconCloudProps) {
     return { update() {}, destroy() {} };
   }
 
-      const canvas = document.createElement("canvas");
-      canvas.setAttribute("aria-hidden", "true");
-      canvas.style.position = "absolute";
-      canvas.style.inset = "0";
-      canvas.style.width = "100%";
-      canvas.style.height = "100%";
-      canvas.style.borderRadius = "0.5rem"; // upstream canvas has rounded-lg corners
-      canvas.style.cursor = "grab";
-      container.appendChild(canvas);
+  const canvas = document.createElement("canvas");
+  canvas.setAttribute("aria-hidden", "true");
+  canvas.style.position = "absolute";
+  canvas.style.inset = "0";
+  canvas.style.width = "100%";
+  canvas.style.height = "100%";
+  canvas.style.borderRadius = "0.5rem"; // upstream canvas has rounded-lg corners
+  canvas.style.cursor = "grab";
+  container.appendChild(canvas);
 
-      const context = canvas.getContext("2d");
-      if (!context) return;
+  const context = canvas.getContext("2d");
+  if (!context) return;
 
-      let iconColor = "#5a6472";
-      try {
-        iconColor = themeColorToken(node, "shift-11", "neutral");
-      } catch {
-        // Fall back to the default gray above if the theme isn't resolvable yet.
+  let iconColor = "#5a6472";
+  try {
+    iconColor = themeColorToken(node, "shift-11", "neutral");
+  } catch {
+    // Fall back to the default gray above if the theme isn't resolvable yet.
+  }
+  const icons = props.icons ?? defaultIcons(iconColor);
+  const points = buildFibonacciSpherePoints(icons.length);
+
+  interface LoadedIcon {
+    // Either the rasterized glyph (a plain <img>) or, for bitmap image URLs,
+    // a 40x40 offscreen canvas the source was circular-clipped into. Stays
+    // null until the load completes, so its presence is the readiness flag.
+    source: CanvasImageSource | null;
+  }
+  const loaded: LoadedIcon[] = icons.map(() => ({ source: null }));
+  icons.forEach((icon, index) => {
+    if (icon.image) {
+      // Bitmap image URL: load cross-origin (so the canvas stays clean) and
+      // pre-render into a 40x40 offscreen canvas behind a circular clip, so
+      // avatar/logo art reads as a disc — matching upstream's arc()+clip().
+      const image = new Image();
+      image.crossOrigin = "anonymous";
+      image.decoding = "async";
+      image.onload = () => {
+        const offscreen = document.createElement("canvas");
+        offscreen.width = 40;
+        offscreen.height = 40;
+        const offContext = offscreen.getContext("2d");
+        if (!offContext) return;
+        offContext.beginPath();
+        offContext.arc(20, 20, 20, 0, Math.PI * 2);
+        offContext.closePath();
+        offContext.clip();
+        offContext.drawImage(image, 0, 0, 40, 40);
+        loaded[index].source = offscreen;
+      };
+      image.src = icon.image;
+      return;
+    }
+    if (!icon.glyphMarkup) return;
+    // Vector glyph: rasterize the inline SVG once via a data: URI, drawn
+    // unclipped (as upstream renders its SVG icons — no circular mask).
+    const image = new Image();
+    image.decoding = "async";
+    image.onload = () => {
+      loaded[index].source = image;
+    };
+    image.src = `data:image/svg+xml,${encodeURIComponent(icon.glyphMarkup)}`;
+  });
+
+  const prefersReducedMotion =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  interface FocusTarget {
+    yaw: number;
+    pitch: number;
+    startYaw: number;
+    startPitch: number;
+    startTime: number;
+    duration: number;
+  }
+
+  let yaw = 0;
+  let pitch = 0; // start flat, matching upstream's initial rotation (0, 0)
+  // Last-known pointer position in the canvas's own drawing space, used
+  // only to drive the idle drift below — starts at the top-left corner
+  // (maximum offset from center), matching the reference's own initial
+  // state, so the sphere drifts from the very first frame before any
+  // pointer input has landed on the canvas at all.
+  let pointerCanvasX = 0;
+  let pointerCanvasY = 0;
+  let dragging = false;
+  let lastPointerX = 0;
+  let lastPointerY = 0;
+  let pointerDownX = 0;
+  let pointerDownY = 0;
+  let pointerMovedFar = false;
+  let focusTarget: FocusTarget | null = null;
+  let width = container.clientWidth || size();
+  let frameHandle: number | null = null;
+  let resizeObserver: ResizeObserver | null = null;
+
+  const now = () =>
+    typeof performance !== "undefined" && typeof performance.now === "function"
+      ? performance.now()
+      : Date.now();
+
+  const resizeCanvas = () => {
+    width = container.clientWidth || size();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = width * dpr;
+    canvas.height = width * dpr;
+    context.setTransform(dpr, 0, 0, dpr, 0, 0);
+  };
+  resizeCanvas();
+
+  const draw = () => {
+    const sphereRadius = width * SPHERE_RADIUS_RATIO;
+    const centerX = width / 2;
+    const centerY = width / 2;
+
+    context.clearRect(0, 0, width, width);
+
+    const projected = points.map((point, index) => {
+      const rotated = rotatePoint(point, yaw, pitch);
+      const depth = (rotated.z + 1) / 2; // 0 = back, 1 = front
+      return {
+        index,
+        x: centerX + rotated.x * sphereRadius,
+        y: centerY + rotated.y * sphereRadius,
+        depth,
+      };
+    });
+    projected.sort((a, b) => a.depth - b.depth);
+
+    for (const entry of projected) {
+      const source = loaded[entry.index].source;
+      if (!source) continue;
+      const [nearSize, farSize] = scaleRange();
+      const [nearOpacity, farOpacity] = opacityRange();
+      const iconSize = lerp(farSize, nearSize, entry.depth);
+      const opacity = lerp(farOpacity, nearOpacity, entry.depth);
+      context.globalAlpha = opacity;
+      context.drawImage(
+        source,
+        entry.x - iconSize / 2,
+        entry.y - iconSize / 2,
+        iconSize,
+        iconSize,
+      );
+    }
+    context.globalAlpha = 1;
+  };
+
+  // Maps a client-space point onto the canvas's own drawing coordinates
+  // (the `width`-px space `draw` uses), tolerating any CSS scaling from the
+  // responsive `maxWidth: 100%`.
+  const toCanvasPoint = (
+    clientX: number,
+    clientY: number,
+  ): { x: number; y: number } => {
+    const rect = canvas.getBoundingClientRect();
+    const scale = rect.width > 0 ? width / rect.width : 1;
+    return {
+      x: (clientX - rect.left) * scale,
+      y: (clientY - rect.top) * scale,
+    };
+  };
+
+  // Front-most icon (largest depth) whose rendered disc contains the point,
+  // or null if the click landed on empty space between icons.
+  const iconIndexAtPoint = (
+    canvasX: number,
+    canvasY: number,
+  ): number | null => {
+    const sphereRadius = width * SPHERE_RADIUS_RATIO;
+    const centerX = width / 2;
+    const centerY = width / 2;
+    let bestIndex: number | null = null;
+    let bestDepth = -Infinity;
+    points.forEach((point, index) => {
+      const rotated = rotatePoint(point, yaw, pitch);
+      const depth = (rotated.z + 1) / 2;
+      const screenX = centerX + rotated.x * sphereRadius;
+      const screenY = centerY + rotated.y * sphereRadius;
+      const [nearSize, farSize] = scaleRange();
+      const hitRadius = lerp(farSize, nearSize, depth) / 2;
+      const dx = canvasX - screenX;
+      const dy = canvasY - screenY;
+      if (dx * dx + dy * dy <= hitRadius * hitRadius && depth > bestDepth) {
+        bestDepth = depth;
+        bestIndex = index;
       }
-      const icons = props.icons ?? defaultIcons(iconColor);
-      const points = buildFibonacciSpherePoints(icons.length);
+    });
+    return bestIndex;
+  };
 
-      interface LoadedIcon {
-        // Either the rasterized glyph (a plain <img>) or, for bitmap image URLs,
-        // a 40x40 offscreen canvas the source was circular-clipped into. Stays
-        // null until the load completes, so its presence is the readiness flag.
-        source: CanvasImageSource | null;
+  const startFocus = (index: number) => {
+    const target = focusRotationForPoint(points[index]);
+    const distance = Math.hypot(target.yaw - yaw, target.pitch - pitch);
+    const duration = Math.min(
+      FOCUS_MAX_DURATION_MS,
+      Math.max(FOCUS_MIN_DURATION_MS, distance * FOCUS_DURATION_PER_RADIAN_MS),
+    );
+    focusTarget = {
+      yaw: target.yaw,
+      pitch: target.pitch,
+      startYaw: yaw,
+      startPitch: pitch,
+      startTime: now(),
+      duration,
+    };
+  };
+
+  const tick = () => {
+    // Belt-and-suspenders: bail without rescheduling once the canvas is
+    // no longer in the document, so this loop can't outlive the
+    // component even if the framework's own "Remove" hook never fires
+    // (e.g. a host that wipes the DOM directly instead of going through
+    // node removal).
+    if (!canvas.isConnected) return;
+    if (!dragging) {
+      if (focusTarget) {
+        // Click-to-focus easeOutCubic tween takes precedence over the
+        // idle drift until it completes.
+        const progress =
+          focusTarget.duration > 0
+            ? Math.min(
+                1,
+                (now() - focusTarget.startTime) / focusTarget.duration,
+              )
+            : 1;
+        const eased = easeOutCubic(progress);
+        yaw =
+          focusTarget.startYaw +
+          (focusTarget.yaw - focusTarget.startYaw) * eased;
+        pitch =
+          focusTarget.startPitch +
+          (focusTarget.pitch - focusTarget.startPitch) * eased;
+        if (progress >= 1) focusTarget = null;
+      } else if (!prefersReducedMotion) {
+        // Idle drift: no separate momentum/coasting phase (matching the
+        // reference) — every non-dragging, non-tweening frame just leans
+        // the rotation toward wherever the pointer currently rests,
+        // speeding up the further that pointer sits from center.
+        const centerOffset = width / 2;
+        const offsetX = pointerCanvasX - centerOffset;
+        const offsetY = pointerCanvasY - centerOffset;
+        const maxOffsetDistance = Math.hypot(centerOffset, centerOffset);
+        const offsetRatio =
+          maxOffsetDistance > 0
+            ? Math.hypot(offsetX, offsetY) / maxOffsetDistance
+            : 0;
+        const speed =
+          autoRotateSpeed() + offsetRatio * AUTO_ROTATE_HOVER_SPEED_BOOST;
+        yaw += (offsetX / width) * speed;
+        pitch += (offsetY / width) * speed;
       }
-      const loaded: LoadedIcon[] = icons.map(() => ({ source: null }));
-      icons.forEach((icon, index) => {
-        if (icon.image) {
-          // Bitmap image URL: load cross-origin (so the canvas stays clean) and
-          // pre-render into a 40x40 offscreen canvas behind a circular clip, so
-          // avatar/logo art reads as a disc — matching upstream's arc()+clip().
-          const image = new Image();
-          image.crossOrigin = "anonymous";
-          image.decoding = "async";
-          image.onload = () => {
-            const offscreen = document.createElement("canvas");
-            offscreen.width = 40;
-            offscreen.height = 40;
-            const offContext = offscreen.getContext("2d");
-            if (!offContext) return;
-            offContext.beginPath();
-            offContext.arc(20, 20, 20, 0, Math.PI * 2);
-            offContext.closePath();
-            offContext.clip();
-            offContext.drawImage(image, 0, 0, 40, 40);
-            loaded[index].source = offscreen;
-          };
-          image.src = icon.image;
-          return;
-        }
-        if (!icon.glyphMarkup) return;
-        // Vector glyph: rasterize the inline SVG once via a data: URI, drawn
-        // unclipped (as upstream renders its SVG icons — no circular mask).
-        const image = new Image();
-        image.decoding = "async";
-        image.onload = () => {
-          loaded[index].source = image;
-        };
-        image.src = `data:image/svg+xml,${encodeURIComponent(icon.glyphMarkup)}`;
-      });
+    }
+    draw();
+    frameHandle = requestAnimationFrame(tick);
+  };
 
-      const prefersReducedMotion =
-        typeof window.matchMedia === "function" &&
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-      interface FocusTarget {
-        yaw: number;
-        pitch: number;
-        startYaw: number;
-        startPitch: number;
-        startTime: number;
-        duration: number;
+  const handlePointerDown = (event: PointerEvent) => {
+    dragging = true;
+    lastPointerX = event.clientX;
+    lastPointerY = event.clientY;
+    pointerDownX = event.clientX;
+    pointerDownY = event.clientY;
+    pointerMovedFar = false;
+    // A fresh press cancels any in-flight focus tween so the drag (or the
+    // next auto-rotation) takes over cleanly rather than fighting it.
+    focusTarget = null;
+    canvas.style.cursor = "grabbing";
+    try {
+      canvas.setPointerCapture(event.pointerId);
+    } catch {
+      // Pointer capture is best-effort — unsupported/detached targets are fine to ignore.
+    }
+  };
+  const handlePointerMove = (event: PointerEvent) => {
+    if (!dragging) return;
+    const deltaX = event.clientX - lastPointerX;
+    const deltaY = event.clientY - lastPointerY;
+    lastPointerX = event.clientX;
+    lastPointerY = event.clientY;
+    if (!pointerMovedFar) {
+      const totalX = event.clientX - pointerDownX;
+      const totalY = event.clientY - pointerDownY;
+      if (
+        totalX * totalX + totalY * totalY >
+        DRAG_CLICK_THRESHOLD_PX * DRAG_CLICK_THRESHOLD_PX
+      ) {
+        pointerMovedFar = true;
       }
+    }
+    yaw += deltaX * dragSensitivity();
+    pitch += deltaY * dragSensitivity();
+  };
+  // Tracks the pointer position (in the canvas's own drawing space)
+  // continuously, drag or not — the only input the idle-drift branch of
+  // `tick` reads.
+  const handleHoverMove = (event: PointerEvent) => {
+    const point = toCanvasPoint(event.clientX, event.clientY);
+    pointerCanvasX = point.x;
+    pointerCanvasY = point.y;
+  };
+  const handlePointerUp = (event: PointerEvent) => {
+    if (!dragging) return;
+    dragging = false;
+    canvas.style.cursor = "grab";
+    try {
+      canvas.releasePointerCapture(event.pointerId);
+    } catch {
+      // Best-effort release, as above.
+    }
+    // A press that never travelled far is a click: focus the icon under the
+    // pointer (if any). A real drag falls through to the idle drift above.
+    if (!pointerMovedFar) {
+      const point = toCanvasPoint(event.clientX, event.clientY);
+      const index = iconIndexAtPoint(point.x, point.y);
+      if (index !== null) startFocus(index);
+    }
+  };
 
-      let yaw = 0;
-      let pitch = 0; // start flat, matching upstream's initial rotation (0, 0)
-      // Last-known pointer position in the canvas's own drawing space, used
-      // only to drive the idle drift below — starts at the top-left corner
-      // (maximum offset from center), matching the reference's own initial
-      // state, so the sphere drifts from the very first frame before any
-      // pointer input has landed on the canvas at all.
-      let pointerCanvasX = 0;
-      let pointerCanvasY = 0;
-      let dragging = false;
-      let lastPointerX = 0;
-      let lastPointerY = 0;
-      let pointerDownX = 0;
-      let pointerDownY = 0;
-      let pointerMovedFar = false;
-      let focusTarget: FocusTarget | null = null;
-      let width = container.clientWidth || size();
-      let frameHandle: number | null = null;
-      let resizeObserver: ResizeObserver | null = null;
+  canvas.addEventListener("pointerdown", handlePointerDown);
+  canvas.addEventListener("pointermove", handleHoverMove);
+  window.addEventListener("pointermove", handlePointerMove);
+  window.addEventListener("pointerup", handlePointerUp);
 
-      const now = () =>
-        typeof performance !== "undefined" &&
-        typeof performance.now === "function"
-          ? performance.now()
-          : Date.now();
+  if (typeof ResizeObserver !== "undefined") {
+    resizeObserver = new ResizeObserver(() => resizeCanvas());
+    resizeObserver.observe(container);
+  }
 
-      const resizeCanvas = () => {
-        width = container.clientWidth || size();
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
-        canvas.width = width * dpr;
-        canvas.height = width * dpr;
-        context.setTransform(dpr, 0, 0, dpr, 0, 0);
-      };
-      resizeCanvas();
-
-      const draw = () => {
-        const sphereRadius = width * SPHERE_RADIUS_RATIO;
-        const centerX = width / 2;
-        const centerY = width / 2;
-
-        context.clearRect(0, 0, width, width);
-
-        const projected = points.map((point, index) => {
-          const rotated = rotatePoint(point, yaw, pitch);
-          const depth = (rotated.z + 1) / 2; // 0 = back, 1 = front
-          return {
-            index,
-            x: centerX + rotated.x * sphereRadius,
-            y: centerY + rotated.y * sphereRadius,
-            depth,
-          };
-        });
-        projected.sort((a, b) => a.depth - b.depth);
-
-        for (const entry of projected) {
-          const source = loaded[entry.index].source;
-          if (!source) continue;
-          const [nearSize, farSize] = scaleRange();
-          const [nearOpacity, farOpacity] = opacityRange();
-          const iconSize = lerp(farSize, nearSize, entry.depth);
-          const opacity = lerp(farOpacity, nearOpacity, entry.depth);
-          context.globalAlpha = opacity;
-          context.drawImage(
-            source,
-            entry.x - iconSize / 2,
-            entry.y - iconSize / 2,
-            iconSize,
-            iconSize,
-          );
-        }
-        context.globalAlpha = 1;
-      };
-
-      // Maps a client-space point onto the canvas's own drawing coordinates
-      // (the `width`-px space `draw` uses), tolerating any CSS scaling from the
-      // responsive `maxWidth: 100%`.
-      const toCanvasPoint = (
-        clientX: number,
-        clientY: number,
-      ): { x: number; y: number } => {
-        const rect = canvas.getBoundingClientRect();
-        const scale = rect.width > 0 ? width / rect.width : 1;
-        return {
-          x: (clientX - rect.left) * scale,
-          y: (clientY - rect.top) * scale,
-        };
-      };
-
-      // Front-most icon (largest depth) whose rendered disc contains the point,
-      // or null if the click landed on empty space between icons.
-      const iconIndexAtPoint = (
-        canvasX: number,
-        canvasY: number,
-      ): number | null => {
-        const sphereRadius = width * SPHERE_RADIUS_RATIO;
-        const centerX = width / 2;
-        const centerY = width / 2;
-        let bestIndex: number | null = null;
-        let bestDepth = -Infinity;
-        points.forEach((point, index) => {
-          const rotated = rotatePoint(point, yaw, pitch);
-          const depth = (rotated.z + 1) / 2;
-          const screenX = centerX + rotated.x * sphereRadius;
-          const screenY = centerY + rotated.y * sphereRadius;
-          const [nearSize, farSize] = scaleRange();
-          const hitRadius = lerp(farSize, nearSize, depth) / 2;
-          const dx = canvasX - screenX;
-          const dy = canvasY - screenY;
-          if (dx * dx + dy * dy <= hitRadius * hitRadius && depth > bestDepth) {
-            bestDepth = depth;
-            bestIndex = index;
-          }
-        });
-        return bestIndex;
-      };
-
-      const startFocus = (index: number) => {
-        const target = focusRotationForPoint(points[index]);
-        const distance = Math.hypot(target.yaw - yaw, target.pitch - pitch);
-        const duration = Math.min(
-          FOCUS_MAX_DURATION_MS,
-          Math.max(
-            FOCUS_MIN_DURATION_MS,
-            distance * FOCUS_DURATION_PER_RADIAN_MS,
-          ),
-        );
-        focusTarget = {
-          yaw: target.yaw,
-          pitch: target.pitch,
-          startYaw: yaw,
-          startPitch: pitch,
-          startTime: now(),
-          duration,
-        };
-      };
-
-      const tick = () => {
-        // Belt-and-suspenders: bail without rescheduling once the canvas is
-        // no longer in the document, so this loop can't outlive the
-        // component even if the framework's own "Remove" hook never fires
-        // (e.g. a host that wipes the DOM directly instead of going through
-        // node removal).
-        if (!canvas.isConnected) return;
-        if (!dragging) {
-          if (focusTarget) {
-            // Click-to-focus easeOutCubic tween takes precedence over the
-            // idle drift until it completes.
-            const progress =
-              focusTarget.duration > 0
-                ? Math.min(
-                    1,
-                    (now() - focusTarget.startTime) / focusTarget.duration,
-                  )
-                : 1;
-            const eased = easeOutCubic(progress);
-            yaw =
-              focusTarget.startYaw +
-              (focusTarget.yaw - focusTarget.startYaw) * eased;
-            pitch =
-              focusTarget.startPitch +
-              (focusTarget.pitch - focusTarget.startPitch) * eased;
-            if (progress >= 1) focusTarget = null;
-          } else if (!prefersReducedMotion) {
-            // Idle drift: no separate momentum/coasting phase (matching the
-            // reference) — every non-dragging, non-tweening frame just leans
-            // the rotation toward wherever the pointer currently rests,
-            // speeding up the further that pointer sits from center.
-            const centerOffset = width / 2;
-            const offsetX = pointerCanvasX - centerOffset;
-            const offsetY = pointerCanvasY - centerOffset;
-            const maxOffsetDistance = Math.hypot(centerOffset, centerOffset);
-            const offsetRatio =
-              maxOffsetDistance > 0
-                ? Math.hypot(offsetX, offsetY) / maxOffsetDistance
-                : 0;
-            const speed =
-              autoRotateSpeed() + offsetRatio * AUTO_ROTATE_HOVER_SPEED_BOOST;
-            yaw += (offsetX / width) * speed;
-            pitch += (offsetY / width) * speed;
-          }
-        }
-        draw();
-        frameHandle = requestAnimationFrame(tick);
-      };
-
-      const handlePointerDown = (event: PointerEvent) => {
-        dragging = true;
-        lastPointerX = event.clientX;
-        lastPointerY = event.clientY;
-        pointerDownX = event.clientX;
-        pointerDownY = event.clientY;
-        pointerMovedFar = false;
-        // A fresh press cancels any in-flight focus tween so the drag (or the
-        // next auto-rotation) takes over cleanly rather than fighting it.
-        focusTarget = null;
-        canvas.style.cursor = "grabbing";
-        try {
-          canvas.setPointerCapture(event.pointerId);
-        } catch {
-          // Pointer capture is best-effort — unsupported/detached targets are fine to ignore.
-        }
-      };
-      const handlePointerMove = (event: PointerEvent) => {
-        if (!dragging) return;
-        const deltaX = event.clientX - lastPointerX;
-        const deltaY = event.clientY - lastPointerY;
-        lastPointerX = event.clientX;
-        lastPointerY = event.clientY;
-        if (!pointerMovedFar) {
-          const totalX = event.clientX - pointerDownX;
-          const totalY = event.clientY - pointerDownY;
-          if (
-            totalX * totalX + totalY * totalY >
-            DRAG_CLICK_THRESHOLD_PX * DRAG_CLICK_THRESHOLD_PX
-          ) {
-            pointerMovedFar = true;
-          }
-        }
-        yaw += deltaX * dragSensitivity();
-        pitch += deltaY * dragSensitivity();
-      };
-      // Tracks the pointer position (in the canvas's own drawing space)
-      // continuously, drag or not — the only input the idle-drift branch of
-      // `tick` reads.
-      const handleHoverMove = (event: PointerEvent) => {
-        const point = toCanvasPoint(event.clientX, event.clientY);
-        pointerCanvasX = point.x;
-        pointerCanvasY = point.y;
-      };
-      const handlePointerUp = (event: PointerEvent) => {
-        if (!dragging) return;
-        dragging = false;
-        canvas.style.cursor = "grab";
-        try {
-          canvas.releasePointerCapture(event.pointerId);
-        } catch {
-          // Best-effort release, as above.
-        }
-        // A press that never travelled far is a click: focus the icon under the
-        // pointer (if any). A real drag falls through to the idle drift above.
-        if (!pointerMovedFar) {
-          const point = toCanvasPoint(event.clientX, event.clientY);
-          const index = iconIndexAtPoint(point.x, point.y);
-          if (index !== null) startFocus(index);
-        }
-      };
-
-      canvas.addEventListener("pointerdown", handlePointerDown);
-      canvas.addEventListener("pointermove", handleHoverMove);
-      window.addEventListener("pointermove", handlePointerMove);
-      window.addEventListener("pointerup", handlePointerUp);
-
-      if (typeof ResizeObserver !== "undefined") {
-        resizeObserver = new ResizeObserver(() => resizeCanvas());
-        resizeObserver.observe(container);
-      }
-
-      frameHandle = requestAnimationFrame(tick);
+  frameHandle = requestAnimationFrame(tick);
 
   return {
     update(next: IconCloudProps) {

@@ -5,7 +5,10 @@ import { computed, effectScope, flushSync, toState } from "../src/index.ts";
 
 function listenerCount(source: {
   name?: string;
-  _notifier?: { listenerCount?: (event: string) => number; _listeners?: Record<string, Set<unknown>> };
+  _notifier?: {
+    listenerCount?: (event: string) => number;
+    _listeners?: Record<string, Set<unknown>>;
+  };
 }): number {
   const notifier = source._notifier;
   if (!notifier) return 0;

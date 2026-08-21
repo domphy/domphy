@@ -1,5 +1,9 @@
 # @domphy/editor Changelog
 
+## 0.2.4
+
+- Link URI validation, command wiring, bubbleMenu/editorContent audit-fix pass.
+
 ## 0.2.3
 
 - Peer range widened: `@domphy/theme` now accepts `^0.21.0 || ^0.22.0` — theme 0.22.0 is additive (palette re-export), and every theme API editor uses (`themeColor`/`themeSpacing`) is unchanged. Removes the peer warning for consumers on theme 0.22.x.

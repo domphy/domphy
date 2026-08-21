@@ -78,8 +78,7 @@ function attachDrawer(
         dlg.ownerDocument.dir === "rtl");
     const physical = resolvePhysical(nextPlacement, isRTL);
     const drawerSize =
-      nextSize ??
-      (isVertical(physical) ? themeSpacing(80) : themeSpacing(64));
+      nextSize ?? (isVertical(physical) ? themeSpacing(80) : themeSpacing(64));
     dlg.style.margin = marginMap[physical];
     dlg.style.width = isVertical(physical) ? drawerSize : "100dvw";
     dlg.style.height = isVertical(physical) ? "100dvh" : drawerSize;
@@ -232,7 +231,11 @@ function drawer(
         console.warn(`"drawer" patch must use dialog tag`);
       }
     },
-    ...behavior<DrawerProps>("drawer", attachDrawer, { state, placement, size }),
+    ...behavior<DrawerProps>("drawer", attachDrawer, {
+      state,
+      placement,
+      size,
+    }),
     onClick: (e: MouseEvent, node) => {
       if (e.target !== node.domElement) return;
       const r = node.domElement!.getBoundingClientRect();

@@ -102,7 +102,10 @@ function resolveFile(root: string, urlPath: string): string | null {
   const rootReal = realpathOrResolve(root);
   const candidates = extname(safe)
     ? [resolve(rootReal, safe)]
-    : [resolve(rootReal, safe, "index.html"), resolve(rootReal, `${safe}.html`)];
+    : [
+        resolve(rootReal, safe, "index.html"),
+        resolve(rootReal, `${safe}.html`),
+      ];
   for (const candidate of candidates) {
     if (!isInsideRoot(rootReal, candidate)) continue;
     try {
@@ -110,9 +113,7 @@ function resolveFile(root: string, urlPath: string): string | null {
       const real = realpathSync(candidate);
       if (!isInsideRoot(rootReal, real)) continue;
       return real;
-    } catch {
-      continue;
-    }
+    } catch {}
   }
   return null;
 }

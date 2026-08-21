@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  angleInPieSlice,
-  computePieSlices,
-} from "../src/gl/PieRenderer.ts";
+import { angleInPieSlice, computePieSlices } from "../src/gl/PieRenderer.ts";
 
 describe("computePieSlices", () => {
   const data = [
@@ -11,11 +8,7 @@ describe("computePieSlices", () => {
   ];
 
   it("starts at 12 o'clock (ECharts 90°) by default and sweeps clockwise", () => {
-    const slices = computePieSlices(
-      { type: "pie", data } as any,
-      200,
-      200,
-    );
+    const slices = computePieSlices({ type: "pie", data } as any, 200, 200);
     expect(slices[0].startAngle).toBeCloseTo(-Math.PI / 2);
     expect(slices[0].endAngle).toBeCloseTo(Math.PI / 2);
     expect(slices[1].endAngle).toBeCloseTo((3 * Math.PI) / 2);

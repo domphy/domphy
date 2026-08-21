@@ -292,8 +292,7 @@ export function computeScore(
     // React baseline: compile + structure (no typography rule)
     return (compiles ? 50 : 0) + (structure ? 50 : 0);
   }
-  const score =
-    (compiles ? 40 : 0) + (noTypo ? 30 : 0) + (structure ? 30 : 0);
+  const score = (compiles ? 40 : 0) + (noTypo ? 30 : 0) + (structure ? 30 : 0);
   // C cannot pass on syntax+typography alone — required structure is a gate.
   if (condition === "C" && !structure) {
     return Math.min(score, C_WITHOUT_STRUCTURE_CAP);

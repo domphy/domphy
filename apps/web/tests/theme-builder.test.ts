@@ -131,7 +131,9 @@ describe("ThemeBuilder demo", { timeout: 60_000 }, () => {
     // the helper uses (neutral body: shift-9 on surface).
     const theme = generateTheme(mod.defaultColors());
     const report = mod.buildQualityReport(theme);
-    const body = report.contrasts.find((c: { id: string }) => c.id === "neutral-body");
+    const body = report.contrasts.find(
+      (c: { id: string }) => c.id === "neutral-body",
+    );
     expect(body).toBeTruthy();
     const expected = contrastRatio(body!.foreground, body!.background);
     expect(body!.ratio).toBeCloseTo(expected, 5);

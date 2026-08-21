@@ -1,8 +1,7 @@
 # @domphy/ui Changelog
 
-## 0.21.1
+## 0.21.2
 
-- Peer range widened: `@domphy/theme` now accepts `^0.21.0 || ^0.22.0` — theme 0.22.0 is additive (palette re-export), and every theme API ui uses (`themeColor`/`themeDensity`/`themeSpacing`/`themeSize`) is unchanged. Removes the peer warning for consumers on theme 0.22.x.
 - fix(overlays): `open.set(true)` / `open: true` inserts the floating panel (popover, selectBox, combobox, datePicker, tooltip) — `attachFloating` now subscribes to `openState` like `attachDialog`.
 - fix(drawer): migrate `_onMount` factory-scope state to `behavior()` so reuse still calls `showModal`; guard `showModal` when already open; clear the close fallback timer on reopen; backdrop click uses the panel rect (empty-panel clicks no longer close).
 - fix(popover): click-mode `onBlur` no longer closes (docs: focus has no effect when `openOn` is `"click"`).
@@ -12,6 +11,10 @@
 - fix(datePicker): do not copy the previous internal selection onto a caller-provided `Date`; expose `role=combobox` + `aria-expanded` / `aria-controls`.
 - fix(combobox): filter input keeps typed text; `role=combobox` + `aria-controls` + `aria-expanded`.
 - fix(selectBox): trigger `aria-controls` for the listbox panel.
+
+## 0.21.1
+
+- Peer range widened: `@domphy/theme` now accepts `^0.21.0 || ^0.22.0` — theme 0.22.0 is additive (palette re-export), and every theme API ui uses (`themeColor`/`themeDensity`/`themeSpacing`/`themeSize`) is unchanged. Removes the peer warning for consumers on theme 0.22.x.
 
 ## 0.20.12
 - fix(a11y): `selectBox` opens via Enter/Space/ArrowDown on the focused trigger (not click-only); `role=button` + `aria-haspopup=listbox` + reactive `aria-expanded`. Keyboard contract test drives keydown (no `.click()`).

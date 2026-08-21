@@ -159,161 +159,159 @@ function attachSmoothCursor(
   let spring = initialProps.spring;
   if (typeof window === "undefined") return { update() {}, destroy() {} };
   const element = node.domElement as HTMLElement;
-      const previousCursor = document.body.style.cursor;
-      const pointerQuery =
-        typeof window.matchMedia === "function"
-          ? window.matchMedia(DESKTOP_POINTER_QUERY)
-          : null;
+  const previousCursor = document.body.style.cursor;
+  const pointerQuery =
+    typeof window.matchMedia === "function"
+      ? window.matchMedia(DESKTOP_POINTER_QUERY)
+      : null;
 
-      let positionX = 0;
-      let positionY = 0;
-      let velocityX = 0;
-      let velocityY = 0;
-      let targetX = 0;
-      let targetY = 0;
-      let angle = 0;
-      let angleVelocity = 0;
-      let targetAngle = 0;
-      let previousDirectionAngle = 0;
-      let hasPosition = false;
-      let frameHandle: number | null = null;
-      let lastTime = 0;
-      let scale = 1;
-      let scaleVelocity = 0;
-      let targetScale = 1;
-      let lastMoveTime = 0;
-      let enabled = false;
+  let positionX = 0;
+  let positionY = 0;
+  let velocityX = 0;
+  let velocityY = 0;
+  let targetX = 0;
+  let targetY = 0;
+  let angle = 0;
+  let angleVelocity = 0;
+  let targetAngle = 0;
+  let previousDirectionAngle = 0;
+  let hasPosition = false;
+  let frameHandle: number | null = null;
+  let lastTime = 0;
+  let scale = 1;
+  let scaleVelocity = 0;
+  let targetScale = 1;
+  let lastMoveTime = 0;
+  let enabled = false;
 
-      const applyTransform = () => {
-        // translate(-50%, -50%) centers the glyph on the pointer (the reference
-        // applies the same -50%/-50% offset); scale() applies the movement squish.
-        element.style.transform = `translate(${positionX}px, ${positionY}px) translate(-50%, -50%) rotate(${angle}deg) scale(${scale})`;
-      };
+  const applyTransform = () => {
+    // translate(-50%, -50%) centers the glyph on the pointer (the reference
+    // applies the same -50%/-50% offset); scale() applies the movement squish.
+    element.style.transform = `translate(${positionX}px, ${positionY}px) translate(-50%, -50%) rotate(${angle}deg) scale(${scale})`;
+  };
 
-      const step = (time: number) => {
-        // Belt-and-suspenders stop condition: some hosts (e.g. a test harness
-        // that wipes the DOM directly instead of going through the
-        // framework's removal lifecycle) never fire the "Remove" hook below.
-        // The `pointermove` listener here is attached to `window`, not this
-        // element, so it keeps firing (and would keep restarting the loop
-        // via `ensureLoopRunning`) even after the cursor is detached —
-        // bailing here once `element.isConnected` is false is what actually
-        // stops the loop from leaking forever.
-        if (!element.isConnected) {
-          frameHandle = null;
-          return;
-        }
-        // Clamp so a stalled/backgrounded tab doesn't produce a huge delta on resume.
-        const deltaSeconds = Math.min((time - lastTime) / 1000, 1 / 30);
-        lastTime = time;
+  const step = (time: number) => {
+    // Belt-and-suspenders stop condition: some hosts (e.g. a test harness
+    // that wipes the DOM directly instead of going through the
+    // framework's removal lifecycle) never fire the "Remove" hook below.
+    // The `pointermove` listener here is attached to `window`, not this
+    // element, so it keeps firing (and would keep restarting the loop
+    // via `ensureLoopRunning`) even after the cursor is detached —
+    // bailing here once `element.isConnected` is false is what actually
+    // stops the loop from leaking forever.
+    if (!element.isConnected) {
+      frameHandle = null;
+      return;
+    }
+    // Clamp so a stalled/backgrounded tab doesn't produce a huge delta on resume.
+    const deltaSeconds = Math.min((time - lastTime) / 1000, 1 / 30);
+    lastTime = time;
 
-        // Spring-damper: force = -stiffness * displacement - damping * velocity.
-        const accelerationX =
-          (-spring.stiffness * (positionX - targetX) -
-            spring.damping * velocityX) /
-          spring.mass;
-        const accelerationY =
-          (-spring.stiffness * (positionY - targetY) -
-            spring.damping * velocityY) /
-          spring.mass;
+    // Spring-damper: force = -stiffness * displacement - damping * velocity.
+    const accelerationX =
+      (-spring.stiffness * (positionX - targetX) - spring.damping * velocityX) /
+      spring.mass;
+    const accelerationY =
+      (-spring.stiffness * (positionY - targetY) - spring.damping * velocityY) /
+      spring.mass;
 
-        velocityX += accelerationX * deltaSeconds;
-        velocityY += accelerationY * deltaSeconds;
-        const previousX = positionX;
-        const previousY = positionY;
-        positionX += velocityX * deltaSeconds;
-        positionY += velocityY * deltaSeconds;
+    velocityX += accelerationX * deltaSeconds;
+    velocityY += accelerationY * deltaSeconds;
+    const previousX = positionX;
+    const previousY = positionY;
+    positionX += velocityX * deltaSeconds;
+    positionY += velocityY * deltaSeconds;
 
-        const travelDistance = Math.hypot(
-          positionX - previousX,
-          positionY - previousY,
-        );
-        if (travelDistance > 0.05) {
-          const directionAngle =
-            (Math.atan2(positionY - previousY, positionX - previousX) * 180) /
-              Math.PI +
-            90;
-          // Accumulate the shortest signed turn rather than jumping straight to
-          // directionAngle, so the rotation spring never whips the long way
-          // around when the heading crosses the -180/180 wraparound.
-          let angleDelta = directionAngle - previousDirectionAngle;
-          if (angleDelta > 180) angleDelta -= 360;
-          if (angleDelta < -180) angleDelta += 360;
-          targetAngle += angleDelta;
-          previousDirectionAngle = directionAngle;
-        }
+    const travelDistance = Math.hypot(
+      positionX - previousX,
+      positionY - previousY,
+    );
+    if (travelDistance > 0.05) {
+      const directionAngle =
+        (Math.atan2(positionY - previousY, positionX - previousX) * 180) /
+          Math.PI +
+        90;
+      // Accumulate the shortest signed turn rather than jumping straight to
+      // directionAngle, so the rotation spring never whips the long way
+      // around when the heading crosses the -180/180 wraparound.
+      let angleDelta = directionAngle - previousDirectionAngle;
+      if (angleDelta > 180) angleDelta -= 360;
+      if (angleDelta < -180) angleDelta += 360;
+      targetAngle += angleDelta;
+      previousDirectionAngle = directionAngle;
+    }
 
-        const angleAcceleration =
-          (-ROTATION_STIFFNESS * (angle - targetAngle) -
-            ROTATION_DAMPING * angleVelocity) /
-          spring.mass;
-        angleVelocity += angleAcceleration * deltaSeconds;
-        angle += angleVelocity * deltaSeconds;
+    const angleAcceleration =
+      (-ROTATION_STIFFNESS * (angle - targetAngle) -
+        ROTATION_DAMPING * angleVelocity) /
+      spring.mass;
+    angleVelocity += angleAcceleration * deltaSeconds;
+    angle += angleVelocity * deltaSeconds;
 
-        // Release the squish once the pointer has been idle past the rest window.
-        if (time - lastMoveTime > SCALE_REST_MS) targetScale = 1;
-        const scaleAcceleration =
-          (-SCALE_STIFFNESS * (scale - targetScale) -
-            SCALE_DAMPING * scaleVelocity) /
-          spring.mass;
-        scaleVelocity += scaleAcceleration * deltaSeconds;
-        scale += scaleVelocity * deltaSeconds;
+    // Release the squish once the pointer has been idle past the rest window.
+    if (time - lastMoveTime > SCALE_REST_MS) targetScale = 1;
+    const scaleAcceleration =
+      (-SCALE_STIFFNESS * (scale - targetScale) -
+        SCALE_DAMPING * scaleVelocity) /
+      spring.mass;
+    scaleVelocity += scaleAcceleration * deltaSeconds;
+    scale += scaleVelocity * deltaSeconds;
 
-        applyTransform();
+    applyTransform();
 
-        const settled =
-          Math.abs(targetX - positionX) < spring.restDelta &&
-          Math.abs(targetY - positionY) < spring.restDelta &&
-          Math.hypot(velocityX, velocityY) < spring.restDelta &&
-          Math.abs(targetScale - scale) < spring.restDelta &&
-          Math.abs(scaleVelocity) < spring.restDelta &&
-          Math.abs(targetAngle - angle) < spring.restDelta &&
-          Math.abs(angleVelocity) < spring.restDelta;
+    const settled =
+      Math.abs(targetX - positionX) < spring.restDelta &&
+      Math.abs(targetY - positionY) < spring.restDelta &&
+      Math.hypot(velocityX, velocityY) < spring.restDelta &&
+      Math.abs(targetScale - scale) < spring.restDelta &&
+      Math.abs(scaleVelocity) < spring.restDelta &&
+      Math.abs(targetAngle - angle) < spring.restDelta &&
+      Math.abs(angleVelocity) < spring.restDelta;
 
-        frameHandle = settled ? null : requestAnimationFrame(step);
-      };
+    frameHandle = settled ? null : requestAnimationFrame(step);
+  };
 
-      const ensureLoopRunning = () => {
-        if (frameHandle === null) {
-          lastTime = performance.now();
-          frameHandle = requestAnimationFrame(step);
-        }
-      };
+  const ensureLoopRunning = () => {
+    if (frameHandle === null) {
+      lastTime = performance.now();
+      frameHandle = requestAnimationFrame(step);
+    }
+  };
 
-      const handleMove = (event: PointerEvent) => {
-        if (!enabled) return;
-        // isTrackablePointer: ignore synthetic pointer events from touch
-        // input (the reference filters pointerType === "touch"), so a hybrid
-        // device's touch-derived pointer events don't move the custom cursor.
-        if (event.pointerType === "touch") return;
-        targetX = event.clientX;
-        targetY = event.clientY;
-        targetScale = SCALE_ACTIVE;
-        lastMoveTime = performance.now();
-        if (!hasPosition) {
-          positionX = targetX;
-          positionY = targetY;
-          hasPosition = true;
-          element.style.opacity = "1";
-          applyTransform();
-        }
-        ensureLoopRunning();
-      };
+  const handleMove = (event: PointerEvent) => {
+    if (!enabled) return;
+    // isTrackablePointer: ignore synthetic pointer events from touch
+    // input (the reference filters pointerType === "touch"), so a hybrid
+    // device's touch-derived pointer events don't move the custom cursor.
+    if (event.pointerType === "touch") return;
+    targetX = event.clientX;
+    targetY = event.clientY;
+    targetScale = SCALE_ACTIVE;
+    lastMoveTime = performance.now();
+    if (!hasPosition) {
+      positionX = targetX;
+      positionY = targetY;
+      hasPosition = true;
+      element.style.opacity = "1";
+      applyTransform();
+    }
+    ensureLoopRunning();
+  };
 
-      const updateEnabled = () => {
-        enabled = pointerQuery === null || pointerQuery.matches;
-        if (enabled) {
-          document.body.style.cursor = "none";
-        } else {
-          hasPosition = false;
-          element.style.opacity = "0";
-          document.body.style.cursor = previousCursor;
-        }
-      };
+  const updateEnabled = () => {
+    enabled = pointerQuery === null || pointerQuery.matches;
+    if (enabled) {
+      document.body.style.cursor = "none";
+    } else {
+      hasPosition = false;
+      element.style.opacity = "0";
+      document.body.style.cursor = previousCursor;
+    }
+  };
 
-      updateEnabled();
-      window.addEventListener("pointermove", handleMove);
-      pointerQuery?.addEventListener("change", updateEnabled);
+  updateEnabled();
+  window.addEventListener("pointermove", handleMove);
+  pointerQuery?.addEventListener("change", updateEnabled);
 
   return {
     update(next: { spring: Required<SmoothCursorSpring> }) {

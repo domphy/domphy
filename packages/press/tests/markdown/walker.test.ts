@@ -176,9 +176,7 @@ describe("GFM footnotes", () => {
   });
 
   it("reuses the same number when a footnote is referenced twice", () => {
-    const body = markdownToDomphy(
-      "First.[^1] Again.[^1]\n\n[^1]: Shared.",
-    );
+    const body = markdownToDomphy("First.[^1] Again.[^1]\n\n[^1]: Shared.");
     const children = asRecord(body[0]).p as unknown[];
     const first = asRecord((asRecord(children[1]).sup as unknown[])[0]);
     const second = asRecord((asRecord(children[3]).sup as unknown[])[0]);

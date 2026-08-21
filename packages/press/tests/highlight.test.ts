@@ -12,7 +12,11 @@ describe("renderFence", () => {
   });
 
   it("escapes a lang that would break out of the class attribute via markup", () => {
-    const html = renderFence("x", "css><img src=x onerror=alert(1)>", highlight);
+    const html = renderFence(
+      "x",
+      "css><img src=x onerror=alert(1)>",
+      highlight,
+    );
     expect(html).not.toContain("<img");
     expect(html).not.toContain("onerror");
     expect(html).toContain("language-css&gt;");

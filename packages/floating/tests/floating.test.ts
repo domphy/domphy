@@ -430,11 +430,10 @@ describe("public surface", () => {
       platform: mockPlatform(viewport, referenceRect, floatingSize),
     };
 
-    const unlimited = await computePosition(
-      referenceRect as never,
-      floating,
-      { middleware: [shift()], ...options },
-    );
+    const unlimited = await computePosition(referenceRect as never, floating, {
+      middleware: [shift()],
+      ...options,
+    });
     const limited = await computePosition(referenceRect as never, floating, {
       middleware: [shift({ limiter: limitShift() })],
       ...options,

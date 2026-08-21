@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
 import { ElementNode } from "@domphy/core";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createI18n } from "../src/index.ts";
 
 const en = {

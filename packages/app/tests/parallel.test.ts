@@ -5,8 +5,8 @@ import {
   createMemoryHistory,
   type DomphyApp,
   defineRoutes,
-  redirect,
   type Route,
+  redirect,
 } from "../src/index";
 
 const flush = (ms = 20) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -156,7 +156,7 @@ describe("parallel routes", () => {
     expect(container.textContent).toContain("no-metrics");
   });
 
-  it("gives path:\"\" slots distinct loader cache keys", async () => {
+  it('gives path:"" slots distinct loader cache keys', async () => {
     await mount(slotLoaderRoutes(), "/dash");
     expect(container.textContent).toContain("team-data");
     expect(container.textContent).toContain("metrics-data");

@@ -1,6 +1,6 @@
 # @domphy/dnd
 
-## 0.18.5
+## 0.18.6
 
 - `dragDrop`/`multiList` migrated to `behavior()` — a factory re-run under a reactive parent re-binds the new State/config instead of staying on generation 1; rAF handles are cancelled; `tearDown` is guarded when registration never happened.
 - SSR coverage: `dragDrop`/`multiList`/`multiListGroup` construct and `generateHTML()`/`generateCSS()` stay DOM-free (FormKit registration stays Mount-gated).

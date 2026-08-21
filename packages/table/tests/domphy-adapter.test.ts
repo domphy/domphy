@@ -289,7 +289,9 @@ describe("createDomphyTable.setOptions", () => {
     // Adapter wrapper still applies state — sorting would be a no-op if
     // onStateChange was dropped by the raw object.
     dTable.table.getColumn("name")?.toggleSorting(false);
-    expect(dTable.table.getState().sorting).toEqual([{ id: "name", desc: false }]);
+    expect(dTable.table.getState().sorting).toEqual([
+      { id: "name", desc: false },
+    ]);
   });
 
   it("function updater cannot replace the adapter onStateChange wrapper", () => {
@@ -300,7 +302,9 @@ describe("createDomphyTable.setOptions", () => {
     dTable.table.getColumn("age")?.toggleSorting(false);
 
     expect(hijack).not.toHaveBeenCalled();
-    expect(dTable.table.getState().sorting).toEqual([{ id: "age", desc: false }]);
+    expect(dTable.table.getState().sorting).toEqual([
+      { id: "age", desc: false },
+    ]);
   });
 });
 

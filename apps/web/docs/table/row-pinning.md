@@ -20,6 +20,8 @@ const table = createDomphyTable({
   getRowId: (row) => row.id, // default row.id is the row index
 })
 
+Pinned ids that are no longer in the data are skipped — `getRow` is not called for missing ids (it would throw).
+
 // Pin a row to the top
 table.getRow("row-id").pin("top")
 

@@ -132,7 +132,16 @@ describe("resolveGrid", () => {
   it("applies a zoom window to a log axis domain", () => {
     const yAxis: AxisOption = { type: "log", min: 1, max: 100 };
     const zoom = new Map([[0, { start: 0, end: 50 }]]);
-    const { yScales } = resolveGrid([{}], [], [yAxis], [], 800, 400, undefined, zoom);
+    const { yScales } = resolveGrid(
+      [{}],
+      [],
+      [yAxis],
+      [],
+      800,
+      400,
+      undefined,
+      zoom,
+    );
     const [lo, hi] = yScales[0].domain as [number, number];
     expect(lo).toBeCloseTo(1);
     expect(hi).toBeCloseTo(50.5);

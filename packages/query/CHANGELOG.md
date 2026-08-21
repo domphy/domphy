@@ -1,6 +1,6 @@
 # @domphy/query Changelog
 
-## Unreleased
+## 0.18.3
 
 - Domphy adapter: reactive `throwOnError` now subscribes the listener **before** throwing, so a later recover (`refetch` / `reset`) re-renders — same order as TanStack React Query's `useSyncExternalStore`-then-throw.
 - `createMutation`: `throwOnError` now throws on reactive field reads (with a listener), matching TanStack `useMutation`. Imperative reads without a listener never throw.

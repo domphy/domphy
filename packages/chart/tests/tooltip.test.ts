@@ -254,7 +254,9 @@ describe("tooltip appendToBody", () => {
     const tooltip = createTooltip(container, { appendToBody: true });
 
     expect(container.querySelector(".dc-tooltip")).toBeNull();
-    const el = document.body.querySelector(":scope > .dc-tooltip") as HTMLElement;
+    const el = document.body.querySelector(
+      ":scope > .dc-tooltip",
+    ) as HTMLElement;
     expect(el).not.toBeNull();
     expect(el.parentElement).toBe(document.body);
     expect(el.style.position).toBe("fixed");

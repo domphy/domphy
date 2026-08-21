@@ -4,6 +4,7 @@
  */
 
 import type { Editor } from "../Editor.js";
+import { isLinkUriAllowed } from "../extensions/link.js";
 import {
   findParentNode,
   getMarkAttributes,
@@ -34,7 +35,6 @@ import type {
   JSONContent,
   RawCommands,
 } from "../types.js";
-import { isLinkUriAllowed } from "../extensions/link.js";
 import { liftListItem, setNodeTypeAt, sinkListItem } from "./list.js";
 
 function schemaOf(editor: EditorInstance): Schema {
@@ -467,14 +467,20 @@ export const generalCommands: RawCommands = {
       // before wrapping (`listItem` content is `paragraph block*`).
       const defaultType = schema.defaultTypeFor("block") ?? "paragraph";
       let needsClear = false;
-      nodesBetween(schema, tr.doc, tr.selection.from, tr.selection.to, (node) => {
-        const name = node.type ?? "";
-        if (schema.isTextblock(name) && name !== defaultType) {
-          needsClear = true;
-          return false;
-        }
-        return undefined;
-      });
+      nodesBetween(
+        schema,
+        tr.doc,
+        tr.selection.from,
+        tr.selection.to,
+        (node) => {
+          const name = node.type ?? "";
+          if (schema.isTextblock(name) && name !== defaultType) {
+            needsClear = true;
+            return false;
+          }
+          return undefined;
+        },
+      );
 
       if (!needsClear && wrapSelection()) {
         return true;

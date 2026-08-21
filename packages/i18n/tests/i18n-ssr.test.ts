@@ -85,9 +85,12 @@ describe("SSR per-request locale isolation", () => {
       expect(i18n.t("hello")).toBe("Xin chào");
     });
 
-    const store = (globalThis as unknown as Record<string, { instance: { language: string } }>)[
-      key
-    ];
+    const store = (
+      globalThis as unknown as Record<
+        string,
+        { instance: { language: string } }
+      >
+    )[key];
     expect(store.instance.language).toBe("en");
     expect(i18n.locale.get()).toBe("en");
   });

@@ -472,7 +472,9 @@ describe("resolvePolar is invoked when option.polar is present", () => {
       polar: {},
       angleAxis: { type: "value" },
       radiusAxis: { type: "value" },
-      series: [{ type: "bar", coordinateSystem: "polar", data: [1, 2, 3] } as any],
+      series: [
+        { type: "bar", coordinateSystem: "polar", data: [1, 2, 3] } as any,
+      ],
     });
     const coords = (engine as any).polarCoords;
     expect(coords).toHaveLength(1);

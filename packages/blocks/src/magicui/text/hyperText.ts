@@ -91,7 +91,7 @@ function hyperText(props: HyperTextProps = {}): DomphyElement {
         },
         {},
       ),
-    }),
+    }) as DomphyElement<"span">,
   );
 
   const randomCharacterGlyph = () =>
@@ -119,105 +119,109 @@ function hyperText(props: HyperTextProps = {}): DomphyElement {
       fontWeight: fixed("700"),
       ...(props.style ?? {}),
     } as StyleObject,
-    ...behavior("magicui-hyper-text", (node: ElementNode) => {
-      if (typeof window === "undefined") return { update() {}, destroy() {} };
-      const element = node.domElement as HTMLElement;
-      let animationFrameId: number | null = null;
-      let startTimeoutId: ReturnType<typeof setTimeout> | null = null;
-      let isAnimating = false;
+    ...behavior(
+      "magicui-hyper-text",
+      (node: ElementNode) => {
+        if (typeof window === "undefined") return { update() {}, destroy() {} };
+        const element = node.domElement as HTMLElement;
+        let animationFrameId: number | null = null;
+        let startTimeoutId: ReturnType<typeof setTimeout> | null = null;
+        let isAnimating = false;
 
-      const stopAnimationFrame = () => {
-        if (animationFrameId !== null) {
-          cancelAnimationFrame(animationFrameId);
-          animationFrameId = null;
-        }
-      };
-
-      // Single rAF loop mirroring upstream: each frame resolves every
-      // character whose index has been passed by `progress * characters.length`
-      // (spaces counted, per upstream's `maxIterations = children.length`) and
-      // re-randomizes the rest, forcing every glyph uppercase.
-      const runScramble = () => {
-        stopAnimationFrame();
-        if (characters.length === 0) return;
-        isAnimating = true;
-        const maxIterations = characters.length;
-        const startTime = performance.now();
-
-        const animate = (currentTime: number) => {
-          const progress = Math.min((currentTime - startTime) / duration, 1);
-          const iteration = progress * maxIterations;
-
-          for (let index = 0; index < characters.length; index += 1) {
-            if (characters[index] === " ") continue;
-            const characterElement = characterElementRefs[index];
-            if (!characterElement) continue;
-            const resolved =
-              index <= iteration ? characters[index] : randomCharacterGlyph();
-            characterElement.textContent = resolved.toUpperCase();
-          }
-
-          if (progress < 1) {
-            animationFrameId = requestAnimationFrame(animate);
-          } else {
+        const stopAnimationFrame = () => {
+          if (animationFrameId !== null) {
+            cancelAnimationFrame(animationFrameId);
             animationFrameId = null;
-            isAnimating = false;
           }
         };
 
-        animationFrameId = requestAnimationFrame(animate);
-      };
-
-      // Auto-start (on mount) and view-start honour `delay`; a hover
-      // re-trigger starts immediately, matching upstream.
-      const startAfterDelay = () => {
-        if (startTimeoutId !== null) clearTimeout(startTimeoutId);
-        startTimeoutId = setTimeout(runScramble, delay);
-      };
-
-      let intersectionObserver: IntersectionObserver | null = null;
-      if (viewTrigger) {
-        if (typeof IntersectionObserver !== "function") {
-          startAfterDelay();
-        } else {
-          intersectionObserver = new IntersectionObserver(
-            (entries) => {
-              for (const entry of entries) {
-                if (!entry.isIntersecting) continue;
-                startAfterDelay();
-                intersectionObserver?.disconnect();
-                intersectionObserver = null;
-              }
-            },
-            // Upstream only fires once the element is ~30% into the viewport.
-            { threshold: 0.1, rootMargin: "-30% 0 -30% 0" },
-          );
-          intersectionObserver.observe(element);
-        }
-      } else {
-        // Upstream default (startOnView=false): auto-play once on mount.
-        startAfterDelay();
-      }
-
-      // Upstream's handleAnimationTrigger early-returns while a scramble is
-      // already running, so a hover mid-animation is ignored.
-      const handleMouseEnter = () => {
-        if (!isAnimating) runScramble();
-      };
-      if (hoverTrigger)
-        element.addEventListener("mouseenter", handleMouseEnter);
-
-      return {
-        update() {},
-        destroy() {
+        // Single rAF loop mirroring upstream: each frame resolves every
+        // character whose index has been passed by `progress * characters.length`
+        // (spaces counted, per upstream's `maxIterations = children.length`) and
+        // re-randomizes the rest, forcing every glyph uppercase.
+        const runScramble = () => {
           stopAnimationFrame();
+          if (characters.length === 0) return;
+          isAnimating = true;
+          const maxIterations = characters.length;
+          const startTime = performance.now();
+
+          const animate = (currentTime: number) => {
+            const progress = Math.min((currentTime - startTime) / duration, 1);
+            const iteration = progress * maxIterations;
+
+            for (let index = 0; index < characters.length; index += 1) {
+              if (characters[index] === " ") continue;
+              const characterElement = characterElementRefs[index];
+              if (!characterElement) continue;
+              const resolved =
+                index <= iteration ? characters[index] : randomCharacterGlyph();
+              characterElement.textContent = resolved.toUpperCase();
+            }
+
+            if (progress < 1) {
+              animationFrameId = requestAnimationFrame(animate);
+            } else {
+              animationFrameId = null;
+              isAnimating = false;
+            }
+          };
+
+          animationFrameId = requestAnimationFrame(animate);
+        };
+
+        // Auto-start (on mount) and view-start honour `delay`; a hover
+        // re-trigger starts immediately, matching upstream.
+        const startAfterDelay = () => {
           if (startTimeoutId !== null) clearTimeout(startTimeoutId);
-          if (hoverTrigger)
-            element.removeEventListener("mouseenter", handleMouseEnter);
-          intersectionObserver?.disconnect();
-        },
-      };
-    }, {}),
+          startTimeoutId = setTimeout(runScramble, delay);
+        };
+
+        let intersectionObserver: IntersectionObserver | null = null;
+        if (viewTrigger) {
+          if (typeof IntersectionObserver !== "function") {
+            startAfterDelay();
+          } else {
+            intersectionObserver = new IntersectionObserver(
+              (entries) => {
+                for (const entry of entries) {
+                  if (!entry.isIntersecting) continue;
+                  startAfterDelay();
+                  intersectionObserver?.disconnect();
+                  intersectionObserver = null;
+                }
+              },
+              // Upstream only fires once the element is ~30% into the viewport.
+              { threshold: 0.1, rootMargin: "-30% 0 -30% 0" },
+            );
+            intersectionObserver.observe(element);
+          }
+        } else {
+          // Upstream default (startOnView=false): auto-play once on mount.
+          startAfterDelay();
+        }
+
+        // Upstream's handleAnimationTrigger early-returns while a scramble is
+        // already running, so a hover mid-animation is ignored.
+        const handleMouseEnter = () => {
+          if (!isAnimating) runScramble();
+        };
+        if (hoverTrigger)
+          element.addEventListener("mouseenter", handleMouseEnter);
+
+        return {
+          update() {},
+          destroy() {
+            stopAnimationFrame();
+            if (startTimeoutId !== null) clearTimeout(startTimeoutId);
+            if (hoverTrigger)
+              element.removeEventListener("mouseenter", handleMouseEnter);
+            intersectionObserver?.disconnect();
+          },
+        };
+      },
+      {},
+    ),
     // The host tag is caller-configurable (`props.tag`), so it can't be
     // narrowed to one arm of the DomphyElement tag union statically — same
     // caveat `terminal.ts`'s typingLineElement()/fadeLineElement() document.

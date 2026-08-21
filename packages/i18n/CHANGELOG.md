@@ -1,5 +1,9 @@
 # @domphy/i18n Changelog
 
+## 0.19.4
+
+- detectLocale / SSR isolation audit-fix pass on top of the 0.19.3 ALS work.
+
 ## 0.19.3
 
 - SSR: `initI18n` / `setLocale` no longer mutate the shared `globalThis` store locale. Request locale is isolated via `AsyncLocalStorage` so two concurrent `initI18n("en")` and `initI18n("vi")` calls do not clobber each other. Client `globalThis` dedup is unchanged.

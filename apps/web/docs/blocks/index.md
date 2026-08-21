@@ -33,8 +33,8 @@ const App = sidebar07()
 
 // Pass data/labels/colors — the genuinely variable parts — as props.
 const Dashboard = dashboard01({
-  title: "Overview",
-  navItems: [{ label: "Home", href: "/" }, { label: "Settings", href: "/settings" }],
+  pageTitle: "Overview",
+  navMain: [{ title: "Home", href: "/" }, { title: "Settings", href: "/settings" }],
 })
 ```
 

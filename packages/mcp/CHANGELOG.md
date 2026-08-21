@@ -1,5 +1,9 @@
 # @domphy/mcp
 
+## 0.19.4
+
+- Tool handler path containment + extra diagnose/validate/fix error-flag tests.
+
 ## 0.19.3
 
 - `readBlockSource` resolves block files only against the configured manifest directory and `process.cwd()`. The implicit three-levels-up repo root is no longer a containment root — a path without `..` that only exists under a parent of the manifest is refused.

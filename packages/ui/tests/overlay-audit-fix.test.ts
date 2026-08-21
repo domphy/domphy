@@ -51,25 +51,21 @@ afterEach(() => {
 describe("H05: open.set(true) / open:true inserts the floating panel", () => {
   beforeEach(() => vi.useFakeTimers());
 
-  it(
-    "popover open.set(true) inserts the panel without a click",
-    () => {
-      const open = toState(false);
-      const { host } = render({
-        div: [
-          {
-            button: "Trigger",
-            $: [popover({ open, content: { div: "H05_SET_TRUE" } })],
-          },
-        ],
-      } as DomphyElement);
-      expect(host.textContent ?? "").not.toContain("H05_SET_TRUE");
-      open.set(true);
-      flushSync();
-      expect(host.textContent ?? "").toContain("H05_SET_TRUE");
-    },
-    20_000,
-  );
+  it("popover open.set(true) inserts the panel without a click", () => {
+    const open = toState(false);
+    const { host } = render({
+      div: [
+        {
+          button: "Trigger",
+          $: [popover({ open, content: { div: "H05_SET_TRUE" } })],
+        },
+      ],
+    } as DomphyElement);
+    expect(host.textContent ?? "").not.toContain("H05_SET_TRUE");
+    open.set(true);
+    flushSync();
+    expect(host.textContent ?? "").toContain("H05_SET_TRUE");
+  }, 20_000);
 
   it("popover open:true inserts the panel on mount", () => {
     const { host } = render({

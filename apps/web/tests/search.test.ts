@@ -116,7 +116,7 @@ describe("searchWidget", () => {
     return new Promise((r) => setTimeout(r, 0));
   }
 
-  it("fetches the index on mount and renders result deep links as the user types", async () => {
+  it("fetches the index on first intent and renders result deep links as the user types", async () => {
     const serialized = buildSearchIndex(docs);
     globalThis.fetch = vi.fn(async () => ({
       text: async () => serialized,
@@ -128,10 +128,14 @@ describe("searchWidget", () => {
     mountSearch(host);
     await flush();
 
-    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(0);
 
     const input = host.querySelector("input") as HTMLInputElement;
     expect(input).toBeTruthy();
+    input.dispatchEvent(new Event("focus", { bubbles: true }));
+    await flush();
+
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
 
     // Simulate typing a query.
     input.value = "tone hierarchy";

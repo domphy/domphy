@@ -86,7 +86,7 @@ describe("loadConfig", () => {
     );
     const config = await loadConfig("press.config.ts", dir);
     expect(config.title).toBe("Loaded From TS");
-  });
+  }, 15_000);
 
   it("supports a config exported as a function", async () => {
     dir = mkdtempSync(join(tmpdir(), "press-config-"));

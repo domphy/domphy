@@ -27,8 +27,8 @@ import { sidebar07, dashboard01 } from "@domphy/blocks/shadcn"
 const App = sidebar07() // works with zero arguments — renders a working demo
 
 const Dashboard = dashboard01({
-  title: "Overview",
-  navItems: [{ label: "Home", href: "/" }, { label: "Settings", href: "/settings" }],
+  pageTitle: "Overview",
+  navMain: [{ title: "Home", href: "/" }, { title: "Settings", href: "/settings" }],
 })
 ```
 

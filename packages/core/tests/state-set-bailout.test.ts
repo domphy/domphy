@@ -1,7 +1,13 @@
 // M11: State.set / RecordState.set must skip notify when Object.is(prev, next)
 // so `a.set(a.get())` cannot schedule a self-loop.
 import { describe, expect, it, vi } from "vitest";
-import { effect, flushSync, RecordState, State, toState } from "../src/index.ts";
+import {
+  effect,
+  flushSync,
+  RecordState,
+  State,
+  toState,
+} from "../src/index.ts";
 
 describe("State.set: Object.is bail-out", () => {
   it("does not notify when the new value is Object.is-equal", () => {

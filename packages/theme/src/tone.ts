@@ -210,7 +210,8 @@ export function themeColorToken(
   }
 
   if (!object) {
-    if (tone === "base") return colorTokens[requireBaseTone("light", colorName)];
+    if (tone === "base")
+      return colorTokens[requireBaseTone("light", colorName)];
     return colorTokens[offsetTone(0, tone)];
   }
 

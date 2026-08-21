@@ -357,7 +357,9 @@ export function createI18n<
     }
     const request = getRequestLocale();
     const lngOpts =
-      request !== undefined && localeKeys.has(request) ? { lng: request } : undefined;
+      request !== undefined && localeKeys.has(request)
+        ? { lng: request }
+        : undefined;
     if (typeof a === "function") {
       store.localeState.get(a as Listener);
       return store.instance.t(b as string, { ...c, ...lngOpts }) as string;

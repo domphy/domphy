@@ -1,6 +1,6 @@
 {
   "name": "@domphy/i18n",
-  "version": "0.19.3",
+  "version": "0.19.4",
   "description": "Domphy i18n — generic i18next wrapper with reactive Domphy integration (globalThis dedup, typed keys, t(listener, key) overload)",
   "type": "module",
   "sideEffects": false,

@@ -21,10 +21,19 @@
  */
 
 import { execFile } from "node:child_process";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import {
+  createReadStream,
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
+import { createGunzip } from "node:zlib";
 import { publint } from "publint";
 import { formatMessage } from "publint/utils";
 
@@ -110,7 +119,94 @@ const DEP_FIELDS = [
   "optionalDependencies",
 ];
 
+/**
+ * Read a single file's contents from a .tgz (ustar) archive.
+ * @param {string} tgzPath
+ * @param {string} targetPath path inside the archive, e.g. "package/package.json"
+ * @returns {Promise<Buffer>}
+ */
+async function readFromTgz(tgzPath, targetPath) {
+  const source = createReadStream(tgzPath).pipe(createGunzip());
+  const chunks = [];
+  for await (const chunk of source) {
+    chunks.push(chunk);
+  }
+  const buf = Buffer.concat(chunks);
+
+  let offset = 0;
+  while (offset + 512 <= buf.length) {
+    const header = buf.subarray(offset, offset + 512);
+    if (header.every((byte) => byte === 0)) break;
+
+    const name = header.subarray(0, 100).toString("utf8").replace(/\0.*$/, "");
+    const sizeOctal = header
+      .subarray(124, 136)
+      .toString("utf8")
+      .replace(/\0.*$/, "")
+      .trim();
+    const size = Number.parseInt(sizeOctal || "0", 8) || 0;
+    const typeFlag = String.fromCharCode(header[156] || 0);
+    offset += 512;
+
+    const data = buf.subarray(offset, offset + size);
+    offset += Math.ceil(size / 512) * 512;
+
+    if (
+      (typeFlag === "0" || typeFlag === "\0" || typeFlag === "") &&
+      (name === targetPath || name.replace(/^\.\//, "") === targetPath)
+    ) {
+      return Buffer.from(data);
+    }
+  }
+  throw new Error(`file not found in tarball: ${targetPath}`);
+}
+
+/**
+ * `pnpm pack` rewrites `workspace:` to concrete versions; `npm pack` does not.
+ * publint's `pack: "pnpm"` only uses the packed file *list* and then lints the
+ * source tree, so `pkg` is still the workspace manifest. Inspect the tarball.
+ * @param {string} pkgDir
+ * @returns {Promise<Record<string, unknown>>}
+ */
+async function packedManifest(pkgDir) {
+  const dest = mkdtempSync(path.join(tmpdir(), "lint-pkg-"));
+  const packArgs = [
+    "pack",
+    "--pack-destination",
+    dest,
+    "--config.ignore-scripts=true",
+  ];
+  const packOptions = {
+    cwd: pkgDir,
+    encoding: "utf8",
+    maxBuffer: 64 * 1024 * 1024,
+    shell: process.platform === "win32",
+  };
+  try {
+    let stdout;
+    try {
+      ({ stdout } = await execFileAsync("pnpm", packArgs, packOptions));
+    } catch {
+      ({ stdout } = await execFileAsync("pnpm", packArgs, packOptions));
+    }
+    const lines = stdout
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+    const last = lines[lines.length - 1];
+    if (!last || !last.endsWith(".tgz")) {
+      throw new Error(`could not determine tarball name from: ${stdout}`);
+    }
+    const tgzPath = path.isAbsolute(last) ? last : path.join(dest, last);
+    const pkgJsonBuf = await readFromTgz(tgzPath, "package/package.json");
+    return JSON.parse(pkgJsonBuf.toString("utf8"));
+  } finally {
+    rmSync(dest, { recursive: true, force: true });
+  }
+}
+
 async function runPublint(pkgDir) {
+  const packedPkg = await packedManifest(pkgDir);
   const { messages, pkg } = await publint({
     pkgDir,
     pack: "pnpm",
@@ -123,7 +219,7 @@ async function runPublint(pkgDir) {
     text: formatMessage(message, pkg),
   }));
   for (const field of DEP_FIELDS) {
-    const deps = pkg[field];
+    const deps = packedPkg[field];
     if (!deps || typeof deps !== "object") continue;
     for (const [depName, version] of Object.entries(deps)) {
       if (typeof version === "string" && version.includes("workspace:")) {

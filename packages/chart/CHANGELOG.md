@@ -1,5 +1,9 @@
 # @domphy/chart Changelog
 
+## 0.3.1
+
+- Engine/dataset/grid/tooltip audit-fix pass: mixed-sign stacking, legend single-mode, pie hit-test, overlay groups keep every title/legend entry.
+
 ## 0.3.0
 
 - `option.title` / `option.legend` arrays keep every entry: each overlay group is stamped `data-index` so a later item no longer removes the previous `.dc-title` / `.dc-legend`.

@@ -1,6 +1,6 @@
 # @domphy/virtual
 
-## Unreleased
+## 0.18.3
 
 - `createVirtualizer.setOptions` no longer calls `measure()` on every update, so a count-only change (infinite-scroll append) keeps `itemSizeCache`. Call `virtualizer.measure()` to force a full remeasure.
 

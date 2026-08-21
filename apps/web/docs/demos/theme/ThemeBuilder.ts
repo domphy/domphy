@@ -51,8 +51,8 @@ import {
   list,
   mark,
   pagination,
-  paragraph,
   panelSection,
+  paragraph,
   preformated,
   progress,
   ringProgress,
@@ -257,15 +257,13 @@ function hslToHex(h: number, s: number, l: number): string {
   else if (hue < 240) [r, g, b] = [0, x, c];
   else if (hue < 300) [r, g, b] = [x, 0, c];
   else [r, g, b] = [c, 0, x];
-  return (
-    `#${clampByte((r + m) * 255)
-      .toString(16)
-      .padStart(2, "0")}${clampByte((g + m) * 255)
-      .toString(16)
-      .padStart(2, "0")}${clampByte((b + m) * 255)
-      .toString(16)
-      .padStart(2, "0")}`
-  );
+  return `#${clampByte((r + m) * 255)
+    .toString(16)
+    .padStart(2, "0")}${clampByte((g + m) * 255)
+    .toString(16)
+    .padStart(2, "0")}${clampByte((b + m) * 255)
+    .toString(16)
+    .padStart(2, "0")}`;
 }
 
 function hexToHsl(hex: string): [number, number, number] {
@@ -319,7 +317,11 @@ export function harmonyFromPrimary(primaryHex: string): Record<Role, string> {
     attention: hslToHex(28, midS, midL),
     error: hslToHex(8, Math.min(0.9, midS * 1.05), midL * 0.95),
     danger: hslToHex(350, midS, midL * 0.92),
-    highlight: hslToHex((h + 180) % 360, midS * 0.55, Math.min(0.72, midL + 0.12)),
+    highlight: hslToHex(
+      (h + 180) % 360,
+      midS * 0.55,
+      Math.min(0.72, midL + 0.12),
+    ),
     neutral: hslToHex(h, Math.min(0.08, midS * 0.12), 0.5),
   };
 }

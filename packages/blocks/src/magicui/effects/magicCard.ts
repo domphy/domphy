@@ -94,7 +94,8 @@ function glowElementOf(node: ElementNode): HTMLElement | null {
   const items = node.children?.items ?? [];
   for (const child of items) {
     if (child instanceof ElementNode) {
-      const glow = child.getBehavior<MagicCardGlowBehavior>(MAGIC_CARD_GLOW_KEY);
+      const glow =
+        child.getBehavior<MagicCardGlowBehavior>(MAGIC_CARD_GLOW_KEY);
       if (glow?.element) return glow.element;
     }
   }
@@ -299,11 +300,7 @@ function magicCard(props: MagicCardProps = {}): DomphyElement<"div"> {
   // colour and the interior glow is invisible.
   const offCard = `-${spotlightSize}px`;
 
-  const captureGlow = behavior(
-    MAGIC_CARD_GLOW_KEY,
-    attachGlowCapture,
-    {},
-  );
+  const captureGlow = behavior(MAGIC_CARD_GLOW_KEY, attachGlowCapture, {});
 
   const glowLayer: DomphyElement =
     variant === "orb"

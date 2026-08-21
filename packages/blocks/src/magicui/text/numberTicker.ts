@@ -119,7 +119,7 @@ function numberTicker(props: NumberTickerProps = {}): DomphyElement<"span"> {
       spring,
       formatter,
     }),
-  };
+  } as DomphyElement<"span">;
 }
 
 function attachNumberTicker(

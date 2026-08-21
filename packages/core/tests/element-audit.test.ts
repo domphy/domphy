@@ -326,14 +326,16 @@ describe("M04: sanitizeHTMLString strips javascript: on xlink:href and other URL
       sanitizeHTMLString('<video poster="javascript:alert(1)"></video>'),
     ).toContain('poster="#"');
     expect(
-      sanitizeHTMLString('<blockquote cite="javascript:alert(1)">x</blockquote>'),
+      sanitizeHTMLString(
+        '<blockquote cite="javascript:alert(1)">x</blockquote>',
+      ),
     ).toContain('cite="#"');
     expect(
       sanitizeHTMLString('<body background="javascript:alert(1)"></body>'),
     ).toContain('background="#"');
-    expect(
-      sanitizeHTMLString('<a ping="javascript:alert(1)">x</a>'),
-    ).toContain('ping="#"');
+    expect(sanitizeHTMLString('<a ping="javascript:alert(1)">x</a>')).toContain(
+      'ping="#"',
+    );
   });
 });
 

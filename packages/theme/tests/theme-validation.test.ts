@@ -237,7 +237,7 @@ describe("CSS breakout guards", () => {
     const escapedName = name.replace(/[^a-zA-Z0-9_-]/g, "_");
     expect(css).toContain(`[data-theme="${escapedName}"]`);
     expect(css).not.toContain(`data-theme="${name}"`);
-    expect(css).not.toContain('[data-injected');
+    expect(css).not.toContain("[data-injected");
     expect(css).toContain("--brand_primary-0:");
     expect(css).not.toContain("--brand/primary-0");
   });

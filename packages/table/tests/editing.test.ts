@@ -45,7 +45,9 @@ function cellAt(
   rowIndex: number,
   columnIndex: number,
 ): Cell<Person, unknown> & CellEditingCell {
-  const cell = dTable.table.getRowModel().rows[rowIndex].getAllCells()[columnIndex];
+  const cell = dTable.table.getRowModel().rows[rowIndex].getAllCells()[
+    columnIndex
+  ];
   if (!cell.beginEdit) throw new Error("CellEditing is not installed");
   return cell as Cell<Person, unknown> & CellEditingCell;
 }

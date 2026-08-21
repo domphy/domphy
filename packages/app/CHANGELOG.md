@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.18.4
+
+- `DataCache` invalidate; `navLink` / router / tree / image audit-fix pass; extra SSR and parallel-route tests.
+
 ## 0.1.0
 
 Initial release — a port of the Next.js App Router feature set for Domphy:

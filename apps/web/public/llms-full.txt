@@ -76,14 +76,14 @@ List reconciliation REUSES DOM nodes (by `_key`, or by position for unkeyed list
 | `@domphy/table` | headless tables — adapter `createDomphyTable` at `@domphy/table/domphy` |
 | `@domphy/router` | type-safe routing — `createRouter`/`createRoute`/`createRootRoute`/`createRootRouteWithContext`; 1-1 port of `@tanstack/router-core` with a deviation list (see `packages/router/UPSTREAM.md`) |
 | `@domphy/virtual` | virtualization — adapter `createVirtualizer` at `@domphy/virtual/domphy` |
-| `@domphy/form` | forms — adapter `createForm` at `@domphy/form/domphy`; byte-level port pinned to `@tanstack/form-core@1.33.0` (see `packages/form/SOURCES.md`) |
+| `@domphy/form` | forms — adapter `createForm` at `@domphy/form/domphy`; `field`/`getFieldValue`/`setFieldValue`/`validateField` take `DeepKeys<T>` paths; byte-level port pinned to `@tanstack/form-core@1.33.3` (see `packages/form/SOURCES.md`) |
 | `@domphy/dnd` | drag & drop — `dragDrop(state, config?)`, `multiList(options)`, `multiListGroup(group, states, config?)` (wraps `@formkit/drag-and-drop`) |
 | `@domphy/blocks` | 173 composed blocks/effect components — sidebar layouts, auth pages, a dashboard, `@domphy/chart` recipes (from shadcn/ui), and marketing/effect components (from Magic UI). Every export is a **factory function** `name(props?) => DomphyElement` returning a full mountable tree (not a `$`-patch). Subpaths: `@domphy/blocks/shadcn`, `@domphy/blocks/magicui` (family barrels for smaller bundles). Clean-room reimplemented — see `packages/blocks/SOURCES.md` |
 | `@domphy/app` | Next.js App Router-style framework: routes/layouts/loaders(SWR)/metadata/middleware/parallel+intercepting routes/**lazy code-split routes** (`lazy: () => import(...)`)/SSR+streaming/API routes/**i18n routing** (`createI18nMiddleware`+`getLocale`)/**cookies** (`cookies(headers?)`); also `optimizedImage`, `script`, `createMemoryHistory`/`createBrowserHistory`, `buildHref`, `DataCache`; SSR/streaming stamps `configure({cspNonce})` on injected inline `<style>`/`<script>` |
 | `@domphy/doctor` | static analyzer — `diagnose(element, opts?)` / `validate(element, opts?)` flag non-idiomatic trees; `format(diagnostics)` formats a `Diagnostic[]`; `fix(element)` applies lossless autofixes. Options: `only`/`exclude` (rule filtering), `rules` (custom rules), `runReactive` (default true). Inline suppression: `_doctorDisable: true | "rule-id" | string[]` on any element. CLI `domphy-doctor <path...>` scans files on disk (flags: `--only`/`--exclude`/`--no-reactive`/`--no-output`/`--no-factory-exec`/`--format text\|json`; reports per-file import failures and exits 1); `auditOutput(node, opts?)` is an optional Layer 4 that lints the real generated HTML/CSS via `htmlhint`/`stylelint` (optional peer deps). Depends on `@domphy/theme` (single source for tone grammar/aliases). **Run it on your output and fix the report.** |
 | `@domphy/floating` | anchor positioning (vendored floating-ui, zero-dep; pinned core@1.8.0/dom@1.8.0 with a deviation list — see `packages/floating/UPSTREAM.md`) — powers `@domphy/ui` overlays, `@domphy/chart` tooltips, and `@domphy/editor` bubble menus; public surface: `computePosition`/`autoUpdate` + middleware (`offset`/`flip`/`shift`/`arrow`/`size`/`inline`/…), `VirtualElement` for anchoring to non-element rects |
 | `@domphy/chart` | WebGL + SVG chart engine — `chart(option)` patch renders line/bar/pie/scatter/radar/heatmap/candlestick/etc. series (luma.gl WebGL) with SVG overlays for axes/legend/tooltip/layout series; `ChartEngine` for headless/advanced use; scale creators (`createLinearScale`, `createOrdinalScale`, `createTimeScale`, `createLogScale`), dataset transforms (`applyTransforms`, `resolveDataset`), color utilities (`seriesColor` — theme-aware var-ref default, recommended, `familyCss`, `cssColor`, `createColorResolver`, `hexToRgba`, `seriesHex`/`familyHex` — static light-theme design-time helpers, `seriesPaletteFamily`, `colorFromVisualMap`); theme-aware (colors follow `[data-theme]` at paint time + re-render on flips: SVG layers carry `var(--…)` refs, WebGL uniforms re-resolve); tooltip `formatter` may return a `DomphyElement`, tooltip positioning via `@domphy/floating`; ECharts-compatible type surface |
-| `@domphy/three` | declarative three.js scene graph — 1-1 functional port of `@react-three/fiber` core (reconciler, raycast pointer events, demand frameloop) on Domphy reactivity; `three(options)` patch mounts a canvas host and renders the scene graph, `extend(classes)` registers custom/version-agnostic tags for `resolve()`, `loadAsset`/`preloadAsset`/`clearAsset` for reactive asset loading (`AssetResult<T>`: `data`/`error`/`promise`); the `onCreated(root)` object is typed `CreatedRootState` (RootState + `setSize`); `diagnose(options)`/`validate(options)` — scene-level static analyzer (doctor's contract shape for the three() option object doctor cannot see): rules `unknown-tag`, `tag-not-first` (props-first description the reconciler's first-own-key tag read would throw on), `legacy-light-intensity`, `additive-blowout`, `camera-missing-lookat`; per-node suppression via `_doctorDisable` |
+| `@domphy/three` | declarative three.js scene graph — 1-1 functional port of `@react-three/fiber` core (reconciler, raycast pointer events, demand frameloop) on Domphy reactivity; `three(options)` patch mounts a canvas host and renders the scene graph, `extend(classes)` registers custom/version-agnostic tags for `resolve()`, `loadAsset`/`preloadAsset`/`clearAsset` (optional `{ dispose: true }` on `clearAsset` disposes GPU resources) for reactive asset loading (`AssetResult<T>`: `data`/`error`/`promise`); the `onCreated(root)` object is typed `CreatedRootState` (RootState + `setSize`); `diagnose(options)`/`validate(options)` — scene-level static analyzer (doctor's contract shape for the three() option object doctor cannot see): rules `unknown-tag`, `tag-not-first` (props-first description the reconciler's first-own-key tag read would throw on), `legacy-light-intensity`, `additive-blowout`, `camera-missing-lookat`; per-node suppression via `_doctorDisable` |
 | `@domphy/editor` | rich-text editor with a Tiptap-compatible API on a self-contained engine (no ProseMirror) — `Editor`, `Extension.create`/`Node.create`/`Mark.create` (incl. plain-DOM `addNodeView`), chainable commands (`chain()`/`can()`, `isActive`, `getJSON`/`getHTML`/`getText`), `starterKit(options?)` set (paragraph/heading/bold/italic/strike/code/underline/blockquote/lists/hardBreak/horizontalRule/link with autolink/codeBlock/undo-redo/trailingNode; per-extension `false` to disable) + `Table` subset (`insertTable`/`goToNextCell`/row-column ops, not in the kit), input rules (`# `, `**bold**`, `- `…) + keymap, view hooks `onPaste`/`onDrop`/`onKeyDown`, `onUpdate({ editor, transaction })`; positions are ProseMirror-style token positions; `getJSON()` omits default-valued attrs (Tiptap JSON loads unchanged). Domphy adapter at `@domphy/editor/domphy`: `createEditor`, `editorContent()` patch (host element must declare `null` children), `bubbleMenu()` patch (selection-anchored via `@domphy/floating`, shadow-root-safe), `editorState(editor)` reactive readers; `editor.stateVersion` is the reactivity bridge (a `State<number>` bumped per transaction) |
 | `@domphy/mcp` | MCP server exposing 10 tools: `domphy_list_patches`, `domphy_get_patch`, `domphy_list_packages`, `domphy_rules`, `domphy_tones`, `domphy_diagnose`, `domphy_validate`, `domphy_fix`, `domphy_list_app_blocks`, `domphy_get_app_block` — patches, packages, rules, tones, doctor, and app-block registry |
 | `@domphy/press` | VitePress-baseline static doc site framework — `defineConfig`, `buildSite`, `pressCSS`, CLI `domphy-press build / dev / preview`; built on `@domphy/app`; the Markdown pipeline (formerly `@domphy/markdown` — `parseMarkdown`, `markdownToDomphy`, `createMarkdown`, `walkMdast`, `splitFrontmatter`, `transformOutsideCodeBlocks`, `createUniqueSlugger`/`defaultSlugify`; remark/unified under the hood) ships as named exports of the **main entry only** (not the `/browser` subpath); CSS generated via `pressCSS()` + `themeCSS()` (no static .css file); supports VitePress containers (tip/warning/info/danger/details/code-group), `<<<` code imports, frontmatter hero/features/`fullBleed`, `--dp-font-sans`/`--dp-font-mono`/`--dp-font-display` font hooks, sidebar/nav/TOC, built-in local search (`SearchWidgetOptions.basePath` — base-aware); extras: line highlighting, code-group tabs, 14 admonition types, steps, task lists, mark/sub/sup, emoji, mermaid CDN, social links, edit link, last-updated, reading time, sidebar badges/collapsible, announcement bar, i18n, per-page head, heading anchor links, image lazy loading, `<Badge>` inline component; build fails when any page fails unless `continueOnError: true`; emits 404.html + a content-hashed islands bundle; `withBase(base, href)` base-prefixes emitted hrefs (nav/sidebar/hero links + canonical/sitemap/OG URLs auto-prefixed for non-root deploys); `SiteConfig.cspNonce` stamps a CSP nonce on all inline `<script>`/`<style>` + forwards to `@domphy/app` SSR |
@@ -12739,6 +12739,17 @@ table: (l) => {
 
 Because all these methods subscribe to the same version counter, the granularity is identical — only the scope of the re-render differs.
 
+## Updating options
+
+`createDomphyTable` also exposes `setOptions` on the handle. A raw object is merged onto the previous options; an updater `(prev) => next` replaces as usual. Either form keeps the adapter's `onStateChange` wrapper — a raw object cannot drop it.
+
+```ts
+dTable.setOptions({ data: freshPeople })
+dTable.setOptions((prev) => ({ ...prev, columns: nextColumns }))
+```
+
+Use `setState` for table state (sorting, filters, …) — not `setOptions`.
+
 ## Cleanup
 
 `version` is a Domphy state; release it when the table's subtree unmounts:
@@ -14400,6 +14411,8 @@ const table = createDomphyTable({
   keepPinnedRows: true,   // keep pinned rows visible even when filtered out
   getRowId: (row) => row.id, // default row.id is the row index
 })
+
+Pinned ids that are no longer in the data are skipped — `getRow` is not called for missing ids (it would throw).
 
 // Pin a row to the top
 table.getRow("row-id").pin("top")
@@ -18081,10 +18094,10 @@ const Field = {
 | `canSubmit(l)` / `isSubmitting(l)` / `isValid(l)` / `isSubmitted(l)` | Reactive flags. |
 | `isDirty(l)` / `isPristine(l)` | Reactive: any field differs from defaultValues / no field changed. |
 | `isTouched(l)` / `isBlurred(l)` | Reactive: any field touched / any field blurred. |
-| `field<TData>(name, options?)` | Create and mount a reactive field handle, cached by `name` — repeat calls for the same name return the same handle. |
-| `getFieldValue(field)` | Read a field value imperatively (no listener). |
-| `setFieldValue(field, updater)` | Set a field value programmatically (triggers onChange validation). |
-| `validateField(field, cause?)` | Manually trigger validation for one field. Cause defaults to `"change"`. |
+| `field<TData>(name, options?)` | Create and mount a reactive field handle, cached by `name`. `name` is a `DeepKeys<T>` path (unknown paths and a mismatched `TData` are type errors); `options` is `FieldOptions` minus `name`. Repeat calls for the same name return the same handle. |
+| `getFieldValue(field)` | Read a field value imperatively (no listener). `field` is a `DeepKeys<T>` path. |
+| `setFieldValue(field, updater)` | Set a field value programmatically (triggers onChange validation). `field` is a `DeepKeys<T>` path. |
+| `validateField(field, cause?)` | Manually trigger validation for one field. `field` is a `DeepKeys<T>` path. Cause defaults to `"change"`. |
 | `handleSubmit()` | Run validation and submission. Returns `Promise<void>`. |
 | `reset(values?)` | Reset to defaults (or given values). |
 | `version(l)` | Reactive change counter — increments on every store flush. |
@@ -21874,8 +21887,8 @@ const App = sidebar07()
 
 // Pass data/labels/colors — the genuinely variable parts — as props.
 const Dashboard = dashboard01({
-  title: "Overview",
-  navItems: [{ label: "Home", href: "/" }, { label: "Settings", href: "/settings" }],
+  pageTitle: "Overview",
+  navMain: [{ title: "Home", href: "/" }, { title: "Settings", href: "/settings" }],
 })
 ```
 
@@ -23053,16 +23066,18 @@ These are the functions the engine uses to process datasets before rendering. Us
 **`applyTransforms(source, transforms)`** — runs a `TransformOption[]` pipeline (filter / sort) on a row array.
 
 ```ts
-const datasets: DatasetOption[] = [
-  { source: [["x", "y"], [1, 10], [2, 20], [3, 15]] },
-  {
-    fromDatasetIndex: 0,
-    transform: { type: "sort", config: { dimension: "y", order: "desc" } },
-  },
-]
-
-const rows = applyTransforms(datasets[1], datasets)
-// → [["x","y"],[2,20],[3,15],[1,10]]
+const source = resolveDataset({
+  source: [
+    ["x", "y"],
+    [1, 10],
+    [2, 20],
+    [3, 15],
+  ],
+})
+const rows = applyTransforms(source, [
+  { type: "sort", config: { dimension: "y", order: "desc" } },
+])
+// → [{ x: 2, y: 20 }, { x: 3, y: 15 }, { x: 1, y: 10 }]
 ```
 
 ### engine.md
@@ -24945,6 +24960,8 @@ Cache key = `LoaderClass` + `input` (an array `input` joins into one key). Call 
 
 If the resolved value has a `.scene` that's an `Object3D` (a glTF result), `loadAsset` walks it once and assigns `nodes`/`materials`/`meshes` — named lookups onto the result itself, mirroring r3f's `useGLTF`.
 
+A cache **hit** that passes a different `configure` than the first load does not re-run it — the first call's configuration wins. In development, `loadAsset` warns once per cache entry (`Keep the configure function referentially stable across call sites, or clearAsset() first.`).
+
 ### Rendering the result
 
 Read `data` inside `scene`'s listener. Falsy scene children are skipped, so render a placeholder for the slot until the asset resolves:
@@ -24969,20 +24986,27 @@ A later `loadAsset(GLTFLoader, "/models/Duck.glb")` call hits the warmed cache a
 ## `clearAsset`
 
 ```ts
-function clearAsset(LoaderClass: Constructable, input?: string | string[]): void
+function clearAsset(
+  LoaderClass: Constructable,
+  input?: string | string[],
+  options?: { dispose?: boolean },
+): void
 ```
 
 | Call | Effect |
 |---|---|
 | `clearAsset(LoaderClass, input)` | Drops the one cached `AssetResult` for that class/input. |
 | `clearAsset(LoaderClass)` | Drops every input cached for that class. |
+| `clearAsset(LoaderClass, input, { dispose: true })` | Evicts and disposes GPU resources reachable from that result (geometries/textures/Object3D graphs, cycle-safe). |
+| `clearAsset(LoaderClass, undefined, { dispose: true })` | Evicts every input for that class and disposes each result once (shared resources across inputs are not disposed twice). |
 
 ```ts
 clearAsset(GLTFLoader, "/models/Duck.glb") // drop one cached asset
 clearAsset(GLTFLoader)                      // drop everything GLTFLoader has cached
+clearAsset(GLTFLoader, "/models/Duck.glb", { dispose: true }) // evict + dispose GPU
 ```
 
-The loader instance itself is untouched — only the `AssetResult` cache entry is dropped. The next `loadAsset` call for that class/input reloads from scratch and returns a brand-new `AssetResult`.
+Eviction alone does **not** dispose GPU resources — r3f's `clear()` is the same, because other scene objects may still reference the cached geometries/textures. Pass `{ dispose: true }` only when no mounted scene still uses the asset. Only already-resolved data is disposed; a still-pending load is simply evicted. The loader instance itself is untouched. The next `loadAsset` call for that class/input reloads from scratch and returns a brand-new `AssetResult`.
 
 ## Error handling
 
@@ -25067,6 +25091,8 @@ Every handler receives one argument, `ThreeEvent<PointerEvent | MouseEvent | Whe
 | `target`, `currentTarget` | `EventCaptureTarget` | `{ hasPointerCapture, setPointerCapture, releasePointerCapture }` — see Capture below |
 
 Every enumerable data property of the native event (`clientX`, `button`, `shiftKey`, `pointerId`, ...) is also copied directly onto the `ThreeEvent`, so `event.clientX` and `event.nativeEvent.clientX` both work.
+
+Pointer NDC (`event.pointer`) is computed from `clientX/Y` minus the **canvas** bounding rect, not from `offsetX/offsetY`. `offsetX` is relative to the event target, which stops being the canvas once pointer capture retargets the stream (or an overlaying child absorbs the hit); the canvas rect matches the host box `setSize` tracks, so padding/border on the container still produce a correct NDC.
 
 ## stopPropagation
 
@@ -36865,6 +36891,7 @@ function combobox(props: {
 
   const buildWrap = (inner: InnerProps): DomphyElement<"div"> => ({
     div: (listener) => {
+      openState.get(listener);
       const val = inner.state.get(listener);
       const vals = Array.isArray(val) ? val : [val];
       const opts = inner.options.filter((opt) => vals.includes(opt.value));
@@ -36873,7 +36900,7 @@ function combobox(props: {
           span: opt.label,
           $: [tag({ color: inner.color, removable: true })],
           _key: opt.value,
-          _onRemove: (_node) => {
+          _onRemove: (_node: ElementNode) => {
             const cur = inner.state.get();
             const curVals = Array.isArray(cur) ? cur : [cur];
             const filter = curVals.filter((v) => v !== opt.value);
@@ -36886,6 +36913,7 @@ function combobox(props: {
       items.push(buildInput(inner.input));
       return items;
     },
+    _key: "comboboxWrap",
     style: {
       display: "flex",
       flexWrap: "wrap",
@@ -36897,12 +36925,15 @@ function combobox(props: {
     node: ElementNode,
     inner: InnerProps,
   ): ComboboxInner => {
-    const query = toState("");
-    let wrapNode = node.children.insert(buildWrap(inner)) as ElementNode;
+    let query = node.getMetadata("comboboxQuery") as State<string> | undefined;
+    if (!query) {
+      query = toState("");
+      node.setMetadata("comboboxQuery", query);
+    }
     return {
       query,
       update(next) {
-        wrapNode.patch(buildWrap(next));
+        node.children.update([buildWrap(next)]);
       },
     };
   };
@@ -36912,6 +36943,17 @@ function combobox(props: {
       if (node.tagName !== "div") {
         console.warn(`"combobox" primitive patch must use div tag`);
       }
+    },
+    _onSchedule: (node, element) => {
+      (element as Record<string, unknown>)[node.tagName] = [
+        buildWrap({
+          options,
+          multiple,
+          color,
+          state,
+          input: props.input,
+        }),
+      ];
     },
     ...behavior<InnerProps>("comboboxInner", attachInner, {
       options,
@@ -37481,6 +37523,7 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
     type: "text",
     readonly: true,
     value: (listener) => formatDisplay(selection.get(listener)),
+    role: "combobox",
     ariaHaspopup: "dialog",
     ariaExpanded: (listener) => openState.get(listener),
     ariaControls: (listener) =>
@@ -39920,12 +39963,7 @@ import type {
   PartialElement,
   StyleObject,
 } from "@domphy/core";
-import {
-  isState,
-  rawHtml,
-  toState,
-  type ValueOrState,
-} from "@domphy/core";
+import { isState, rawHtml, toState, type ValueOrState } from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
@@ -41405,12 +41443,12 @@ export type { MenuItem };
 ### motion
 
 ```ts
-import type {
-  BehaviorInstance,
-  PartialElement,
-  State,
+import {
+  type BehaviorInstance,
+  behavior,
+  type PartialElement,
+  type State,
 } from "@domphy/core";
-import { behavior } from "@domphy/core";
 
 /**
  * One keyframe. Shorthands `x`/`y` (px), `scale`, `rotate` (deg) compose into a
@@ -41587,7 +41625,11 @@ function attachMotion(
 
 function motion(props: MotionProps = {}): PartialElement {
   return {
-    ...behavior<MotionProps>("motion", (node, next) => attachMotion(node, next), props),
+    ...behavior<MotionProps>(
+      "motion",
+      (node, next) => attachMotion(node, next),
+      props,
+    ),
     _onBeforeRemove: (node, done) => {
       const el = node.domElement as HTMLElement | null;
       const inst = node.getBehavior<MotionInstance>("motion");
@@ -41597,8 +41639,10 @@ function motion(props: MotionProps = {}): PartialElement {
         Object.assign(el.style, toStyles(exit));
         return done();
       }
-      el.animate([toStyles(exit)], toOptions(inst?.getTransition() ?? props.transition))
-        .finished.then(done, done);
+      el.animate(
+        [toStyles(exit)],
+        toOptions(inst?.getTransition() ?? props.transition),
+      ).finished.then(done, done);
     },
   };
 }
@@ -41687,26 +41731,16 @@ function getPages(current: number, total: number): (number | "...")[] {
   return pages;
 }
 
-/**
- * Themed pagination control. Renders previous/next buttons plus truncated page
- * numbers (with ellipses), tracks the current page in a `State`, and updates it
- * on click. Apply to a `<div>` element.
- *
- * @hostTag div
- * @param props - Configuration.
- * @param props.total - Required. Total number of pages.
- * @param props.value - Current page, accepts a value or `State`. Defaults to `1`.
- * @param props.color - Base color tone for the page buttons. Defaults to `"neutral"`.
- * @param props.accentColor - Accent color tone for the active page. Defaults to `"primary"`.
- * @example { div: "", $: [pagination({ total: 10, value: 1 })] }
- */
 function persistValue<T>(
   node: ElementNode,
   key: string,
   incoming: ValueOrState<T> | undefined,
   fallback: T,
 ): State<T> {
-  if (isState(incoming)) return incoming as State<T>;
+  if (isState(incoming)) {
+    node.setMetadata(key, incoming);
+    return incoming as State<T>;
+  }
   let stored = node.getMetadata(key) as State<T> | undefined;
   if (!stored) {
     stored = toState((incoming as T | undefined) ?? fallback);
@@ -41724,6 +41758,19 @@ function persistTotal(node: ElementNode, total: number): State<number> {
   return stored;
 }
 
+/**
+ * Themed pagination control. Renders previous/next buttons plus truncated page
+ * numbers (with ellipses), tracks the current page in a `State`, and updates it
+ * on click. Apply to a `<div>` element.
+ *
+ * @hostTag div
+ * @param props - Configuration.
+ * @param props.total - Required. Total number of pages.
+ * @param props.value - Current page, accepts a value or `State`. Defaults to `1`.
+ * @param props.color - Base color tone for the page buttons. Defaults to `"neutral"`.
+ * @param props.accentColor - Accent color tone for the active page. Defaults to `"primary"`.
+ * @example { div: "", $: [pagination({ total: 10, value: 1 })] }
+ */
 function pagination(props: {
   value?: ValueOrState<number>;
   total: number;
@@ -41859,13 +41906,15 @@ function pagination(props: {
       };
       node.children.insert(content);
     },
-    ...behavior<{ total: number }>("pagination-total", (node, next) => {
-      const apply = (snapshot: { total: number }) => {
-        persistTotal(node, snapshot.total).set(snapshot.total);
-      };
-      apply(next);
-      return { update: apply };
-    }, { total }),
+    ...behavior<{ total: number }>(
+      "pagination-total",
+      (node) => ({
+        update(snapshot) {
+          persistTotal(node, snapshot.total).set(snapshot.total);
+        },
+      }),
+      { total },
+    ),
     style: {
       display: "inline-flex",
     },
@@ -42546,22 +42595,26 @@ function rating(props: RatingProps = {}): PartialElement {
       cursor: live.readOnly ? "default" : "pointer",
       color: (listener) => themeColor(listener, "muted", live.color),
     },
-    ...behavior<RatingProps>("rating", (node, initial) => {
-      applyRatingProps(live, initial);
-      syncStars(node, live, hoveredState);
-      return {
-        update(next) {
-          applyRatingProps(live, next);
-          syncStars(node, live, hoveredState);
-        },
-      };
-    }, {
-      value: props.value,
-      max: props.max ?? 5,
-      onChange: props.onChange,
-      readOnly: props.readOnly ?? false,
-      color: props.color ?? "warning",
-    }),
+    ...behavior<RatingProps>(
+      "rating",
+      (node, initial) => {
+        applyRatingProps(live, initial);
+        syncStars(node, live, hoveredState);
+        return {
+          update(next) {
+            applyRatingProps(live, next);
+            syncStars(node, live, hoveredState);
+          },
+        };
+      },
+      {
+        value: props.value,
+        max: props.max ?? 5,
+        onChange: props.onChange,
+        readOnly: props.readOnly ?? false,
+        color: props.color ?? "warning",
+      },
+    ),
     // Build stars as real child elements (not imperative DOM mutation in
     // _onMount) so generateHTML()/SSR emits the actual star markup.
     _onInit: (node) => {
@@ -42796,25 +42849,14 @@ function persistValue<T>(
   incoming: ValueOrState<T> | undefined,
   fallback: T,
 ): State<T> {
-  if (isState(incoming)) return incoming as State<T>;
+  if (isState(incoming)) {
+    node.setMetadata(key, incoming);
+    return incoming as State<T>;
+  }
   let stored = node.getMetadata(key) as State<T> | undefined;
   if (!stored) {
     stored = toState((incoming as T | undefined) ?? fallback);
     node.setMetadata(key, stored);
-  }
-  return stored;
-}
-
-function persistLive(
-  node: ElementNode,
-  live: SegmentedLive,
-): State<SegmentedLive> {
-  let stored = node.getMetadata("segmentedLive") as
-    | State<SegmentedLive>
-    | undefined;
-  if (!stored) {
-    stored = toState(live);
-    node.setMetadata("segmentedLive", stored);
   }
   return stored;
 }
@@ -42883,8 +42925,7 @@ function buildSegmentButtons(
           backgroundColor: (l: Listener) => themeColor(l, "shift-3", color),
         },
         "&:active:not([disabled]):not([aria-checked=true])": {
-          backgroundColor: (l: Listener) =>
-            themeColor(l, "increase-2", color),
+          backgroundColor: (l: Listener) => themeColor(l, "increase-2", color),
         },
         "&[aria-checked=true]": {
           backgroundColor: (l: Listener) =>
@@ -42938,32 +42979,47 @@ function segmented(
   return {
     role: "radiogroup",
     // Publish value so descendants can read the selected segment.
-    _context: { segmented: { value: toState(props.value ?? items[0]?.key ?? "") } },
+    _context: {
+      segmented: { value: toState(props.value ?? items[0]?.key ?? "") },
+    },
     _onSchedule: (node, element) => {
-      const liveState = persistLive(node, live);
       const value = persistValue(
         node,
         "segmentedValue",
         props.value,
         items[0]?.key ?? "",
       );
-      (element as Record<string, unknown>)[node.tagName] = (l: Listener) => {
-        const next = liveState.get(l);
-        return buildSegmentButtons(
-          next.items,
-          value,
-          next.color,
-          next.accentColor,
-        );
-      };
+      (element as Record<string, unknown>)[node.tagName] = buildSegmentButtons(
+        items,
+        value,
+        color,
+        accentColor,
+      );
     },
-    ...behavior<SegmentedLive>("segmented-items", (node, next) => {
-      const apply = (snapshot: SegmentedLive) => {
-        persistLive(node, snapshot).set(snapshot);
-      };
-      apply(next);
-      return { update: apply };
-    }, live),
+    ...behavior<SegmentedLive>(
+      "segmented-items",
+      (node) => ({
+        update(snapshot) {
+          const value = persistValue(
+            node,
+            "segmentedValue",
+            props.value,
+            snapshot.items[0]?.key ?? "",
+          );
+          node.children.update(
+            buildSegmentButtons(
+              snapshot.items,
+              value,
+              snapshot.color,
+              snapshot.accentColor,
+            ),
+            !!node.domElement,
+            true,
+          );
+        },
+      }),
+      live,
+    ),
     // Track is a soft surface anchor — shift via dataTone, paint with inherit.
     dataTone: "shift-2",
     style: {
@@ -43237,7 +43293,7 @@ function selectBox(props: {
         span: opt.label,
         $: [tag({ color: inner.color, removable: inner.multiple })],
         _key: opt.value,
-        _onRemove: (_node) => {
+        _onRemove: (_node: ElementNode) => {
           const cur = inner.state.get();
           const curVals = Array.isArray(cur) ? cur : [cur];
           const filter = curVals.filter((v) => v !== opt.value);
@@ -43247,6 +43303,7 @@ function selectBox(props: {
         },
       })) as DomphyElement<"span">[];
     },
+    _key: "selectBoxWrap",
     style: {
       display: "flex",
       flexWrap: "wrap",
@@ -43257,12 +43314,11 @@ function selectBox(props: {
 
   const attachInner = (
     node: ElementNode,
-    inner: InnerProps,
+    _inner: InnerProps,
   ): BehaviorInstance<InnerProps> => {
-    let wrapNode = node.children.insert(buildWrap(inner)) as ElementNode;
     return {
       update(next) {
-        wrapNode.patch(buildWrap(next));
+        node.children.update([buildWrap(next)]);
       },
     };
   };
@@ -43317,6 +43373,11 @@ function selectBox(props: {
       if (node.tagName !== "div") {
         console.warn(`"selectBox" patch must use div tag`);
       }
+    },
+    _onSchedule: (node, element) => {
+      (element as Record<string, unknown>)[node.tagName] = [
+        buildWrap({ options, multiple, color, state }),
+      ];
     },
     ...behavior<InnerProps>("selectBoxInner", attachInner, {
       options,
@@ -43756,12 +43817,7 @@ export { spinner };
 ### splitter
 
 ```ts
-import {
-  ElementNode,
-  merge,
-  type PartialElement,
-  toState,
-} from "@domphy/core";
+import { ElementNode, merge, type PartialElement, toState } from "@domphy/core";
 import { themeColor, themeSpacing } from "@domphy/theme";
 import { focusRing } from "../utils/focusRing.js";
 
@@ -44072,20 +44128,14 @@ function persistValue<T>(
   incoming: ValueOrState<T> | undefined,
   fallback: T,
 ): State<T> {
-  if (isState(incoming)) return incoming as State<T>;
+  if (isState(incoming)) {
+    node.setMetadata(key, incoming);
+    return incoming as State<T>;
+  }
   let stored = node.getMetadata(key) as State<T> | undefined;
   if (!stored) {
     stored = toState((incoming as T | undefined) ?? fallback);
     node.setMetadata(key, stored);
-  }
-  return stored;
-}
-
-function persistLive(node: ElementNode, live: StepsLive): State<StepsLive> {
-  let stored = node.getMetadata("stepsLive") as State<StepsLive> | undefined;
-  if (!stored) {
-    stored = toState(live);
-    node.setMetadata("stepsLive", stored);
   }
   return stored;
 }
@@ -44262,28 +44312,44 @@ function steps(
     // Step badge weight is design-system chrome for the progress control.
     _doctorDisable: "inline-typography",
     // Publish current/direction/colors so descendants can read the indicator.
-    _context: { steps: { current: toState(props.current ?? 0), direction, color, accentColor } },
-    _onSchedule: (node, element) => {
-      const liveState = persistLive(node, live);
-      const current = persistValue(node, "stepsCurrent", props.current, 0);
-      (element as Record<string, unknown>)[node.tagName] = (l: Listener) => {
-        const next = liveState.get(l);
-        return buildStepItems(
-          next.items,
-          current,
-          next.direction,
-          next.color,
-          next.accentColor,
-        );
-      };
+    _context: {
+      steps: {
+        current: toState(props.current ?? 0),
+        direction,
+        color,
+        accentColor,
+      },
     },
-    ...behavior<StepsLive>("steps-items", (node, next) => {
-      const apply = (snapshot: StepsLive) => {
-        persistLive(node, snapshot).set(snapshot);
-      };
-      apply(next);
-      return { update: apply };
-    }, live),
+    _onSchedule: (node, element) => {
+      const current = persistValue(node, "stepsCurrent", props.current, 0);
+      (element as Record<string, unknown>)[node.tagName] = buildStepItems(
+        items,
+        current,
+        direction,
+        color,
+        accentColor,
+      );
+    },
+    ...behavior<StepsLive>(
+      "steps-items",
+      (node) => ({
+        update(snapshot) {
+          const current = persistValue(node, "stepsCurrent", props.current, 0);
+          node.children.update(
+            buildStepItems(
+              snapshot.items,
+              current,
+              snapshot.direction,
+              snapshot.color,
+              snapshot.accentColor,
+            ),
+            !!node.domElement,
+            true,
+          );
+        },
+      }),
+      live,
+    ),
     style: {
       display: "flex",
       flexDirection: direction === "vertical" ? "column" : "row",
@@ -44541,20 +44607,14 @@ function persistValue<T>(
   incoming: ValueOrState<T> | undefined,
   fallback: T,
 ): State<T> {
-  if (isState(incoming)) return incoming as State<T>;
+  if (isState(incoming)) {
+    node.setMetadata(key, incoming);
+    return incoming as State<T>;
+  }
   let stored = node.getMetadata(key) as State<T> | undefined;
   if (!stored) {
     stored = toState((incoming as T | undefined) ?? fallback);
     node.setMetadata(key, stored);
-  }
-  return stored;
-}
-
-function persistLive(node: ElementNode, live: TabsLive): State<TabsLive> {
-  let stored = node.getMetadata("tabsLive") as State<TabsLive> | undefined;
-  if (!stored) {
-    stored = toState(live);
-    node.setMetadata("tabsLive", stored);
   }
   return stored;
 }
@@ -44646,6 +44706,7 @@ function buildTabsChildren(
 
   const tablist: DomphyElement<"div"> = {
     div: buttons,
+    _key: "tablist",
     role: "tablist",
     ariaOrientation: "horizontal",
     style: { display: "flex" },
@@ -44701,31 +44762,45 @@ function tabs(
 
   return {
     _onSchedule: (node, element) => {
-      const liveState = persistLive(node, live);
       const activeKey = persistValue(
         node,
         "tabsActiveKey",
         props.activeKey,
         items[0]?.key ?? 0,
       );
-      (element as Record<string, unknown>)[node.tagName] = (l: Listener) => {
-        const next = liveState.get(l);
-        return buildTabsChildren(
-          node,
-          next.items,
-          activeKey,
-          next.accentColor,
-          next.color,
-        );
-      };
+      (element as Record<string, unknown>)[node.tagName] = buildTabsChildren(
+        node,
+        items,
+        activeKey,
+        accentColor,
+        color,
+      );
     },
-    ...behavior<TabsLive>("tabs-items", (node, next) => {
-      const apply = (snapshot: TabsLive) => {
-        persistLive(node, snapshot).set(snapshot);
-      };
-      apply(next);
-      return { update: apply };
-    }, live),
+    ...behavior<TabsLive>(
+      "tabs-items",
+      (node) => ({
+        update(snapshot) {
+          const activeKey = persistValue(
+            node,
+            "tabsActiveKey",
+            props.activeKey,
+            snapshot.items[0]?.key ?? 0,
+          );
+          node.children.update(
+            buildTabsChildren(
+              node,
+              snapshot.items,
+              activeKey,
+              snapshot.accentColor,
+              snapshot.color,
+            ),
+            !!node.domElement,
+            true,
+          );
+        },
+      }),
+      live,
+    ),
   };
 }
 
@@ -44947,7 +45022,9 @@ function textarea(
       { autoResize },
     ),
     _onUpdate: (node) => {
-      node.getBehavior<{ resize: () => void }>("textarea-auto-resize")?.resize();
+      node
+        .getBehavior<{ resize: () => void }>("textarea-auto-resize")
+        ?.resize();
     },
     style: {
       fontFamily: "inherit",
@@ -45323,22 +45400,14 @@ function persistValue<T>(
   incoming: ValueOrState<T> | undefined,
   fallback: T,
 ): State<T> {
-  if (isState(incoming)) return incoming as State<T>;
+  if (isState(incoming)) {
+    node.setMetadata(key, incoming);
+    return incoming as State<T>;
+  }
   let stored = node.getMetadata(key) as State<T> | undefined;
   if (!stored) {
     stored = toState((incoming as T | undefined) ?? fallback);
     node.setMetadata(key, stored);
-  }
-  return stored;
-}
-
-function persistLive(node: ElementNode, live: ToggleLive): State<ToggleLive> {
-  let stored = node.getMetadata("toggleGroupLive") as
-    | State<ToggleLive>
-    | undefined;
-  if (!stored) {
-    stored = toState(live);
-    node.setMetadata("toggleGroupLive", stored);
   }
   return stored;
 }
@@ -45430,8 +45499,7 @@ function buildToggleButtons(
           backgroundColor: (l: Listener) => themeColor(l, "hover", color),
         },
         "&:active:not([disabled])": {
-          backgroundColor: (l: Listener) =>
-            themeColor(l, "increase-2", color),
+          backgroundColor: (l: Listener) => themeColor(l, "increase-2", color),
         },
         "&[aria-pressed=true]": {
           backgroundColor: (l: Listener) =>
@@ -45492,31 +45560,45 @@ function toggleGroup(
       },
     },
     _onSchedule: (node, element) => {
-      const liveState = persistLive(node, live);
       const value = persistValue(
         node,
         "toggleGroupValue",
         props.value,
         multiple ? [] : "",
       );
-      (element as Record<string, unknown>)[node.tagName] = (l: Listener) => {
-        const next = liveState.get(l);
-        return buildToggleButtons(
-          next.items,
-          value,
-          next.multiple,
-          next.color,
-          next.accentColor,
-        );
-      };
+      (element as Record<string, unknown>)[node.tagName] = buildToggleButtons(
+        items,
+        value,
+        multiple,
+        color,
+        accentColor,
+      );
     },
-    ...behavior<ToggleLive>("toggle-items", (node, next) => {
-      const apply = (snapshot: ToggleLive) => {
-        persistLive(node, snapshot).set(snapshot);
-      };
-      apply(next);
-      return { update: apply };
-    }, live),
+    ...behavior<ToggleLive>(
+      "toggle-items",
+      (node) => ({
+        update(snapshot) {
+          const value = persistValue(
+            node,
+            "toggleGroupValue",
+            props.value,
+            snapshot.multiple ? [] : "",
+          );
+          node.children.update(
+            buildToggleButtons(
+              snapshot.items,
+              value,
+              snapshot.multiple,
+              snapshot.color,
+              snapshot.accentColor,
+            ),
+            !!node.domElement,
+            true,
+          );
+        },
+      }),
+      live,
+    ),
     style: {
       display: "flex",
       paddingBlock: themeSpacing(1),

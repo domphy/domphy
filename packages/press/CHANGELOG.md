@@ -1,6 +1,6 @@
 # @domphy/press Changelog
 
-## Unreleased
+## 0.23.1
 - fix(markdown): resolve reference-style links and images against their definitions (same `a`/`img` shape as inline, including `sanitizeUrl`) instead of dropping `linkReference`/`imageReference` nodes. GFM footnotes (`[^label]`) render as numbered superscript refs plus a collected `section.footnotes` footer (mdast-util-to-hast / GitHub id contract); unused definitions stay out of the body.
 - docs(markdown): syntax-reference matches the walker — heading `header-anchor` child, soft-break as one string, raw HTML via `rawHtml()` + `sanitizeHTMLString`.
 - fix(serve): resolve each candidate and require its realpath stays under the site root, so absolute URLs (`/etc/passwd`) and `%2e%2e` / symlink escapes cannot leave the preview directory.

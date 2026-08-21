@@ -1,6 +1,6 @@
 {
   "name": "@domphy/chart",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "ECharts-grade chart library for Domphy — WebGL series + SVG overlays, tone/density cascade.",
   "type": "module",
   "sideEffects": false,

@@ -2,11 +2,20 @@
 // computed dirty with 0 (or stale) upstream subs, so later get() could not
 // recover and the error was only visible as a drain-queue console.error.
 import { describe, expect, it, vi } from "vitest";
-import { computed, effect, effectScope, flushSync, toState } from "../src/index.ts";
+import {
+  computed,
+  effect,
+  effectScope,
+  flushSync,
+  toState,
+} from "../src/index.ts";
 
 function listenerCount(source: {
   name?: string;
-  _notifier?: { listenerCount?: (event: string) => number; _listeners?: Record<string, Set<unknown>> };
+  _notifier?: {
+    listenerCount?: (event: string) => number;
+    _listeners?: Record<string, Set<unknown>>;
+  };
 }): number {
   const notifier = source._notifier;
   if (!notifier) return 0;

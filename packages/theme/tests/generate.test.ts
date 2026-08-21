@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { generateTheme } from "../src/generate.ts";
-import { setTheme, themeTokens, TONE_STEPS } from "../src/theme.ts";
+import { setTheme, TONE_STEPS, themeTokens } from "../src/theme.ts";
 
 const HEX_RE = /^#[0-9a-f]{6}$/i;
 

@@ -1,6 +1,6 @@
 {
   "name": "@domphy/editor",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Domphy Editor - headless rich-text editor with a Tiptap-compatible API, self-contained engine (no ProseMirror), Domphy adapter with bubble menu",
   "type": "module",
   "sideEffects": false,

@@ -104,7 +104,7 @@ function linkExtensionOf(
   editor: EditorInstance,
 ): { options: LinkOptions } | undefined {
   const manager = (
-    editor as {
+    editor as unknown as {
       extensionManager?: {
         extensions: Array<{ name: string; options: LinkOptions }>;
       };
@@ -131,10 +131,16 @@ export function isLinkUriAllowed(
     return true;
   }
   const uri = typeof href === "string" ? href : undefined;
-  return extension.options.isAllowedUri(uri, validationContext(extension.options));
+  return extension.options.isAllowedUri(
+    uri,
+    validationContext(extension.options),
+  );
 }
 
-function stripLinkMarks(node: JSONContent, allow: (href: string | undefined) => boolean): JSONContent {
+function stripLinkMarks(
+  node: JSONContent,
+  allow: (href: string | undefined) => boolean,
+): JSONContent {
   let marks = node.marks;
   if (marks?.length) {
     const kept = marks.filter((mark) => {

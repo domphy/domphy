@@ -18,7 +18,7 @@
 // matching motion's `useTransform` 3-point range [-distance, 0, distance].
 
 import type { BehaviorInstance, DomphyElement, Listener } from "@domphy/core";
-import { behavior, ElementNode } from "@domphy/core";
+import { behavior, type ElementNode } from "@domphy/core";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import { tooltip } from "@domphy/ui";
 

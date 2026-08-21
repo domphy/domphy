@@ -140,10 +140,7 @@ function combobox(props: {
     ariaExpanded: (listener) => openState.get(listener),
     ariaControls: (listener) =>
       listener?.elementNode
-        ? floatingPanelId(
-            "combobox",
-            findComboboxAnchor(listener.elementNode),
-          )
+        ? floatingPanelId("combobox", findComboboxAnchor(listener.elementNode))
         : undefined,
   };
 
@@ -209,7 +206,7 @@ function combobox(props: {
 
   const attachInner = (
     node: ElementNode,
-    inner: InnerProps,
+    _inner: InnerProps,
   ): ComboboxInner => {
     let query = node.getMetadata("comboboxQuery") as State<string> | undefined;
     if (!query) {

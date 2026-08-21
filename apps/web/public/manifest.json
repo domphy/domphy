@@ -131,7 +131,7 @@
     },
     {
       "name": "@domphy/table",
-      "version": "0.19.1",
+      "version": "0.19.2",
       "description": "Domphy Table - headless table logic, a 1-1 port of @tanstack/table-core",
       "subpaths": [".", "./domphy"],
       "peerDependencies": ["@domphy/core"]

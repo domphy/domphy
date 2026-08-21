@@ -70,14 +70,17 @@ function attachFlickeringGrid(
   initialProps: FlickeringGridBehaviorProps,
 ) {
   let props = initialProps;
-  const canvas = node.domElement as HTMLCanvasElement | null;
-  const containerElement = canvas?.parentElement ?? null;
-  if (!canvas || !containerElement || typeof window === "undefined") {
+  const canvasElement = node.domElement as HTMLCanvasElement | null;
+  const host = canvasElement?.parentElement ?? null;
+  if (!canvasElement || !host || typeof window === "undefined") {
     return { update() {}, destroy() {} };
   }
+  const canvas: HTMLCanvasElement = canvasElement;
+  const containerElement: HTMLElement = host;
 
-  const context = canvas.getContext("2d");
-  if (!context) return { update() {}, destroy() {} };
+  const drawingContext = canvas.getContext("2d");
+  if (!drawingContext) return { update() {}, destroy() {} };
+  const context: CanvasRenderingContext2D = drawingContext;
 
   const devicePixelRatio = Math.min(window.devicePixelRatio || 1, 2);
   let cssWidth = 0;

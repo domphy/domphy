@@ -81,7 +81,13 @@ describe("renderLegend: unique groups per index", () => {
   it("keeps every legend when called once per array entry (engine loop)", () => {
     const svg = makeSvg();
     const hidden = new Set<string>();
-    renderLegend(svg, { data: ["s1"], top: 0 } as LegendOption, SERIES, hidden, () => {});
+    renderLegend(
+      svg,
+      { data: ["s1"], top: 0 } as LegendOption,
+      SERIES,
+      hidden,
+      () => {},
+    );
     renderLegend(
       svg,
       { data: ["s2"], bottom: 0 } as LegendOption,
@@ -103,8 +109,22 @@ describe("renderLegend: unique groups per index", () => {
   it("replaces only the matching index on an explicit re-render", () => {
     const svg = makeSvg();
     const hidden = new Set<string>();
-    renderLegend(svg, { data: ["s1"] } as LegendOption, SERIES, hidden, () => {}, 0);
-    renderLegend(svg, { data: ["s2"] } as LegendOption, SERIES, hidden, () => {}, 1);
+    renderLegend(
+      svg,
+      { data: ["s1"] } as LegendOption,
+      SERIES,
+      hidden,
+      () => {},
+      0,
+    );
+    renderLegend(
+      svg,
+      { data: ["s2"] } as LegendOption,
+      SERIES,
+      hidden,
+      () => {},
+      1,
+    );
     renderLegend(
       svg,
       { data: ["s1-b"] } as LegendOption,
@@ -128,8 +148,20 @@ describe("renderLegend: unique groups per index", () => {
   it("querySelector('.dc-legend').remove() drops every item (engine empty wipe)", () => {
     const svg = makeSvg();
     const hidden = new Set<string>();
-    renderLegend(svg, { data: ["s1"] } as LegendOption, SERIES, hidden, () => {});
-    renderLegend(svg, { data: ["s2"] } as LegendOption, SERIES, hidden, () => {});
+    renderLegend(
+      svg,
+      { data: ["s1"] } as LegendOption,
+      SERIES,
+      hidden,
+      () => {},
+    );
+    renderLegend(
+      svg,
+      { data: ["s2"] } as LegendOption,
+      SERIES,
+      hidden,
+      () => {},
+    );
     expect(svg.querySelectorAll(".dc-legend > g")).toHaveLength(2);
 
     svg.querySelector(".dc-legend")?.remove();
@@ -159,10 +191,14 @@ describe("ChartEngine title/legend arrays", () => {
     expect(document.querySelectorAll(".dc-title > g")).toHaveLength(2);
     expect(document.querySelectorAll(".dc-legend > g")).toHaveLength(2);
     expect(
-      [...document.querySelectorAll(".dc-title text")].map((t) => t.textContent),
+      [...document.querySelectorAll(".dc-title text")].map(
+        (t) => t.textContent,
+      ),
     ).toEqual(["Main", "Side"]);
     expect(
-      [...document.querySelectorAll(".dc-legend text")].map((t) => t.textContent),
+      [...document.querySelectorAll(".dc-legend text")].map(
+        (t) => t.textContent,
+      ),
     ).toEqual(["s1", "s2"]);
 
     engine.destroy();

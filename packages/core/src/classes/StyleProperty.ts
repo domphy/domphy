@@ -119,9 +119,18 @@ export class StyleProperty {
       if (this.parentRule?.parentNode?.domElement) {
         this._bind(value);
       } else {
-        this.value = runUntracked(() =>
-          value(undefined as unknown as Listener),
-        );
+        // Listener is a function (State.get subscribes only on a function).
+        // Attach elementNode so tag-dependent styles (heading fontSize)
+        // resolve during generateCSS; drop any accidental subscriptions so
+        // discarded SSR trees do not leak.
+        const stub = (() => {}) as unknown as Listener;
+        stub.elementNode = this.parentRule!.root!;
+        const transient: (() => void)[] = [];
+        stub.onSubscribe = (release) => {
+          transient.push(release);
+        };
+        this.value = runUntracked(() => value(stub));
+        for (const release of transient) release();
       }
     } else {
       this.value = value;

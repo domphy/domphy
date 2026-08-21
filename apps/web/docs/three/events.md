@@ -58,6 +58,8 @@ Every handler receives one argument, `ThreeEvent<PointerEvent | MouseEvent | Whe
 
 Every enumerable data property of the native event (`clientX`, `button`, `shiftKey`, `pointerId`, ...) is also copied directly onto the `ThreeEvent`, so `event.clientX` and `event.nativeEvent.clientX` both work.
 
+Pointer NDC (`event.pointer`) is computed from `clientX/Y` minus the **canvas** bounding rect, not from `offsetX/offsetY`. `offsetX` is relative to the event target, which stops being the canvas once pointer capture retargets the stream (or an overlaying child absorbs the hit); the canvas rect matches the host box `setSize` tracks, so padding/border on the container still produce a correct NDC.
+
 ## stopPropagation
 
 A single pointer interaction can raycast through several interactive objects and, for one hit, bubble up through every ancestor that also declares a handler (nearest object/ancestor first). Calling `event.stopPropagation()` inside a handler stops that entire tick's dispatch immediately — not just this object's own ancestors, but every remaining hit, including unrelated objects farther behind:

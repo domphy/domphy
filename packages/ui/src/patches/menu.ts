@@ -118,9 +118,7 @@ function menu(
           else if (k === "Home") next = 0;
           else if (k === "End") next = keys.length - 1;
           (
-            document.getElementById(
-              `menuitem${id}${keys[next]}`,
-            ) as HTMLElement
+            document.getElementById(`menuitem${id}${keys[next]}`) as HTMLElement
           )?.focus();
         },
         style: {

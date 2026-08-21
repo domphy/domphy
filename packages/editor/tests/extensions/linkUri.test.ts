@@ -72,7 +72,9 @@ describe("isAllowedUri on ingest and mark commands", () => {
   it("rejects setMark with a javascript href", () => {
     const editor = createEditor({
       type: "doc",
-      content: [{ type: "paragraph", content: [{ type: "text", text: "xss" }] }],
+      content: [
+        { type: "paragraph", content: [{ type: "text", text: "xss" }] },
+      ],
     });
     editor.commands.setTextSelection({ from: 1, to: 4 });
 
@@ -91,9 +93,9 @@ describe("isAllowedUri on ingest and mark commands", () => {
     const editor = createEditor(linkedParagraph("https://ok.dev"));
     editor.commands.setTextSelection({ from: 1, to: 4 });
 
-    expect(
-      editor.commands.updateAttributes("link", { href: scriptHref }),
-    ).toBe(false);
+    expect(editor.commands.updateAttributes("link", { href: scriptHref })).toBe(
+      false,
+    );
     expect(hrefsOf(editor)).toEqual(["https://ok.dev"]);
     expect(JSON.stringify(editor.getJSON())).not.toMatch(/javascript/i);
 

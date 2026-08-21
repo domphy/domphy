@@ -3,14 +3,12 @@
 // subscribe StyleProperty listeners to long-lived States and never release
 // them (SSR trees are discarded without remove()).
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  ElementNode,
-  flushSync,
-  toState,
-} from "../src/index.ts";
 import type { DomphyElement } from "../src/index.ts";
+import { ElementNode, flushSync, toState } from "../src/index.ts";
 
-function listenerCount(source: { _notifier?: { _listeners?: Record<string, Set<unknown>> } }): number {
+function listenerCount(source: {
+  _notifier?: { _listeners?: Record<string, Set<unknown>> };
+}): number {
   const listeners = source._notifier?._listeners;
   if (!listeners) return 0;
   let total = 0;
@@ -52,6 +50,22 @@ describe("StyleProperty.set: generateCSS/HTML does not leak subscriptions", () =
 
     expect(html).toContain("<div");
     expect(listenerCount(color)).toBe(0);
+  });
+
+  it("untracked resolve still supplies elementNode for tag-dependent styles", () => {
+    const App = {
+      h1: "Title",
+      style: {
+        fontSize: (listener: { elementNode: { tagName: string } }) =>
+          listener.elementNode.tagName === "h1" ? "2em" : "1em",
+      },
+    };
+    expect(() =>
+      new ElementNode(App as DomphyElement).generateCSS(),
+    ).not.toThrow();
+    expect(new ElementNode(App as DomphyElement).generateCSS()).toContain(
+      "font-size: 2em",
+    );
   });
 
   it("live render still updates the CSSOM when the state changes", () => {

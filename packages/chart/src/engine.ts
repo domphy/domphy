@@ -1,12 +1,9 @@
 import type { Device } from "@luma.gl/core";
 import type { ZoomWindow } from "./coord/grid.js";
 import { resolveGrid } from "./coord/grid.js";
-import { resolvePolar } from "./coord/polar.js";
 import type { PolarCoord } from "./coord/polar.js";
-import {
-  applyDatasetToSeries,
-  fillCategoryAxes,
-} from "./dataset/transform.js";
+import { resolvePolar } from "./coord/polar.js";
+import { applyDatasetToSeries, fillCategoryAxes } from "./dataset/transform.js";
 import { BarRenderer } from "./gl/BarRenderer.js";
 import { CandlestickRenderer } from "./gl/CandlestickRenderer.js";
 import { createColorResolver, seriesColor } from "./gl/color.js";
@@ -420,7 +417,10 @@ function warnUnsupportedChartOption(option: ChartOption): void {
       : option.series
         ? [option.series]
         : []
-  ).some((entry) => (entry as { coordinateSystem?: string }).coordinateSystem === "polar");
+  ).some(
+    (entry) =>
+      (entry as { coordinateSystem?: string }).coordinateSystem === "polar",
+  );
   if (option.polar != null && polarSeries) {
     warnOnce(
       "@domphy/chart: polar series rendering is typed for ECharts interop but is not implemented yet; option.polar is resolved for layout only.",
@@ -1387,7 +1387,8 @@ export class ChartEngine {
       const series = allSeries.filter(
         (s) => !s.name || !this.hiddenSeries.has(s.name),
       );
-      const trigger = option.tooltip?.trigger ?? defaultTooltipTrigger(allSeries);
+      const trigger =
+        option.tooltip?.trigger ?? defaultTooltipTrigger(allSeries);
       const pieHit = hitTestPie(
         series,
         mx,

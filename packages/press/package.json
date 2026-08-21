@@ -1,6 +1,6 @@
 {
   "name": "@domphy/press",
-  "version": "0.23.0",
+  "version": "0.23.1",
   "description": "Domphy Press — VitePress-baseline static doc site framework built on @domphy/app, with the Markdown pipeline (parseMarkdown/createMarkdown) built in",
   "type": "module",
   "sideEffects": false,

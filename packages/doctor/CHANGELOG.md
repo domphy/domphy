@@ -1,5 +1,9 @@
 # @domphy/doctor
 
+## 0.19.2
+
+- CLI / diagnose shared helpers: extra factory-exec and contrast-literal coverage.
+
 ## 0.19.1
 
 - `@domphy/palette` dependency dropped — the palette package was folded into `@domphy/theme`; the `raw-theme-value` chromametry helpers (`cssRgbToRgb`/`hexToRgb`/`rgbToLab`/`labToLch`) are now imported from there.

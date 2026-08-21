@@ -101,18 +101,6 @@ function textHighlighter(
   props: TextHighlighterProps = {},
 ): DomphyElement<"span"> {
   const children = props.children ?? DEFAULT_TEXT;
-  const type = props.type ?? "highlight";
-  const colorRole = props.color ?? "highlight";
-  const tone = props.tone ?? (type === "highlight" ? "shift-3" : "shift-9");
-  const strokeWidth = props.strokeWidth ?? 1.5;
-  const duration = props.duration ?? 600;
-  const iterations = props.iterations ?? 2;
-  const padding = props.padding ?? 2;
-  const multiline = props.multiline ?? true;
-  const brackets = props.brackets ?? "right";
-  const trigger = props.trigger ?? "mount";
-  const mountDelay = props.mountDelay ?? 0;
-  const viewMargin = props.viewMargin ?? "-10%";
 
   return {
     span: children,

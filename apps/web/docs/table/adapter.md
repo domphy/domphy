@@ -120,6 +120,17 @@ table: (l) => {
 
 Because all these methods subscribe to the same version counter, the granularity is identical — only the scope of the re-render differs.
 
+## Updating options
+
+`createDomphyTable` also exposes `setOptions` on the handle. A raw object is merged onto the previous options; an updater `(prev) => next` replaces as usual. Either form keeps the adapter's `onStateChange` wrapper — a raw object cannot drop it.
+
+```ts
+dTable.setOptions({ data: freshPeople })
+dTable.setOptions((prev) => ({ ...prev, columns: nextColumns }))
+```
+
+Use `setState` for table state (sorting, filters, …) — not `setOptions`.
+
 ## Cleanup
 
 `version` is a Domphy state; release it when the table's subtree unmounts:

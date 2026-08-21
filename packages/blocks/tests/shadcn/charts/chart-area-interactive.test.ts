@@ -55,7 +55,8 @@ describe("chartAreaInteractive", () => {
       finished: Promise.resolve(),
       cancel() {},
     }));
-    HTMLElement.prototype.animate = animate as unknown as typeof Element.prototype.animate;
+    HTMLElement.prototype.animate =
+      animate as unknown as typeof Element.prototype.animate;
 
     const refresh = toState(0);
     const host = document.createElement("div");

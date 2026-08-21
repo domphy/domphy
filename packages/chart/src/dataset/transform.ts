@@ -185,7 +185,8 @@ function resolveDatasetList(
         (entry.fromDatasetId != null
           ? idToIndex.get(entry.fromDatasetId)
           : undefined);
-      if (fromIndex != null) source = resolved[fromIndex] as typeof source;
+      const fromRows = fromIndex != null ? resolved[fromIndex] : undefined;
+      if (fromRows) source = fromRows as DatasetOption["source"];
     }
     resolved.push(resolveDataset({ ...entry, source }));
   }
@@ -277,10 +278,13 @@ export function applyDatasetToSeries<T extends SeriesOption>(
       };
     }
     const xFallback = defaultDimension(sample, 0);
-    const yFallback = defaultDimension(sample, rank + 1) ?? defaultDimension(sample, 1);
+    const yFallback =
+      defaultDimension(sample, rank + 1) ?? defaultDimension(sample, 1);
     return {
       ...entry,
-      data: rows.map((row) => encodeCartesianRow(row, encode, xFallback, yFallback)),
+      data: rows.map((row) =>
+        encodeCartesianRow(row, encode, xFallback, yFallback),
+      ),
     };
   });
 }
@@ -306,7 +310,7 @@ export function fillCategoryAxes<T extends { type?: string; data?: unknown[] }>(
     const seen = new Set<string>();
     const categories: unknown[] = [];
     for (const entry of series) {
-      for (const item of ((entry as { data?: unknown[] }).data ?? [])) {
+      for (const item of (entry as { data?: unknown[] }).data ?? []) {
         const value = categoryValue(item, dim);
         if (value === undefined || value === null) continue;
         const key = String(value);

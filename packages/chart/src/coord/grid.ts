@@ -182,11 +182,7 @@ function buildScale(
     // data min when the extent is already above zero; otherwise keep the
     // historical floor of 1 (zeros/negatives cannot sit on a log axis).
     let [min, max] = [
-      typeof axis.min === "number"
-        ? axis.min
-        : extent[0] > 0
-          ? extent[0]
-          : 1,
+      typeof axis.min === "number" ? axis.min : extent[0] > 0 ? extent[0] : 1,
       typeof axis.max === "number" ? axis.max : extent[1],
     ];
     [min, max] = applyZoomWindow(min, max, zoom);

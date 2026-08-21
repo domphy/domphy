@@ -1,6 +1,7 @@
 import { type Listener, State } from "@domphy/core"
-import { FieldApi, FormApi } from "../index.js"
+import { FieldApi, FormApi, type FieldOptions } from "../index.js"
 import type { ValidationCause, ValidationError } from "../types.js"
+import type { DeepKeys, DeepKeysOfType, DeepValue } from "../util-types.js"
 
 // FieldApi carries 23 generics; erase them at the adapter boundary.
 type AnyFieldApi = InstanceType<typeof FieldApi>
@@ -11,6 +12,30 @@ type FieldMeta = ReturnType<AnyFieldApi["getMeta"]>
 // strongly-typed surface is the accessors below, not the raw instances.
 // biome-ignore lint: src is byte-identical-port territory, excluded from biome
 type Updater<T> = T | ((previous: T) => T)
+
+// FieldOptions without `name` — `field()` takes the path as its first argument.
+// Validator/meta generics are erased (same as FieldApi at this boundary);
+// `defaultValue` still follows DeepValue<TFormData, TName>.
+type FieldHandleOptions<
+  TFormData,
+  TName extends DeepKeys<TFormData>,
+> = Omit<
+  FieldOptions<
+    TFormData,
+    TName,
+    DeepValue<TFormData, TName>,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any,
+    any
+  >,
+  "name"
+>
 
 // Structural shallow compare for field options. Plain objects are walked a
 // few levels down; two functions count as equal because closures cannot be
@@ -93,20 +118,34 @@ export interface FormHandle<TFormData> {
   isBlurred(listener?: Listener): boolean
   /** Raw reactive change counter. */
   version(listener?: Listener): number
-  /** Creates (and mounts) a reactive handle for one field. */
-  field<TData = unknown>(
-    name: string,
-    options?: Record<string, unknown>,
-  ): FieldHandle<TData>
+  /**
+   * Creates (and mounts) a reactive handle for one field.
+   * `name` is a `DeepKeys<TFormData>` path; the value generic must match that
+   * path (same contract as `FormApi.getFieldValue`).
+   */
+  field<
+    TData = unknown,
+    TName extends DeepKeys<TFormData> &
+      DeepKeysOfType<TFormData, TData> = DeepKeys<TFormData> &
+      DeepKeysOfType<TFormData, TData>,
+  >(
+    name: TName,
+    options?: FieldHandleOptions<TFormData, TName>,
+  ): FieldHandle<DeepValue<TFormData, TName>>
   handleSubmit(): Promise<void>
   reset(values?: TFormData): void
   /** Read the current value of a field imperatively (no listener). */
-  getFieldValue(field: string): unknown
+  getFieldValue<TField extends DeepKeys<TFormData>>(
+    field: TField,
+  ): DeepValue<TFormData, TField>
   /** Programmatically set a field value (triggers onChange validation by default). */
-  setFieldValue(field: string, updater: Updater<unknown>): void
+  setFieldValue<TField extends DeepKeys<TFormData>>(
+    field: TField,
+    updater: Updater<DeepValue<TFormData, TField>>,
+  ): void
   /** Manually trigger validation for a single field. Cause defaults to "change". */
-  validateField(
-    field: string,
+  validateField<TField extends DeepKeys<TFormData>>(
+    field: TField,
     cause?: ValidationCause,
   ): ValidationError[] | Promise<ValidationError[]>
   destroy(): void
@@ -163,10 +202,7 @@ export function createForm<TFormData>(
     isTouched: (listener) => state(listener).isTouched,
     isBlurred: (listener) => state(listener).isBlurred,
     version: (listener) => version.get(listener),
-    field: <TData = unknown>(
-      name: string,
-      fieldOptions: Record<string, unknown> = {},
-    ): FieldHandle<TData> => {
+    field: (name, fieldOptions = {}) => {
       const cached = fields.get(name)
       if (cached) {
         // The cache is keyed by field name only: a second call with different
@@ -182,15 +218,15 @@ export function createForm<TFormData>(
             `[domphy/form] field("${name}") was called with different options than its first call. The new options are ignored — the cached field keeps the options it was created with.`,
           )
         }
-        return cached.handle as FieldHandle<TData>
+        return cached.handle
       }
       const api = new FieldApi({ form, name, ...fieldOptions } as any) as AnyFieldApi
       const cleanup = api.mount()
-      const handle: FieldHandle<TData> = {
+      const handle: FieldHandle<DeepValue<TFormData, typeof name>> = {
         api,
         value: (listener) => {
           version.get(listener)
-          return api.getValue() as TData
+          return api.getValue() as DeepValue<TFormData, typeof name>
         },
         errors: (listener) => {
           version.get(listener)
@@ -217,9 +253,9 @@ export function createForm<TFormData>(
     },
     handleSubmit: () => form.handleSubmit(),
     reset: (values) => form.reset(values),
-    getFieldValue: (field) => form.getFieldValue(field as any),
-    setFieldValue: (field, updater) => form.setFieldValue(field as any, updater as any),
-    validateField: (field, cause = "change") => form.validateField(field as any, cause),
+    getFieldValue: (field) => form.getFieldValue(field),
+    setFieldValue: (field, updater) => form.setFieldValue(field, updater),
+    validateField: (field, cause = "change") => form.validateField(field, cause),
     destroy: () => {
       subscription.unsubscribe()
       for (const { cleanup } of fields.values()) cleanup()
