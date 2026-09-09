@@ -165,6 +165,7 @@ export const config = defineConfig({
             { text: "Error Boundary", link: "/docs/ui/patches/error-boundary" },
             { text: "Figure", link: "/docs/ui/patches/figure" },
             { text: "Form Group", link: "/docs/ui/patches/form-group" },
+            { text: "Grid", link: "/docs/ui/patches/grid" },
             { text: "Heading", link: "/docs/ui/patches/heading" },
             {
               text: "Horizontal Rule",

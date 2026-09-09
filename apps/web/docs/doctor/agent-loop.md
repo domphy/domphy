@@ -184,7 +184,7 @@ Rules:
 - Use patches from @domphy/ui for typography — no inline fontSize/fontWeight.
 - Dynamic list children from reactive functions must have a stable _key.
 - Void tags (input, img, br) must have null content.
-- dataTone values: "inherit" | "base" | "shift-N" | "increase-N" | "decrease-N" (N ≤ 17).
+- dataTone values: "inherit" | "base" | "shift-N" | "increase-N" | "decrease-N" (N ≤ 17), or aliases "surface"/"hover"/"border"/"border-strong"/"muted"/"text".
 `
 ```
 
@@ -209,7 +209,7 @@ if (doctorReport !== "✓ No issues found.") {
 | `domphy_validate` | `{ ok, issues, summary }` — structured `ValidationReport` |
 | `domphy_fix` | `{ tree, applied, report }` — autofixed tree and remainder |
 
-All three accept a JSON element tree as input. Reactive functions serialize as `null` over the wire (JSON does not carry functions), so `runReactive` is implicitly `false` for MCP calls — dynamic-list rules will not fire.
+All three take `{ element: "<json>" }` — a JSON **string** of the element tree (`element`, not `tree`; a missing/wrong key returns `isError`). Reactive functions serialize as `null` over the wire (JSON does not carry functions), so `runReactive` is implicitly `false` for MCP calls — dynamic-list rules will not fire.
 
 ### Tool call pattern
 
@@ -218,7 +218,7 @@ An agent using tool-calling can validate inline:
 ```
 User: Build a settings form with email and password fields.
 
-Assistant: [generates tree, calls domphy_validate({ tree })]
+Assistant: [generates tree, calls domphy_validate({ element: "<json>" })]
 
 domphy_validate response:
 {
@@ -235,7 +235,7 @@ domphy_validate response:
   "summary": { "error": 1, "warning": 0, "info": 0, "total": 1 }
 }
 
-Assistant: [corrects the tree based on the report, calls domphy_fix({ tree }) to auto-apply lossless fixes]
+Assistant: [corrects the tree based on the report, calls domphy_fix({ element: "<json>" }) to auto-apply lossless fixes]
 
 domphy_fix response:
 {
@@ -253,8 +253,8 @@ For agents generating code that should reuse existing app blocks, pair the docto
 1. domphy_list_app_blocks()          — discover what's already built
 2. domphy_get_app_block({ name })    — get the signature and example
 3. [generate tree reusing blocks]
-4. domphy_validate({ tree })         — check for violations
-5. domphy_fix({ tree })              — apply lossless fixes
+4. domphy_validate({ element: "<json>" }) — check for violations
+5. domphy_fix({ element: "<json>" })      — apply lossless fixes
 6. [report remaining issues to user]
 ```
 
@@ -284,18 +284,18 @@ import { themeColor } from "@domphy/theme"
 ### Agent misuses dataTone
 
 ```ts
-// Agent generates (common hallucination)
-{ div: "Surface", dataTone: "surface" }
+// Agent generates (common hallucination — invented word, not a real alias)
 { div: "Text", dataTone: "foreground" }
 
 // Doctor reports
 // ⚠ [unknown-tone] div
-//   `dataTone` "surface" is not a valid tone.
-//   → Use "inherit", "base", a number, or "shift-N"/"increase-N"/"decrease-N" with N ≤ 17.
+//   `dataTone` "foreground" is not a valid tone.
+//   → Use "inherit", "base", "shift-N"/"increase-N"/"decrease-N" (N ≤ 17),
+//     or a semantic alias: "surface", "hover", "border", "border-strong",
+//     "muted", "text". Bare-numeric strings like "3" are invalid.
 
 // Agent corrects
-{ div: "Surface", dataTone: "shift-1" }    // light surface
-{ div: "Text", dataTone: "decrease-4" }    // dark text, relative to context
+{ div: "Text", dataTone: "text" }    // alias for shift-9
 ```
 
 ### Agent forgets _key

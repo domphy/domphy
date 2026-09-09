@@ -426,10 +426,9 @@ function warnUnsupportedChartOption(option: ChartOption): void {
   }
   // TooltipOption keys that are typed for ECharts interop but ignored.
   // (backgroundColor/borderColor/borderWidth/padding/textStyle/extraCssText/
-  // className/confine ARE implemented — do not warn for those.)
+  // className/confine/appendToBody ARE implemented — do not warn for those.)
   const UNSUPPORTED_TOOLTIP_KEYS = [
     "position",
-    "appendToBody",
     "renderMode",
     "enterable",
     "alwaysShowContent",

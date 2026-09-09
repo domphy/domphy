@@ -298,10 +298,8 @@ describe(`block lifecycle sweep (${factories.length} factories)`, () => {
         document.body.innerHTML = "";
       }
 
-      // The sweep is a REPORT, not a gate (yet): a block's failures land in
-      // .lifecycle-report.json for the fix fan-out. Keep the test itself
-      // green so unrelated CI stays unblocked while the backlog is worked.
       expect(report.block).toBe(name);
+      expect(failures, JSON.stringify(failures)).toEqual([]);
     });
   }
 });

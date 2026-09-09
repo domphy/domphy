@@ -184,4 +184,6 @@ themeConfig: {
 }
 ```
 
+`text` is rendered as HTML (wrapped in `rawHtml()` by the layout) — the same controlled-markup contract as `footerMessage`. Inline tags like `<a>` are allowed; keep it to markup you control.
+
 Set `id` so the user only sees it once per release. Omit `id` to always show on page load.

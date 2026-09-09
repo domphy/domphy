@@ -36,9 +36,10 @@ function badge(
         top: 0,
         right: 0,
         transform: "translate(50%,-50%)",
-        paddingInline: (l) => themeSpacing(themeDensity(l) * 1.5),
+        // Bare themeSpacing(U) at snapshot time; n = U / 1.5 (light.densities[2]).
+        paddingInline: (l) => themeSpacing(themeDensity(l) * (1.5 / 1.5)),
         minWidth: themeSpacing(5),
-        height: (l) => themeSpacing(themeDensity(l) * 5),
+        height: (l) => themeSpacing(themeDensity(l) * (5 / 1.5)),
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",

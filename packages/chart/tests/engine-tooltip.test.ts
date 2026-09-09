@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { ChartEngine } from "../src/engine.ts";
 import type { ChartOption } from "../src/types.ts";
 
@@ -44,5 +44,32 @@ describe("ChartEngine tooltip listener lifecycle", () => {
 
     expect(removeSpy.get("mousemove")).toBe(5);
     expect(removeSpy.get("mouseleave")).toBe(5);
+  });
+});
+
+// Regression: createTooltip honors appendToBody (document.body + position:fixed)
+// but setOption used to warn it as unimplemented because it sat in
+// UNSUPPORTED_TOOLTIP_KEYS. confine is the same class of implemented key.
+describe("ChartEngine tooltip.appendToBody", () => {
+  it("does not warn that appendToBody is unimplemented", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const container = document.createElement("div");
+    document.body.appendChild(container);
+    const engine = new ChartEngine(container);
+    engine.setSize(400, 300);
+
+    engine.setOption({
+      tooltip: { appendToBody: true },
+      series: [{ type: "bar", name: "s1", data: [1, 2, 3] }],
+    });
+
+    expect(
+      warn.mock.calls.some((call) =>
+        String(call[0]).includes("option.tooltip.appendToBody"),
+      ),
+    ).toBe(false);
+
+    engine.destroy();
+    warn.mockRestore();
   });
 });

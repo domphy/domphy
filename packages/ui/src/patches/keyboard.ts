@@ -32,9 +32,13 @@ function keyboard(
       color: (listener) => themeColor(listener, "text", color.get(listener)),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
-      paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 0.5),
-      paddingInline: (listener) => themeSpacing(themeDensity(listener) * 1.5),
-      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
+      // Bare themeSpacing(U) at snapshot time; n = U / 1.5 (light.densities[2]).
+      paddingBlock: (listener) =>
+        themeSpacing(themeDensity(listener) * (0.5 / 1.5)),
+      paddingInline: (listener) =>
+        themeSpacing(themeDensity(listener) * (1.5 / 1.5)),
+      borderRadius: (listener) =>
+        themeSpacing(themeDensity(listener) * (1 / 1.5)),
       outline: (listener) =>
         `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
     },

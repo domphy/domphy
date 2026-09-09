@@ -1,7 +1,7 @@
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { isRawHTML } from "@domphy/core";
+import { ElementNode, isRawHTML } from "@domphy/core";
 import { describe, expect, it } from "vitest";
 import { renderDoc } from "../src/pipeline.ts";
 import type { RenderDocOptions } from "../src/types.ts";
@@ -257,5 +257,18 @@ describe("fence-aware preprocessing", () => {
     const allHtml = JSON.stringify(body);
     expect(allHtml).toContain("::: tip My Title");
     expect(allHtml).not.toContain("custom-block tip");
+  });
+
+  it("renders ==mark==, ~sub~, ^sup^, and gemoji shortcodes (VitePress markdown)", async () => {
+    const { body } = await renderDoc("==hi== H~2~O E=mc^2^ :tada:", opts);
+    const html = new ElementNode({ div: body }).generateHTML();
+    expect(html).toContain("<mark");
+    expect(html).toContain(">hi</mark>");
+    expect(html).toContain("<sub");
+    expect(html).toContain(">2</sub>");
+    expect(html).toContain("<sup");
+    expect(html).toContain(">2</sup>");
+    expect(html).toContain("🎉");
+    expect(html).not.toContain(":tada:");
   });
 });

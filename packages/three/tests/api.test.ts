@@ -194,7 +194,7 @@ describe("exports (upstream: 'matches public API')", () => {
           scene: null,
           createRenderer: () => createStubRenderer(),
           onCreated: (root) => {
-            capturedRoot = root as CreatedRootState;
+            capturedRoot = root;
           },
         }),
       ],

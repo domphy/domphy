@@ -1,5 +1,9 @@
 # @domphy/i18n Changelog
 
+## 0.19.5
+
+- `exists(key)` is active-locale-only: calls i18next with `{ lng: active, fallbackLng: false }` so a fallback-only key is false.
+
 ## 0.19.4
 
 - detectLocale / SSR isolation audit-fix pass on top of the 0.19.3 ALS work.

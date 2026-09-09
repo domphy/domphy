@@ -43,8 +43,28 @@ afterEach(() => {
 });
 
 describe("renderToStream", () => {
-  it("flushes the shell before the resolved content", async () => {
-    const app = createApp(streamRoutes(), { history: null });
+  it("returns the stream and flushes the shell before loaders settle", async () => {
+    let resolveLoader!: (value: string) => void;
+    const held = new Promise<string>((resolve) => {
+      resolveLoader = resolve;
+    });
+    const routes = defineRoutes([
+      {
+        path: "/",
+        layout: (children) => ({ div: [{ header: "Shell Header" }, children] }),
+        children: [
+          {
+            path: "slow",
+            loader: () => held,
+            loading: () => ({ p: "Loading stream..." }),
+            page: (context) => ({ h1: `Loaded ${context.data}` }),
+          },
+        ],
+      },
+    ]);
+    const app = createApp(routes, { history: null });
+    // Must resolve while `held` is still pending — otherwise the first byte
+    // is blocked on the loader, which is the TTFB contract of renderToStream.
     const { stream, status } = await app.renderToStream("/slow");
     expect(status).toBe(200);
 
@@ -56,6 +76,8 @@ describe("renderToStream", () => {
     expect(first).toContain("Shell Header");
     expect(first).toContain("Loading stream...");
     expect(first).not.toContain("Loaded data!");
+
+    resolveLoader("data!");
 
     let rest = "";
     for (;;) {
@@ -183,7 +205,7 @@ describe("renderToStream", () => {
     expect(body).toContain("</body></html>");
   });
 
-  it("reports a loader redirect instead of flushing a pending 200", async () => {
+  it("streams a client redirect when a loader redirects after the shell", async () => {
     const routes = defineRoutes([
       {
         path: "/",
@@ -203,15 +225,28 @@ describe("renderToStream", () => {
       status,
       redirect: target,
     } = await app.renderToStream("/private");
-    expect(status).toBe(307);
-    expect(target).toBe("/about");
+    // Shell already committed as 200; HTTP status cannot reflect the loader.
+    expect(status).toBe(200);
+    expect(target).toBeUndefined();
 
-    const body = (await collect(stream)).join("");
-    expect(body).not.toContain("Private");
-    expect(body).not.toContain("Loading");
+    const reader = stream.getReader();
+    const decoder = new TextDecoder();
+    const first = decoder.decode((await reader.read()).value);
+    expect(first).toContain("domphy-app");
+    expect(first).not.toContain("Private");
+    expect(first).not.toContain("location.replace");
+
+    let rest = "";
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      rest += decoder.decode(value);
+    }
+    expect(rest).toContain('location.replace("/about")');
+    expect(rest).not.toContain("Private");
   });
 
-  it("reports a slot loader redirect instead of a pending 200", async () => {
+  it("streams a client redirect when a slot loader redirects after the shell", async () => {
     const routes = defineRoutes([
       {
         path: "dash",
@@ -237,11 +272,11 @@ describe("renderToStream", () => {
       status,
       redirect: target,
     } = await app.renderToStream("/dash");
-    expect(status).toBe(307);
-    expect(target).toBe("/about");
+    expect(status).toBe(200);
+    expect(target).toBeUndefined();
 
     const body = (await collect(stream)).join("");
-    expect(body).not.toContain("Dash");
+    expect(body).toContain('location.replace("/about")');
     expect(body).not.toContain("panel");
   });
 

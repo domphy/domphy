@@ -152,17 +152,47 @@ describe("drawer", () => {
     vi.runAllTimers();
     expect(dlg.style.visibility).toBe("hidden");
     expect(dlg.style.pointerEvents).toBe("none");
+    expect(dlg.style.display).toBe("none");
 
     open.set(true);
     flushSync();
     expect(dlg.style.visibility).toBe("visible");
     expect(dlg.style.pointerEvents).toBe("auto");
+    expect(dlg.style.display).toBe("");
 
     open.set(false);
     flushSync();
     vi.runAllTimers();
     expect(dlg.style.visibility).toBe("hidden");
     expect(dlg.style.pointerEvents).toBe("none");
+    expect(dlg.style.display).toBe("none");
+  });
+
+  it("inline display:none on close beats a consumer style.display that would override UA dialog:not([open])", () => {
+    const open = toState(false);
+    const { host } = render({
+      div: [
+        {
+          dialog: [{ button: "Inside" }],
+          $: [drawer({ open })],
+          style: { display: "flex" },
+        },
+      ],
+    } as DomphyElement);
+    const dlg = host.querySelector("dialog") as HTMLDialogElement;
+    expect(dlg.style.display).toBe("none");
+    expect(getComputedStyle(dlg).display).toBe("none");
+
+    open.set(true);
+    flushSync();
+    expect(dlg.style.display).toBe("");
+    expect(getComputedStyle(dlg).display).toBe("flex");
+
+    open.set(false);
+    flushSync();
+    vi.runAllTimers();
+    expect(dlg.style.display).toBe("none");
+    expect(getComputedStyle(dlg).display).toBe("none");
   });
 });
 
@@ -247,17 +277,47 @@ describe("dialog", () => {
     vi.runAllTimers();
     expect(dlg.style.visibility).toBe("hidden");
     expect(dlg.style.pointerEvents).toBe("none");
+    expect(dlg.style.display).toBe("none");
 
     open.set(true);
     flushSync();
     expect(dlg.style.visibility).toBe("visible");
     expect(dlg.style.pointerEvents).toBe("auto");
+    expect(dlg.style.display).toBe("");
 
     open.set(false);
     flushSync();
     vi.runAllTimers();
     expect(dlg.style.visibility).toBe("hidden");
     expect(dlg.style.pointerEvents).toBe("none");
+    expect(dlg.style.display).toBe("none");
+  });
+
+  it("inline display:none on close beats a consumer style.display that would override UA dialog:not([open])", () => {
+    const open = toState(false);
+    const { host } = render({
+      div: [
+        {
+          dialog: [{ button: "Inside" }],
+          $: [dialog({ open })],
+          style: { display: "flex" },
+        },
+      ],
+    } as DomphyElement);
+    const dlg = host.querySelector("dialog") as HTMLDialogElement;
+    expect(dlg.style.display).toBe("none");
+    expect(getComputedStyle(dlg).display).toBe("none");
+
+    open.set(true);
+    flushSync();
+    expect(dlg.style.display).toBe("");
+    expect(getComputedStyle(dlg).display).toBe("flex");
+
+    open.set(false);
+    flushSync();
+    vi.runAllTimers();
+    expect(dlg.style.display).toBe("none");
+    expect(getComputedStyle(dlg).display).toBe("none");
   });
 
   it("restores focus to the previously focused element when closed", () => {

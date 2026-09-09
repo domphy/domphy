@@ -15,6 +15,7 @@ Builds the full static site: discovers pages, renders each Markdown file, genera
 
 ```ts
 import { buildSite } from "@domphy/press"
+import type { BuildOptions, FeatureConfig, HeroConfig } from "@domphy/press"
 import { config } from "./press.config.js"
 
 await buildSite({

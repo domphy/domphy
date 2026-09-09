@@ -380,10 +380,14 @@ export function createI18n<
 
   function exists(key: string): boolean {
     const request = getRequestLocale();
-    if (request !== undefined && localeKeys.has(request)) {
-      return getStore().instance.exists(key, { lng: request });
-    }
-    return getStore().instance.exists(key);
+    const locale =
+      request !== undefined && localeKeys.has(request)
+        ? request
+        : getStore().localeState.get();
+    return getStore().instance.exists(key, {
+      lng: locale,
+      fallbackLng: false,
+    });
   }
 
   return {

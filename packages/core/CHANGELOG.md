@@ -1,5 +1,10 @@
 # @domphy/core Changelog
 
+## 0.21.3
+
+- Public entry re-exports `TextNode` (`export *` from `classes/TextNode.js`).
+- CDN IIFE (`src/global.ts`) is `export * from "./index.js"` so `Domphy.ElementNode` sits on the namespace (not nested `.core`).
+
 ## 0.21.2
 
 - StyleProperty CSS-escapes `;`, `}`, and `</style>` in interpolated style values; reactive style listeners unsubscribe on re-set (multi-state functions no longer leak).

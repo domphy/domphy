@@ -10,7 +10,9 @@ import { ElementNode, flushSync, toState } from "@domphy/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   combobox,
+  datePicker,
   menu,
+  rating,
   selectBox,
   selectItem,
   selectList,
@@ -381,5 +383,68 @@ describe("combobox keyboard / focus", () => {
       vi.runAllTimers();
     }
     expect(open.get()).toBe(false);
+  });
+});
+
+describe("datePicker keyboard", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    if (!("ResizeObserver" in globalThis)) {
+      (globalThis as any).ResizeObserver = class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      };
+    }
+  });
+
+  it("ArrowDown opens the grid and ArrowRight moves the focused day", () => {
+    const { host } = render({
+      input: null,
+      $: [
+        datePicker({
+          value: toState(new Date(2024, 0, 15)),
+          locale: "en-US",
+        }),
+      ],
+    } as DomphyElement);
+
+    const input = host.querySelector("input") as HTMLInputElement;
+    expect(input).not.toBeNull();
+    input.focus();
+    keydown(input, "ArrowDown");
+    vi.advanceTimersByTime(200);
+    flushSync();
+
+    const grid = document.querySelector('[role="grid"]') as HTMLElement | null;
+    expect(grid).not.toBeNull();
+    const fifteenth = document.querySelector<HTMLElement>(
+      '[data-date="2024-01-15"]',
+    );
+    expect(fifteenth).not.toBeNull();
+    expect(fifteenth!.tabIndex).toBe(0);
+
+    keydown(grid!, "ArrowRight");
+    flushSync();
+    const sixteenth = document.querySelector<HTMLElement>(
+      '[data-date="2024-01-16"]',
+    );
+    expect(sixteenth).not.toBeNull();
+    expect(sixteenth!.tabIndex).toBe(0);
+  });
+});
+
+describe("rating keyboard", () => {
+  it("ArrowRight increases the value", () => {
+    const value = toState(2);
+    const { host } = render({
+      div: null,
+      $: [rating({ value, max: 5 })],
+    } as DomphyElement);
+    const stars = Array.from(host.querySelectorAll("button"));
+    expect(stars.length).toBe(5);
+    stars[1].focus();
+    keydown(stars[1], "ArrowRight");
+    expect(value.get()).toBe(3);
   });
 });

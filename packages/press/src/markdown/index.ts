@@ -1,8 +1,10 @@
 import type { DomphyElement } from "@domphy/core";
 import type { Root } from "mdast";
 import { remark } from "remark";
+import remarkGemoji from "remark-gemoji";
 import remarkGfm from "remark-gfm";
 import { splitFrontmatter } from "./frontmatter.js";
+import { remarkMarkSubSup } from "./mark-sub-sup.js";
 import { walkMdast } from "./mdast.js";
 import { createUniqueSlugger, defaultSlugify } from "./slug.js";
 import type {
@@ -39,7 +41,15 @@ function buildProcessor(options: ParseOptions) {
   // error on every parse — verified against pristine HEAD.)
   const gfm = ((remarkGfm as { default?: unknown }).default ??
     remarkGfm) as typeof remarkGfm;
-  let proc = remark().use(gfm as any);
+  const gemoji = ((remarkGemoji as { default?: unknown }).default ??
+    remarkGemoji) as typeof remarkGemoji;
+  // singleTilde: false — GFM strikethrough is `~~…~~` only, so markdown-it-sub
+  // `H~2~O` is left for remarkMarkSubSup (VitePress). GitHub's single-tilde
+  // strike would otherwise steal every subscript.
+  let proc = remark()
+    .use(gfm as any, { singleTilde: false })
+    .use(gemoji as any)
+    .use(remarkMarkSubSup);
   for (const plugin of options.plugins ?? []) {
     proc = proc.use(plugin as any);
   }

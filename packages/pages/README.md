@@ -56,18 +56,24 @@ Runnable local surface (`engine/index.ts`):
 ParaShape jsep + arrow/object/ternary stack — same expression surface the
 runtime tests need (literals, members, calls, arrows, object/array literals).
 
-## `engine/` — the deleted engine side, verbatim
+## `engine/`
 
-Snapshots taken from ParaShape `HEAD` at the moment of the cut. The live
-runtime no longer imports them:
+Live whitelist (in `tsconfig.json`; re-exported from `engine/index.ts`;
+imported by `src/pageElement.ts` via that barrel):
+
+| file | was |
+|---|---|
+| `engine/pageVocabulary.ts` | `packages/parametric/src/schema/vocabulary/pageVocabulary.ts` — `PAGE_TAGS`/`EVENTS`/`ATTRIBUTES`/`STYLE_PROPERTIES`/`PATCHES` and their `*_SET`s |
+
+The rest of the runnable surface is `engine/index.ts` and its siblings
+(`types.ts`, `expression.ts`, `runtime.ts`, `model.ts`).
+
+Verbatim ParaShape snapshots from `HEAD` at the cut. The live runtime
+does not import them. They still import the ParaShape engine's own
+internals and will not typecheck standalone:
 
 | file | was |
 |---|---|
 | `engine/pages.ts` | `packages/parametric/src/pages.ts` — `resolvePage`, `resolvePageParameters`, `interpretEventResult`, popover field resolution, the `PageScope` contract |
-| `engine/pageVocabulary.ts` | `packages/parametric/src/schema/vocabulary/pageVocabulary.ts` — `PAGE_TAGS`/`EVENTS`/`ATTRIBUTES`/`STYLE_PROPERTIES`/`PATCHES` and their `*_SET`s |
 | `engine/pageTypes.ts` | `packages/parametric/src/graph/page.ts` — `PageJSON`, `PageScope`, `ResolvedPagePopover`, `GeneratedPageNode` |
 | `engine/pages.test.ts` | `packages/parametric/src/__tests__/pages.test.ts` |
-
-These snapshots still import from the ParaShape engine's own internals and
-will not typecheck standalone. The runnable replacements are `engine/index.ts`
-and its siblings (`types.ts`, `expression.ts`, `runtime.ts`, `model.ts`).

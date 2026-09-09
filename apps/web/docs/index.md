@@ -22,6 +22,15 @@ Framework-agnostic, no JSX, no virtual DOM, no build step required — and the m
 - `@domphy/virtual` — virtualization (rows, columns, dynamic sizes)
 - `@domphy/form` — forms (typed values, validators, arrays, Standard Schema)
 
+**Presentation, 3D & i18n:**
+
+- `@domphy/blocks` — 173 composed blocks — sidebars, auth pages, dashboards, effects
+- `@domphy/chart` — SVG + WebGL charts — line, bar, pie, scatter, gauge…
+- `@domphy/three` — declarative three.js scene graph on Domphy reactivity
+- `@domphy/editor` — rich-text editor — Tiptap-compatible API, self-contained engine
+- `@domphy/floating` — anchor positioning — floating-ui core, zero-dep, powers overlays
+- `@domphy/i18n` — i18next wrapper with reactive `t(listener, key)`
+
 **App layer & tools:**
 
 - `@domphy/dnd` — drag & drop / sortable lists
@@ -30,7 +39,7 @@ Framework-agnostic, no JSX, no virtual DOM, no build step required — and the m
 - `@domphy/doctor` — static analyzer that flags non-idiomatic code (`diagnose`/`validate`; powers AI self-correction)
 - `@domphy/mcp` — MCP server exposing patches/packages/rules + doctor + app-block registry to agents
 
-Domphy removes component boundaries, unifies SSR and CSR under one model, automates context-aware styling, and works with any JavaScript library without adapters or plugins. For anything outside these packages (charts, rich text, i18n…), use the vanilla library directly — see [Integrations](/docs/integrations/).
+Domphy removes component boundaries, unifies SSR and CSR under one model, automates context-aware styling, and works with any JavaScript library without adapters or plugins. For libraries with no first-party package (carousel, maps, date pickers…), use the vanilla library directly — see [Integrations](/docs/integrations/).
 
 ## Why Domphy
 

@@ -38,6 +38,19 @@ const profileForm = createForm({
 
 `formOptions()` preserves TypeScript inference — the returned object is typed exactly as passed, so spreading it into `createForm()` keeps full type safety.
 
+## `FormGroupApi` / `FieldGroupApi`
+
+`@domphy/form` also exports `FormGroupApi` and `FieldGroupApi` (headless, not the `@domphy/ui` `formGroup()` layout patch). A `FormGroupApi` is a named subtree of a parent form: it derives `state.value` from the parent at its path, aggregates descendant field meta, and can run its own validators. A `FieldGroupApi` is a reusable mapped-fields group you construct with `new FieldGroupApi({ form, fields })`.
+
+```ts
+import { FormGroupApi, FieldGroupApi } from "@domphy/form"
+
+const person = new FormGroupApi({ form, name: "person" })
+person.mount()
+```
+
+These are Domphy originals (not in `@tanstack/form-core`). See `packages/form/tests/groups.test.ts` for the full contract.
+
 ## Reusable form section factories
 
 Create a function that returns a set of fields bound to a specific form, then call it in multiple places:

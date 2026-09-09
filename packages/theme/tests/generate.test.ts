@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { generateTheme } from "../src/generate.ts";
-import { setTheme, TONE_STEPS, themeTokens } from "../src/theme.ts";
+import {
+  generateTheme,
+  getTheme,
+  setTheme,
+  TONE_STEPS,
+  themeTokens,
+} from "../src/index.ts";
 
 const HEX_RE = /^#[0-9a-f]{6}$/i;
 
@@ -80,6 +85,19 @@ describe("generateTheme", () => {
     const { getTheme } = await import("../src/theme.ts");
     const light = getTheme("light");
     expect(light.colors.error[13]).not.toBe(light.colors.danger[13]);
+  });
+
+  it('merges with getTheme("light") to fill roles not passed in', () => {
+    const light = getTheme("light");
+    const partial = generateTheme({ primary: "#4a7ff4" });
+    expect(Object.keys(partial.colors ?? {})).toEqual(["primary"]);
+    const merged = {
+      ...light,
+      ...partial,
+      colors: { ...light.colors, ...partial.colors },
+    };
+    expect(merged.colors.primary).toHaveLength(18);
+    expect(merged.colors.neutral).toEqual(light.colors.neutral);
   });
 
   it("accepts shorthand hex base colors (#fff)", () => {

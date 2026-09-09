@@ -1,6 +1,6 @@
 {
   "name": "@domphy/floating",
-  "version": "0.18.3",
+  "version": "0.18.4",
   "description": "Domphy Floating - anchor positioning (tooltips, popovers, dropdowns), a 1-1 vendor of floating-ui (dom + core + utils), zero dependencies",
   "type": "module",
   "sideEffects": false,
@@ -49,7 +49,8 @@
   "files": [
     "dist",
     "README.md",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "UPSTREAM.md"
   ],
   "unpkg": "dist/floating.global.js",
   "jsdelivr": "dist/floating.global.js"

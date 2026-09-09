@@ -7,7 +7,7 @@ description: "Editor options and instance members, the generic command set behin
 
 ## `createEditor(options)`
 
-Builds an editor without mounting it. The DOM host comes later from [`editorContent()`](#editorcontent-editor-props), which owns the mount/unmount lifecycle of the element it is applied to — passing `element` here would mount twice.
+Builds an editor without mounting it. The DOM host comes later from [`editorContent()`](#editorcontent-editor-props), which owns the mount/unmount lifecycle of the element it is applied to. Passing `element` here is ignored (`element` is forced to `null`) so this helper never mounts.
 
 ```ts
 import { createEditor } from "@domphy/editor/domphy"

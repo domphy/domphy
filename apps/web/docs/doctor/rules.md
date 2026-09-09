@@ -266,38 +266,39 @@ import { themeDensity, themeSpacing } from "@domphy/theme"
 
 ## `unknown-tone` — warning
 
-`dataTone` controls which step in the color ramp the subtree uses as its surface anchor. The valid grammar is:
+`dataTone` controls which step in the color ramp the subtree uses as its surface anchor. The valid **string** grammar is the same list the runtime's `offsetTone()` accepts (`ElementTones` from `@domphy/theme`):
 
 - `"inherit"` — use the parent's tone (default)
 - `"base"` — the mid-lightness anchor for the current color family
-- A bare integer string like `"0"`, `"9"`, `"17"`
 - `"shift-N"` where N is 0–17 — absolute position in the 18-step ramp
 - `"increase-N"` where N is 0–17 — lighter relative to the current context
 - `"decrease-N"` where N is 0–17 — darker relative to the current context
-- A semantic alias from `@domphy/theme` — `"surface"`, `"hover"`, `"border"`, `"border-strong"`, `"muted"`, `"text"` — each resolves to its underlying `shift-N` before grammar/range checks (see [Tone Aliases](/docs/theme/tone#semantic-aliases))
+- A semantic alias — `"surface"`, `"hover"`, `"border"`, `"border-strong"`, `"muted"`, `"text"` — each resolves to its underlying `shift-N` before grammar/range checks (see [Tone Aliases](/docs/theme/tone#semantic-aliases))
 
-Anything else is flagged, including made-up words like `"light"` or `"dark"`, and out-of-range offsets like `"shift-25"`.
+A real number (`dataTone: 3`) is accepted by the runtime and is not checked here (core preserves the JS type). Bare-numeric **strings** like `"3"` are invalid — `offsetTone()` throws for them.
+
+Anything else is flagged, including made-up words like `"light"` / `"foreground"`, out-of-range offsets like `"shift-25"`, and bare-numeric strings.
 
 ```ts
 // Bad
-{ div: "Card", dataTone: "light" }     // not a tone
-{ div: "Card", dataTone: "dark" }      // not a tone
-{ div: "Card", dataTone: "shift-25" }  // out of range (max 17)
+{ div: "Card", dataTone: "light" }       // not a tone
+{ div: "Card", dataTone: "foreground" }  // not a tone (aliases are surface/text/…)
+{ div: "Card", dataTone: "3" }           // bare-numeric string — runtime throws
+{ div: "Card", dataTone: "shift-25" }    // out of range (max 17)
 { div: "Card", dataTone: "increase-18" } // out of range
 ```
 
 ```ts
 // Good
 { div: "Card", dataTone: "base" }
-{ div: "Card", dataTone: "shift-0" }      // lightest
-{ div: "Card", dataTone: "shift-17" }     // darkest
-{ div: "Card", dataTone: "increase-2" }   // 2 steps lighter than context
-{ div: "Card", dataTone: "decrease-3" }   // 3 steps darker than context
-{ div: "Card", dataTone: "surface" }      // semantic alias, same as "shift-1"
+{ div: "Card", dataTone: "shift-0" }       // lightest
+{ div: "Card", dataTone: "shift-17" }      // darkest
+{ div: "Card", dataTone: "increase-2" }    // 2 steps lighter than context
+{ div: "Card", dataTone: "decrease-3" }    // 3 steps darker than context
+{ div: "Card", dataTone: "surface" }       // semantic alias, same as "shift-1"
 { div: "Card", dataTone: "border-strong" } // semantic alias, same as "shift-4"
+{ div: "Card", dataTone: 3 }               // real number — runtime accepts
 ```
-
-**Note:** bare integer strings like `"999"` or `"-5"` pass this rule — the parser accepts them without range-checking. Only the `shift-N` / `increase-N` / `decrease-N` families have N ≤ 17 enforced.
 
 ---
 

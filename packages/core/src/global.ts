@@ -1,1 +1,1 @@
-export * as core from "./index.js";
+export * from "./index.js";

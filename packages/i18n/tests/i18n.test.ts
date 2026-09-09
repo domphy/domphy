@@ -157,6 +157,13 @@ describe("exists()", () => {
     await i18n.initI18n("en");
     expect(i18n.exists("nonexistent.key" as any)).toBe(false);
   });
+
+  it("does not treat a fallback-locale key as present in the active locale", async () => {
+    const i18n = makeI18n();
+    await i18n.initI18n("vi");
+    expect(i18n.exists("hello")).toBe(true);
+    expect(i18n.exists("item_one" as any)).toBe(false);
+  });
 });
 
 describe("currentLocale()", () => {

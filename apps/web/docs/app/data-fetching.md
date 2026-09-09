@@ -73,7 +73,7 @@ The background refetch starts after the current render commits, so a stale entry
 
 ## Prefetching
 
-`router.prefetch(href)` (and `navLink`'s hover/visible prefetch) runs the target's loaders ahead of navigation. Results stay usable for 30 seconds — the same window as the Next.js client router cache — so the navigation itself renders instantly without re-fetching, even for uncached loaders.
+`router.prefetch(href)` (and `navLink`'s hover/visible prefetch) runs the same global/per-route middleware and rewrite pipeline as navigation, then the target's loaders. Locale-prefixed hrefs from `createI18nMiddleware` (e.g. `/vi/about`) therefore warm the rewritten route. Results stay usable for 30 seconds — the same window as the Next.js client router cache — so the navigation itself renders instantly without re-fetching, even for uncached loaders.
 
 ## Control Flow from Loaders
 

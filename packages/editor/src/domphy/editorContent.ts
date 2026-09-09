@@ -14,8 +14,14 @@ import {
 } from "@domphy/theme";
 import type { EditorInstance } from "../types";
 
-type EditorContentProps = {
+type EditorHostProps = {
   editor: EditorInstance;
+};
+
+export type EditorContentProps = EditorHostProps & {
+  color?: ValueOrState<ThemeColor>;
+  accentColor?: ValueOrState<ThemeColor>;
+  minHeight?: number;
 };
 
 /**
@@ -64,8 +70,8 @@ function guardHostChildren(node: ElementNode, host: HTMLElement): () => void {
 // view — removing host A must not unmount a view that now lives on host B.
 function attachEditorContent(
   node: ElementNode,
-  initialProps: EditorContentProps,
-): BehaviorInstance<EditorContentProps> {
+  initialProps: EditorHostProps,
+): BehaviorInstance<EditorHostProps> {
   let { editor } = initialProps;
   const host = node.domElement as HTMLElement;
   const unguard = guardHostChildren(node, host);
@@ -126,7 +132,7 @@ function editorContent(
   const { minHeight = 40 } = props;
 
   return {
-    ...behavior<EditorContentProps>("dp-editor", attachEditorContent, {
+    ...behavior<EditorHostProps>("dp-editor", attachEditorContent, {
       editor,
     }),
     style: {
@@ -237,4 +243,3 @@ function editorContent(
 }
 
 export { editorContent };
-export type { EditorContentProps };

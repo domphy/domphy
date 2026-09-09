@@ -78,6 +78,8 @@ export interface SizeState {
   dpr: number;
 }
 
+export type Dpr = number | [min: number, max: number];
+
 export interface RootState {
   gl: RendererLike;
   scene: any; // THREE.Scene
@@ -95,6 +97,10 @@ export interface RootState {
   onPointerMissed?: (event: MouseEvent) => void;
   internal: RootInternal;
 }
+
+export type CreatedRootState = RootState & {
+  setSize(width: number, height: number, dpr?: Dpr): void;
+};
 
 export interface RootInternal {
   frameCallbacks: { callback: FrameCallback; priority: number }[];
@@ -138,13 +144,13 @@ export interface ThreeOptions {
   createRenderer?: (canvas: HTMLCanvasElement) => RendererLike;
   gl?: Record<string, any>; // WebGLRenderer constructor params when using default
   frameloop?: "always" | "demand" | "never"; // default "always"
-  dpr?: number | [min: number, max: number];
+  dpr?: Dpr;
   shadows?: boolean | "basic" | "percentage" | "soft" | "variance";
   flat?: boolean; // NoToneMapping
   linear?: boolean; // disable sRGB output
   raycaster?: Record<string, any>;
   events?: false; // false disables the pointer event system
-  onCreated?: (root: RootState) => void;
+  onCreated?: (root: CreatedRootState) => void;
   onPointerMissed?: (event: MouseEvent) => void;
 }
 ```

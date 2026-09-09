@@ -112,7 +112,7 @@ Options:
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `persist` | `boolean` | `true` | Save resolved theme in `localStorage` |
+| `persist` | `boolean` | `true` | Honour an existing `"light"`/`"dark"` value under `storageKey`; the helper never writes — the caller persists a user choice via `localStorage.setItem` |
 | `storageKey` | `string` | `"dp-theme"` | `localStorage` key |
 
 ## Setup Helpers

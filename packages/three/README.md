@@ -89,13 +89,14 @@ self-correction: generate a scene, run `diagnose`, fix what it reports.
 ```ts
 import { diagnose, validate } from "@domphy/three";
 
-const issues = diagnose({
+const options = {
   camera: { position: [3, 8, -9] },              // camera-missing-lookat
   scene: [
     { pointLight: null, intensity: 0.8 },        // legacy-light-intensity
     { boxGeometyr: null },                       // unknown-tag (error)
   ],
-});
+};
+const issues = diagnose(options);
 validate(options).ok; // false only when error-severity issues exist
 ```
 

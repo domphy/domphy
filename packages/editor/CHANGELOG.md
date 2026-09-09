@@ -1,5 +1,10 @@
 # @domphy/editor Changelog
 
+## 0.2.5
+
+- `createEditor` forces `element: null` (passing `element` is ignored so the helper never mounts).
+- `EditorContentProps` includes `color` / `accentColor` / `minHeight` (host CSS-in-JS via `generateCSS()`).
+
 ## 0.2.4
 
 - Link URI validation, command wiring, bubbleMenu/editorContent audit-fix pass.
@@ -7,6 +12,16 @@
 ## 0.2.3
 
 - Peer range widened: `@domphy/theme` now accepts `^0.21.0 || ^0.22.0` — theme 0.22.0 is additive (palette re-export), and every theme API editor uses (`themeColor`/`themeSpacing`) is unchanged. Removes the peer warning for consumers on theme 0.22.x.
+
+## 0.2.2
+
+- Cross-depth delete no longer produces schema-invalid documents — `mergeNodes` carries separate left/right depths (ProseMirror slice-closing semantics).
+- IME resync strips the placeholder trailing `<br>` instead of manufacturing phantom `hardBreak` nodes; word-delete input types delete whole words instead of single chars.
+- Link is `inclusive: false`; autolink-on-Enter folds into one undo step; table commands replace by path and remap the selection after row/column ops; `editorContent()` dev-warns when the host declares children.
+
+## 0.2.1
+
+- `EditorViewLike.coordsAtPos(pos?)`: viewport coordinates (DOMRect) of the caret at a model position (defaults to the current selection head), for anchoring floating UI like slash menus; `null` when the position cannot be resolved to the DOM.
 
 ## 0.2.0
 

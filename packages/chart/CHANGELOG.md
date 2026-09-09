@@ -1,5 +1,9 @@
 # @domphy/chart Changelog
 
+## 0.3.3
+
+- `tooltip.appendToBody` is implemented — removed from the unsupported-tooltip-key warn list.
+
 ## 0.3.2
 
 - `option.polar` no longer precomputes unused layout coords; `setOption` warns that polar has no effect. `resolvePolar` stays exported for tests and future wiring.

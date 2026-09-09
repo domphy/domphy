@@ -7,7 +7,8 @@ import type { Attributes, EditorInstance, EditorOptions } from "../types";
  *
  * The DOM host is supplied later by the {@link editorContent} patch, which owns
  * the mount/unmount lifecycle of the element it is applied to. Passing
- * `element` here would mount twice.
+ * `element` here is ignored (`element` is forced to `null`) so this helper
+ * never mounts.
  *
  * @example
  * const editor = createEditor({ extensions: [starterKit()], content: "<p>Hi</p>" })

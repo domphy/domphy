@@ -41,13 +41,13 @@ export default defineConfig({ /* SiteConfig */ })
 | `sidebar` | `Record<string, SidebarItem[]>` | Sidebar keyed by route prefix — longest match wins |
 | `logo` | `string \| { light: string; dark: string }?` | Logo image — single URL or separate light/dark variants |
 | `search` | `false \| { placeholder?, limit? }?` | Built-in local search. Pass `false` to disable |
-| `footerMessage` | `string?` | Footer content |
+| `footerMessage` | `string?` | Footer content (HTML via `rawHtml()` — keep to markup you control) |
 | `socialLinks` | `SocialLink[]?` | GitHub, Twitter, Discord, etc. icon links in header |
 | `editLink` | `EditLink?` | "Edit this page" link (pattern: `https://github.com/…/:path`) |
 | `outline` | `{ level: [number, number] }?` | TOC heading levels. Default: `[2, 3]` |
 | `tocTitle` | `string?` | TOC section heading text. Default: `"On this page"` |
 | `mermaid` | `boolean \| { cdn? }?` | Enable Mermaid diagrams (loaded via CDN) |
-| `announcementBar` | `{ id?, text, dismissible? }?` | Dismissible banner above the page |
+| `announcementBar` | `{ id?, text, dismissible? }?` | Dismissible banner above the page. `text` is HTML via `rawHtml()` (same contract as `footerMessage`) |
 | `slots` | `LayoutSlots?` | Override individual layout regions with custom Domphy elements |
 
 ## NavItem

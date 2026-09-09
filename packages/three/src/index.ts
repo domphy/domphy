@@ -28,9 +28,10 @@ export type {
 export type { AssetResult } from "./loader.js";
 export { clearAsset, loadAsset, preloadAsset } from "./loader.js";
 export { three } from "./patch.js";
-export type { CreatedRootState } from "./rootState.js";
 export type {
   Constructable,
+  CreatedRootState,
+  Dpr,
   FrameCallback,
   RendererLike,
   RootInternal,

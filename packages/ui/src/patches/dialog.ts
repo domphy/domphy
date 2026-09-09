@@ -61,17 +61,21 @@ function attachDialog(
     // Guard for environments with HTMLDialogElement but no close()
     // implementation (e.g. jsdom in tests).
     if (typeof dlg.close === "function") dlg.close();
-    // visibility/pointer-events (not just opacity) must reflect the closed
-    // state: opacity alone leaves a closed dialog's content fully reachable
-    // by Tab and exposed to the accessibility tree (opacity, unlike
+    // visibility/pointer-events/display (not just opacity) must reflect the
+    // closed state: opacity alone leaves a closed dialog's content fully
+    // reachable by Tab and exposed to the accessibility tree (opacity, unlike
     // visibility, never removes an element from either) — and a consumer
     // that sets its own `style: { display: ... }` on the dialog (a common
     // pattern for centering content) overrides the UA stylesheet's
     // `dialog:not([open]) { display: none }`, so `dlg.close()` alone doesn't
-    // reliably hide it either. Set INLINE so it always wins regardless of
-    // what the consumer's own style object declares.
+    // reliably hide it either. visibility+pointer-events still leave the
+    // node in the layout and in the document for password-managers / autofocus.
+    // Set INLINE so it always wins regardless of what the consumer's own
+    // style object declares. Do not put `display: none` on the patch CSS
+    // class — native `style.display` would lose to that class on reopen.
     dlg.style.visibility = "hidden";
     dlg.style.pointerEvents = "none";
+    dlg.style.display = "none";
     if (scrollLocked) {
       unlockScroll();
       scrollLocked = false;
@@ -127,6 +131,9 @@ function attachDialog(
       previousFocus = document.activeElement as HTMLElement;
       dlg.style.visibility = "visible";
       dlg.style.pointerEvents = "auto";
+      // Drop the closed-state inline display so the consumer's own
+      // `style.display` (or the UA open-dialog rule) can apply.
+      dlg.style.display = "";
       // Guard for environments with HTMLDialogElement but no showModal()
       // implementation (e.g. jsdom in tests). Also guard against re-entering
       // on an already-open dialog — showModal() throws InvalidStateError in
@@ -146,6 +153,13 @@ function attachDialog(
       closing = true;
       dlg.style.opacity = "0";
       dlg.removeEventListener("keydown", trapFocus);
+      // Mounted already-closed (never opened): no fade to play — hide now
+      // so a consumer `display: flex` cannot keep the closed node in layout
+      // for the 350ms timer (or forever, if transitionend also never fires).
+      if (!dlg.open) {
+        finalizeClose();
+        return;
+      }
       // Fallback: if transitionend never fires (reduced-motion, display:none),
       // unblock close after the transition duration + buffer.
       closeTimer = setTimeout(() => {
@@ -203,6 +217,8 @@ function attachDialog(
  * fades via opacity, locks page scroll while open, traps Tab focus within the
  * dialog, restores focus to the previously focused element on close, sets
  * `aria-modal`, and closes on outside (backdrop) click. Apply to a `<dialog>`.
+ * Closed state is inline `visibility`/`pointer-events`/`display:none` so a
+ * consumer `style.display` cannot keep the node in layout.
  *
  * Accessible name/description: pass `labelledBy`/`describedBy` the `id` of a
  * heading/paragraph inside the dialog (Radix Title/Description parity). The

@@ -233,7 +233,9 @@ function announcementBar(config: SiteConfig): DomphyElement | null {
   const bar = config.themeConfig.announcementBar;
   if (!bar) return null;
   const idAttr = bar.id ? bar.id : "";
-  const children: DomphyElement[] = [{ span: bar.text } as DomphyElement];
+  const children: DomphyElement[] = [
+    { span: rawHtml(bar.text) } as DomphyElement,
+  ];
   if (bar.dismissible !== false) {
     children.push({
       button: "✕",
@@ -1297,7 +1299,7 @@ export function pageShell(ctx: LayoutContext): DomphyElement {
   };
 }
 
-interface HeroConfig {
+export interface HeroConfig {
   name?: string;
   text?: string;
   tagline?: string;

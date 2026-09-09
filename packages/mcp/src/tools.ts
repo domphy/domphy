@@ -222,13 +222,23 @@ function missingManifestHint(): string {
   );
 }
 
+function manifestLoadError(error: unknown): string {
+  const code =
+    error !== null && typeof error === "object" && "code" in error
+      ? String((error as { code: unknown }).code)
+      : "";
+  if (code === "ENOENT") return missingManifestHint();
+  const message = error instanceof Error ? error.message : String(error);
+  return `Failed to read app-manifest at "${appManifestPath()}": ${message}`;
+}
+
 /** Lists the app's own blocks (name + signature + file) from the app-manifest. */
 export async function listAppBlocks(): Promise<string> {
   let blocks: AppBlock[];
   try {
     blocks = await loadAppBlocks();
-  } catch {
-    return missingManifestHint();
+  } catch (error) {
+    return manifestLoadError(error);
   }
   if (blocks.length === 0) {
     return "The app-manifest is empty — no exported Domphy blocks were found.";
@@ -246,8 +256,8 @@ export async function getAppBlock(name: string): Promise<string> {
   let blocks: AppBlock[];
   try {
     blocks = await loadAppBlocks();
-  } catch {
-    return missingManifestHint();
+  } catch (error) {
+    return manifestLoadError(error);
   }
   const block = blocks.find((b) => b.name === name);
   if (!block) {

@@ -1,6 +1,7 @@
 import { type DomphyElement, ElementNode, getConfig } from "@domphy/core";
 import type { HistoryAdapter } from "./history.js";
 import { metadataToHeadTags, renderHeadTags } from "./metadata.js";
+import { RedirectSignal } from "./navigation.js";
 import { AppRouter, type RouterOptions } from "./router.js";
 import type { Route } from "./types.js";
 
@@ -22,7 +23,15 @@ export interface RenderToStreamOptions extends RenderToStringOptions {
 export interface StreamResult {
   /** A web `ReadableStream` of UTF-8 bytes: the shell flushes first, content follows. */
   stream: ReadableStream<Uint8Array>;
+  /**
+   * HTTP status from decisions made before the shell flushes: middleware and
+   * static route `redirect` (307/308), unmatched routes (404), rewrite loops
+   * (500), otherwise 200. Loader/metadata `redirect()` cannot change this —
+   * the shell is already committed; those redirects stream as a client-side
+   * `location.replace` in a later chunk.
+   */
   status: number;
+  /** Set when middleware or a static route `redirect` fired before the shell. */
   redirect?: string;
 }
 
@@ -167,9 +176,16 @@ export class DomphyApp {
 
   /**
    * Streaming server render. Flushes the shell (layouts + loading fallbacks)
-   * immediately for a fast TTFB, then streams the resolved content, head and
-   * hydration data once loaders settle. The content arrives in `<template>`s
-   * that an inline script swaps into place; the client then calls `hydrate`.
+   * immediately for a fast TTFB — loaders are not awaited before this method
+   * returns, so the HTTP server can write the first byte — then streams the
+   * resolved content, head and hydration data once loaders settle. The content
+   * arrives in `<template>`s that an inline script swaps into place; the
+   * client then calls `hydrate`.
+   *
+   * `status`/`redirect` only reflect pre-shell decisions. A loader
+   * `redirect()` after the shell streams as `location.replace` in a later
+   * chunk; use `renderToString` when an HTTP redirect from a loader is
+   * required.
    */
   async renderToStream(
     url: string | URL,
@@ -233,10 +249,18 @@ export class DomphyApp {
           controller.enqueue(encoder.encode(chunk));
           controller.close();
         } catch (error) {
-          // The shell already flushed, so the failure cannot become an error
-          // status code; stream an error chunk that swaps the configured error
-          // block into place instead of leaving the loading fallback forever —
-          // the same tree a non-streaming render produces for a thrown error.
+          // The shell already flushed, so HTTP status cannot change. A loader
+          // redirect becomes a client-side navigation; any other failure swaps
+          // the configured error block in so the loading fallback is not left
+          // on screen forever.
+          if (error instanceof RedirectSignal) {
+            const chunk =
+              `<script${nonce}>location.replace(${JSON.stringify(error.to)});</script>` +
+              `</body></html>`;
+            controller.enqueue(encoder.encode(chunk));
+            controller.close();
+            return;
+          }
           const failure =
             error instanceof Error ? error : new Error(String(error));
           const errorNode = new ElementNode({

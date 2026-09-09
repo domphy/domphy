@@ -100,9 +100,40 @@ A paragraph with **bold**, _italic_, and `code`.
 | `**bold**` or `__bold__` | `{ strong: [...children] }` |
 | `_italic_` or `*italic*` | `{ em: [...children] }` |
 | `~~struck~~` | `{ s: [...children] }` |
+| `==highlight==` | `{ mark: [...children] }` |
+| `~sub~` | `{ sub: [...children] }` |
+| `^sup^` | `{ sup: [...children] }` |
 | `` `inline code` `` | `{ code: "text" }` |
 
-Emphasis elements can be nested: `**_bold italic_**` becomes `{ strong: [{ em: ["bold italic"] }] }`.
+Emphasis elements can be nested: `**_bold italic_**` becomes `{ strong: [{ em: ["bold italic"] }] }`. `==**bold**==` becomes `{ mark: [{ strong: ["bold"] }] }`.
+
+GFM strikethrough is `~~…~~` only (`singleTilde: false` on `remark-gfm`) so `H~2~O` is subscript, not strike. `==…==` / `~…~` / `^…^` inside inline code or fences stay literal text.
+
+```markdown
+==highlighted==
+H~2~O
+E=mc^2^
+```
+
+```ts
+{ p: [{ mark: ["highlighted"] }] }
+{ p: ["H", { sub: ["2"] }, "O"] }
+{ p: ["E=mc", { sup: ["2"] }] }
+```
+
+## Emoji
+
+GitHub gemoji shortcodes (`remark-gemoji`) are replaced with the emoji character in the text node. Unknown shortcodes stay literal. Fenced/inline code is not expanded.
+
+```markdown
+:tada: :smile: :rocket:
+:not_an_emoji:
+```
+
+```ts
+{ p: ["🎉 😄 🚀"] }
+{ p: [":not_an_emoji:"] }
+```
 
 ## Links
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.18.5
+
+- Streaming/TTFB docs + tests: held-promise stream; i18n prefetch uses locale-prefixed hrefs.
+- Middleware JSDoc: runs before navigation, prefetch, and server render.
+
 ## 0.18.4
 
 - `DataCache` invalidate; `navLink` / router / tree / image audit-fix pass; extra SSR and parallel-route tests.

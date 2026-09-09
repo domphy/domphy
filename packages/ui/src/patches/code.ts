@@ -35,9 +35,12 @@ function code(
       color: (listener) => themeColor(listener, "text", color.get(listener)),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
-      height: (listener) => themeSpacing(themeDensity(listener) * 6),
-      paddingInline: (listener) => themeSpacing(themeDensity(listener) * 1.5),
-      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
+      // Bare themeSpacing(U) at snapshot time; n = U / 1.5 (light.densities[2]).
+      height: (listener) => themeSpacing(themeDensity(listener) * (6 / 1.5)),
+      paddingInline: (listener) =>
+        themeSpacing(themeDensity(listener) * (1.5 / 1.5)),
+      borderRadius: (listener) =>
+        themeSpacing(themeDensity(listener) * (1 / 1.5)),
     },
   };
 }

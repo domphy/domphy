@@ -67,7 +67,7 @@ export interface RewriteResult {
 }
 
 /**
- * Middleware runs before every navigation and server render.
+ * Middleware runs before every navigation, prefetch, and server render.
  * Return `rewrite(path)` to render another route under the same URL,
  * call `redirect(path)` / `notFound()` to interrupt, or return nothing to continue.
  */

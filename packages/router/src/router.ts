@@ -113,6 +113,10 @@ import type {
 } from './ssr/serializer/transformer'
 import type { GetStoreConfig, RouterStores } from './stores'
 
+// Advertised RouterOptions.defaultGcTime / defaultPreloadGcTime contract
+// (TanStack RouterOptionsType JSDoc @default 1_800_000 — 30 minutes).
+const DEFAULT_GC_TIME_MS = 1_800_000
+
 export type ControllablePromise<T = any> = Promise<T> & {
   resolve: (value: T) => void
   reject: (value?: any) => void
@@ -1027,6 +1031,8 @@ export class RouterCore<
       defaultPreloadDelay: 50,
       defaultPendingMs: 1000,
       defaultPendingMinMs: 500,
+      defaultGcTime: DEFAULT_GC_TIME_MS,
+      defaultPreloadGcTime: DEFAULT_GC_TIME_MS,
       context: undefined!,
       ...options,
       caseSensitive: options.caseSensitive ?? false,
@@ -2873,7 +2879,7 @@ export class RouterCore<
         (d.preload
           ? (route.options.preloadGcTime ?? this.options.defaultPreloadGcTime)
           : (route.options.gcTime ?? this.options.defaultGcTime)) ??
-        5 * 60 * 1000
+        DEFAULT_GC_TIME_MS
 
       const isError = d.status === 'error'
       if (isError) return true

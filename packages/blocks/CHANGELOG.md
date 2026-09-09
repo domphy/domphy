@@ -1,5 +1,10 @@
 # @domphy/blocks Changelog
 
+## 0.2.3
+
+- Drop unused `@domphy/form` peer (auth uses local `authFieldInput()`; dashboard uses `@domphy/table`). Advertised peer list matches `package.json`.
+- Lifecycle harness is a real gate: `expect(failures).toEqual([])`.
+
 ## 0.2.2
 
 - Opt-in Playwright e2e: `pnpm test:e2e` (interact checks + full-catalog axe/overflow/screenshot scan). Not wired into `pnpm test`. Screenshots at `.ui-qa/blocks-e2e/`.

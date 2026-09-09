@@ -200,12 +200,14 @@ export default defineConfig({
   themeConfig: {
     announcementBar: {
       id: "v2-release",   // unique — controls dismiss state in localStorage
-      content: "🎉 Domphy v2.0 is out! <a href='/blog/v2'>Read the release notes</a>",
+      text: "🎉 Domphy v2.0 is out! <a href='/blog/v2'>Read the release notes</a>",
       dismissible: true,
     },
   },
 })
 ```
+
+`text` is rendered as HTML (wrapped in `rawHtml()` by the layout) — the same controlled-markup contract as `footerMessage`. Inline tags like `<a>` are allowed; keep it to markup you control.
 
 ## Extending the layout component
 

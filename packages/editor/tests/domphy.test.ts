@@ -4,9 +4,7 @@
  * editorContent host-children contract guard.
  */
 
-import type { DomphyElement } from "@domphy/core";
-
-import { ElementNode, toState } from "@domphy/core";
+import { type DomphyElement, ElementNode, toState } from "@domphy/core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   bubbleMenu,
@@ -54,6 +52,19 @@ describe("createEditor", () => {
     expect(editor.getText()).toBe("hello");
     expect(editor.isDestroyed).toBe(false);
   });
+
+  it("ignores options.element instead of mounting twice", () => {
+    const el = document.createElement("div");
+    document.body.appendChild(el);
+    const editor = createEditor({
+      extensions: [starterKit()],
+      content: "<p>hello</p>",
+      element: el,
+    });
+    editors.push(editor);
+    expect(el.querySelector("[contenteditable]")).toBeNull();
+    expect(editor.getText()).toBe("hello");
+  });
 });
 
 describe("editorContent", () => {
@@ -67,6 +78,28 @@ describe("editorContent", () => {
     expect(editable).not.toBeNull();
     expect(editable?.innerHTML).toBe("<p>hello</p>");
     expect(editor.isDestroyed).toBe(false);
+  });
+
+  it("applies color, accentColor, and minHeight from editorContent props", () => {
+    const editor = makeEditor();
+    const { host, node } = mount({
+      div: null,
+      $: [
+        editorContent(editor, {
+          color: "primary",
+          accentColor: "info",
+          minHeight: 20,
+        }),
+      ],
+    } as DomphyElement);
+    // The editor stamps contenteditable on the patched host itself.
+    expect(host.querySelector("[contenteditable]")).not.toBeNull();
+    // Patch styles the host via CSS-in-JS, not element.style.
+    // minHeight 20 → themeSpacing(20) = calc(20/4 em).
+    const css = node.generateCSS();
+    expect(css).toMatch(/min-height:\s*calc\(\s*5em\s*\)/);
+    expect(css).toMatch(/--primary-/);
+    expect(css).toMatch(/--info-/);
   });
 
   it("warns when the host declares children content", () => {

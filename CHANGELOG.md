@@ -6,6 +6,29 @@ Packages are versioned independently — each package has its own version number
 
 ---
 
+## Patch — 2026-09-10
+
+Enterprise-grade audit-fix wave (advertised-vs-shipped contracts, docs, Playwright UX).
+
+- `@domphy/core` [0.21.3] — public `TextNode`; CDN IIFE flattens onto `Domphy`.
+- `@domphy/theme` [0.22.3] — `themeFluidSpacing` Utopia preferred value; `applySystemTheme` caller-writes.
+- `@domphy/ui` [0.21.4] — datePicker/rating keyboard contracts; description honesty.
+- `@domphy/floating` [0.18.4] — `UPSTREAM.md` in `files`; `platform` / `getOverflowAncestors` from the public entry.
+- `@domphy/app` [0.18.5] — streaming/TTFB + i18n prefetch tests.
+- `@domphy/blocks` [0.2.3] — drop unused `@domphy/form` peer; lifecycle harness gates.
+- `@domphy/chart` [0.3.3] — `tooltip.appendToBody` is supported.
+- `@domphy/editor` [0.2.5] — `createEditor` never mounts; `EditorContentProps` color/minHeight.
+- `@domphy/i18n` [0.19.5] — `exists()` active-locale-only.
+- `@domphy/mcp` [0.19.5] — corrupt-manifest error vs missing-file.
+- `@domphy/press` [0.23.2] — mark/sub/sup/gemoji; announcementBar `rawHtml`; public types.
+- `@domphy/router` [0.18.4] — `defaultGcTime` 30 minutes.
+- `@domphy/three` [0.3.2] — `CreatedRootState` on `onCreated`.
+- `create-domphy` [0.18.9] — pins core 0.21.3 / theme 0.22.3 / ui 0.21.4.
+
+## Patch — 2026-09-09
+
+- `@domphy/ui` [0.21.3] — closed `dialog`/`drawer` set inline `display: none` so a consumer `style.display` cannot keep the closed node in layout; compact chips (`tag`/`code`/`mark`/`keyboard`/`badge`) scale as `density × (U / 1.5)` so default size matches catalog snapshots and a `tag` stays inset in the `selectBox` trigger.
+
 ## Patch — 2026-08-21 (evening)
 
 - `@domphy/chart` [0.3.2] — polar option no longer precomputes unused layout coords.

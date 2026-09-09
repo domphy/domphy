@@ -1,5 +1,10 @@
 # @domphy/three Changelog
 
+## 0.3.2
+
+- `onCreated(root)` is typed `CreatedRootState` (`RootState` + `setSize`).
+- README `diagnose`/`validate` snippets bind `options` then pass that object.
+
 ## 0.3.1
 
 - Reconciler/patch/diagnose audit-fix pass (`tag-not-first` rule, pointer/container NDC, asset cache-hit warn).

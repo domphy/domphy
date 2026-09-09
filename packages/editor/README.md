@@ -1,10 +1,10 @@
 # @domphy/editor
 
-Headless rich-text editor for [Domphy](https://domphy.com) with a **Tiptap-compatible API** on a **self-contained engine** — no ProseMirror, no external runtime dependencies.
+Headless rich-text editor for [Domphy](https://domphy.com) with a **Tiptap-compatible API** on a **self-contained engine** — no ProseMirror. Runtime dependency: `@domphy/floating` (bubble-menu positioning).
 
 - `Editor`, `Extension.create` / `Node.create` / `Mark.create`, chainable commands (`chain()` / `can()`), `isActive`, JSON/HTML/text serialization — the API you know from Tiptap.
-- StarterKit extension set: document, text, paragraph, heading, bold, italic, strike, code, blockquote, bulletList, orderedList, listItem, hardBreak, horizontalRule, history (undo/redo), link, codeBlock.
-- Domphy adapter at `@domphy/editor/domphy`: `editorContent()` patch and a selection-anchored `bubbleMenu()` patch (positioned via `@domphy/floating`).
+- StarterKit extension set: document, text, paragraph, heading, bold, italic, strike, code, underline, blockquote, bulletList, orderedList, listItem, hardBreak, horizontalRule, undoRedo, trailingNode, link, codeBlock. Pass `false` for any key to leave it out.
+- Domphy adapter at `@domphy/editor/domphy`: `createEditor()` (does not mount), `editorState()` reactive readers, `editorContent()` patch, and a selection-anchored `bubbleMenu()` patch (positioned via `@domphy/floating`).
 
 ## Install
 

@@ -99,14 +99,16 @@ function attachDrawer(
     // implementation (e.g. jsdom in tests).
     if (typeof dlg.close === "function") dlg.close();
     // Same fix as dialog.ts: the closed state was only ever represented
-    // by an off-screen `transform`, never visibility/pointer-events — a
-    // closed drawer stayed fully reachable by Tab and exposed to the
+    // by an off-screen `transform`, never visibility/pointer-events/display
+    // — a closed drawer stayed fully reachable by Tab and exposed to the
     // accessibility tree (a CSS transform, like opacity, does neither),
     // and a consumer's own `style: { display: ... }` overrides the UA
     // stylesheet's `dialog:not([open])` rule anyway. Set INLINE so it
-    // always wins.
+    // always wins. Do not put `display: none` on the patch CSS class —
+    // native `style.display` would lose to that class on reopen.
     dlg.style.visibility = "hidden";
     dlg.style.pointerEvents = "none";
+    dlg.style.display = "none";
     if (scrollLocked) {
       unlockScroll();
       scrollLocked = false;
@@ -132,6 +134,7 @@ function attachDrawer(
       }
       dlg.style.visibility = "visible";
       dlg.style.pointerEvents = "auto";
+      dlg.style.display = "";
       // Guard for environments with HTMLDialogElement but no showModal()
       // implementation (e.g. jsdom in tests). Also guard against re-entering
       // on an already-open dialog — showModal() throws InvalidStateError in
@@ -147,6 +150,10 @@ function attachDrawer(
     } else {
       closing = true;
       dlg.style.transform = translateOut[physical];
+      if (!dlg.open) {
+        finishClose();
+        return;
+      }
       closeTimer = setTimeout(finishClose, 350);
     }
   };

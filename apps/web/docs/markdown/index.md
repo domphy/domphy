@@ -21,7 +21,7 @@ This docs site is built on this pipeline. The `@domphy/press` engine passes cust
 ## What you get
 
 - Headings with a slug `id` for anchors, plus a collected table of contents
-- Paragraphs, bold / italic / strikethrough, inline code
+- Paragraphs, bold / italic / strikethrough (`~~…~~`), highlight (`==mark==`), subscript (`~sub~`), superscript (`^sup^`), inline code, GitHub gemoji (`:tada:` → 🎉)
 - Fenced code blocks (with a pluggable highlighter)
 - Links, images, blockquotes, ordered / unordered / nested lists (`_key` on list items)
 - GFM tables, horizontal rules, raw inline / block HTML pass-through

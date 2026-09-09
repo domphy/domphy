@@ -7,6 +7,7 @@ import type { DomphyElement, RawHTML } from "@domphy/core";
 import type { Code, Html, Nodes, Parent, Root } from "mdast";
 import { remark } from "remark";
 import remarkDirective from "remark-directive";
+import remarkGemoji from "remark-gemoji";
 import remarkGfm from "remark-gfm";
 import { visit } from "unist-util-visit";
 import { escapeHtml, renderFence } from "./highlight.js";
@@ -18,6 +19,7 @@ import {
   transformOutsideCodeBlocks,
   walkMdast,
 } from "./markdown/index.js";
+import { remarkMarkSubSup } from "./markdown/mark-sub-sup.js";
 import type { RenderDocOptions, RenderedDoc, TocEntry } from "./types.js";
 
 // --- <<< code imports --------------------------------------------------------
@@ -421,8 +423,15 @@ export async function renderDoc(
   // so the reassembled <span> reaches them (and walkMdast) as one html
   // node; code-group must run before pressCodePlugin so it can access the
   // MDAST Code nodes before they become html strings.
+  const gfm = ((remarkGfm as { default?: unknown }).default ??
+    remarkGfm) as typeof remarkGfm;
+  const gemoji = ((remarkGemoji as { default?: unknown }).default ??
+    remarkGemoji) as typeof remarkGemoji;
+  // singleTilde: false — see markdown/index.ts (markdown-it-sub vs GitHub).
   const proc = remark()
-    .use(remarkGfm as any)
+    .use(gfm as any, { singleTilde: false })
+    .use(gemoji as any)
+    .use(remarkMarkSubSup)
     .use(remarkDirective as any)
     .use(pressBadgeMergePlugin())
     .use(pressCodeGroupPlugin(highlight))

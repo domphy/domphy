@@ -63,7 +63,7 @@ Get the Domphy code-generation rules (`llms.txt`) — the complete guide for wri
 
 ## domphy_tones
 
-Get the valid tone names and theme color names for `themeColor()` and `dataTone`. Use this to avoid inventing tones like `"surface"` or `"text"` that don't exist.
+Get the valid tone names and theme color names for `themeColor()`/`dataTone` (e.g. `themeColor(l, "text", "primary")`, same as `themeColor(l, "shift-9", "primary")`). Includes the semantic aliases (`surface`/`hover`/`border`/`border-strong`/`muted`/`text`) — prefer those over invented tone words.
 
 **Input:** none
 

@@ -91,6 +91,12 @@ const { stream, status, redirect } = await app.renderToStream(request.url, {
   headers: request.headers,
 })
 
+if (redirect) {
+  response.writeHead(status, { location: redirect })
+  response.end()
+  return
+}
+
 response.writeHead(status, { "content-type": "text/html" })
 // Pipe the web stream to the Node response (or return it directly on edge runtimes).
 for await (const chunk of stream as unknown as AsyncIterable<Uint8Array>) {
@@ -104,7 +110,9 @@ response.end()
 - **First flush** — `<!DOCTYPE html>` + `<head>` (your `head` option + shell CSS) + `<body><div id="domphy-app">` wrapping the shell. The browser paints the loading UI right away.
 - **Second flush** — the content and head arrive as `<template>` elements followed by an inline script that swaps them into place, then the hydration data and your `bootstrap` markup.
 
-`RenderToStreamOptions` adds `head` (markup for `<head>`, sent first) and `bootstrap` (markup before `</body>`, usually the client bundle `<script>`) to the `headers` option. Because the shell is committed before loaders run, `status` is `200` for any matched route; loader-level `notFound()`/`error` render their boundaries inline.
+`RenderToStreamOptions` adds `head` (markup for `<head>`, sent first) and `bootstrap` (markup before `</body>`, usually the client bundle `<script>`) to the `headers` option.
+
+`status`/`redirect` are decided **before** the shell flushes: middleware and static `route.redirect` can still return 307/308 (or 404/500). Loader `redirect()` cannot change them — the first byte is already committed — and streams as a client-side `location.replace` in a later chunk. Use `renderToString` when you need an HTTP redirect from a loader. Loader `notFound()`/`error` render their boundaries inline in the second flush.
 
 On the client, hydrate the swapped root exactly as with `renderToString`:
 

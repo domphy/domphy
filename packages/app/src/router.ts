@@ -447,31 +447,67 @@ export class AppRouter {
   }
 
   /**
-   * Warms a route ahead of navigation, like `router.prefetch()`: triggers each
-   * matched segment's lazy import (code-split module) and runs its loader, so a
-   * later navigation is instant. Each segment resolves its lazy module before
-   * its loader, since the loader itself may live in that module.
+   * Warms a route ahead of navigation, like `router.prefetch()`: runs the same
+   * global/per-route middleware and rewrite pipeline as `transition()` (depth-
+   * capped), then triggers each matched segment's lazy import and loader so a
+   * later navigation is instant. Failures (including redirects) are swallowed;
+   * the real navigation reports errors.
    */
   async prefetch(href: string): Promise<void> {
     try {
-      const url = this.resolve(href);
-      const match = matchRoute(this.routes, url.pathname);
-      if (!match) return;
-      const context = this.loaderContext(url, match);
-      await Promise.all(
-        match.route.chain.map(async (route, index) => {
-          // Fetch the code-split module first so the bundle is cached and the
-          // loader (which may come from the module) is known.
-          await resolveLazyRoute(route);
-          const loader = routeLoader(route);
-          if (!loader) return;
-          const key = this.cacheKey(match.route.chainIds[index], url);
-          await this.cache.prefetch(key, loader, context, route.revalidate);
-        }),
-      );
+      await this.prefetchUrl(this.resolve(href));
     } catch {
       // Prefetch failures are silent; the real navigation reports errors.
     }
+  }
+
+  /**
+   * Middleware + match + loader warmup for one URL. Route-level rewrites
+   * restart against the new URL, same depth budget as `transition()`.
+   */
+  private async prefetchUrl(url: URL, _redirectDepth = 0): Promise<void> {
+    let renderPathname = url.pathname;
+    const middlewareContext = {
+      url,
+      pathname: url.pathname,
+      searchParams: url.searchParams,
+      headers: this.headers,
+    };
+    for (const middleware of this.middleware) {
+      const result = await middleware(middlewareContext);
+      if (isRewrite(result)) renderPathname = result.__domphyRewrite;
+    }
+
+    const match = matchRoute(this.routes, renderPathname);
+    if (!match) return;
+
+    const leaf = match.route.chain[match.route.chain.length - 1];
+    if (leaf.redirect) return;
+
+    for (const route of match.route.chain) {
+      for (const middleware of routeMiddleware(route) ?? []) {
+        const result = await middleware(middlewareContext);
+        if (isRewrite(result)) {
+          const depth = _redirectDepth + 1;
+          if (depth > MAX_NAVIGATION_LOOPS) return;
+          await this.prefetchUrl(new URL(result.__domphyRewrite, url), depth);
+          return;
+        }
+      }
+    }
+
+    const context = this.loaderContext(url, match);
+    await Promise.all(
+      match.route.chain.map(async (route, index) => {
+        // Fetch the code-split module first so the bundle is cached and the
+        // loader (which may come from the module) is known.
+        await resolveLazyRoute(route);
+        const loader = routeLoader(route);
+        if (!loader) return;
+        const key = this.cacheKey(match.route.chainIds[index], url);
+        await this.cache.prefetch(key, loader, context, route.revalidate);
+      }),
+    );
   }
 
   searchParams(
@@ -494,9 +530,15 @@ export class AppRouter {
 
   /**
    * Two-phase server render for streaming SSR: returns the shell (layouts +
-   * loading fallbacks) synchronously, plus a promise for the resolved content,
-   * head and loader data once the loaders settle. The caller streams the shell
-   * first for a fast TTFB, then the content chunk when `rest` resolves.
+   * loading fallbacks) after middleware and matching — without awaiting
+   * loaders — plus a promise for the resolved content, head and loader data
+   * once the loaders settle. The caller streams the shell first for a fast
+   * TTFB, then the content chunk when `rest` resolves.
+   *
+   * `status`/`redirect` only reflect pre-shell decisions (middleware, static
+   * route `redirect`, unmatched 404, rewrite-loop 500). A loader `redirect()`
+   * rejects `rest` with `RedirectSignal` so the caller can stream a
+   * client-side redirect after the shell; the HTTP status cannot change.
    */
   async renderStream(
     url: URL,
@@ -534,12 +576,9 @@ export class AppRouter {
       if (match) {
         const leaf = match.route.chain[match.route.chain.length - 1];
         if (leaf.redirect) {
-          return {
-            shell: { div: "" },
-            status: leaf.permanent ? 308 : 307,
-            redirect: leaf.redirect,
-            rest: Promise.resolve({ content: { div: "" }, data: {}, head: "" }),
-          };
+          return redirectStreamResult(
+            new RedirectSignal(leaf.redirect, leaf.permanent ?? false),
+          );
         }
 
         // Route-level middleware, mirroring transition()'s loop: a rewrite
@@ -576,12 +615,7 @@ export class AppRouter {
       }
     } catch (error) {
       if (error instanceof RedirectSignal) {
-        return {
-          shell: { div: "" },
-          status: error.permanent ? 308 : 307,
-          redirect: error.to,
-          rest: Promise.resolve({ content: { div: "" }, data: {}, head: "" }),
-        };
+        return redirectStreamResult(error);
       }
       if (!(error instanceof NotFoundSignal)) throw error;
       match = null;
@@ -622,33 +656,35 @@ export class AppRouter {
         }).element,
     );
 
-    // Resolve loaders before committing to a 200 shell so a redirect from
-    // the page or a slot becomes StreamResult.redirect instead of a pending
-    // loading tree flushed as 200.
-    let redirectSignal: RedirectSignal | null = null;
-    const onRedirect = (signal: RedirectSignal) => {
-      redirectSignal = redirectSignal ?? signal;
-    };
-    const results = await this.loadMatch(resolvedMatch, url, onRedirect);
-    if (redirectSignal) return redirectStreamResult(redirectSignal);
-
-    const slots: Record<number, Record<string, DomphyElement>> = {};
-    await Promise.all(
-      resolvedMatch.route.chain.map(async (route, index) => {
-        if (this.slotCompiled.has(route)) {
-          slots[index] = await this.renderSlots(
-            index,
-            resolvedMatch,
-            url,
-            false,
-            onRedirect,
-          );
-        }
-      }),
-    );
-    if (redirectSignal) return redirectStreamResult(redirectSignal);
-
+    // Loaders run inside `rest`, not before this return: the caller must be
+    // able to enqueue the shell (and the HTTP server write the first byte)
+    // while they are still in flight. A loader/slot redirect therefore cannot
+    // change StreamResult.status — `rest` rejects with RedirectSignal so the
+    // stream can emit a client-side location.replace after the 200 shell.
     const rest = (async () => {
+      let redirectSignal: RedirectSignal | null = null;
+      const onRedirect = (signal: RedirectSignal) => {
+        redirectSignal = redirectSignal ?? signal;
+      };
+      const results = await this.loadMatch(resolvedMatch, url, onRedirect);
+      if (redirectSignal) throw redirectSignal;
+
+      const slots: Record<number, Record<string, DomphyElement>> = {};
+      await Promise.all(
+        resolvedMatch.route.chain.map(async (route, index) => {
+          if (this.slotCompiled.has(route)) {
+            slots[index] = await this.renderSlots(
+              index,
+              resolvedMatch,
+              url,
+              false,
+              onRedirect,
+            );
+          }
+        }),
+      );
+      if (redirectSignal) throw redirectSignal;
+
       const content = this.buildWithContext(
         () =>
           buildTree({

@@ -1,5 +1,11 @@
 # @domphy/theme Changelog
 
+## 0.22.3
+
+- `themeFluidSpacing` preferred value is Utopia-style (em→px at 16px/em) so `(4, 16)` is 1em at 320px and 4em at 1280px instead of clamping at 1em.
+- `applySystemTheme({ persist })` is caller-writes: it honours an existing `"light"`/`"dark"` localStorage value and never writes one.
+- `generateTheme` JSDoc merge example uses `getTheme("light")`.
+
 ## 0.22.2
 
 - APCA `Bl` uses `Math.SQRT2` (was the `1.414` literal); chroma-peak index via `indexOf`.

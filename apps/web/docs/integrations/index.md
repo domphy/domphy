@@ -54,7 +54,7 @@ Domphy ships first-party packages for capabilities that benefit from tight Domph
 | drag & drop | `@domphy/dnd` |
 | animation | the `motion()` patch (`@domphy/ui`) |
 | charts | [`@domphy/chart`](/docs/chart/) — line, bar, pie, scatter, radar, heatmap, candlestick, boxplot, gauge, treemap, funnel, sankey, graph; or **vanilla** Chart.js / ECharts / D3 via lifecycle hooks |
-| rich text | **vanilla** TipTap / ProseMirror / Lexical (framework-agnostic cores) |
+| rich text | [`@domphy/editor`](/docs/editor/) — Tiptap-compatible API, self-contained engine; or **vanilla** TipTap / ProseMirror / Lexical |
 | carousel | **vanilla** embla-carousel (its core is framework-agnostic) |
 | dates | **vanilla** dayjs / date-fns / flatpickr |
 | schema validation | **vanilla** zod (works with `@domphy/form` via Standard Schema) — [recipe](/docs/integrations/zod) |

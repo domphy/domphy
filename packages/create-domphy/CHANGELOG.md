@@ -1,5 +1,9 @@
 # create-domphy Changelog
 
+## 0.18.9
+
+- Pin scaffolded `@domphy/core` / `theme` / `ui` to 0.21.3 / 0.22.3 / 0.21.4.
+
 ## 0.18.8
 
 - Pin scaffolded `@domphy/core` / `theme` / `ui` to 0.21.2 / 0.22.1 / 0.21.2.

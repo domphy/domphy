@@ -1,5 +1,9 @@
 # @domphy/router
 
+## 0.18.4
+
+- `defaultGcTime` / `defaultPreloadGcTime` default to 30 minutes (`1_800_000` ms), matching the advertised TanStack contract (was 5 minutes).
+
 ## 0.18.3
 
 - `MatchSupersededError` sentinel; SWR redirect abort when location is superseded; extra SSR/redirect tests.

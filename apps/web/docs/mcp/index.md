@@ -11,9 +11,9 @@ An [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) server that 
 
 - **Patch catalog** — full API of every `@domphy/ui` patch (host tag, props, style contract)
 - **Package map** — all packages, their purpose, and when to use them
-- **Rules** — the complete AGENTS.md rule set (tone model, doctor rules, naming conventions)
+- **Rules** — `domphy_rules` returns `llms.txt` (the code-generation guide)
 - **Doctor integration** — validate and fix Domphy element trees live
-- **App block registry** — layout patterns from `@domphy/app`
+- **App block registry** — the current app's exported trees from `app-manifest.json`
 
 ## Installation
 

@@ -1,5 +1,10 @@
 # @domphy/press Changelog
 
+## 0.23.2
+- feat(markdown): parse VitePress/markdown-it `==mark==`, `~sub~`, `^sup^` and GitHub gemoji shortcodes (`:tada:` → 🎉). GFM strikethrough is `~~…~~` only (`singleTilde: false`) so `H~2~O` is subscript. Wired in both `parseMarkdown`/`createMarkdown` and the site `renderDoc` pipeline; the walker emits `mark`/`sub`/`sup` elements (unknown nodes used to unwrap to plain text).
+- fix(layout): `themeConfig.announcementBar.text` is wrapped in `rawHtml()` like `footerMessage` — after the core 0.20.0 "string children are text" flip, an `<a>` in the bar rendered as literal text.
+- Public types: main entry re-exports `BuildOptions` / `FeatureConfig` / `HeroConfig` (browser entry: FeatureConfig/HeroConfig only).
+
 ## 0.23.1
 - fix(markdown): resolve reference-style links and images against their definitions (same `a`/`img` shape as inline, including `sanitizeUrl`) instead of dropping `linkReference`/`imageReference` nodes. GFM footnotes (`[^label]`) render as numbered superscript refs plus a collected `section.footnotes` footer (mdast-util-to-hast / GitHub id contract); unused definitions stay out of the body.
 - docs(markdown): syntax-reference matches the walker — heading `header-anchor` child, soft-break as one string, raw HTML via `rawHtml()` + `sanitizeHTMLString`.

@@ -171,10 +171,9 @@ Re-run the script whenever you add, rename, or remove exported blocks. A common 
 
 ## How the source path is resolved
 
-The manifest stores repo-relative paths (e.g. `src/blocks/card.ts`). When `domphy_get_app_block` reads the source file, it tries three candidate paths in order:
+The manifest stores repo-relative paths (e.g. `src/blocks/card.ts`). When `domphy_get_app_block` reads the source file, it tries two candidate paths in order:
 
-1. `<manifestDir>/../../../<file>` — the default layout where the manifest lives at `apps/web/public/`
-2. `<cwd>/<file>` — relative to the working directory
-3. `<manifestDir>/<file>` — relative to the manifest itself
+1. `<cwd>/<file>` — relative to the working directory
+2. `<manifestDir>/<file>` — relative to the manifest itself
 
-This means the server can read sources correctly whether the manifest is in `apps/web/public/`, the repo root, or any custom location.
+Those are the only allowed roots. A parent walk such as `<manifestDir>/../../../<file>` (the old `apps/web/public/` layout shortcut) is refused as a path escape.

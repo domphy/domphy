@@ -1,8 +1,14 @@
 # @domphy/floating
 
+## 0.18.4
+
+- `files` includes `UPSTREAM.md`.
+- Public entry tests import `platform` / `getOverflowAncestors` from `src/index`.
+- Changelog/docs use the real handle names: `connect` / `disconnect` / `onUpdate` / `onError`.
+
 ## 0.18.3
 
-- `createFloating` audit-fix pass; tests cover attach/update/destroy.
+- `createFloating` audit-fix pass; tests cover connect/disconnect/onUpdate/onError.
 
 ## 0.11.0
 

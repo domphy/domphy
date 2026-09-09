@@ -1,9 +1,15 @@
 // @vitest-environment jsdom
+
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   createFloating,
   type ElementRects,
+  getOverflowAncestors,
   type Platform,
+  platform,
   type ReferenceElement,
 } from "../src/index";
 
@@ -50,6 +56,23 @@ function createControllablePlatform(): {
   };
   return { calls, platform };
 }
+
+describe("public entry", () => {
+  it("exports platform and getOverflowAncestors", () => {
+    expect(platform).toBeTruthy();
+    expect(typeof getOverflowAncestors).toBe("function");
+  });
+
+  it("includes UPSTREAM.md in the published files list", () => {
+    const pkg = JSON.parse(
+      readFileSync(
+        join(dirname(fileURLToPath(import.meta.url)), "../package.json"),
+        "utf8",
+      ),
+    ) as { files: string[] };
+    expect(pkg.files).toContain("UPSTREAM.md");
+  });
+});
 
 describe("createFloating", () => {
   it("connects, notifies onUpdate listeners, and exposes the position getter", async () => {

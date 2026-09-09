@@ -18,6 +18,17 @@ import { focusRing } from "../utils/focusRing.js";
 
 const xSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6.707 5.293l5.293 5.292l5.293 -5.292a1 1 0 0 1 1.414 1.414l-5.292 5.293l5.292 5.293a1 1 0 0 1 -1.414 1.414l-5.293 -5.292l-5.293 5.292a1 1 0 1 1 -1.414 -1.414l5.292 -5.293l-5.292 -5.293a1 1 0 0 1 1.414 -1.414" /></svg>`;
 
+// Compact-chip chrome was bare `themeSpacing(U)` (catalog snapshots). Default
+// density is 1.5 (`light.densities[2]`, density.ts origin index 2). n = U / 1.5
+// keeps those pixels at default while dataDensity still scales. Height 6U must
+// stay below selectBox/combobox minHeight `(6 + 2d)U` or the chip fills the trigger.
+const DEFAULT_DENSITY = 1.5;
+const TAG_HEIGHT = 6 / DEFAULT_DENSITY;
+const TAG_PAD_INLINE = 2.5 / DEFAULT_DENSITY;
+const TAG_PAD_END_REMOVABLE = 1 / DEFAULT_DENSITY;
+const TAG_REMOVE = 4 / DEFAULT_DENSITY;
+const TAG_REMOVE_RADIUS = 1 / DEFAULT_DENSITY;
+
 type TagRemoveProps = { removable: boolean };
 
 /**
@@ -67,9 +78,11 @@ function tag(
             alignItems: "center",
             cursor: "pointer",
             borderRadius: (listener) =>
-              themeSpacing(themeDensity(listener) * 1),
-            width: (listener) => themeSpacing(themeDensity(listener) * 4),
-            height: (listener) => themeSpacing(themeDensity(listener) * 4),
+              themeSpacing(themeDensity(listener) * TAG_REMOVE_RADIUS),
+            width: (listener) =>
+              themeSpacing(themeDensity(listener) * TAG_REMOVE),
+            height: (listener) =>
+              themeSpacing(themeDensity(listener) * TAG_REMOVE),
             flexShrink: 0,
             transition: "background-color 140ms ease, box-shadow 140ms ease",
             "&:hover": {
@@ -110,13 +123,16 @@ function tag(
       alignItems: "center",
       whiteSpace: "nowrap",
       userSelect: "none",
-      height: (listener) => themeSpacing(themeDensity(listener) * 6),
+      height: (listener) => themeSpacing(themeDensity(listener) * TAG_HEIGHT),
       paddingBlock: 0,
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 999),
       paddingInlineStart: (listener) =>
-        themeSpacing(themeDensity(listener) * 2.5),
+        themeSpacing(themeDensity(listener) * TAG_PAD_INLINE),
       paddingInlineEnd: (listener) =>
-        themeSpacing(themeDensity(listener) * (removable ? 1 : 2.5)),
+        themeSpacing(
+          themeDensity(listener) *
+            (removable ? TAG_PAD_END_REMOVABLE : TAG_PAD_INLINE),
+        ),
       gap: themeSpacing(1.5),
       fontSize: (listener) => themeSize(listener, "decrease-1"),
       backgroundColor: (listener) =>

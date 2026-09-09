@@ -36,9 +36,12 @@ function mark(
         themeColor(listener, "text", accentColor.get(listener)),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", accentColor.get(listener)),
-      height: (listener) => themeSpacing(themeDensity(listener) * 6),
-      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
-      paddingInline: (listener) => themeSpacing(themeDensity(listener) * 1.5),
+      // Bare themeSpacing(U) at snapshot time; n = U / 1.5 (light.densities[2]).
+      height: (listener) => themeSpacing(themeDensity(listener) * (6 / 1.5)),
+      borderRadius: (listener) =>
+        themeSpacing(themeDensity(listener) * (1 / 1.5)),
+      paddingInline: (listener) =>
+        themeSpacing(themeDensity(listener) * (1.5 / 1.5)),
     },
   };
 }

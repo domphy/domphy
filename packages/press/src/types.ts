@@ -83,7 +83,9 @@ export interface ThemeConfig {
   tocTitle?: string;
   /** Enable mermaid diagrams. Pass { cdn } to override CDN URL. */
   mermaid?: boolean | { cdn?: string };
-  /** Dismissible announcement bar shown above the page. */
+  /** Dismissible announcement bar shown above the page.
+   *  `text` is rendered as HTML (wrapped in `rawHtml()` by the layout) —
+   *  inline tags like `<a>` are allowed. Keep it to markup you control. */
   announcementBar?: { id?: string; text: string; dismissible?: boolean };
   /** Override individual layout slots with custom components. */
   slots?: LayoutSlots;

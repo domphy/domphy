@@ -9,12 +9,11 @@ This app is the Domphy documentation website, built with **DomphyPress**
   `apps/web/index.md` + `apps/web/docs` to `.vitepress/dist` (the existing
   deploy path) with the search index and islands bundle. `pnpm preview`
   serves that output on `:4173`.
-- `pnpm dev` — a fast content-only preview: runs the generic `domphy-press
-  dev` CLI directly against `apps/web/docs` (port 3000, live rebuild on
-  Markdown/TS changes). It does **not** replicate `build.press.ts`'s custom
-  handling of the root `index.md` home page, search index, or islands bundle
-  — use it for iterating on docs layout/content, but verify anything
-  routing-, search-, or island-related against `pnpm build && pnpm preview`.
+- `pnpm dev` — `tsx build.press.ts --watch --port 3000`. Same island path as
+  production: `runDev()` runs the full `build.press.ts` pipeline (home
+  `index.md`, docs, search index, islands bundle) then `startDevServer` on
+  port 3000, watching `docs/`, root `index.md`, and `islands-runtime.ts`.
+  It is **not** the generic `domphy-press dev` CLI.
 
 It contains two main parts:
 

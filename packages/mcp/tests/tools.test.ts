@@ -109,6 +109,21 @@ describe("app-block tools", () => {
     expect(await getAppBlock("Hero")).toContain("app-manifest.mjs");
   });
 
+  it("does not pretend a corrupt manifest is missing", async () => {
+    const manifestPath = join(
+      mkdtempSync(join(tmpdir(), "domphy-app-")),
+      "app-manifest.json",
+    );
+    writeFileSync(manifestPath, "{not json");
+    process.env.DOMPHY_APP_MANIFEST = manifestPath;
+    const listed = await listAppBlocks();
+    expect(listed).toContain("Failed to read app-manifest");
+    expect(listed).not.toContain("No app-manifest found");
+    const got = await getAppBlock("Hero");
+    expect(got).toContain("Failed to read app-manifest");
+    expect(got).not.toContain("No app-manifest found");
+  });
+
   it("lists blocks from the manifest", async () => {
     const manifestPath = join(
       mkdtempSync(join(tmpdir(), "domphy-app-")),

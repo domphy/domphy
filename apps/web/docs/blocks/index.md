@@ -7,7 +7,7 @@ description: "Large composed UI blocks for Domphy — dashboards, auth pages, si
 
 173 ready-to-use composed blocks and effect components: application shells (sidebar layouts, auth pages, a dashboard), chart recipes for `@domphy/chart`, and marketing/effect components (animated backgrounds, text effects, cards, buttons). Every export is a factory function you call directly — not a `$`-patch you apply to your own tag.
 
-This package exists for two reasons: it is a genuinely useful "bigger than a button" component library, and it doubles as an integration test — building real-world compositions is what surfaces gaps in the rest of the ecosystem (`@domphy/ui`, `@domphy/chart`, `@domphy/table`, `@domphy/form`) that small demos never would.
+This package exists for two reasons: it is a genuinely useful "bigger than a button" component library, and it doubles as an integration test — building real-world compositions is what surfaces gaps in the rest of the ecosystem (`@domphy/ui`, `@domphy/chart`, `@domphy/table`) that small demos never would.
 
 ## Install
 
@@ -15,7 +15,7 @@ This package exists for two reasons: it is a genuinely useful "bigger than a but
 npm install @domphy/blocks
 ```
 
-Peer dependencies: `@domphy/core`, `@domphy/theme`, `@domphy/ui`, `@domphy/chart`, `@domphy/form`, `@domphy/table` (only the ones a given block actually imports need to be present at runtime — see each block's own imports).
+Peer dependencies: `@domphy/core`, `@domphy/theme`, `@domphy/ui`, `@domphy/chart`, `@domphy/table` (only the ones a given block actually imports need to be present at runtime — see each block's own imports).
 
 ## Quick start
 

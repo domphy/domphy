@@ -6,6 +6,7 @@ export * from "./classes/RawHTML.js";
 export * from "./classes/Reactive.js";
 export * from "./classes/RecordState.js";
 export * from "./classes/State.js";
+export * from "./classes/TextNode.js";
 export { configure, getConfig } from "./config.js";
 export * from "./constants.js";
 export { sanitizeHTMLString } from "./helpers.js";

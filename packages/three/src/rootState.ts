@@ -2,9 +2,10 @@ import { toState } from "@domphy/core";
 import * as THREE from "three";
 import { advance, invalidate, registerFrameCallback } from "./loop.js";
 import type {
+  CreatedRootState,
+  Dpr,
   FrameCallback,
   RendererLike,
-  RootState,
   SizeState,
   ThreeOptions,
 } from "./types.js";
@@ -19,8 +20,6 @@ import type {
 // (renderer + camera stay in sync with size/dpr), called explicitly by
 // patch.ts's ResizeObserver handler rather than fired by a store diff.
 
-export type Dpr = number | [min: number, max: number];
-
 export interface RootStateConfig
   extends Pick<
     ThreeOptions,
@@ -29,16 +28,6 @@ export interface RootStateConfig
   canvas: HTMLCanvasElement;
   gl: RendererLike;
 }
-
-// A created root additionally exposes `setSize` — the reference's top-level
-// `state.setSize` shortcut (store.ts's `RootState.setSize`). SPEC.md's
-// types.ts does not declare it on the shared `RootState` contract (that
-// contract is fixed and owned by the Contracts agent), so it is carried as
-// an extra property on the object this function returns rather than widening
-// the shared type. See the "setSize is not on RootState" contract gap.
-export type CreatedRootState = RootState & {
-  setSize(width: number, height: number, dpr?: Dpr): void;
-};
 
 // Port of core/utils.tsx's calculateDpr: resolves the Dpr option (a plain
 // ratio, or a [min, max] range clamped around the real device pixel ratio)

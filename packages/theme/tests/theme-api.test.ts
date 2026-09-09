@@ -6,6 +6,7 @@ import {
   getTheme,
   setTheme,
   themeCSS,
+  themeFluidSpacing,
   themeName,
   themeSpacing,
   themeTokens,
@@ -17,6 +18,61 @@ import {
   themeColor,
   themeColorToken,
 } from "../src/tone.ts";
+
+// Evaluate a CSS clamp() of em/vw/px terms at a viewport width.
+// 1em = 16px is the CSS initial font-size and the spacing.md table (1em = 16px).
+function clampEmAtViewport(
+  css: string,
+  viewportPx: number,
+  pxPerEm = 16,
+): number {
+  const wrapped = /^clamp\((.*)\)$/.exec(css.trim());
+  if (!wrapped) throw new Error(`expected clamp(...), got ${css}`);
+  const args: string[] = [];
+  let depth = 0;
+  let start = 0;
+  const inner = wrapped[1];
+  for (let i = 0; i < inner.length; i++) {
+    const c = inner[i];
+    if (c === "(") depth++;
+    else if (c === ")") depth--;
+    else if (c === "," && depth === 0) {
+      args.push(inner.slice(start, i));
+      start = i + 1;
+    }
+  }
+  args.push(inner.slice(start));
+  if (args.length !== 3) throw new Error(`expected 3 clamp args, got ${css}`);
+  const px = args.map((a) => cssLengthToPx(a.trim(), viewportPx, pxPerEm));
+  const lo = Math.min(px[0], px[2]);
+  const hi = Math.max(px[0], px[2]);
+  return Math.min(hi, Math.max(lo, px[1])) / pxPerEm;
+}
+
+function cssLengthToPx(
+  expr: string,
+  viewportPx: number,
+  pxPerEm: number,
+): number {
+  let inner = expr.trim();
+  if (inner.startsWith("calc(") && inner.endsWith(")")) {
+    inner = inner.slice(5, -1);
+  }
+  const parts = inner
+    .split(/(?=[+-])/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  let px = 0;
+  for (const part of parts) {
+    const m = /^([+-]?(?:\d*\.)?\d+)(em|vw|px)$/.exec(part.replace(/\s+/g, ""));
+    if (!m) throw new Error(`unparsed length term: ${JSON.stringify(part)}`);
+    const n = Number(m[1]);
+    if (m[2] === "em") px += n * pxPerEm;
+    else if (m[2] === "vw") px += (n / 100) * viewportPx;
+    else px += n;
+  }
+  return px;
+}
 
 function createAttributes(values: Record<string, string> = {}) {
   return {
@@ -91,6 +147,19 @@ describe("theme core APIs", () => {
   it("computes spacing in em units", () => {
     expect(themeSpacing(6)).toBe("calc(1.5em)");
     expect(themeSpacing(1)).toBe("calc(0.25em)");
+  });
+
+  it("themeFluidSpacing(4, 16) is 1em at 320px and 4em at 1280px (api.md/spacing.md, 16px/em)", () => {
+    const css = themeFluidSpacing(4, 16);
+    expect(clampEmAtViewport(css, 320)).toBeCloseTo(1, 3);
+    expect(clampEmAtViewport(css, 800)).toBeCloseTo(2.5, 3);
+    expect(clampEmAtViewport(css, 1280)).toBeCloseTo(4, 3);
+  });
+
+  it("themeFluidSpacing(4, 8) is 1em at 320px and 2em at 1280px (api.md/spacing.md, 16px/em)", () => {
+    const css = themeFluidSpacing(4, 8);
+    expect(clampEmAtViewport(css, 320)).toBeCloseTo(1, 3);
+    expect(clampEmAtViewport(css, 1280)).toBeCloseTo(2, 3);
   });
 });
 

@@ -1,9 +1,10 @@
+export type { BuildOptions } from "./build.js";
 export { buildSite, RUNTIME_SCRIPT } from "./build.js";
 export type { SiteConfig, UserConfig } from "./config.js";
 export { defineConfig } from "./config.js";
 export type { FenceMeta } from "./highlight.js";
 export { createHighlighter, parseFenceInfo, renderFence } from "./highlight.js";
-export type { LayoutContext } from "./layout.js";
+export type { FeatureConfig, HeroConfig, LayoutContext } from "./layout.js";
 export { homeShell, pageShell } from "./layout.js";
 export type {
   AnchorSlugify,

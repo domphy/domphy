@@ -198,6 +198,17 @@ function walkNode(node: Nodes, ctx: WalkContext): Child | null {
         const result = ctx.onCustom(node, helper);
         if (result !== null) return result;
       }
+      // remarkMarkSubSup emits mark/sub/sup; they are not in the mdast union.
+      const tag = (node as { type: string }).type;
+      if (
+        (tag === "mark" || tag === "sub" || tag === "sup") &&
+        "children" in node &&
+        Array.isArray(node.children)
+      ) {
+        return {
+          [tag]: walkChildren(node as { children: Nodes[] }, ctx),
+        } as DomphyElement;
+      }
       if ("children" in node && Array.isArray(node.children)) {
         const children = walkChildren(
           node as unknown as { children: Nodes[] },

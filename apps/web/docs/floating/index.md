@@ -12,7 +12,7 @@ import Basic from "../demos/floating/basic.ts?raw"
 
 `@domphy/floating` places any floating element — tooltip, popover, dropdown, context menu — next to a reference element. It handles viewport clipping, scrolling, resizing, and placement flips automatically.
 
-The package is a direct vendor of [Floating UI DOM](https://floating-ui.com) with zero extra dependencies and the same API surface.
+The package is a direct vendor of [Floating UI DOM](https://floating-ui.com) with zero extra dependencies and the same API surface. Back-compat DOM helpers `platform` and `getOverflowAncestors` are re-exported from the main entry (same as `@floating-ui/dom`).
 
 ## Install
 

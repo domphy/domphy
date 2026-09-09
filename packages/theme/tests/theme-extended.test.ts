@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { themeDensity } from "../src/density.ts";
 import { themeSize } from "../src/size.ts";
 import {
+  applySystemTheme,
   getTheme,
   setTheme,
   themeApply,
@@ -113,6 +114,48 @@ describe("darkBias / biasContext reactive behavior", () => {
   });
 });
 
+function installSystemThemeDom(opts: {
+  saved?: string | null;
+  prefersDark?: boolean;
+  storageKey?: string;
+}) {
+  const attrs = new Map<string, string>();
+  const documentElement = {
+    setAttribute: (key: string, value: string) => attrs.set(key, value),
+    getAttribute: (key: string) => attrs.get(key) ?? null,
+  };
+  const store = new Map<string, string>();
+  const storageKey = opts.storageKey ?? "dp-theme";
+  if (opts.saved) store.set(storageKey, opts.saved);
+  const setItem = vi.fn((key: string, value: string) => {
+    store.set(key, value);
+  });
+  const getItem = vi.fn((key: string) => store.get(key) ?? null);
+  let changeHandler: ((event: { matches: boolean }) => void) | undefined;
+  const removeEventListener = vi.fn();
+  (globalThis as any).document = { documentElement };
+  (globalThis as any).localStorage = { getItem, setItem };
+  (globalThis as any).window = {
+    matchMedia: () => ({
+      matches: !!opts.prefersDark,
+      addEventListener: (
+        _type: string,
+        handler: (event: { matches: boolean }) => void,
+      ) => {
+        changeHandler = handler;
+      },
+      removeEventListener,
+    }),
+  };
+  return {
+    attrs,
+    setItem,
+    getItem,
+    fireChange: (matches: boolean) => changeHandler?.({ matches }),
+    removeEventListener,
+  };
+}
+
 describe("themeApply DOM injection", () => {
   afterEach(() => {
     delete (globalThis as any).document;
@@ -144,6 +187,63 @@ describe("themeApply DOM injection", () => {
     themeApply(provided as any);
     expect(provided.textContent).toBe(themeCSS());
     expect(head.size).toBe(0);
+  });
+});
+
+describe("applySystemTheme persist (honour existing; caller writes)", () => {
+  afterEach(() => {
+    delete (globalThis as any).document;
+    delete (globalThis as any).window;
+    delete (globalThis as any).localStorage;
+  });
+
+  it("honours a saved light/dark value and never writes localStorage", () => {
+    const { attrs, setItem } = installSystemThemeDom({
+      saved: "dark",
+      prefersDark: false,
+    });
+    const cleanup = applySystemTheme();
+    expect(attrs.get("data-theme")).toBe("dark");
+    expect(setItem).not.toHaveBeenCalled();
+    cleanup();
+  });
+
+  it("falls back to OS preference when nothing is saved, still without writing", () => {
+    const { attrs, setItem } = installSystemThemeDom({ prefersDark: true });
+    const cleanup = applySystemTheme();
+    expect(attrs.get("data-theme")).toBe("dark");
+    expect(setItem).not.toHaveBeenCalled();
+    cleanup();
+  });
+
+  it("persist:false skips the saved value and follows the OS", () => {
+    const { attrs } = installSystemThemeDom({
+      saved: "dark",
+      prefersDark: false,
+    });
+    const cleanup = applySystemTheme(undefined, { persist: false });
+    expect(attrs.get("data-theme")).toBe("light");
+    cleanup();
+  });
+
+  it("ignores OS changes while a saved preference exists", () => {
+    const { attrs, fireChange } = installSystemThemeDom({
+      saved: "light",
+      prefersDark: false,
+    });
+    const cleanup = applySystemTheme();
+    fireChange(true);
+    expect(attrs.get("data-theme")).toBe("light");
+    cleanup();
+  });
+
+  it("follows OS changes when no saved preference exists", () => {
+    const { attrs, fireChange } = installSystemThemeDom({ prefersDark: false });
+    const cleanup = applySystemTheme();
+    expect(attrs.get("data-theme")).toBe("light");
+    fireChange(true);
+    expect(attrs.get("data-theme")).toBe("dark");
+    cleanup();
   });
 });
 

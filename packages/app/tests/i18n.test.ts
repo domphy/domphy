@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createI18nMiddleware, getLocale } from "../src/i18n.js";
+import { createApp, defineRoutes } from "../src/index";
 
 const opts = {
   locales: ["en", "vi", "fr"] as const,
@@ -99,5 +100,40 @@ describe("getLocale", () => {
     expect(getLocale({ url: "/vi/about?x=1" }, opts)).toBe("vi");
     expect(getLocale({ url: "/en?lang=vi" }, opts)).toBe("en");
     expect(getLocale({ url: "/about?next=/vi" }, opts)).toBe("en");
+  });
+});
+
+describe("prefetch through i18n middleware", () => {
+  it("prefetch('/vi/about') warms the /about loader", async () => {
+    const loaderCalls: string[] = [];
+    const routes = defineRoutes([
+      {
+        path: "/",
+        children: [
+          {
+            path: "about",
+            loader: () => {
+              loaderCalls.push("about");
+              return "about-data";
+            },
+            page: (context) => ({ h1: String(context.data) }),
+          },
+        ],
+      },
+    ]);
+    const app = createApp(routes, {
+      history: null,
+      middleware: [createI18nMiddleware(opts)],
+    });
+    try {
+      await app.router.prefetch("/vi/about");
+      expect(loaderCalls).toEqual(["about"]);
+
+      // Navigation reuses the prefetch cache without a second loader call.
+      await app.router.navigate("/vi/about");
+      expect(loaderCalls).toEqual(["about"]);
+    } finally {
+      app.destroy();
+    }
   });
 });

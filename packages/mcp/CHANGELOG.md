@@ -1,5 +1,10 @@
 # @domphy/mcp
 
+## 0.19.5
+
+- Corrupt/unreadable app-manifest returns "Failed to read app-manifest" (ENOENT still "No app-manifest found").
+- README documents the `@domphy/mcp/tools` subpath.
+
 ## 0.19.4
 
 - Tool handler path containment + extra diagnose/validate/fix error-flag tests.

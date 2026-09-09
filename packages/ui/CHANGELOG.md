@@ -1,5 +1,15 @@
 # @domphy/ui Changelog
 
+## 0.21.4
+
+- a11y: datePicker ArrowDown opens `[role=grid]`, ArrowRight moves `[data-date]`; rating ArrowRight increments (gated in `a11y-keyboard.test.ts`).
+- Package description no longer claims "dependency-free"; `zero-dependency` keyword dropped.
+
+## 0.21.3
+
+- fix(dialog, drawer): closed state now sets inline `display: none` (same strategy as `visibility` / `pointer-events`) so a consumer `style.display` cannot keep the closed node in layout. Mounted-closed skips the close animation and hides immediately.
+- fix(tag, code, mark, keyboard, badge): density scaling used the old absolute U as the multiplier (`density × 6` on a chip that was already 6U), so default-density chips were 1.5× too large — a `tag` filled the `selectBox`/`combobox` trigger. Multiplier is now `U / 1.5` so default pixels match the catalog snapshots and chips stay inset in the trigger (`minHeight` `(6 + 2d)U`).
+
 ## 0.21.2
 
 - fix(overlays): `open.set(true)` / `open: true` inserts the floating panel (popover, selectBox, combobox, datePicker, tooltip) — `attachFloating` now subscribes to `openState` like `attachDialog`.

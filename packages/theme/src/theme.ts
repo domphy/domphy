@@ -376,8 +376,15 @@ export function themeSpacing(n: number) {
 // range (default 320px → 1280px). Use for structural spacing that should
 // grow with the viewport — not for bounded-control padding (use density for that).
 //
-// Example: themeFluidSpacing(4, 16) → "clamp(1em, 0.3125vw, 4em)"
-// (1em at 320px viewport, 4em at 1280px, scales linearly between)
+// Preferred value is Utopia-style: convert em→px at the documented root
+// 16px/em (CSS initial font-size; spacing.md's 1em = 16px), interpolate in
+// px, emit vw (+ em intercept). Using Δem as vw treats 1em as 1px and the
+// clamp stays at min on every realistic viewport.
+//
+// Example: themeFluidSpacing(4, 16) → "clamp(1em, 5vw, 4em)"
+// (1em at 320px viewport, 4em at 1280px, at 16px/em)
+const ROOT_PX_PER_EM = 16;
+
 export function themeFluidSpacing(
   min: number,
   max: number,
@@ -386,13 +393,17 @@ export function themeFluidSpacing(
 ): string {
   const minEm = min / 4;
   const maxEm = max / 4;
-  const slope = ((maxEm - minEm) / (viewportMax - viewportMin)) * 100;
-  const intercept = minEm - (slope * viewportMin) / 100;
-  const interceptRounded = parseFloat(intercept.toFixed(4));
+  const minPx = minEm * ROOT_PX_PER_EM;
+  const maxPx = maxEm * ROOT_PX_PER_EM;
+  const slopeVw = ((maxPx - minPx) / (viewportMax - viewportMin)) * 100;
+  const interceptPx = minPx - (slopeVw * viewportMin) / 100;
+  const interceptEm = interceptPx / ROOT_PX_PER_EM;
+  const slopeRounded = parseFloat(slopeVw.toFixed(4));
+  const interceptRounded = parseFloat(interceptEm.toFixed(4));
   const preferred =
     interceptRounded === 0
-      ? `${slope.toFixed(4)}vw`
-      : `${intercept.toFixed(4)}em + ${slope.toFixed(4)}vw`;
+      ? `${slopeRounded}vw`
+      : `${interceptRounded}em + ${slopeRounded}vw`;
   return `clamp(${minEm}em, ${preferred}, ${maxEm}em)`;
 }
 
@@ -415,7 +426,12 @@ export function themeFluidSpacing(
 export function applySystemTheme(
   targetEl?: Element,
   options: {
-    /** Persist the resolved theme in localStorage so it survives reloads. Default: true. */
+    /**
+     * Honour an existing `"light"`/`"dark"` value under `storageKey` and
+     * ignore OS changes while that value exists. The helper never writes —
+     * persist a user choice with `localStorage.setItem(storageKey, "light"|"dark")`.
+     * When false, skip the read and always follow the OS. Default: true.
+     */
     persist?: boolean;
     /** localStorage key. Default: "dp-theme". */
     storageKey?: string;

@@ -45,13 +45,13 @@ const App = {
   - Literal color → `color: (l) => themeColor(l, "base", "colorName")`
   - `fontFamily` → remove entirely (theme owns the font stack)
 - **Theme, not hard-coded values:** `themeColor()`, `themeSpacing()`, `themeSize()`, `themeDensity()`; tones are `inherit`/`base`/`shift-N`/`increase-N`/`decrease-N`, or the semantic aliases `surface`/`hover`/`border`/`border-strong`/`muted`/`text` — prefer aliases over raw `shift-N`.
-- **Layout, not hand-rolled flex styles:** reach for `stack()` (vertical flex column + gap), `row()` (horizontal flex + gap, centered by default, with `align`/`justify`/`wrap`), and `panelSection()` (density-aware padding + optional bottom divider — a thin wrapper, compose it with `stack()`/`row()` for the flex itself) before writing `style: { display: "flex", flexDirection: ..., gap: ... }` inline. `toolbar()` is a semantic alias of `row()` for headers/nav bars.
+- **Layout, not hand-rolled flex styles:** reach for `stack()` (vertical flex column + gap), `row()` (horizontal flex + gap, centered by default, with `align`/`justify`/`wrap`), `grid({ columns, gap?, align? })` (CSS grid primitive — column count or raw template), and `panelSection()` (density-aware padding + optional bottom divider — a thin wrapper, compose it with `stack()`/`row()`/`grid()` for the layout itself) before writing `style: { display: "flex", flexDirection: ..., gap: ... }` inline. `toolbar()` is a semantic alias of `row()` for headers/nav bars.
 - **`_key`** on dynamic/reordered child lists (identity for reconcile). It is not DOM id / business identity.
 - **CSP nonce:** if the app has a Content-Security-Policy requiring nonces on inline styles, call `configure({ cspNonce: "..." })` from `@domphy/core` before mounting. This stamps the nonce on every Domphy-injected `<style>` element, and on the inline `<style>`/`<script>` tags emitted by `@domphy/app` SSR/streaming.
 - **Error boundaries:** use the `errorBoundary()` patch (`@domphy/ui`) to catch errors thrown in reactive children. It invokes `_onError` on the nearest ancestor; call `reset()` to swap in a fallback element.
 - **Lifecycle hooks** (`_onSchedule`, `_onInit`, `_onInsert`, `_onMount`, `_onBeforeUpdate`, `_onUpdate`, `_onBeforeRemove(node, done)` — must call `done()`, `_onRemove`, `_onError(node, error, reset)` — error boundary; call `reset()` to clear children and render fallback) for imperative/3rd-party integration; events stay flat (`onClick`, `onInput`).
 - **Comments in code: English only.** Names: descriptive, no abbreviations (`index` not `i` except loops; `listener` `l`, event `e`, node `node`).
-- **Self-check:** run `@domphy/doctor` `diagnose(element)` (or `validate(element)`) on what you produce and fix every reported issue before finishing. Rules: `inline-typography` (fontSize/lineHeight/fontWeight/letterSpacing/fontFamily/textDecoration literals — use patches), `raw-theme-value` (literal hex/rgb colors AND CSS named colors like "red"/"white" on direct color props — hint gives nearest `themeColor()` via CIELAB/LCH perceptual match), `raw-spacing-value` (literal rem/em/px/logical spacing props — use `themeSpacing(n)`), `low-opacity` (style.opacity < 0.6 on interactive elements — too dim to be discoverable), `tone-background-inherit` (backgroundColor must use themeColor(l, "inherit") — shift the surface via dataTone instead), `missing-color` (element uses themeColor but no style.color — text won't follow tone context shifts; null-content decorative hosts like swatches/glyphs exempt), `low-contrast` (text/bg shift gap < 9 — insufficient contrast), `dataTone-surface-contract` (dataTone set but missing backgroundColor and/or color), `color-shift-minimum` (style.color resolves to tone step < 9 on a dataTone surface), `unknown-tone` (invalid dataTone — valid: inherit/base/shift-N/increase-N/decrease-N, N ≤ 17), `middle-surface-anchor` (dataTone shift-4–13 mid-ramp — use edge anchors 0–3 or 14–17), `unknown-density` (dataDensity invalid or N > 4), `unknown-size` (dataSize invalid or N > 7), `invalid-nesting` (HTML content-model violations the browser re-parents, breaking SSR/hydration: flow content in `<p>`, a/button inside a/button, `li`/`dt`/`dd`/`tr`/`td`/`th`/`option`/`thead`/`tbody`/`tfoot`/`caption`/`colgroup` with the wrong parent, non-`li` element child of `ul`/`ol` — declared direct parent-child only; reactive content and SVG subtrees exempt), `click-without-keyboard` (`onClick` on a non-interactive element — not a/button/input/select/textarea/summary/label, no interactive role, no tabIndex — without a keyboard handler; hidden elements exempt), `missing-required-attribute` (`img` without `alt` — aria-label/labelledby or role presentation/none OK — and `iframe` without `title` are errors; `a` with `onClick` but no `href`/`role` is a warning), `void-content`, `missing-key`, `duplicate-key`, `unstable-key`, `unknown-tag`, `unused-doctor-disable` (info — a `_doctorDisable` entry that suppresses nothing on its element: the named rule fired no diagnostic there, or the id matches no known rule — catches typo'd suppressions like "low-contrst"). `fix(element)` auto-applies the lossless ones. `DiagnoseOptions`: `only` (whitelist rule ids), `exclude` (blacklist rule ids), `rules` (custom rule array). Inline suppression: `_doctorDisable: true | "rule-id" | string[]` on an element silences its diagnostics.
+- **Self-check:** run `@domphy/doctor` `diagnose(element)` (or `validate(element)`) on what you produce and fix every reported issue before finishing. Rules: `inline-typography` (fontSize/lineHeight/fontWeight/letterSpacing/fontFamily/textDecoration literals — use patches), `raw-theme-value` (literal hex/rgb colors AND CSS named colors like "red"/"white" on direct color props — hint gives nearest `themeColor()` via CIELAB/LCH perceptual match), `raw-spacing-value` (literal rem/em/px/logical spacing props — use `themeSpacing(n)`), `low-opacity` (style.opacity < 0.6 on interactive elements — too dim to be discoverable), `tone-background-inherit` (backgroundColor must use themeColor(l, "inherit") — shift the surface via dataTone instead), `missing-color` (element uses themeColor but no style.color — text won't follow tone context shifts; null-content decorative hosts like swatches/glyphs exempt), `low-contrast` (text/bg shift gap < 9 — insufficient contrast), `dataTone-surface-contract` (dataTone set but missing backgroundColor and/or color), `color-shift-minimum` (style.color resolves to tone step < 9 on a dataTone surface), `unknown-tone` (invalid dataTone — valid: inherit/base/shift-N/increase-N/decrease-N, N ≤ 17, or aliases surface/hover/border/border-strong/muted/text; bare-numeric strings like `"3"` are invalid), `middle-surface-anchor` (dataTone shift-4–13 mid-ramp — use edge anchors 0–3 or 14–17), `unknown-density` (dataDensity invalid or N > 4), `unknown-size` (dataSize invalid or N > 7), `invalid-nesting` (HTML content-model violations the browser re-parents, breaking SSR/hydration: flow content in `<p>`, a/button inside a/button, `li`/`dt`/`dd`/`tr`/`td`/`th`/`option`/`thead`/`tbody`/`tfoot`/`caption`/`colgroup` with the wrong parent, non-`li` element child of `ul`/`ol` — declared direct parent-child only; reactive content and SVG subtrees exempt), `click-without-keyboard` (`onClick` on a non-interactive element — not a/button/input/select/textarea/summary/label, no interactive role, no tabIndex — without a keyboard handler; hidden elements exempt), `missing-required-attribute` (`img` without `alt` — aria-label/labelledby or role presentation/none OK — and `iframe` without `title` are errors; `a` with `onClick` but no `href`/`role` is a warning), `void-content`, `missing-key`, `duplicate-key`, `unstable-key`, `unknown-tag`, `unused-doctor-disable` (info — a `_doctorDisable` entry that suppresses nothing on its element: the named rule fired no diagnostic there, or the id matches no known rule — catches typo'd suppressions like "low-contrst"). `fix(element)` auto-applies the lossless ones. `DiagnoseOptions`: `only` (whitelist rule ids), `exclude` (blacklist rule ids), `rules` (custom rule array). Inline suppression: `_doctorDisable: true | "rule-id" | string[]` on an element silences its diagnostics.
 
 ## Reused-node lifecycle — the gotchas behind most real bugs
 
@@ -69,25 +69,25 @@ List reconciliation REUSES DOM nodes (by `_key`, or by position for unkeyed list
 
 | Package | Use |
 | --- | --- |
-| `@domphy/core` | runtime: element/reactivity/lifecycle/SSR/CSS-in-JS (`toState`, `RecordState`, `ElementNode`; derived: `computed`/`effect`/`effectScope`/`batch`/`untrack`; `flushSync()` drains reactivity synchronously for tests/imperative code; `peek(read)` reads a reactive `(listener) => T` outside a render context without subscribing; `behavior(key, attach, props)` — per-node imperative state that survives reactive re-renders, see "Reused-node lifecycle" below; `configure`/`getConfig` — global config incl. `cspNonce`; `sanitizeHTMLString` — the shared string-level sanitizer behind `rawHtml()`/SSR; multi-root `rawHtml` renders all roots client-side (SSR/client parity); computeds auto-unsubscribe upstream when unobserved; DEV-mode hydration mismatch warnings) |
+| `@domphy/core` | runtime: element/reactivity/lifecycle/SSR/CSS-in-JS (`toState`, `RecordState`, `ElementNode`, `TextNode`; derived: `computed`/`effect`/`effectScope`/`batch`/`untrack`; `flushSync()` drains reactivity synchronously for tests/imperative code; `peek(read)` reads a reactive `(listener) => T` outside a render context without subscribing; `behavior(key, attach, props)` — per-node imperative state that survives reactive re-renders, see "Reused-node lifecycle" below; `configure`/`getConfig` — global config incl. `cspNonce`; `sanitizeHTMLString` — the shared string-level sanitizer behind `rawHtml()`/SSR; multi-root `rawHtml` renders all roots client-side (SSR/client parity); computeds auto-unsubscribe upstream when unobserved; DEV-mode hydration mismatch warnings) |
 | `@domphy/theme` | design tokens (`themeColor`/`themeSpacing`/`themeSize`/`themeApply`); `resolveThemeColor({ theme, tone, color })` — explicit non-reactive token resolution (the supported form of `themeColorToken(null,…)`); `ToneAliases`/`TONE_STEPS` constants; `generateTheme(baseColors, opts?)` builds a full `ThemeInput` from one base hex per semantic role via the built-in palette engine (see `DESIGN.md`) — base hexes are validated/normalized (`#fff` works, invalid throws); custom themes must have 18-step ramps + 8 fontSizes (validated); palette engine — `Ramp`/`Palette`/`Swatch`: 5 CIELAB quality metrics; `generateRamp(baseColors, steps)`: builds a WCAG-span-optimized 18-step ramp from one or more anchor colors via a warped Oklab interpolation (see `DESIGN.md` §3); `isValidHex`/`normalizeHex` hex validation (#rgb/#rgba/#rrggbb/#rrggbbaa) |
 | `@domphy/ui` | 98 patches (`button`, `buttonGhost`, `card`, `dialog`, `select`, `motion`, `formGroup`, `errorBoundary`, `rating`, `fab`, `list`, `timeline`, `scrollArea`, `ringProgress`, `inputPassword`, `stack`, `row`, `grid`, `panelSection`, `visuallyHidden`, …); shared style helpers `focusRing`/`elevation` are public exports; `inputText({ type })` sets the input's `type` (default `"text"`) |
 | `@domphy/query` | async state — adapter `createQuery`/`createMutation`/`createInfiniteQuery`/`bindResult` at `@domphy/query/domphy`; `bindResult` connects an observer to Domphy reactivity so result fields are readable with a listener; `dehydrate`/`hydrate` (main entry) serialize/restore query-cache state for SSR |
 | `@domphy/table` | headless tables — adapter `createDomphyTable` at `@domphy/table/domphy` |
 | `@domphy/router` | type-safe routing — `createRouter`/`createRoute`/`createRootRoute`/`createRootRouteWithContext`; 1-1 port of `@tanstack/router-core` with a deviation list (see `packages/router/UPSTREAM.md`) |
 | `@domphy/virtual` | virtualization — adapter `createVirtualizer` at `@domphy/virtual/domphy` |
-| `@domphy/form` | forms — adapter `createForm` at `@domphy/form/domphy`; `field`/`getFieldValue`/`setFieldValue`/`validateField` take `DeepKeys<T>` paths; byte-level port pinned to `@tanstack/form-core@1.33.3` (see `packages/form/SOURCES.md`) |
+| `@domphy/form` | forms — adapter `createForm` at `@domphy/form/domphy`; `field`/`getFieldValue`/`setFieldValue`/`validateField` take `DeepKeys<T>` paths; also `FormGroupApi`/`FieldGroupApi` (headless groups, not the ui `formGroup()` layout patch); byte-level port pinned to `@tanstack/form-core@1.33.3` (see `packages/form/SOURCES.md`) |
 | `@domphy/dnd` | drag & drop — `dragDrop(state, config?)`, `multiList(options)`, `multiListGroup(group, states, config?)` (wraps `@formkit/drag-and-drop`) |
 | `@domphy/blocks` | 173 composed blocks/effect components — sidebar layouts, auth pages, a dashboard, `@domphy/chart` recipes (from shadcn/ui), and marketing/effect components (from Magic UI). Every export is a **factory function** `name(props?) => DomphyElement` returning a full mountable tree (not a `$`-patch). Subpaths: `@domphy/blocks/shadcn`, `@domphy/blocks/magicui` (family barrels for smaller bundles). Clean-room reimplemented — see `packages/blocks/SOURCES.md` |
 | `@domphy/app` | Next.js App Router-style framework: routes/layouts/loaders(SWR)/metadata/middleware/parallel+intercepting routes/**lazy code-split routes** (`lazy: () => import(...)`)/SSR+streaming/API routes/**i18n routing** (`createI18nMiddleware`+`getLocale`)/**cookies** (`cookies(headers?)`); also `optimizedImage`, `script`, `createMemoryHistory`/`createBrowserHistory`, `buildHref`, `DataCache`; SSR/streaming stamps `configure({cspNonce})` on injected inline `<style>`/`<script>` |
 | `@domphy/doctor` | static analyzer — `diagnose(element, opts?)` / `validate(element, opts?)` flag non-idiomatic trees; `format(diagnostics)` formats a `Diagnostic[]`; `fix(element)` applies lossless autofixes. Options: `only`/`exclude` (rule filtering), `rules` (custom rules), `runReactive` (default true). Inline suppression: `_doctorDisable: true | "rule-id" | string[]` on any element. CLI `domphy-doctor <path...>` scans files on disk (flags: `--only`/`--exclude`/`--no-reactive`/`--no-output`/`--no-factory-exec`/`--format text\|json`; reports per-file import failures and exits 1); `auditOutput(node, opts?)` is an optional Layer 4 that lints the real generated HTML/CSS via `htmlhint`/`stylelint` (optional peer deps). Depends on `@domphy/theme` (single source for tone grammar/aliases). **Run it on your output and fix the report.** |
-| `@domphy/floating` | anchor positioning (vendored floating-ui, zero-dep; pinned core@1.8.0/dom@1.8.0 with a deviation list — see `packages/floating/UPSTREAM.md`) — powers `@domphy/ui` overlays, `@domphy/chart` tooltips, and `@domphy/editor` bubble menus; public surface: `computePosition`/`autoUpdate` + middleware (`offset`/`flip`/`shift`/`arrow`/`size`/`inline`/…), `VirtualElement` for anchoring to non-element rects |
+| `@domphy/floating` | anchor positioning (vendored floating-ui, zero-dep; pinned core@1.8.0/dom@1.8.0 with a deviation list — see `packages/floating/UPSTREAM.md`) — powers `@domphy/ui` overlays, `@domphy/chart` tooltips, and `@domphy/editor` bubble menus; public surface: `computePosition`/`autoUpdate` + middleware (`offset`/`flip`/`shift`/`arrow`/`size`/`inline`/…), `platform`/`getOverflowAncestors`, `VirtualElement` for anchoring to non-element rects |
 | `@domphy/chart` | WebGL + SVG chart engine — `chart(option)` patch renders line/bar/pie/scatter/radar/heatmap/candlestick/etc. series (luma.gl WebGL) with SVG overlays for axes/legend/tooltip/layout series; `ChartEngine` for headless/advanced use; scale creators (`createLinearScale`, `createOrdinalScale`, `createTimeScale`, `createLogScale`), dataset transforms (`applyTransforms`, `resolveDataset`), color utilities (`seriesColor` — theme-aware var-ref default, recommended, `familyCss`, `cssColor`, `createColorResolver`, `hexToRgba`, `seriesHex`/`familyHex` — static light-theme design-time helpers, `seriesPaletteFamily`, `colorFromVisualMap`); theme-aware (colors follow `[data-theme]` at paint time + re-render on flips: SVG layers carry `var(--…)` refs, WebGL uniforms re-resolve); tooltip `formatter` may return a `DomphyElement`, tooltip positioning via `@domphy/floating`; ECharts-compatible type surface |
 | `@domphy/three` | declarative three.js scene graph — 1-1 functional port of `@react-three/fiber` core (reconciler, raycast pointer events, demand frameloop) on Domphy reactivity; `three(options)` patch mounts a canvas host and renders the scene graph, `extend(classes)` registers custom/version-agnostic tags for `resolve()`, `loadAsset`/`preloadAsset`/`clearAsset` (optional `{ dispose: true }` on `clearAsset` disposes GPU resources) for reactive asset loading (`AssetResult<T>`: `data`/`error`/`promise`); the `onCreated(root)` object is typed `CreatedRootState` (RootState + `setSize`); `diagnose(options)`/`validate(options)` — scene-level static analyzer (doctor's contract shape for the three() option object doctor cannot see): rules `unknown-tag`, `tag-not-first` (props-first description the reconciler's first-own-key tag read would throw on), `legacy-light-intensity`, `additive-blowout`, `camera-missing-lookat`; per-node suppression via `_doctorDisable` |
 | `@domphy/editor` | rich-text editor with a Tiptap-compatible API on a self-contained engine (no ProseMirror) — `Editor`, `Extension.create`/`Node.create`/`Mark.create` (incl. plain-DOM `addNodeView`), chainable commands (`chain()`/`can()`, `isActive`, `getJSON`/`getHTML`/`getText`), `starterKit(options?)` set (paragraph/heading/bold/italic/strike/code/underline/blockquote/lists/hardBreak/horizontalRule/link with autolink/codeBlock/undo-redo/trailingNode; per-extension `false` to disable) + `Table` subset (`insertTable`/`goToNextCell`/row-column ops, not in the kit), input rules (`# `, `**bold**`, `- `…) + keymap, view hooks `onPaste`/`onDrop`/`onKeyDown`, `onUpdate({ editor, transaction })`; positions are ProseMirror-style token positions; `getJSON()` omits default-valued attrs (Tiptap JSON loads unchanged). Domphy adapter at `@domphy/editor/domphy`: `createEditor`, `editorContent()` patch (host element must declare `null` children), `bubbleMenu()` patch (selection-anchored via `@domphy/floating`, shadow-root-safe), `editorState(editor)` reactive readers; `editor.stateVersion` is the reactivity bridge (a `State<number>` bumped per transaction) |
-| `@domphy/mcp` | MCP server exposing 10 tools: `domphy_list_patches`, `domphy_get_patch`, `domphy_list_packages`, `domphy_rules`, `domphy_tones`, `domphy_diagnose`, `domphy_validate`, `domphy_fix`, `domphy_list_app_blocks`, `domphy_get_app_block` — patches, packages, rules, tones, doctor, and app-block registry |
-| `@domphy/press` | VitePress-baseline static doc site framework — `defineConfig`, `buildSite`, `pressCSS`, CLI `domphy-press build / dev / preview`; built on `@domphy/app`; the Markdown pipeline (formerly `@domphy/markdown` — `parseMarkdown`, `markdownToDomphy`, `createMarkdown`, `walkMdast`, `splitFrontmatter`, `transformOutsideCodeBlocks`, `createUniqueSlugger`/`defaultSlugify`; remark/unified under the hood) ships as named exports of the **main entry only** (not the `/browser` subpath); CSS generated via `pressCSS()` + `themeCSS()` (no static .css file); supports VitePress containers (tip/warning/info/danger/details/code-group), `<<<` code imports, frontmatter hero/features/`fullBleed`, `--dp-font-sans`/`--dp-font-mono`/`--dp-font-display` font hooks, sidebar/nav/TOC, built-in local search (`SearchWidgetOptions.basePath` — base-aware); extras: line highlighting, code-group tabs, 14 admonition types, steps, task lists, mark/sub/sup, emoji, mermaid CDN, social links, edit link, last-updated, reading time, sidebar badges/collapsible, announcement bar, i18n, per-page head, heading anchor links, image lazy loading, `<Badge>` inline component; build fails when any page fails unless `continueOnError: true`; emits 404.html + a content-hashed islands bundle; `withBase(base, href)` base-prefixes emitted hrefs (nav/sidebar/hero links + canonical/sitemap/OG URLs auto-prefixed for non-root deploys); `SiteConfig.cspNonce` stamps a CSP nonce on all inline `<script>`/`<style>` + forwards to `@domphy/app` SSR |
-| `@domphy/i18n` | generic i18next wrapper with Domphy reactivity — `createI18n<TLocale, TMessages>(options)` returns `{ t(listener?, key), locale, currentLocale, exists, setLocale, getLocale, detectLocale, initI18n }`; `runWithI18n(fn)` isolates request locale on SSR (`AsyncLocalStorage`); globalThis dedup survives Vite chunk splitting (client); reactive `t(listener, key)` overload re-renders on `setLocale()` |
+| `@domphy/mcp` | MCP server exposing 10 tools: `domphy_list_patches`, `domphy_get_patch`, `domphy_list_packages`, `domphy_rules`, `domphy_tones`, `domphy_diagnose`, `domphy_validate`, `domphy_fix`, `domphy_list_app_blocks`, `domphy_get_app_block` — patches, packages, rules, tones, doctor, and app-block registry. Same implementations are importable from `@domphy/mcp/tools` (`loadManifest`, `diagnoseTree`, `readBlockSource`, …). |
+| `@domphy/press` | VitePress-baseline static doc site framework — `defineConfig`, `buildSite`, `pressCSS`, CLI `domphy-press build / dev / preview`; types `BuildOptions`/`FeatureConfig`/`HeroConfig` from the main entry; built on `@domphy/app`; the Markdown pipeline (formerly `@domphy/markdown` — `parseMarkdown`, `markdownToDomphy`, `createMarkdown`, `walkMdast`, `splitFrontmatter`, `transformOutsideCodeBlocks`, `createUniqueSlugger`/`defaultSlugify`; remark/unified under the hood) ships as named exports of the **main entry only** (not the `/browser` subpath); CSS generated via `pressCSS()` + `themeCSS()` (no static .css file); supports VitePress containers (tip/warning/info/danger/details/code-group), `<<<` code imports, frontmatter hero/features/`fullBleed`, `--dp-font-sans`/`--dp-font-mono`/`--dp-font-display` font hooks, sidebar/nav/TOC, built-in local search (`SearchWidgetOptions.basePath` — base-aware); extras: line highlighting, code-group tabs, 14 admonition types, steps, task lists, mark/sub/sup, emoji, mermaid CDN, social links, edit link, last-updated, reading time, sidebar badges/collapsible, announcement bar, i18n, per-page head, heading anchor links, image lazy loading, `<Badge>` inline component; build fails when any page fails unless `continueOnError: true`; emits 404.html + a content-hashed islands bundle; `withBase(base, href)` base-prefixes emitted hrefs (nav/sidebar/hero links + canonical/sitemap/OG URLs auto-prefixed for non-root deploys); `SiteConfig.cspNonce` stamps a CSP nonce on all inline `<script>`/`<style>` + forwards to `@domphy/app` SSR |
+| `@domphy/i18n` | generic i18next wrapper with Domphy reactivity — `createI18n<TLocale, TMessages>(options)` returns `{ t(listener?, key), locale, currentLocale, exists, setLocale, getLocale, detectLocale, initI18n }`; `exists(key)` is true only when the key is in the **active** locale (no fallbackLng); `runWithI18n(fn)` isolates request locale on SSR (`AsyncLocalStorage`); globalThis dedup survives Vite chunk splitting (client); reactive `t(listener, key)` overload re-renders on `setLocale()` |
 | `create-domphy` | scaffolder — `npm create domphy@latest <dir>` writes a runnable Vite + TS starter (themeApply + sample patches + AGENTS.md) |
 | `domphy-web` | docs website — built with `@domphy/press` on `@domphy/app`; renders Mermaid diagrams docs-site-internally (client-side via the islands runtime + CDN; the former `@domphy/mermaid` source lives in `apps/web/mermaid/`) (internal, not published to npm) |
 | `bench` | benchmarks (internal, not published) |
@@ -595,6 +595,15 @@ Framework-agnostic, no JSX, no virtual DOM, no build step required — and the m
 - `@domphy/virtual` — virtualization (rows, columns, dynamic sizes)
 - `@domphy/form` — forms (typed values, validators, arrays, Standard Schema)
 
+**Presentation, 3D & i18n:**
+
+- `@domphy/blocks` — 173 composed blocks — sidebars, auth pages, dashboards, effects
+- `@domphy/chart` — SVG + WebGL charts — line, bar, pie, scatter, gauge…
+- `@domphy/three` — declarative three.js scene graph on Domphy reactivity
+- `@domphy/editor` — rich-text editor — Tiptap-compatible API, self-contained engine
+- `@domphy/floating` — anchor positioning — floating-ui core, zero-dep, powers overlays
+- `@domphy/i18n` — i18next wrapper with reactive `t(listener, key)`
+
 **App layer & tools:**
 
 - `@domphy/dnd` — drag & drop / sortable lists
@@ -603,7 +612,7 @@ Framework-agnostic, no JSX, no virtual DOM, no build step required — and the m
 - `@domphy/doctor` — static analyzer that flags non-idiomatic code (`diagnose`/`validate`; powers AI self-correction)
 - `@domphy/mcp` — MCP server exposing patches/packages/rules + doctor + app-block registry to agents
 
-Domphy removes component boundaries, unifies SSR and CSR under one model, automates context-aware styling, and works with any JavaScript library without adapters or plugins. For anything outside these packages (charts, rich text, i18n…), use the vanilla library directly — see [Integrations](/docs/integrations/).
+Domphy removes component boundaries, unifies SSR and CSR under one model, automates context-aware styling, and works with any JavaScript library without adapters or plugins. For libraries with no first-party package (carousel, maps, date pickers…), use the vanilla library directly — see [Integrations](/docs/integrations/).
 
 ## Why Domphy
 
@@ -5199,7 +5208,7 @@ Options:
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `persist` | `boolean` | `true` | Save resolved theme in `localStorage` |
+| `persist` | `boolean` | `true` | Honour an existing `"light"`/`"dark"` value under `storageKey`; the helper never writes — the caller persists a user choice via `localStorage.setItem` |
 | `storageKey` | `string` | `"dp-theme"` | `localStorage` key |
 
 ## Setup Helpers
@@ -17456,6 +17465,19 @@ const profileForm = createForm({
 
 `formOptions()` preserves TypeScript inference — the returned object is typed exactly as passed, so spreading it into `createForm()` keeps full type safety.
 
+## `FormGroupApi` / `FieldGroupApi`
+
+`@domphy/form` also exports `FormGroupApi` and `FieldGroupApi` (headless, not the `@domphy/ui` `formGroup()` layout patch). A `FormGroupApi` is a named subtree of a parent form: it derives `state.value` from the parent at its path, aggregates descendant field meta, and can run its own validators. A `FieldGroupApi` is a reusable mapped-fields group you construct with `new FieldGroupApi({ form, fields })`.
+
+```ts
+import { FormGroupApi, FieldGroupApi } from "@domphy/form"
+
+const person = new FormGroupApi({ form, name: "person" })
+person.mount()
+```
+
+These are Domphy originals (not in `@tanstack/form-core`). See `packages/form/tests/groups.test.ts` for the full contract.
+
 ## Reusable form section factories
 
 Create a function that returns a set of fields bound to a specific form, then call it in multiple places:
@@ -21196,7 +21218,7 @@ Dragging reorders the DOM, FormKit calls `setValues` → the `items` state updat
 
 ## Config & plugins
 
-`dragDrop(state, config)` forwards `config` to FormKit's `ParentConfig`, and the whole FormKit API (plugins, sensors, group transfer) is re-exported. Animations are **on by default**:
+`dragDrop(state, config)` forwards `config` to FormKit's `ParentConfig`, and the whole FormKit API (plugins like `animations`, `insert`, `dropOrSwap`, group transfer) is re-exported. Animations are **on by default**:
 
 ```ts
 import { dragDrop } from "@domphy/dnd"
@@ -21861,7 +21883,7 @@ description: "Large composed UI blocks for Domphy — dashboards, auth pages, si
 
 173 ready-to-use composed blocks and effect components: application shells (sidebar layouts, auth pages, a dashboard), chart recipes for `@domphy/chart`, and marketing/effect components (animated backgrounds, text effects, cards, buttons). Every export is a factory function you call directly — not a `$`-patch you apply to your own tag.
 
-This package exists for two reasons: it is a genuinely useful "bigger than a button" component library, and it doubles as an integration test — building real-world compositions is what surfaces gaps in the rest of the ecosystem (`@domphy/ui`, `@domphy/chart`, `@domphy/table`, `@domphy/form`) that small demos never would.
+This package exists for two reasons: it is a genuinely useful "bigger than a button" component library, and it doubles as an integration test — building real-world compositions is what surfaces gaps in the rest of the ecosystem (`@domphy/ui`, `@domphy/chart`, `@domphy/table`) that small demos never would.
 
 ## Install
 
@@ -21869,7 +21891,7 @@ This package exists for two reasons: it is a genuinely useful "bigger than a but
 npm install @domphy/blocks
 ```
 
-Peer dependencies: `@domphy/core`, `@domphy/theme`, `@domphy/ui`, `@domphy/chart`, `@domphy/form`, `@domphy/table` (only the ones a given block actually imports need to be present at runtime — see each block's own imports).
+Peer dependencies: `@domphy/core`, `@domphy/theme`, `@domphy/ui`, `@domphy/chart`, `@domphy/table` (only the ones a given block actually imports need to be present at runtime — see each block's own imports).
 
 ## Quick start
 
@@ -26173,7 +26195,7 @@ description: "Editor options and instance members, the generic command set behin
 
 ## `createEditor(options)`
 
-Builds an editor without mounting it. The DOM host comes later from [`editorContent()`](#editorcontent-editor-props), which owns the mount/unmount lifecycle of the element it is applied to — passing `element` here would mount twice.
+Builds an editor without mounting it. The DOM host comes later from [`editorContent()`](#editorcontent-editor-props), which owns the mount/unmount lifecycle of the element it is applied to. Passing `element` here is ignored (`element` is forced to `null`) so this helper never mounts.
 
 ```ts
 import { createEditor } from "@domphy/editor/domphy"
@@ -27618,7 +27640,7 @@ Combine with [`renderToString`](./ssr) in one server: route `/api/*` to the API 
 
 `SSRResult`: `html`, `css`, `head`, `status`, `redirect?`, `data`, `bootstrapScript`.
 
-`StreamResult`: `stream` (`ReadableStream<Uint8Array>`), `status` (`number`), `redirect?` (`string`).
+`StreamResult`: `stream` (`ReadableStream<Uint8Array>`), `status` (`number`), `redirect?` (`string`). `status`/`redirect` reflect pre-shell decisions only (middleware, static `route.redirect`, 404, rewrite-loop 500) — loader `redirect()` cannot change them and streams as a client-side `location.replace` after the 200 shell.
 
 `RenderToStreamOptions` extends `RenderToStringOptions` with `head?` (markup for `<head>`, sent in the first flush) and `bootstrap?` (markup before `</body>`, typically the client bundle `<script>`).
 
@@ -27865,7 +27887,7 @@ The background refetch starts after the current render commits, so a stale entry
 
 ## Prefetching
 
-`router.prefetch(href)` (and `navLink`'s hover/visible prefetch) runs the target's loaders ahead of navigation. Results stay usable for 30 seconds — the same window as the Next.js client router cache — so the navigation itself renders instantly without re-fetching, even for uncached loaders.
+`router.prefetch(href)` (and `navLink`'s hover/visible prefetch) runs the same global/per-route middleware and rewrite pipeline as navigation, then the target's loaders. Locale-prefixed hrefs from `createI18nMiddleware` (e.g. `/vi/about`) therefore warm the rewritten route. Results stay usable for 30 seconds — the same window as the Next.js client router cache — so the navigation itself renders instantly without re-fetching, even for uncached loaders.
 
 ## Control Flow from Loaders
 
@@ -28710,6 +28732,12 @@ const { stream, status, redirect } = await app.renderToStream(request.url, {
   headers: request.headers,
 })
 
+if (redirect) {
+  response.writeHead(status, { location: redirect })
+  response.end()
+  return
+}
+
 response.writeHead(status, { "content-type": "text/html" })
 // Pipe the web stream to the Node response (or return it directly on edge runtimes).
 for await (const chunk of stream as unknown as AsyncIterable<Uint8Array>) {
@@ -28723,7 +28751,9 @@ response.end()
 - **First flush** — `<!DOCTYPE html>` + `<head>` (your `head` option + shell CSS) + `<body><div id="domphy-app">` wrapping the shell. The browser paints the loading UI right away.
 - **Second flush** — the content and head arrive as `<template>` elements followed by an inline script that swaps them into place, then the hydration data and your `bootstrap` markup.
 
-`RenderToStreamOptions` adds `head` (markup for `<head>`, sent first) and `bootstrap` (markup before `</body>`, usually the client bundle `<script>`) to the `headers` option. Because the shell is committed before loaders run, `status` is `200` for any matched route; loader-level `notFound()`/`error` render their boundaries inline.
+`RenderToStreamOptions` adds `head` (markup for `<head>`, sent first) and `bootstrap` (markup before `</body>`, usually the client bundle `<script>`) to the `headers` option.
+
+`status`/`redirect` are decided **before** the shell flushes: middleware and static `route.redirect` can still return 307/308 (or 404/500). Loader `redirect()` cannot change them — the first byte is already committed — and streams as a client-side `location.replace` in a later chunk. Use `renderToString` when you need an HTTP redirect from a loader. Loader `notFound()`/`error` render their boundaries inline in the second flush.
 
 On the client, hydrate the swapped root exactly as with `renderToString`:
 
@@ -29193,7 +29223,7 @@ It uses [remark](https://github.com/remarkjs/remark) (unified) to parse Markdown
 ## What you get
 
 - Headings with a slug `id` for anchors, plus a collected table of contents
-- Paragraphs, bold / italic / strikethrough, inline code
+- Paragraphs, bold / italic / strikethrough (`~~…~~`), highlight (`==mark==`), subscript (`~sub~`), superscript (`^sup^`), inline code, GitHub gemoji (`:tada:` → 🎉)
 - Fenced code blocks (with a pluggable highlighter)
 - Links, images, blockquotes, ordered / unordered / nested lists (`_key` on list items)
 - GFM tables, horizontal rules, raw inline / block HTML pass-through
@@ -29492,9 +29522,40 @@ A paragraph with **bold**, _italic_, and `code`.
 | `**bold**` or `__bold__` | `{ strong: [...children] }` |
 | `_italic_` or `*italic*` | `{ em: [...children] }` |
 | `~~struck~~` | `{ s: [...children] }` |
+| `==highlight==` | `{ mark: [...children] }` |
+| `~sub~` | `{ sub: [...children] }` |
+| `^sup^` | `{ sup: [...children] }` |
 | `` `inline code` `` | `{ code: "text" }` |
 
-Emphasis elements can be nested: `**_bold italic_**` becomes `{ strong: [{ em: ["bold italic"] }] }`.
+Emphasis elements can be nested: `**_bold italic_**` becomes `{ strong: [{ em: ["bold italic"] }] }`. `==**bold**==` becomes `{ mark: [{ strong: ["bold"] }] }`.
+
+GFM strikethrough is `~~…~~` only (`singleTilde: false` on `remark-gfm`) so `H~2~O` is subscript, not strike. `==…==` / `~…~` / `^…^` inside inline code or fences stay literal text.
+
+```markdown
+==highlighted==
+H~2~O
+E=mc^2^
+```
+
+```ts
+{ p: [{ mark: ["highlighted"] }] }
+{ p: ["H", { sub: ["2"] }, "O"] }
+{ p: ["E=mc", { sup: ["2"] }] }
+```
+
+## Emoji
+
+GitHub gemoji shortcodes (`remark-gemoji`) are replaced with the emoji character in the text node. Unknown shortcodes stay literal. Fenced/inline code is not expanded.
+
+```markdown
+:tada: :smile: :rocket:
+:not_an_emoji:
+```
+
+```ts
+{ p: ["🎉 😄 🚀"] }
+{ p: [":not_an_emoji:"] }
+```
 
 ## Links
 
@@ -30392,7 +30453,7 @@ Rules:
 - Use patches from @domphy/ui for typography — no inline fontSize/fontWeight.
 - Dynamic list children from reactive functions must have a stable _key.
 - Void tags (input, img, br) must have null content.
-- dataTone values: "inherit" | "base" | "shift-N" | "increase-N" | "decrease-N" (N ≤ 17).
+- dataTone values: "inherit" | "base" | "shift-N" | "increase-N" | "decrease-N" (N ≤ 17), or aliases "surface"/"hover"/"border"/"border-strong"/"muted"/"text".
 `
 ```
 
@@ -30417,7 +30478,7 @@ if (doctorReport !== "✓ No issues found.") {
 | `domphy_validate` | `{ ok, issues, summary }` — structured `ValidationReport` |
 | `domphy_fix` | `{ tree, applied, report }` — autofixed tree and remainder |
 
-All three accept a JSON element tree as input. Reactive functions serialize as `null` over the wire (JSON does not carry functions), so `runReactive` is implicitly `false` for MCP calls — dynamic-list rules will not fire.
+All three take `{ element: "<json>" }` — a JSON **string** of the element tree (`element`, not `tree`; a missing/wrong key returns `isError`). Reactive functions serialize as `null` over the wire (JSON does not carry functions), so `runReactive` is implicitly `false` for MCP calls — dynamic-list rules will not fire.
 
 ### Tool call pattern
 
@@ -30426,7 +30487,7 @@ An agent using tool-calling can validate inline:
 ```
 User: Build a settings form with email and password fields.
 
-Assistant: [generates tree, calls domphy_validate({ tree })]
+Assistant: [generates tree, calls domphy_validate({ element: "<json>" })]
 
 domphy_validate response:
 {
@@ -30443,7 +30504,7 @@ domphy_validate response:
   "summary": { "error": 1, "warning": 0, "info": 0, "total": 1 }
 }
 
-Assistant: [corrects the tree based on the report, calls domphy_fix({ tree }) to auto-apply lossless fixes]
+Assistant: [corrects the tree based on the report, calls domphy_fix({ element: "<json>" }) to auto-apply lossless fixes]
 
 domphy_fix response:
 {
@@ -30461,8 +30522,8 @@ For agents generating code that should reuse existing app blocks, pair the docto
 1. domphy_list_app_blocks()          — discover what's already built
 2. domphy_get_app_block({ name })    — get the signature and example
 3. [generate tree reusing blocks]
-4. domphy_validate({ tree })         — check for violations
-5. domphy_fix({ tree })              — apply lossless fixes
+4. domphy_validate({ element: "<json>" }) — check for violations
+5. domphy_fix({ element: "<json>" })      — apply lossless fixes
 6. [report remaining issues to user]
 ```
 
@@ -30492,18 +30553,18 @@ import { themeColor } from "@domphy/theme"
 ### Agent misuses dataTone
 
 ```ts
-// Agent generates (common hallucination)
-{ div: "Surface", dataTone: "surface" }
+// Agent generates (common hallucination — invented word, not a real alias)
 { div: "Text", dataTone: "foreground" }
 
 // Doctor reports
 // ⚠ [unknown-tone] div
-//   `dataTone` "surface" is not a valid tone.
-//   → Use "inherit", "base", a number, or "shift-N"/"increase-N"/"decrease-N" with N ≤ 17.
+//   `dataTone` "foreground" is not a valid tone.
+//   → Use "inherit", "base", "shift-N"/"increase-N"/"decrease-N" (N ≤ 17),
+//     or a semantic alias: "surface", "hover", "border", "border-strong",
+//     "muted", "text". Bare-numeric strings like "3" are invalid.
 
 // Agent corrects
-{ div: "Surface", dataTone: "shift-1" }    // light surface
-{ div: "Text", dataTone: "decrease-4" }    // dark text, relative to context
+{ div: "Text", dataTone: "text" }    // alias for shift-9
 ```
 
 ### Agent forgets _key
@@ -31148,7 +31209,7 @@ interface Diagnostic {
 | `low-contrast` | warning | `style.color` and `style.backgroundColor` both resolve to theme vars but their shift-step gap is < 9 — insufficient contrast for legible text |
 | `dataTone-surface-contract` | warning | element sets `dataTone` but is missing `backgroundColor` and/or `color` — a tone context surface must declare both so children can guarantee readable contrast |
 | `color-shift-minimum` | warning | `style.color` on an element with `dataTone` resolves to tone step < 9 — below the minimum for legible body text |
-| `unknown-tone` | warning | a `dataTone` value that isn't valid tone grammar (`inherit` / `base` / a number / `shift-N` / `increase-N` / `decrease-N` with N ≤ 17) — catches invented words like `surface` / `text`, and out-of-range offsets like `shift-25` |
+| `unknown-tone` | warning | a `dataTone` **string** that isn't in `ElementTones` (`inherit` / `base` / `shift-N` / `increase-N` / `decrease-N` with N ≤ 17, or aliases `surface` / `hover` / `border` / `border-strong` / `muted` / `text`) — catches invented words like `foreground` / `light`, bare-numeric strings like `"3"` (the runtime throws; use `dataTone: 3` or `"shift-3"`), and out-of-range offsets like `shift-25` |
 | `middle-surface-anchor` | warning | a `dataTone: "shift-N"` where N is 4–13 — a mid-ramp surface anchor causes child tones to clamp and collapse contrast; prefer edge anchors (0–3 light, 14–17 dark) |
 | `unknown-density` | warning / error | a `dataDensity` value that isn't `"inherit"` / `"increase-N"` / `"decrease-N"` (N ≤ 4), or uses `shift-` (invalid for density). Error when N > 4 (out of the 5-step scale). |
 | `unknown-size` | warning / error | a `dataSize` value that isn't `"inherit"` / `"increase-N"` / `"decrease-N"` (N ≤ 7), or uses `shift-` (invalid for size). Error when N > 7 (out of the 8-step scale). |
@@ -31561,38 +31622,39 @@ import { themeDensity, themeSpacing } from "@domphy/theme"
 
 ## `unknown-tone` — warning
 
-`dataTone` controls which step in the color ramp the subtree uses as its surface anchor. The valid grammar is:
+`dataTone` controls which step in the color ramp the subtree uses as its surface anchor. The valid **string** grammar is the same list the runtime's `offsetTone()` accepts (`ElementTones` from `@domphy/theme`):
 
 - `"inherit"` — use the parent's tone (default)
 - `"base"` — the mid-lightness anchor for the current color family
-- A bare integer string like `"0"`, `"9"`, `"17"`
 - `"shift-N"` where N is 0–17 — absolute position in the 18-step ramp
 - `"increase-N"` where N is 0–17 — lighter relative to the current context
 - `"decrease-N"` where N is 0–17 — darker relative to the current context
-- A semantic alias from `@domphy/theme` — `"surface"`, `"hover"`, `"border"`, `"border-strong"`, `"muted"`, `"text"` — each resolves to its underlying `shift-N` before grammar/range checks (see [Tone Aliases](/docs/theme/tone#semantic-aliases))
+- A semantic alias — `"surface"`, `"hover"`, `"border"`, `"border-strong"`, `"muted"`, `"text"` — each resolves to its underlying `shift-N` before grammar/range checks (see [Tone Aliases](/docs/theme/tone#semantic-aliases))
 
-Anything else is flagged, including made-up words like `"light"` or `"dark"`, and out-of-range offsets like `"shift-25"`.
+A real number (`dataTone: 3`) is accepted by the runtime and is not checked here (core preserves the JS type). Bare-numeric **strings** like `"3"` are invalid — `offsetTone()` throws for them.
+
+Anything else is flagged, including made-up words like `"light"` / `"foreground"`, out-of-range offsets like `"shift-25"`, and bare-numeric strings.
 
 ```ts
 // Bad
-{ div: "Card", dataTone: "light" }     // not a tone
-{ div: "Card", dataTone: "dark" }      // not a tone
-{ div: "Card", dataTone: "shift-25" }  // out of range (max 17)
+{ div: "Card", dataTone: "light" }       // not a tone
+{ div: "Card", dataTone: "foreground" }  // not a tone (aliases are surface/text/…)
+{ div: "Card", dataTone: "3" }           // bare-numeric string — runtime throws
+{ div: "Card", dataTone: "shift-25" }    // out of range (max 17)
 { div: "Card", dataTone: "increase-18" } // out of range
 ```
 
 ```ts
 // Good
 { div: "Card", dataTone: "base" }
-{ div: "Card", dataTone: "shift-0" }      // lightest
-{ div: "Card", dataTone: "shift-17" }     // darkest
-{ div: "Card", dataTone: "increase-2" }   // 2 steps lighter than context
-{ div: "Card", dataTone: "decrease-3" }   // 3 steps darker than context
-{ div: "Card", dataTone: "surface" }      // semantic alias, same as "shift-1"
+{ div: "Card", dataTone: "shift-0" }       // lightest
+{ div: "Card", dataTone: "shift-17" }      // darkest
+{ div: "Card", dataTone: "increase-2" }    // 2 steps lighter than context
+{ div: "Card", dataTone: "decrease-3" }    // 3 steps darker than context
+{ div: "Card", dataTone: "surface" }       // semantic alias, same as "shift-1"
 { div: "Card", dataTone: "border-strong" } // semantic alias, same as "shift-4"
+{ div: "Card", dataTone: 3 }               // real number — runtime accepts
 ```
-
-**Note:** bare integer strings like `"999"` or `"-5"` pass this rule — the parser accepts them without range-checking. Only the `shift-N` / `increase-N` / `decrease-N` families have N ≤ 17 enforced.
 
 ---
 
@@ -33067,6 +33129,7 @@ Builds the full static site: discovers pages, renders each Markdown file, genera
 
 ```ts
 import { buildSite } from "@domphy/press"
+import type { BuildOptions, FeatureConfig, HeroConfig } from "@domphy/press"
 import { config } from "./press.config.js"
 
 await buildSite({
@@ -33288,13 +33351,13 @@ export default defineConfig({ /* SiteConfig */ })
 | `sidebar` | `Record<string, SidebarItem[]>` | Sidebar keyed by route prefix — longest match wins |
 | `logo` | `string \| { light: string; dark: string }?` | Logo image — single URL or separate light/dark variants |
 | `search` | `false \| { placeholder?, limit? }?` | Built-in local search. Pass `false` to disable |
-| `footerMessage` | `string?` | Footer content |
+| `footerMessage` | `string?` | Footer content (HTML via `rawHtml()` — keep to markup you control) |
 | `socialLinks` | `SocialLink[]?` | GitHub, Twitter, Discord, etc. icon links in header |
 | `editLink` | `EditLink?` | "Edit this page" link (pattern: `https://github.com/…/:path`) |
 | `outline` | `{ level: [number, number] }?` | TOC heading levels. Default: `[2, 3]` |
 | `tocTitle` | `string?` | TOC section heading text. Default: `"On this page"` |
 | `mermaid` | `boolean \| { cdn? }?` | Enable Mermaid diagrams (loaded via CDN) |
-| `announcementBar` | `{ id?, text, dismissible? }?` | Dismissible banner above the page |
+| `announcementBar` | `{ id?, text, dismissible? }?` | Dismissible banner above the page. `text` is HTML via `rawHtml()` (same contract as `footerMessage`) |
 | `slots` | `LayoutSlots?` | Override individual layout regions with custom Domphy elements |
 
 ## NavItem
@@ -33530,12 +33593,14 @@ export default defineConfig({
   themeConfig: {
     announcementBar: {
       id: "v2-release",   // unique — controls dismiss state in localStorage
-      content: "🎉 Domphy v2.0 is out! <a href='/blog/v2'>Read the release notes</a>",
+      text: "🎉 Domphy v2.0 is out! <a href='/blog/v2'>Read the release notes</a>",
       dismissible: true,
     },
   },
 })
 ```
+
+`text` is rendered as HTML (wrapped in `rawHtml()` by the layout) — the same controlled-markup contract as `footerMessage`. Inline tags like `<a>` are allowed; keep it to markup you control.
 
 ## Extending the layout component
 
@@ -33741,6 +33806,8 @@ themeConfig: {
   },
 }
 ```
+
+`text` is rendered as HTML (wrapped in `rawHtml()` by the layout) — the same controlled-markup contract as `footerMessage`. Inline tags like `<a>` are allowed; keep it to markup you control.
 
 Set `id` so the user only sees it once per release. Omit `id` to always show on page load.
 
@@ -35108,13 +35175,12 @@ Re-run the script whenever you add, rename, or remove exported blocks. A common 
 
 ## How the source path is resolved
 
-The manifest stores repo-relative paths (e.g. `src/blocks/card.ts`). When `domphy_get_app_block` reads the source file, it tries three candidate paths in order:
+The manifest stores repo-relative paths (e.g. `src/blocks/card.ts`). When `domphy_get_app_block` reads the source file, it tries two candidate paths in order:
 
-1. `<manifestDir>/../../../<file>` — the default layout where the manifest lives at `apps/web/public/`
-2. `<cwd>/<file>` — relative to the working directory
-3. `<manifestDir>/<file>` — relative to the manifest itself
+1. `<cwd>/<file>` — relative to the working directory
+2. `<manifestDir>/<file>` — relative to the manifest itself
 
-This means the server can read sources correctly whether the manifest is in `apps/web/public/`, the repo root, or any custom location.
+Those are the only allowed roots. A parent walk such as `<manifestDir>/../../../<file>` (the old `apps/web/public/` layout shortcut) is refused as a path escape.
 
 ### client-setup.md
 
@@ -35519,9 +35585,9 @@ An [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) server that 
 
 - **Patch catalog** — full API of every `@domphy/ui` patch (host tag, props, style contract)
 - **Package map** — all packages, their purpose, and when to use them
-- **Rules** — the complete AGENTS.md rule set (tone model, doctor rules, naming conventions)
+- **Rules** — `domphy_rules` returns `llms.txt` (the code-generation guide)
 - **Doctor integration** — validate and fix Domphy element trees live
-- **App block registry** — layout patterns from `@domphy/app`
+- **App block registry** — the current app's exported trees from `app-manifest.json`
 
 ## Installation
 
@@ -35617,7 +35683,7 @@ Get the Domphy code-generation rules (`llms.txt`) — the complete guide for wri
 
 ## domphy_tones
 
-Get the valid tone names and theme color names for `themeColor()` and `dataTone`. Use this to avoid inventing tones like `"surface"` or `"text"` that don't exist.
+Get the valid tone names and theme color names for `themeColor()`/`dataTone` (e.g. `themeColor(l, "text", "primary")`, same as `themeColor(l, "shift-9", "primary")`). Includes the semantic aliases (`surface`/`hover`/`border`/`border-strong`/`muted`/`text`) — prefer those over invented tone words.
 
 **Input:** none
 
@@ -36001,9 +36067,10 @@ function badge(
         top: 0,
         right: 0,
         transform: "translate(50%,-50%)",
-        paddingInline: (l) => themeSpacing(themeDensity(l) * 1.5),
+        // Bare themeSpacing(U) at snapshot time; n = U / 1.5 (light.densities[2]).
+        paddingInline: (l) => themeSpacing(themeDensity(l) * (1.5 / 1.5)),
         minWidth: themeSpacing(5),
-        height: (l) => themeSpacing(themeDensity(l) * 5),
+        height: (l) => themeSpacing(themeDensity(l) * (5 / 1.5)),
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
@@ -36699,9 +36766,12 @@ function code(
       color: (listener) => themeColor(listener, "text", color.get(listener)),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
-      height: (listener) => themeSpacing(themeDensity(listener) * 6),
-      paddingInline: (listener) => themeSpacing(themeDensity(listener) * 1.5),
-      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
+      // Bare themeSpacing(U) at snapshot time; n = U / 1.5 (light.densities[2]).
+      height: (listener) => themeSpacing(themeDensity(listener) * (6 / 1.5)),
+      paddingInline: (listener) =>
+        themeSpacing(themeDensity(listener) * (1.5 / 1.5)),
+      borderRadius: (listener) =>
+        themeSpacing(themeDensity(listener) * (1 / 1.5)),
     },
   };
 }
@@ -36854,10 +36924,7 @@ function combobox(props: {
     ariaExpanded: (listener) => openState.get(listener),
     ariaControls: (listener) =>
       listener?.elementNode
-        ? floatingPanelId(
-            "combobox",
-            findComboboxAnchor(listener.elementNode),
-          )
+        ? floatingPanelId("combobox", findComboboxAnchor(listener.elementNode))
         : undefined,
   };
 
@@ -36923,7 +36990,7 @@ function combobox(props: {
 
   const attachInner = (
     node: ElementNode,
-    inner: InnerProps,
+    _inner: InnerProps,
   ): ComboboxInner => {
     let query = node.getMetadata("comboboxQuery") as State<string> | undefined;
     if (!query) {
@@ -38181,17 +38248,21 @@ function attachDialog(
     // Guard for environments with HTMLDialogElement but no close()
     // implementation (e.g. jsdom in tests).
     if (typeof dlg.close === "function") dlg.close();
-    // visibility/pointer-events (not just opacity) must reflect the closed
-    // state: opacity alone leaves a closed dialog's content fully reachable
-    // by Tab and exposed to the accessibility tree (opacity, unlike
+    // visibility/pointer-events/display (not just opacity) must reflect the
+    // closed state: opacity alone leaves a closed dialog's content fully
+    // reachable by Tab and exposed to the accessibility tree (opacity, unlike
     // visibility, never removes an element from either) — and a consumer
     // that sets its own `style: { display: ... }` on the dialog (a common
     // pattern for centering content) overrides the UA stylesheet's
     // `dialog:not([open]) { display: none }`, so `dlg.close()` alone doesn't
-    // reliably hide it either. Set INLINE so it always wins regardless of
-    // what the consumer's own style object declares.
+    // reliably hide it either. visibility+pointer-events still leave the
+    // node in the layout and in the document for password-managers / autofocus.
+    // Set INLINE so it always wins regardless of what the consumer's own
+    // style object declares. Do not put `display: none` on the patch CSS
+    // class — native `style.display` would lose to that class on reopen.
     dlg.style.visibility = "hidden";
     dlg.style.pointerEvents = "none";
+    dlg.style.display = "none";
     if (scrollLocked) {
       unlockScroll();
       scrollLocked = false;
@@ -38247,6 +38318,9 @@ function attachDialog(
       previousFocus = document.activeElement as HTMLElement;
       dlg.style.visibility = "visible";
       dlg.style.pointerEvents = "auto";
+      // Drop the closed-state inline display so the consumer's own
+      // `style.display` (or the UA open-dialog rule) can apply.
+      dlg.style.display = "";
       // Guard for environments with HTMLDialogElement but no showModal()
       // implementation (e.g. jsdom in tests). Also guard against re-entering
       // on an already-open dialog — showModal() throws InvalidStateError in
@@ -38266,6 +38340,13 @@ function attachDialog(
       closing = true;
       dlg.style.opacity = "0";
       dlg.removeEventListener("keydown", trapFocus);
+      // Mounted already-closed (never opened): no fade to play — hide now
+      // so a consumer `display: flex` cannot keep the closed node in layout
+      // for the 350ms timer (or forever, if transitionend also never fires).
+      if (!dlg.open) {
+        finalizeClose();
+        return;
+      }
       // Fallback: if transitionend never fires (reduced-motion, display:none),
       // unblock close after the transition duration + buffer.
       closeTimer = setTimeout(() => {
@@ -38323,6 +38404,8 @@ function attachDialog(
  * fades via opacity, locks page scroll while open, traps Tab focus within the
  * dialog, restores focus to the previously focused element on close, sets
  * `aria-modal`, and closes on outside (backdrop) click. Apply to a `<dialog>`.
+ * Closed state is inline `visibility`/`pointer-events`/`display:none` so a
+ * consumer `style.display` cannot keep the node in layout.
  *
  * Accessible name/description: pass `labelledBy`/`describedBy` the `id` of a
  * heading/paragraph inside the dialog (Radix Title/Description parity). The
@@ -38543,8 +38626,7 @@ function attachDrawer(
         dlg.ownerDocument.dir === "rtl");
     const physical = resolvePhysical(nextPlacement, isRTL);
     const drawerSize =
-      nextSize ??
-      (isVertical(physical) ? themeSpacing(80) : themeSpacing(64));
+      nextSize ?? (isVertical(physical) ? themeSpacing(80) : themeSpacing(64));
     dlg.style.margin = marginMap[physical];
     dlg.style.width = isVertical(physical) ? drawerSize : "100dvw";
     dlg.style.height = isVertical(physical) ? "100dvh" : drawerSize;
@@ -38565,14 +38647,16 @@ function attachDrawer(
     // implementation (e.g. jsdom in tests).
     if (typeof dlg.close === "function") dlg.close();
     // Same fix as dialog.ts: the closed state was only ever represented
-    // by an off-screen `transform`, never visibility/pointer-events — a
-    // closed drawer stayed fully reachable by Tab and exposed to the
+    // by an off-screen `transform`, never visibility/pointer-events/display
+    // — a closed drawer stayed fully reachable by Tab and exposed to the
     // accessibility tree (a CSS transform, like opacity, does neither),
     // and a consumer's own `style: { display: ... }` overrides the UA
     // stylesheet's `dialog:not([open])` rule anyway. Set INLINE so it
-    // always wins.
+    // always wins. Do not put `display: none` on the patch CSS class —
+    // native `style.display` would lose to that class on reopen.
     dlg.style.visibility = "hidden";
     dlg.style.pointerEvents = "none";
+    dlg.style.display = "none";
     if (scrollLocked) {
       unlockScroll();
       scrollLocked = false;
@@ -38598,6 +38682,7 @@ function attachDrawer(
       }
       dlg.style.visibility = "visible";
       dlg.style.pointerEvents = "auto";
+      dlg.style.display = "";
       // Guard for environments with HTMLDialogElement but no showModal()
       // implementation (e.g. jsdom in tests). Also guard against re-entering
       // on an already-open dialog — showModal() throws InvalidStateError in
@@ -38613,6 +38698,10 @@ function attachDrawer(
     } else {
       closing = true;
       dlg.style.transform = translateOut[physical];
+      if (!dlg.open) {
+        finishClose();
+        return;
+      }
       closeTimer = setTimeout(finishClose, 350);
     }
   };
@@ -38697,7 +38786,11 @@ function drawer(
         console.warn(`"drawer" patch must use dialog tag`);
       }
     },
-    ...behavior<DrawerProps>("drawer", attachDrawer, { state, placement, size }),
+    ...behavior<DrawerProps>("drawer", attachDrawer, {
+      state,
+      placement,
+      size,
+    }),
     onClick: (e: MouseEvent, node) => {
       if (e.target !== node.domElement) return;
       const r = node.domElement!.getBoundingClientRect();
@@ -40680,9 +40773,13 @@ function keyboard(
       color: (listener) => themeColor(listener, "text", color.get(listener)),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
-      paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 0.5),
-      paddingInline: (listener) => themeSpacing(themeDensity(listener) * 1.5),
-      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
+      // Bare themeSpacing(U) at snapshot time; n = U / 1.5 (light.densities[2]).
+      paddingBlock: (listener) =>
+        themeSpacing(themeDensity(listener) * (0.5 / 1.5)),
+      paddingInline: (listener) =>
+        themeSpacing(themeDensity(listener) * (1.5 / 1.5)),
+      borderRadius: (listener) =>
+        themeSpacing(themeDensity(listener) * (1 / 1.5)),
       outline: (listener) =>
         `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
     },
@@ -41203,9 +41300,12 @@ function mark(
         themeColor(listener, "text", accentColor.get(listener)),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", accentColor.get(listener)),
-      height: (listener) => themeSpacing(themeDensity(listener) * 6),
-      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1),
-      paddingInline: (listener) => themeSpacing(themeDensity(listener) * 1.5),
+      // Bare themeSpacing(U) at snapshot time; n = U / 1.5 (light.densities[2]).
+      height: (listener) => themeSpacing(themeDensity(listener) * (6 / 1.5)),
+      borderRadius: (listener) =>
+        themeSpacing(themeDensity(listener) * (1 / 1.5)),
+      paddingInline: (listener) =>
+        themeSpacing(themeDensity(listener) * (1.5 / 1.5)),
     },
   };
 }
@@ -41336,9 +41436,7 @@ function menu(
           else if (k === "Home") next = 0;
           else if (k === "End") next = keys.length - 1;
           (
-            document.getElementById(
-              `menuitem${id}${keys[next]}`,
-            ) as HTMLElement
+            document.getElementById(`menuitem${id}${keys[next]}`) as HTMLElement
           )?.focus();
         },
         style: {
@@ -44831,6 +44929,17 @@ import { focusRing } from "../utils/focusRing.js";
 
 const xSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6.707 5.293l5.293 5.292l5.293 -5.292a1 1 0 0 1 1.414 1.414l-5.292 5.293l5.292 5.293a1 1 0 0 1 -1.414 1.414l-5.293 -5.292l-5.293 5.292a1 1 0 1 1 -1.414 -1.414l5.292 -5.293l-5.292 -5.293a1 1 0 0 1 1.414 -1.414" /></svg>`;
 
+// Compact-chip chrome was bare `themeSpacing(U)` (catalog snapshots). Default
+// density is 1.5 (`light.densities[2]`, density.ts origin index 2). n = U / 1.5
+// keeps those pixels at default while dataDensity still scales. Height 6U must
+// stay below selectBox/combobox minHeight `(6 + 2d)U` or the chip fills the trigger.
+const DEFAULT_DENSITY = 1.5;
+const TAG_HEIGHT = 6 / DEFAULT_DENSITY;
+const TAG_PAD_INLINE = 2.5 / DEFAULT_DENSITY;
+const TAG_PAD_END_REMOVABLE = 1 / DEFAULT_DENSITY;
+const TAG_REMOVE = 4 / DEFAULT_DENSITY;
+const TAG_REMOVE_RADIUS = 1 / DEFAULT_DENSITY;
+
 type TagRemoveProps = { removable: boolean };
 
 /**
@@ -44880,9 +44989,11 @@ function tag(
             alignItems: "center",
             cursor: "pointer",
             borderRadius: (listener) =>
-              themeSpacing(themeDensity(listener) * 1),
-            width: (listener) => themeSpacing(themeDensity(listener) * 4),
-            height: (listener) => themeSpacing(themeDensity(listener) * 4),
+              themeSpacing(themeDensity(listener) * TAG_REMOVE_RADIUS),
+            width: (listener) =>
+              themeSpacing(themeDensity(listener) * TAG_REMOVE),
+            height: (listener) =>
+              themeSpacing(themeDensity(listener) * TAG_REMOVE),
             flexShrink: 0,
             transition: "background-color 140ms ease, box-shadow 140ms ease",
             "&:hover": {
@@ -44923,13 +45034,16 @@ function tag(
       alignItems: "center",
       whiteSpace: "nowrap",
       userSelect: "none",
-      height: (listener) => themeSpacing(themeDensity(listener) * 6),
+      height: (listener) => themeSpacing(themeDensity(listener) * TAG_HEIGHT),
       paddingBlock: 0,
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 999),
       paddingInlineStart: (listener) =>
-        themeSpacing(themeDensity(listener) * 2.5),
+        themeSpacing(themeDensity(listener) * TAG_PAD_INLINE),
       paddingInlineEnd: (listener) =>
-        themeSpacing(themeDensity(listener) * (removable ? 1 : 2.5)),
+        themeSpacing(
+          themeDensity(listener) *
+            (removable ? TAG_PAD_END_REMOVABLE : TAG_PAD_INLINE),
+        ),
       gap: themeSpacing(1.5),
       fontSize: (listener) => themeSize(listener, "decrease-1"),
       backgroundColor: (listener) =>
@@ -44950,6 +45064,7 @@ export { tag };
 
 ```ts
 import {
+  type BehaviorInstance,
   behavior,
   type PartialElement,
   toState,
@@ -45023,7 +45138,9 @@ function textarea(
     ),
     _onUpdate: (node) => {
       node
-        .getBehavior<{ resize: () => void }>("textarea-auto-resize")
+        .getBehavior<
+          BehaviorInstance<{ autoResize: boolean }> & { resize: () => void }
+        >("textarea-auto-resize")
         ?.resize();
     },
     style: {

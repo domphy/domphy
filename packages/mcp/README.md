@@ -21,6 +21,22 @@ A [Model Context Protocol](https://modelcontextprotocol.io) server that gives MC
 
 Patch/package/rules/tones data is fetched live from `domphy.com` (always current with the latest release); `domphy_diagnose`/`domphy_validate`/`domphy_fix` run locally, and the app-block tools read the local `app-manifest.json`.
 
+## Programmatic tools (`@domphy/mcp/tools`)
+
+The same implementations the MCP server calls are exported for in-process use (tests, scripts, other hosts):
+
+```ts
+import {
+  loadManifest,
+  diagnoseTree,
+  validateTree,
+  fixTree,
+  listAppBlocks,
+  getAppBlock,
+  readBlockSource,
+} from "@domphy/mcp/tools"
+```
+
 ## Use
 
 ### Cursor

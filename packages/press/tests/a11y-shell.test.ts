@@ -100,6 +100,32 @@ describe("press shell a11y (Front-End Checklist)", () => {
     expect(css).toContain(".dp-skip-link");
     expect(css).toContain("prefers-reduced-motion");
   });
+
+  it("announcementBar.text with <a> is a real link (rawHtml, same as footerMessage)", () => {
+    const host = render(
+      pageShell(
+        ctx({
+          config: {
+            ...baseConfig,
+            themeConfig: {
+              ...baseConfig.themeConfig,
+              announcementBar: {
+                id: "v2-release",
+                text: "🎉 v2.0 is out! <a href='/blog/v2'>Read the post →</a>",
+              },
+            },
+          },
+        }),
+      ),
+    );
+    const bar = host.querySelector(".dp-announcement");
+    expect(bar).not.toBeNull();
+    const link = bar!.querySelector("a");
+    expect(link).not.toBeNull();
+    expect(link!.getAttribute("href")).toBe("/blog/v2");
+    expect(link!.textContent).toContain("Read the post");
+    expect(bar!.textContent).not.toContain("<a href");
+  });
 });
 
 describe("pageShell aside:false keeps sidebar and expands content", () => {

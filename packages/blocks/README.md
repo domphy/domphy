@@ -10,7 +10,7 @@
 npm install @domphy/blocks
 ```
 
-Peer dependencies: `@domphy/core`, `@domphy/theme`, `@domphy/ui`, `@domphy/chart`, `@domphy/form`, `@domphy/table` (only the ones a given block actually imports need to be present at runtime).
+Peer dependencies: `@domphy/core`, `@domphy/theme`, `@domphy/ui`, `@domphy/chart`, `@domphy/table` (only the ones a given block actually imports need to be present at runtime).
 
 ## Quick start
 

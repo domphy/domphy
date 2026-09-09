@@ -19,9 +19,15 @@ import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import type { EditorInstance } from "../types";
 import { selectionFor } from "../utils.js";
 
-type BubbleMenuProps = {
+type BubbleMenuLive = {
   editor: EditorInstance;
   shouldShow: (editor: EditorInstance) => boolean;
+  children: DomphyElement;
+};
+
+export type BubbleMenuProps = {
+  editor: EditorInstance;
+  shouldShow?: (editor: EditorInstance) => boolean;
   children: DomphyElement;
 };
 
@@ -55,8 +61,8 @@ function defaultShouldShow(editor: EditorInstance): boolean {
 
 function attachBubbleMenu(
   node: ElementNode,
-  initialProps: BubbleMenuProps,
-): BehaviorInstance<BubbleMenuProps> {
+  initialProps: BubbleMenuLive,
+): BehaviorInstance<BubbleMenuLive> {
   let { editor, shouldShow, children } = initialProps;
   const host = node.domElement as HTMLElement;
   const rootNode = node.getRoot();
@@ -295,7 +301,7 @@ function bubbleMenu(
     shouldShow?: (editor: EditorInstance) => boolean;
   },
 ): PartialElement {
-  return behavior<BubbleMenuProps>("dp-editor-bubble-menu", attachBubbleMenu, {
+  return behavior<BubbleMenuLive>("dp-editor-bubble-menu", attachBubbleMenu, {
     editor,
     children: props.children,
     shouldShow: props.shouldShow ?? defaultShouldShow,

@@ -63,7 +63,7 @@ function nearestStepIndex(ramp: string[], baseHex: string): number {
  * ```
  *
  * Roles not passed are simply absent from the result — merge with an existing
- * `ThemeInput`/`PartialThemeInput` (e.g. spread over `light` from
+ * `ThemeInput`/`PartialThemeInput` (e.g. spread over `getTheme("light")` from
  * `@domphy/theme`) to fill in the rest.
  *
  * Each base color is normalized via the palette engine's `normalizeHex`, so

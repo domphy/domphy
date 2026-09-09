@@ -42,7 +42,7 @@ Dragging reorders the DOM, calls FormKit's `setValues` → updates `items` → D
 
 ## Config & plugins
 
-`dragDrop(state, config)` forwards `config` to FormKit's `ParentConfig` — and the whole FormKit API (plugins like `animations`, `insert`, `dropOrSwap`, group transfer, sensors) is re-exported from `@domphy/dnd`:
+`dragDrop(state, config)` forwards `config` to FormKit's `ParentConfig` — and the whole FormKit API (plugins like `animations`, `insert`, `dropOrSwap`, group transfer) is re-exported from `@domphy/dnd`:
 
 ```ts
 import { dragDrop, animations } from "@domphy/dnd"
