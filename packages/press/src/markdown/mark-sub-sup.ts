@@ -180,8 +180,8 @@ function walk(node: InlineNode): void {
 }
 
 /** Remark plugin: `==mark==`, `~sub~`, `^sup^` (markdown-it / VitePress). */
-export function remarkMarkSubSup(): Plugin<[], Root> {
+export const remarkMarkSubSup: Plugin<[], Root> = () => {
   return (tree) => {
     walk(tree);
   };
-}
+};

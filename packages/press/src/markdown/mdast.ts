@@ -205,9 +205,10 @@ function walkNode(node: Nodes, ctx: WalkContext): Child | null {
         "children" in node &&
         Array.isArray(node.children)
       ) {
-        return {
-          [tag]: walkChildren(node as { children: Nodes[] }, ctx),
-        } as DomphyElement;
+        const phrasing = walkChildren(node as { children: Nodes[] }, ctx);
+        if (tag === "mark") return { mark: phrasing };
+        if (tag === "sub") return { sub: phrasing };
+        return { sup: phrasing };
       }
       if ("children" in node && Array.isArray(node.children)) {
         const children = walkChildren(
