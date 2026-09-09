@@ -309,4 +309,3 @@ function bubbleMenu(
 }
 
 export { bubbleMenu };
-export type { BubbleMenuProps };
