@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import type { DomphyElement } from "@domphy/core";
-import { ElementNode, flushSync, toState } from "@domphy/core";
+import { computed, ElementNode, flushSync, toState } from "@domphy/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { diagnose } from "../../doctor/src/index.ts";
 import {
@@ -193,6 +193,19 @@ describe("drawer", () => {
     vi.runAllTimers();
     expect(dlg.style.display).toBe("none");
     expect(getComputedStyle(dlg).display).toBe("none");
+  });
+
+  it("attaches with computed(() => flag.get()) without throwing (Computed has no addListener) and opens after flushSync", () => {
+    const flag = toState(false);
+    const isOpen = computed(() => flag.get());
+    const { host } = render({
+      div: [{ dialog: [{ p: "Body" }], $: [drawer({ open: isOpen })] }],
+    } as DomphyElement);
+    const dlg = host.querySelector("dialog") as HTMLDialogElement;
+    expect(dlg.open).toBe(false);
+    flag.set(true);
+    flushSync();
+    expect(dlg.open).toBe(true);
   });
 });
 
@@ -400,6 +413,75 @@ describe("dialog", () => {
         true,
       );
     }
+  });
+
+  it("attaches with computed(() => flag.get()) without throwing (Computed has no addListener) and opens after flushSync", () => {
+    const flag = toState(false);
+    const isOpen = computed(() => flag.get());
+    const { host } = render({
+      div: [{ dialog: [{ p: "Body" }], $: [dialog({ open: isOpen })] }],
+    } as DomphyElement);
+    const dlg = host.querySelector("dialog") as HTMLDialogElement;
+    expect(dlg.open).toBe(false);
+    flag.set(true);
+    flushSync();
+    expect(dlg.open).toBe(true);
+  });
+
+  it("Escape, backdrop, and requestClose with computed open + onDismiss call onDismiss without throwing (Computed/ReadableState has no set)", () => {
+    const flag = toState(false);
+    const isOpen = computed(() => flag.get());
+    const onDismiss = vi.fn(() => flag.set(false));
+    const { host, node } = render({
+      div: [
+        {
+          dialog: [{ button: "Inside" }],
+          $: [dialog({ open: isOpen, onDismiss })],
+        },
+      ],
+    } as DomphyElement);
+    const dlg = host.querySelector("dialog") as HTMLDialogElement;
+    const dialogNode = node.children!.items[0] as ElementNode;
+
+    flag.set(true);
+    flushSync();
+    expect(dlg.open).toBe(true);
+    expect(() =>
+      dlg.dispatchEvent(new Event("cancel", { cancelable: true })),
+    ).not.toThrow();
+    flushSync();
+    expect(onDismiss).toHaveBeenCalled();
+    expect(flag.get()).toBe(false);
+
+    onDismiss.mockClear();
+    flag.set(true);
+    flushSync();
+    expect(dlg.open).toBe(true);
+    expect(() =>
+      dlg.dispatchEvent(
+        new MouseEvent("click", {
+          bubbles: true,
+          clientX: -1,
+          clientY: -1,
+        }),
+      ),
+    ).not.toThrow();
+    flushSync();
+    expect(onDismiss).toHaveBeenCalled();
+    expect(flag.get()).toBe(false);
+
+    onDismiss.mockClear();
+    flag.set(true);
+    flushSync();
+    expect(dlg.open).toBe(true);
+    expect(() =>
+      (
+        dialogNode.getBehavior("dialog") as { requestClose: () => void }
+      ).requestClose(),
+    ).not.toThrow();
+    flushSync();
+    expect(onDismiss).toHaveBeenCalled();
+    expect(flag.get()).toBe(false);
   });
 });
 
@@ -647,6 +729,21 @@ describe("popover", () => {
     vi.advanceTimersByTime(150);
     flushSync();
     expect(open.get()).toBe(false);
+  });
+
+  it("mounts with computed open without throwing (Computed has no addListener; createFloating path)", () => {
+    const flag = toState(false);
+    const isOpen = computed(() => flag.get());
+    expect(() =>
+      render({
+        div: [
+          {
+            button: "Open",
+            $: [popover({ open: isOpen, content: { div: "Body" } })],
+          },
+        ],
+      } as DomphyElement),
+    ).not.toThrow();
   });
 });
 

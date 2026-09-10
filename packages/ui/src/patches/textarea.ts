@@ -21,7 +21,7 @@ import { focusRing } from "../utils/focusRing.js";
  * @hostTag textarea
  * @param props.color - Theme color for the border and text. Optional, accepts a value or state. Defaults to `"neutral"`.
  * @param props.accentColor - Theme color for hover/focus outline. Optional, accepts a value or state. Defaults to `"primary"`.
- * @param props.autoResize - When true, grows the textarea height to fit its content on input and when `value` updates. Optional. Defaults to `false`.
+ * @param props.autoResize - When true, grows the textarea height to fit its content on input and when `value` updates, and remeasures when the host becomes visible (IntersectionObserver) and when its box size changes (ResizeObserver). Optional. Defaults to `false`.
  * @example { textarea: null, $: [textarea({ autoResize: true })] }
  */
 function textarea(
@@ -48,24 +48,66 @@ function textarea(
       (node, initial) => {
         const el = node.domElement as HTMLTextAreaElement;
         let enabled = initial.autoResize;
+        let measuring = false;
+        let intersectionObserver: IntersectionObserver | undefined;
+        let resizeObserver: ResizeObserver | undefined;
         const resize = () => {
-          if (!enabled) return;
+          if (!enabled || measuring) return;
+          measuring = true;
+          // Unobserve during the height write so ResizeObserver cannot
+          // re-enter from the measure itself (jsdom may deliver RO sync).
+          resizeObserver?.unobserve(el);
           el.style.overflow = "hidden";
           el.style.height = "auto";
           el.style.height = `${el.scrollHeight}px`;
+          measuring = false;
+          if (enabled) resizeObserver?.observe(el);
+        };
+        const observe = () => {
+          if (typeof IntersectionObserver !== "undefined") {
+            if (!intersectionObserver) {
+              intersectionObserver = new IntersectionObserver((entries) => {
+                if (entries.some((entry) => entry.isIntersecting)) resize();
+              });
+            }
+            intersectionObserver.observe(el);
+          }
+          if (typeof ResizeObserver !== "undefined") {
+            if (!resizeObserver) {
+              resizeObserver = new ResizeObserver(() => {
+                if (measuring) return;
+                resize();
+              });
+            }
+            resizeObserver.observe(el);
+          }
+        };
+        const unobserve = () => {
+          intersectionObserver?.unobserve(el);
+          resizeObserver?.unobserve(el);
         };
         el.addEventListener("input", resize);
         node.attributes.addListener("value", resize);
-        if (enabled) resize();
+        if (enabled) {
+          observe();
+          resize();
+        }
         return {
           resize,
           update(next) {
             enabled = next.autoResize;
             node.attributes.addListener("value", resize);
-            if (enabled) resize();
+            if (enabled) {
+              observe();
+              resize();
+            } else {
+              unobserve();
+            }
           },
           destroy() {
             el.removeEventListener("input", resize);
+            intersectionObserver?.disconnect();
+            resizeObserver?.disconnect();
           },
         };
       },

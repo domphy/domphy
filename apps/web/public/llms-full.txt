@@ -35,17 +35,17 @@ const App = {
 - **Plain objects keyed by tag.** First key = HTML tag; value = content (string | number | array | `(listener) => value` | `null` for void tags).
 - **A string child is TEXT, always.** Markup inside it is escaped, never parsed — on the client and in SSR output. Rendering a string as HTML is an explicit opt-in: `rawHtml("<b>x</b>")` from `@domphy/core`. Wrap only markup you control (a Markdown renderer, a syntax highlighter, a generated SVG); `rawHtml()` still strips `<script>`/`on*`/`javascript:` but is defense in depth, not a sanitizer for untrusted input.
 - **Patches via `$`**, never wrapper components. Compose multiple: `$: [button(), tooltip({ content: "..." })]`. The native element always wins over patch defaults.
-- **Reactivity:** read with `(listener) => state.get(listener)`; write in events with `state.set(...)`. One-way data flow. Prefer `RecordState` for per-key reactivity. A controlled input (`value: (l) => s.get(l)` + `onInput: (e) => s.set(e.target.value)`) is safe. Types: `ReadableState<T>` (the read-only State contract), `ValueOrState<T>` (accepts a plain value, a `State<T>`, or a `ReadableState<T>`), `Computed<T>` (returned by `computed()`, satisfies `ReadableState<T>` — pass a computed wherever `ValueOrState<T>` is expected). `toState(val)` accepts `T | State<T> | ReadableState<T>`.
+- **Reactivity:** read with `(listener) => state.get(listener)`; write in events with `state.set(...)`. One-way data flow. Prefer `RecordState` for per-key reactivity. A controlled input (`value: (l) => s.get(l)` + `onInput: (e) => s.set(e.target.value)`) is safe. Types: `ReadableState<T>` (the read-only State contract), `ValueOrState<T>` (accepts a plain value, a `State<T>`, or a `ReadableState<T>`), `Computed<T>` (returned by `computed()`, satisfies `ReadableState<T>` — pass a computed wherever `ValueOrState<T>` is expected). `toState(val)` accepts `T | State<T> | ReadableState<T>` and does not fabricate `.set()` on a read-only source. Overlay `open` (`dialog`/`drawer`/`popover`/`tooltip`/`combobox`/`selectBox`) accepts Computed; pass `onDismiss` when the source has no `.set()` so Escape/backdrop can close.
 - **Never inline typography styles** — `fontSize`, `fontWeight`, `lineHeight`, `letterSpacing`, `fontFamily`, `textDecoration`, `color` in `style:` are ALL forbidden. Quick reference:
   - Small / secondary / caption / label text → `{ small: "...", $: [small()] }`
   - Body text → `{ p: "...", $: [paragraph()] }`
-  - Heading → `{ h2: "...", $: [heading()] }`
+  - Heading → `{ h2: "...", $: [heading()] }` (optional `size: "inherit"` \| `"increase-N"` \| `"decrease-N"` to skip the tag bump)
   - Bold → `{ strong: "...", $: [strong()] }`
   - Error / colored text → `{ small: "...", $: [small({ color: "error" })] }`
   - Literal color → `color: (l) => themeColor(l, "base", "colorName")`
   - `fontFamily` → remove entirely (theme owns the font stack)
 - **Theme, not hard-coded values:** `themeColor()`, `themeSpacing()`, `themeSize()`, `themeDensity()`; tones are `inherit`/`base`/`shift-N`/`increase-N`/`decrease-N`, or the semantic aliases `surface`/`hover`/`border`/`border-strong`/`muted`/`text` — prefer aliases over raw `shift-N`.
-- **Layout, not hand-rolled flex styles:** reach for `stack()` (vertical flex column + gap), `row()` (horizontal flex + gap, centered by default, with `align`/`justify`/`wrap`), `grid({ columns, gap?, align? })` (CSS grid primitive — column count or raw template), and `panelSection()` (density-aware padding + optional bottom divider — a thin wrapper, compose it with `stack()`/`row()`/`grid()` for the layout itself) before writing `style: { display: "flex", flexDirection: ..., gap: ... }` inline. `toolbar()` is a semantic alias of `row()` for headers/nav bars.
+- **Layout, not hand-rolled flex styles:** reach for `stack()` (vertical flex column + gap, with `align`/`justify`; pass `density: false` for structural/page-column gap = bare `themeSpacing(n)`), `row()` (horizontal flex + gap, centered by default, with `align`/`justify`/`wrap`; same `density` flag), `grid({ columns, gap?, align? })` (CSS grid primitive — column count or raw template), and `panelSection()` (density-aware padding + optional bottom divider — a thin wrapper, compose it with `stack()`/`row()`/`grid()` for the layout itself) before writing `style: { display: "flex", flexDirection: ..., gap: ... }` inline. `toolbar()` is a semantic alias of `row()` for headers/nav bars (forwards `gap`/`wrap`/`justify`/`align`/`density`).
 - **`_key`** on dynamic/reordered child lists (identity for reconcile). It is not DOM id / business identity.
 - **CSP nonce:** if the app has a Content-Security-Policy requiring nonces on inline styles, call `configure({ cspNonce: "..." })` from `@domphy/core` before mounting. This stamps the nonce on every Domphy-injected `<style>` element, and on the inline `<style>`/`<script>` tags emitted by `@domphy/app` SSR/streaming.
 - **Error boundaries:** use the `errorBoundary()` patch (`@domphy/ui`) to catch errors thrown in reactive children. It invokes `_onError` on the nearest ancestor; call `reset()` to swap in a fallback element.
@@ -143,7 +143,7 @@ themeDensity(listener)                 // returns density factor: 0.75 | 1 | 1.5
 themeFluidSpacing(min, max, vpMin?, vpMax?)  // returns clamp() that scales between themeSpacing(min) and themeSpacing(max) across viewport width
 ```
 - **Always** call `themeSpacing(themeDensity(l) * n)` for padding/gap on bounded controls (buttons, inputs) — not `themeSpacing(n)` alone.
-- Use bare `themeSpacing(n)` for structural spacing (between sections) where density shouldn't multiply.
+- Use bare `themeSpacing(n)` for structural spacing (between sections) where density shouldn't multiply — `stack({ density: false })` / `row({ density: false })` do this for gap.
 - Use `themeFluidSpacing(min, max)` for page/section padding that should grow with viewport (structural, never for controls).
 - Never hardcode `"6px"` / `"1.5em"` — use `themeSpacing(n)`.
 - `dataDensity`: `"inherit"` | `"increase-N"` | `"decrease-N"` where N ≤ 4 (5-step scale: 0.75, 1, 1.5, 2, 2.5).
@@ -36819,7 +36819,8 @@ import { tag } from "./tag.js";
  * @param props.placement - Floating popover placement. Optional `ValueOrState<Placement>`, default "bottom".
  * @param props.content - The floating popover content element. Required `DomphyElement`.
  * @param props.color - Color tone for the control. Optional `ThemeColor`, default "neutral".
- * @param props.open - Whether the popover is open. Optional `ValueOrState<boolean>`, default false.
+ * @param props.open - Whether the popover is open. Optional `ValueOrState<boolean>` (including `Computed`/`ReadableState`), default false. When the source is read-only, pass `onDismiss` so dismiss can close.
+ * @param props.onDismiss - Called when the popover requests close. Optional. Required to close when `open` is a read-only `Computed`/`ReadableState`.
  * @param props.input - Custom input element; when omitted a default `<input>` is created. Optional `DomphyElement`.
  * @example { div: null, $: [combobox({ options: [{ label: "A", value: "a" }], content: { div: null } })] }
  */
@@ -36837,6 +36838,7 @@ function combobox(props: {
   content: DomphyElement;
   color?: ThemeColor;
   open?: ValueOrState<boolean>;
+  onDismiss?: () => void;
   input?: DomphyElement;
 }): PartialElement {
   const {
@@ -36852,6 +36854,7 @@ function combobox(props: {
   const { show, hide, anchorPartial } = createFloating({
     kind: "combobox",
     open: openState,
+    onDismiss: props.onDismiss,
     placement: toState(placement),
     content: props.content,
   });
@@ -38190,8 +38193,7 @@ import {
   behavior,
   type ElementNode,
   type PartialElement,
-  type State,
-  toState,
+  type ReadableState,
   type ValueOrState,
 } from "@domphy/core";
 import {
@@ -38202,13 +38204,21 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { elevation } from "../utils/elevation.js";
+import {
+  asOpenState,
+  dismissOpen,
+  subscribeOpen,
+} from "../utils/openState.js";
 import { lockScroll, unlockScroll } from "../utils/scrollLock.js";
 
 const FOCUSABLE =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), details, [tabindex]:not([tabindex="-1"])';
 
 type DialogProps = {
-  state: State<boolean>;
+  state: ReadableState<boolean>;
+  // Lives on the behavior instance so a reused node gets the latest callback
+  // via update() — do not close over factory-generation onDismiss.
+  onDismiss?: () => void;
 };
 
 type DialogInstance = BehaviorInstance<DialogProps> & {
@@ -38234,7 +38244,7 @@ function attachDialog(
   node: ElementNode,
   initialProps: DialogProps,
 ): DialogInstance {
-  let { state } = initialProps;
+  let { state, onDismiss } = initialProps;
   let previousFocus: HTMLElement | null = null;
   let closing = false;
   let scrollLocked = false;
@@ -38299,7 +38309,7 @@ function attachDialog(
 
   const onCancel = (e: Event) => {
     e.preventDefault();
-    state.set(false);
+    dismissOpen(state, onDismiss);
   };
   dlg.addEventListener("cancel", onCancel);
 
@@ -38356,11 +38366,10 @@ function attachDialog(
       }, 350);
     }
   };
-  update(state.get());
-  let release = state.addListener(update);
+  let release = subscribeOpen(state, update);
 
   return {
-    requestClose: () => state.set(false),
+    requestClose: () => dismissOpen(state, onDismiss),
     onTransitionEnd: (e: Event) => {
       if (!closing) return;
       // Guard against bubbled transitionend from nested content (e.g. an
@@ -38371,6 +38380,7 @@ function attachDialog(
       finalizeClose();
     },
     update(props) {
+      onDismiss = props.onDismiss;
       // Re-subscribe when a later generation brings a genuinely different
       // state object (e.g. the default `toState(false)` allocated per
       // factory call); a caller-owned state arrives as the SAME object and
@@ -38378,7 +38388,7 @@ function attachDialog(
       if (props.state !== state) {
         release();
         state = props.state;
-        release = state.addListener(update);
+        release = subscribeOpen(state, update, false);
       }
     },
     destroy() {
@@ -38414,7 +38424,8 @@ function attachDialog(
  *
  * @hostTag dialog
  * @param props.color - Theme color tone for the dialog surface. Defaults to "neutral".
- * @param props.open - Open state (`ValueOrState<boolean>`); set it to true/false to show/hide. Defaults to false.
+ * @param props.open - Open state (`ValueOrState<boolean>`), including `Computed`/`ReadableState`. When the source is read-only, pass `onDismiss` so Escape/backdrop can close. Defaults to false.
+ * @param props.onDismiss - Called when Escape/backdrop/`requestClose` request close. Optional. Required to close when `open` is a read-only `Computed`/`ReadableState`.
  * @param props.labelledBy - `id` of the element labeling the dialog (wired to `aria-labelledby`). Optional.
  * @param props.describedBy - `id` of the element describing the dialog (wired to `aria-describedby`). Optional.
  * @example { dialog: [{ h2: "Confirm", id: "dlg-title" }], $: [dialog({ open, labelledBy: "dlg-title" })] }
@@ -38423,12 +38434,19 @@ function dialog(
   props: {
     color?: ThemeColor;
     open?: ValueOrState<boolean>;
+    onDismiss?: () => void;
     labelledBy?: string;
     describedBy?: string;
   } = {},
 ): PartialElement {
-  const { color = "neutral", open = false, labelledBy, describedBy } = props;
-  const state = toState(open);
+  const {
+    color = "neutral",
+    open = false,
+    labelledBy,
+    describedBy,
+    onDismiss,
+  } = props;
+  const state = asOpenState(open);
 
   return {
     _onInsert: (node) => {
@@ -38436,7 +38454,7 @@ function dialog(
         console.warn(`"dialog" primitive patch must use dialog tag`);
       }
     },
-    ...behavior<DialogProps>("dialog", attachDialog, { state }),
+    ...behavior<DialogProps>("dialog", attachDialog, { state, onDismiss }),
     ariaLabelledby: labelledBy,
     ariaDescribedby: describedBy,
     onClick: (e: MouseEvent, node) => {
@@ -38551,8 +38569,7 @@ import {
   behavior,
   type ElementNode,
   type PartialElement,
-  type State,
-  toState,
+  type ReadableState,
   type ValueOrState,
 } from "@domphy/core";
 import {
@@ -38563,6 +38580,11 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { elevation } from "../utils/elevation.js";
+import {
+  asOpenState,
+  dismissOpen,
+  subscribeOpen,
+} from "../utils/openState.js";
 import { lockScroll, unlockScroll } from "../utils/scrollLock.js";
 
 type PhysicalPlacement = "left" | "right" | "top" | "bottom";
@@ -38594,7 +38616,10 @@ function resolvePhysical(
 }
 
 type DrawerProps = {
-  state: State<boolean>;
+  state: ReadableState<boolean>;
+  // Lives on the behavior instance so a reused node gets the latest callback
+  // via update() — do not close over factory-generation onDismiss.
+  onDismiss?: () => void;
   placement: Placement;
   size?: string;
 };
@@ -38607,14 +38632,14 @@ function attachDrawer(
   node: ElementNode,
   initialProps: DrawerProps,
 ): DrawerInstance {
-  let { state, placement, size } = initialProps;
+  let { state, onDismiss, placement, size } = initialProps;
 
   const dlg = node.domElement as HTMLDialogElement;
   dlg.setAttribute("aria-modal", "true");
 
   const onCancel = (e: Event) => {
     e.preventDefault();
-    state.set(false);
+    dismissOpen(state, onDismiss);
   };
   dlg.addEventListener("cancel", onCancel);
 
@@ -38705,16 +38730,16 @@ function attachDrawer(
       closeTimer = setTimeout(finishClose, 350);
     }
   };
-  update(state.get());
-  let release = state.addListener(update);
+  let release = subscribeOpen(state, update);
 
   return {
-    requestClose: () => state.set(false),
+    requestClose: () => dismissOpen(state, onDismiss),
     update(props) {
+      onDismiss = props.onDismiss;
       if (props.state !== state) {
         release();
         state = props.state;
-        release = state.addListener(update);
+        release = subscribeOpen(state, update, false);
       }
       if (props.placement !== placement || props.size !== size) {
         placement = props.placement;
@@ -38757,7 +38782,8 @@ function attachDrawer(
  *
  * @hostTag dialog
  * @param props.color - Theme color tone for the drawer surface. Defaults to "neutral".
- * @param props.open - Open state (`ValueOrState<boolean>`); set true/false to show/hide. Defaults to false.
+ * @param props.open - Open state (`ValueOrState<boolean>`), including `Computed`/`ReadableState`. When the source is read-only, pass `onDismiss` so Escape/backdrop can close. Defaults to false.
+ * @param props.onDismiss - Called when Escape/backdrop/`requestClose` request close. Optional. Required to close when `open` is a read-only `Computed`/`ReadableState`.
  * @param props.placement - Edge to anchor to. "left" | "right" | "top" | "bottom" | "start" | "end". Defaults to "end".
  * @param props.size - CSS length for the drawer's width (left/right/start/end) or height (top/bottom). Defaults to themeSpacing(80) for left/right, themeSpacing(64) for top/bottom.
  * @example { dialog: [...], $: [drawer({ open, placement: "start" })] }
@@ -38766,12 +38792,19 @@ function drawer(
   props: {
     color?: ThemeColor;
     open?: ValueOrState<boolean>;
+    onDismiss?: () => void;
     placement?: Placement;
     size?: string;
   } = {},
 ): PartialElement {
-  const { color = "neutral", open = false, placement = "end", size } = props;
-  const state = toState(open);
+  const {
+    color = "neutral",
+    open = false,
+    onDismiss,
+    placement = "end",
+    size,
+  } = props;
+  const state = asOpenState(open);
 
   // For static rendering / SSR assume LTR as fallback; corrected at mount time.
   const physicalFallback = resolvePhysical(placement, false);
@@ -38788,6 +38821,7 @@ function drawer(
     },
     ...behavior<DrawerProps>("drawer", attachDrawer, {
       state,
+      onDismiss,
       placement,
       size,
     }),
@@ -39282,13 +39316,14 @@ export { grid };
 ```ts
 import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
 import {
+  type ElementSize,
   type ThemeColor,
   themeColor,
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
 
-const HeadingShift: Record<string, string> = {
+const HeadingShift: Record<string, ElementSize> = {
   h6: "decrease-1",
   h5: "inherit",
   h4: "increase-1",
@@ -39303,12 +39338,15 @@ const HeadingShift: Record<string, string> = {
  *
  * @hostTag h1
  * @param props.color - Theme color tone (`ValueOrState<ThemeColor>`) for the heading text. Defaults to "neutral".
+ * @param props.size - Optional `ElementSize` (`"inherit"` | `"increase-N"` | `"decrease-N"`, N ≤ 7). When set, font size is `themeSize(listener, size)` including `"inherit"` (no tag bump). When omitted, follows the host tag (`h1` increase-4 … `h6` decrease-1).
  * @example { h2: "Section title", $: [heading()] }
+ * @example { h3: "Panel title", $: [heading({ size: "inherit" })] }
  */
 function heading(
-  props: { color?: ValueOrState<ThemeColor> } = {},
+  props: { color?: ValueOrState<ThemeColor>; size?: ElementSize } = {},
 ): PartialElement {
   const color = toState(props.color ?? "neutral", "color");
+  const size = props.size;
 
   return {
     _onInsert: (node) => {
@@ -39324,6 +39362,9 @@ function heading(
       marginTop: 0,
       marginBottom: themeSpacing(2),
       fontSize: (listener) => {
+        if (size !== undefined) {
+          return themeSize(listener, size);
+        }
         const offset = HeadingShift[listener.elementNode.tagName] || "inherit";
         return themeSize(listener, offset);
       },
@@ -42139,7 +42180,8 @@ import { createFloating, floatingPanelId } from "../utils/floating.js";
  *
  * @param props - Configuration.
  * @param props.openOn - Interaction that opens the popover: `"click"` or `"hover"`. Defaults to `"click"`.
- * @param props.open - Open state, accepts a value or `State`. Defaults to `false`.
+ * @param props.open - Open state (`ValueOrState<boolean>`), including `Computed`/`ReadableState`. When the source is read-only, pass `onDismiss` so Escape/outside click can close. Defaults to `false`.
+ * @param props.onDismiss - Called when the panel requests close. Optional. Required to close when `open` is a read-only `Computed`/`ReadableState`.
  * @param props.placement - Floating placement (e.g. `"bottom"`, `"top-start"`), value or `State`. Defaults to `"bottom"`.
  * @param props.content - The floating content element to display.
  * @example { button: "Open", $: [popover({ openOn: "click", content: { div: "Hi" } })] }
@@ -42147,6 +42189,7 @@ import { createFloating, floatingPanelId } from "../utils/floating.js";
 function popover(props: {
   openOn?: "click" | "hover";
   open?: ValueOrState<boolean>;
+  onDismiss?: () => void;
   placement?: ValueOrState<Placement>;
   content: DomphyElement;
 }): PartialElement {
@@ -42158,6 +42201,7 @@ function popover(props: {
   const { show, hide, anchorPartial } = createFloating({
     kind: "popover",
     open: openState,
+    onDismiss: props.onDismiss,
     placement: placeState,
     content: props.content,
     // Hovering the panel itself (not just the trigger) must keep it open —
@@ -42801,15 +42845,7 @@ export { ringProgress };
 ```ts
 import type { PartialElement } from "@domphy/core";
 import { themeDensity, themeSpacing } from "@domphy/theme";
-import type { FlexAlign } from "./stack.js";
-
-type FlexJustify =
-  | "flex-start"
-  | "center"
-  | "flex-end"
-  | "space-between"
-  | "space-around"
-  | "space-evenly";
+import type { FlexAlign, FlexJustify } from "./stack.js";
 
 /**
  * A horizontal flex row with spacing between children, vertically centered by
@@ -42818,12 +42854,20 @@ type FlexJustify =
  * center; gap: ...`. `toolbar()` is a semantic alias of this same shape for
  * headers/nav bars. Styles the host only; apply to any block element.
  *
- * @param props.gap - Spacing multiplier for gap between items (default 4 = 1em at density 1).
+ * @param props.gap - Spacing multiplier for gap between items (default 4).
+ *   Bounded-control mode (`density: true`, default): `themeSpacing(themeDensity(l) * gap)`
+ *   — at default density 1.5, gap 4 = 1.5em.
+ *   Structural/page-column mode (`density: false`): bare `themeSpacing(gap)` with no
+ *   density multiply — gap 4 = 1em, matching AGENTS.md "bare themeSpacing(n)".
  * @param props.align - Cross-axis alignment (`alignItems`). Defaults to `"center"`.
  * @param props.justify - Main-axis distribution (`justifyContent`). Unset by default (flex-start).
  * @param props.wrap - Allow items to wrap onto multiple lines. Defaults to `false`.
+ * @param props.density - When true (default), gap is multiplied by theme density
+ *   (bounded controls). When false, gap is structural `themeSpacing(n)` — use this
+ *   for page/form columns.
  * @example { div: [{ span: "Icon" }, { span: "Label" }], $: [row()] }
  * @example { div: [...], $: [row({ justify: "space-between", wrap: true })] }
+ * @example { div: [...], $: [row({ gap: 4, density: false })] }
  */
 function row(
   props: {
@@ -42831,14 +42875,18 @@ function row(
     align?: FlexAlign;
     justify?: FlexJustify;
     wrap?: boolean;
+    density?: boolean;
   } = {},
 ): PartialElement {
-  const { gap = 4, align = "center", justify, wrap = false } = props;
+  const { gap = 4, align = "center", justify, wrap = false, density = true } =
+    props;
   return {
     style: {
       display: "flex",
       alignItems: align,
-      gap: (listener) => themeSpacing(themeDensity(listener) * gap),
+      gap: density
+        ? (listener) => themeSpacing(themeDensity(listener) * gap)
+        : () => themeSpacing(gap),
       ...(justify ? { justifyContent: justify } : {}),
       ...(wrap ? { flexWrap: "wrap" } : {}),
     },
@@ -43315,7 +43363,8 @@ function enabledPanelOptions(panel: Element | null): HTMLElement[] {
  *   reactive state. Defaults to `"bottom"`.
  * @param props.content - Required. The popover/dropdown content element shown when open.
  * @param props.color - Theme color tone for the box text/background. Defaults to `"neutral"`.
- * @param props.open - Whether the popover is open. Accepts a value or reactive state. Defaults to `false`.
+ * @param props.open - Whether the popover is open. Accepts a value or reactive state (`ValueOrState<boolean>`, including `Computed`/`ReadableState`). Defaults to `false`. When the source is read-only, pass `onDismiss` so dismiss can close.
+ * @param props.onDismiss - Called when the popover requests close. Optional. Required to close when `open` is a read-only `Computed`/`ReadableState`.
  * @example { div: null, $: [selectBox({ content: { div: [...] }, options: [{ label: "A", value: "a" }] })] }
  */
 function selectBox(props: {
@@ -43332,6 +43381,7 @@ function selectBox(props: {
   content: DomphyElement;
   color?: ThemeColor;
   open?: ValueOrState<boolean>;
+  onDismiss?: () => void;
 }): PartialElement {
   const {
     options = [],
@@ -43346,6 +43396,7 @@ function selectBox(props: {
   const { show, hide, anchorPartial } = createFloating({
     kind: "selectBox",
     open: openState,
+    onDismiss: props.onDismiss,
     placement: toState(placement),
     content: props.content,
   });
@@ -44155,33 +44206,58 @@ import { themeDensity, themeSpacing } from "@domphy/theme";
 
 type FlexAlign = "flex-start" | "center" | "flex-end" | "stretch" | "baseline";
 
+type FlexJustify =
+  | "flex-start"
+  | "center"
+  | "flex-end"
+  | "space-between"
+  | "space-around"
+  | "space-evenly";
+
 /**
  * A vertical flex column with spacing between children. The general-purpose
  * primitive for stacking blocks — form sections, panel content, card bodies —
  * instead of hand-rolling `display: flex; flexDirection: column; gap: ...`.
  * Styles the host only; apply to any block element.
  *
- * @param props.gap - Spacing multiplier for gap between children (default 3 = 0.75em at density 1).
+ * @param props.gap - Spacing multiplier for gap between children (default 3).
+ *   Bounded-control mode (`density: true`, default): `themeSpacing(themeDensity(l) * gap)`
+ *   — at default density 1.5, gap 3 = 1.125em.
+ *   Structural/page-column mode (`density: false`): bare `themeSpacing(gap)` with no
+ *   density multiply — gap 3 = 0.75em, matching AGENTS.md "bare themeSpacing(n)".
  * @param props.align - Cross-axis alignment (`alignItems`). Unset by default (flex default, stretch).
+ * @param props.justify - Main-axis distribution (`justifyContent`). Unset by default (flex-start).
+ * @param props.density - When true (default), gap is multiplied by theme density
+ *   (bounded controls). When false, gap is structural `themeSpacing(n)` — use this
+ *   for page/form columns.
  * @example { div: [{ h3: "Title" }, { p: "Body" }], $: [stack()] }
  * @example { div: [...], $: [stack({ gap: 2, align: "center" })] }
+ * @example { div: [...], $: [stack({ gap: 3, density: false, justify: "space-between" })] }
  */
 function stack(
-  props: { gap?: number; align?: FlexAlign } = {},
+  props: {
+    gap?: number;
+    align?: FlexAlign;
+    justify?: FlexJustify;
+    density?: boolean;
+  } = {},
 ): PartialElement {
-  const { gap = 3, align } = props;
+  const { gap = 3, align, justify, density = true } = props;
   return {
     style: {
       display: "flex",
       flexDirection: "column",
-      gap: (listener) => themeSpacing(themeDensity(listener) * gap),
+      gap: density
+        ? (listener) => themeSpacing(themeDensity(listener) * gap)
+        : () => themeSpacing(gap),
       ...(align ? { alignItems: align } : {}),
+      ...(justify ? { justifyContent: justify } : {}),
     },
   };
 }
 
 export { stack };
-export type { FlexAlign };
+export type { FlexAlign, FlexJustify };
 ```
 
 ### steps
@@ -45086,7 +45162,7 @@ import { focusRing } from "../utils/focusRing.js";
  * @hostTag textarea
  * @param props.color - Theme color for the border and text. Optional, accepts a value or state. Defaults to `"neutral"`.
  * @param props.accentColor - Theme color for hover/focus outline. Optional, accepts a value or state. Defaults to `"primary"`.
- * @param props.autoResize - When true, grows the textarea height to fit its content on input and when `value` updates. Optional. Defaults to `false`.
+ * @param props.autoResize - When true, grows the textarea height to fit its content on input and when `value` updates, and remeasures when the host becomes visible (IntersectionObserver) and when its box size changes (ResizeObserver). Optional. Defaults to `false`.
  * @example { textarea: null, $: [textarea({ autoResize: true })] }
  */
 function textarea(
@@ -45113,24 +45189,66 @@ function textarea(
       (node, initial) => {
         const el = node.domElement as HTMLTextAreaElement;
         let enabled = initial.autoResize;
+        let measuring = false;
+        let intersectionObserver: IntersectionObserver | undefined;
+        let resizeObserver: ResizeObserver | undefined;
         const resize = () => {
-          if (!enabled) return;
+          if (!enabled || measuring) return;
+          measuring = true;
+          // Unobserve during the height write so ResizeObserver cannot
+          // re-enter from the measure itself (jsdom may deliver RO sync).
+          resizeObserver?.unobserve(el);
           el.style.overflow = "hidden";
           el.style.height = "auto";
           el.style.height = `${el.scrollHeight}px`;
+          measuring = false;
+          if (enabled) resizeObserver?.observe(el);
+        };
+        const observe = () => {
+          if (typeof IntersectionObserver !== "undefined") {
+            if (!intersectionObserver) {
+              intersectionObserver = new IntersectionObserver((entries) => {
+                if (entries.some((entry) => entry.isIntersecting)) resize();
+              });
+            }
+            intersectionObserver.observe(el);
+          }
+          if (typeof ResizeObserver !== "undefined") {
+            if (!resizeObserver) {
+              resizeObserver = new ResizeObserver(() => {
+                if (measuring) return;
+                resize();
+              });
+            }
+            resizeObserver.observe(el);
+          }
+        };
+        const unobserve = () => {
+          intersectionObserver?.unobserve(el);
+          resizeObserver?.unobserve(el);
         };
         el.addEventListener("input", resize);
         node.attributes.addListener("value", resize);
-        if (enabled) resize();
+        if (enabled) {
+          observe();
+          resize();
+        }
         return {
           resize,
           update(next) {
             enabled = next.autoResize;
             node.attributes.addListener("value", resize);
-            if (enabled) resize();
+            if (enabled) {
+              observe();
+              resize();
+            } else {
+              unobserve();
+            }
           },
           destroy() {
             el.removeEventListener("input", resize);
+            intersectionObserver?.disconnect();
+            resizeObserver?.disconnect();
           },
         };
       },
@@ -45740,19 +45858,36 @@ export type { ToggleItem };
 ```ts
 import type { DomphyElement, PartialElement } from "@domphy/core";
 import { row } from "./row.js";
+import type { FlexAlign, FlexJustify } from "./stack.js";
 
 /**
  * A horizontal flex row with vertically centered items. Useful for headers,
- * toolbars, navigation bars, and action strips. A semantic alias of `row()`
- * at its default alignment — reach for `row()` directly for `justify`/`wrap`/
- * `align` beyond this shape.
+ * toolbars, navigation bars, and action strips. A semantic alias of `row()`;
+ * wrap/justify/align/density are forwarded so callers do not drop down to
+ * hand-rolled flex.
  *
- * @param props.gap - Spacing multiplier for gap between items (default 4 = 1em).
+ * @param props.gap - Spacing multiplier for gap between items (default 4).
+ *   Bounded-control mode (`density: true`, default): `themeSpacing(themeDensity(l) * gap)`.
+ *   Structural mode (`density: false`): bare `themeSpacing(gap)`.
+ * @param props.wrap - Allow items to wrap onto multiple lines. Defaults to `false`.
+ * @param props.justify - Main-axis distribution (`justifyContent`). Unset by default.
+ * @param props.align - Cross-axis alignment (`alignItems`). Defaults to `"center"` (row default).
+ * @param props.density - When true (default), gap is multiplied by theme density.
+ *   When false, gap is structural `themeSpacing(n)`.
  * @example { header: [...], $: [toolbar()] }
  * @example { nav: [...], $: [toolbar({ gap: 3 })] }
+ * @example { header: [...], $: [toolbar({ wrap: true, justify: "space-between" })] }
  */
-function toolbar(props: { gap?: number } = {}): PartialElement {
-  return row({ gap: props.gap });
+function toolbar(
+  props: {
+    gap?: number;
+    wrap?: boolean;
+    justify?: FlexJustify;
+    align?: FlexAlign;
+    density?: boolean;
+  } = {},
+): PartialElement {
+  return row(props);
 }
 
 /**
@@ -45795,7 +45930,8 @@ import { popoverArrow } from "./popoverArrow.js";
  * surface is positioned via the floating utility and linked with
  * `aria-describedby`. No host tag check; applied to the trigger element.
  *
- * @param props.open - Controlled open state. Optional, accepts a value or state. Defaults to `false`.
+ * @param props.open - Controlled open state (`ValueOrState<boolean>`), including `Computed`/`ReadableState`. When the source is read-only, pass `onDismiss` so leave/blur/Escape can close. Optional. Defaults to `false`.
+ * @param props.onDismiss - Called when the tooltip requests close. Optional. Required to close when `open` is a read-only `Computed`/`ReadableState`.
  * @param props.placement - Floating placement relative to the trigger. Optional, accepts a value or state (`Placement`). Defaults to `"top"`.
  * @param props.content - Tooltip text content. Optional, accepts a value or state (string only). Defaults to `"Tooltip Content"`.
  * @example { button: "Hover me", $: [tooltip({ content: "Help text" })] }
@@ -45803,6 +45939,7 @@ import { popoverArrow } from "./popoverArrow.js";
 function tooltip(
   props: {
     open?: ValueOrState<boolean>;
+    onDismiss?: () => void;
     placement?: ValueOrState<Placement>;
     content?: ValueOrState<string>;
   } = {},
@@ -45828,6 +45965,7 @@ function tooltip(
   const { show, hide, anchorPartial } = createFloating({
     kind: "tooltip",
     open,
+    onDismiss: props.onDismiss,
     placement: placeState,
     content: contentElement,
   });

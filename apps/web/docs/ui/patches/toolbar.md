@@ -4,7 +4,7 @@ title: toolbar
 
 # toolbar
 
-A horizontal flex row with vertically centered items. Useful for headers, toolbars, navigation bars, and action strips. Gap scales with density context.
+A horizontal flex row with vertically centered items. Useful for headers, toolbars, navigation bars, and action strips. A semantic alias of `row()` — wrap/justify/align/density are forwarded so callers do not drop down to hand-rolled flex.
 
 ## Usage
 
@@ -27,7 +27,11 @@ const Header = {
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `gap` | `number` | `4` | Spacing multiplier for gap between items. Final gap = `themeSpacing(density × gap)`; at default density (1.5), `gap 4` ≈ `1.5em`. |
+| `gap` | `number` | `4` | Spacing multiplier for gap between items. With `density: true` (default): `themeSpacing(density × gap)` — at default density (1.5), `gap 4` = `1.5em`. With `density: false`: bare `themeSpacing(gap)` — `gap 4` = `1em`. |
+| `wrap` | `boolean` | `false` | Allow items to wrap onto multiple lines (`flexWrap: "wrap"`). |
+| `justify` | `"flex-start" \| "center" \| "flex-end" \| "space-between" \| "space-around" \| "space-evenly"` | unset | Main-axis distribution (`justifyContent`). Left unset by default (flex's own default, `flex-start`). |
+| `align` | `"flex-start" \| "center" \| "flex-end" \| "stretch" \| "baseline"` | `"center"` | Cross-axis alignment (`alignItems`). |
+| `density` | `boolean` | `true` | When `true`, gap is multiplied by theme density (bounded-control mode). When `false`, gap is structural `themeSpacing(n)` with no density multiply. |
 
 ## toolbarSpacer
 

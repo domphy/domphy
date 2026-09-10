@@ -84,7 +84,8 @@ function enabledPanelOptions(panel: Element | null): HTMLElement[] {
  *   reactive state. Defaults to `"bottom"`.
  * @param props.content - Required. The popover/dropdown content element shown when open.
  * @param props.color - Theme color tone for the box text/background. Defaults to `"neutral"`.
- * @param props.open - Whether the popover is open. Accepts a value or reactive state. Defaults to `false`.
+ * @param props.open - Whether the popover is open. Accepts a value or reactive state (`ValueOrState<boolean>`, including `Computed`/`ReadableState`). Defaults to `false`. When the source is read-only, pass `onDismiss` so dismiss can close.
+ * @param props.onDismiss - Called when the popover requests close. Optional. Required to close when `open` is a read-only `Computed`/`ReadableState`.
  * @example { div: null, $: [selectBox({ content: { div: [...] }, options: [{ label: "A", value: "a" }] })] }
  */
 function selectBox(props: {
@@ -101,6 +102,7 @@ function selectBox(props: {
   content: DomphyElement;
   color?: ThemeColor;
   open?: ValueOrState<boolean>;
+  onDismiss?: () => void;
 }): PartialElement {
   const {
     options = [],
@@ -115,6 +117,7 @@ function selectBox(props: {
   const { show, hide, anchorPartial } = createFloating({
     kind: "selectBox",
     open: openState,
+    onDismiss: props.onDismiss,
     placement: toState(placement),
     content: props.content,
   });

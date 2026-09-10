@@ -22,7 +22,8 @@ import { popoverArrow } from "./popoverArrow.js";
  * surface is positioned via the floating utility and linked with
  * `aria-describedby`. No host tag check; applied to the trigger element.
  *
- * @param props.open - Controlled open state. Optional, accepts a value or state. Defaults to `false`.
+ * @param props.open - Controlled open state (`ValueOrState<boolean>`), including `Computed`/`ReadableState`. When the source is read-only, pass `onDismiss` so leave/blur/Escape can close. Optional. Defaults to `false`.
+ * @param props.onDismiss - Called when the tooltip requests close. Optional. Required to close when `open` is a read-only `Computed`/`ReadableState`.
  * @param props.placement - Floating placement relative to the trigger. Optional, accepts a value or state (`Placement`). Defaults to `"top"`.
  * @param props.content - Tooltip text content. Optional, accepts a value or state (string only). Defaults to `"Tooltip Content"`.
  * @example { button: "Hover me", $: [tooltip({ content: "Help text" })] }
@@ -30,6 +31,7 @@ import { popoverArrow } from "./popoverArrow.js";
 function tooltip(
   props: {
     open?: ValueOrState<boolean>;
+    onDismiss?: () => void;
     placement?: ValueOrState<Placement>;
     content?: ValueOrState<string>;
   } = {},
@@ -55,6 +57,7 @@ function tooltip(
   const { show, hide, anchorPartial } = createFloating({
     kind: "tooltip",
     open,
+    onDismiss: props.onDismiss,
     placement: placeState,
     content: contentElement,
   });

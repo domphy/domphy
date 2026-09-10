@@ -16,7 +16,8 @@ The dialog surface uses a high `elevation()` box-shadow (no outline — shadow-o
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `open` | `ValueOrState<boolean>` | `false` | Controls visibility. Set to `true` to open, `false` to close. |
+| `open` | `ValueOrState<boolean>` | `false` | Controls visibility. Accepts a boolean, writable `State`, or read-only `Computed`/`ReadableState`. When the source is read-only, pass `onDismiss` so Escape/backdrop can close. |
+| `onDismiss` | `() => void` | — | Called when Escape, backdrop click, or `requestClose` requests close. Required to close when `open` is read-only. A writable `State` still `set(false)`. |
 | `color` | `ThemeColor` | `"neutral"` | Theme color tone for the dialog surface. |
 | `labelledBy` | `string` | — | `id` of the element labeling the dialog, wired to `aria-labelledby` (Radix `Title` parity). Give the heading inside the dialog an `id` and pass it here. |
 | `describedBy` | `string` | — | `id` of the element describing the dialog, wired to `aria-describedby` (Radix `Description` parity). |

@@ -20,7 +20,8 @@ The default filter input is `role="combobox"` with `aria-expanded`, `aria-contro
 | `value` | `ValueOrState<string \| number \| Array<string \| number \| null \| undefined> \| null \| undefined>` | — | Selected value(s). |
 | `options` | `Array<{ label: string; value: string }>` | `[]` | Available options used to render selected-value tags. |
 | `multiple` | `boolean` | `false` | When true, the popover stays open after each selection. |
-| `open` | `ValueOrState<boolean>` | `false` | Controls whether the popover is open. |
+| `open` | `ValueOrState<boolean>` | `false` | Controls whether the popover is open. Accepts a boolean, `State`, or `Computed`/`ReadableState`. When read-only, pass `onDismiss`. |
+| `onDismiss` | `() => void` | — | Called when the popover requests close. Required to close when `open` is read-only. |
 | `placement` | `ValueOrState<Placement>` | `"bottom"` | Floating popover placement relative to the host. |
 | `color` | `ThemeColor` | `"neutral"` | Color tone for the control surface and input. |
 | `input` | `DomphyElement` | — | Custom input element; when omitted a default `<input>` is created. |

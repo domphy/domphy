@@ -6,6 +6,10 @@ Packages are versioned independently — each package has its own version number
 
 ---
 
+## Patch — 2026-09-10 (evening)
+
+- `@domphy/ui` [0.21.5] — overlay `open` accepts `Computed` + `onDismiss`; `stack`/`row` `density: false` structural gap; `heading({ size })`; textarea autoResize remeasures when unhidden.
+
 ## Patch — 2026-09-10
 
 Enterprise-grade audit-fix wave (advertised-vs-shipped contracts, docs, Playwright UX).

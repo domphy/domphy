@@ -20,7 +20,8 @@ The panel surface carries a `"border-strong"` outline plus a medium `elevation()
 |------|------|---------|-------------|
 | `openOn` | `"click" \| "hover"` | `"click"` | Interaction that opens the popover. Optional — defaults to `"click"` when omitted. |
 | `content` | `DomphyElement` | — | The floating content element to display. Required. |
-| `open` | `ValueOrState<boolean>` | `false` | Controlled open state. |
+| `open` | `ValueOrState<boolean>` | `false` | Controlled open state (boolean, `State`, or `Computed`/`ReadableState`). When read-only, pass `onDismiss` so Escape/outside click can close. |
+| `onDismiss` | `() => void` | — | Called when the panel requests close. Required to close when `open` is read-only. |
 | `placement` | `ValueOrState<Placement>` | `"bottom"` | Floating placement (e.g. `"top-start"`, `"right"`). |
 
 ## Example

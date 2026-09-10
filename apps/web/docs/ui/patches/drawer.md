@@ -17,7 +17,8 @@ The drawer surface uses a high `elevation()` box-shadow (no outline — it's edg
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `color` | `ThemeColor` | `"neutral"` | Theme color tone for the drawer surface. |
-| `open` | `ValueOrState<boolean>` | `false` | Controls whether the drawer is open. |
+| `open` | `ValueOrState<boolean>` | `false` | Controls whether the drawer is open. Accepts a boolean, writable `State`, or read-only `Computed`/`ReadableState`. When the source is read-only, pass `onDismiss` so Escape/backdrop can close. |
+| `onDismiss` | `() => void` | — | Called when Escape, backdrop click, or `requestClose` requests close. Required to close when `open` is read-only. A writable `State` still `set(false)`. |
 | `placement` | `"left" \| "right" \| "top" \| "bottom" \| "start" \| "end"` | `"end"` | Edge the drawer slides in from. |
 | `size` | `string \| undefined` | `themeSpacing(80)` (left/right), `themeSpacing(64)` (top/bottom) | CSS length for the drawer's width (left/right/start/end) or height (top/bottom). |
 

@@ -24,7 +24,8 @@ Keyboard: Enter/Space toggle the dropdown, ArrowDown opens it, Escape closes. Ty
 | `value` | `ValueOrState<Array<number \| string \| null \| undefined> \| number \| string \| null \| undefined>` | — | Bound selection value(s). |
 | `placement` | `ValueOrState<Placement>` | `"bottom"` | Floating placement of the dropdown popover. |
 | `color` | `ThemeColor` | `"neutral"` | Text and background tone of the trigger box. |
-| `open` | `ValueOrState<boolean>` | `false` | Controls whether the popover is open. |
+| `open` | `ValueOrState<boolean>` | `false` | Controls whether the popover is open. Accepts a boolean, `State`, or `Computed`/`ReadableState`. When read-only, pass `onDismiss`. |
+| `onDismiss` | `() => void` | — | Called when the popover requests close. Required to close when `open` is read-only. |
 
 <CodeEditor :code="SelectBox" />
 

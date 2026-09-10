@@ -35,7 +35,8 @@ import { tag } from "./tag.js";
  * @param props.placement - Floating popover placement. Optional `ValueOrState<Placement>`, default "bottom".
  * @param props.content - The floating popover content element. Required `DomphyElement`.
  * @param props.color - Color tone for the control. Optional `ThemeColor`, default "neutral".
- * @param props.open - Whether the popover is open. Optional `ValueOrState<boolean>`, default false.
+ * @param props.open - Whether the popover is open. Optional `ValueOrState<boolean>` (including `Computed`/`ReadableState`), default false. When the source is read-only, pass `onDismiss` so dismiss can close.
+ * @param props.onDismiss - Called when the popover requests close. Optional. Required to close when `open` is a read-only `Computed`/`ReadableState`.
  * @param props.input - Custom input element; when omitted a default `<input>` is created. Optional `DomphyElement`.
  * @example { div: null, $: [combobox({ options: [{ label: "A", value: "a" }], content: { div: null } })] }
  */
@@ -53,6 +54,7 @@ function combobox(props: {
   content: DomphyElement;
   color?: ThemeColor;
   open?: ValueOrState<boolean>;
+  onDismiss?: () => void;
   input?: DomphyElement;
 }): PartialElement {
   const {
@@ -68,6 +70,7 @@ function combobox(props: {
   const { show, hide, anchorPartial } = createFloating({
     kind: "combobox",
     open: openState,
+    onDismiss: props.onDismiss,
     placement: toState(placement),
     content: props.content,
   });

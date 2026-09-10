@@ -5,8 +5,8 @@ import {
   type ElementNode,
   merge,
   type PartialElement,
+  type ReadableState,
   type State,
-  toState,
   type ValueOrState,
 } from "@domphy/core";
 import {
@@ -17,10 +17,19 @@ import {
   type Placement,
   shift,
 } from "@domphy/floating";
+import {
+  asOpenState,
+  dismissOpen,
+  subscribeOpen,
+  writeOpen,
+} from "./openState.js";
 
 type FloatingProps = {
   kind: string;
-  openState: State<boolean>;
+  openState: ReadableState<boolean>;
+  // Lives on the behavior instance so a reused node gets the latest callback
+  // via update() — do not close over factory-generation onDismiss.
+  onDismiss?: () => void;
   placement: State<Placement>;
   content: DomphyElement;
   // popover's openOn === "hover" case: hovering the floating PANEL itself
@@ -67,7 +76,8 @@ function attachFloating(
   node: ElementNode,
   initialProps: FloatingProps,
 ): FloatingInstance {
-  let { openState, placement, content, keepOpenOnContentHover } = initialProps;
+  let { openState, onDismiss, placement, content, keepOpenOnContentHover } =
+    initialProps;
   const { kind } = initialProps;
   const behaviorKey = `floating:${kind}`;
 
@@ -218,12 +228,13 @@ function attachFloating(
           placement.set(resolved);
         });
       });
-      openState.set(true);
+      writeOpen(openState, true);
     }
   };
   // Fully unmounts (not just CSS-hides) the panel — mirrors show()'s own
   // insert-on-demand: a closed floating component holds no DOM/listeners.
   // ensureMounted() re-inserts a fresh panel node next time show() runs.
+  // Visual unmount runs even when the source is read-only (Computed).
   const instantHide = () => {
     cleanup?.();
     cleanup = null;
@@ -233,7 +244,7 @@ function attachFloating(
     }
     floating = null;
     mounted = false;
-    openState.set(false);
+    dismissOpen(openState, onDismiss);
   };
   const show = () => {
     timer && clearTimeout(timer);
@@ -269,8 +280,8 @@ function attachFloating(
 
   // Caller-driven open (open.set(true) / open:true) must insert the panel —
   // show()/hide() are only the trigger-event path. Guard with `mounted` so
-  // instantShow/instantHide's own openState.set() does not recurse (State.set
-  // notifies even when the value is unchanged).
+  // instantShow/instantHide's own writeOpen/dismissOpen does not recurse
+  // (writable State.set notifies listeners).
   const onOpen = (val: boolean) => {
     if (val) {
       if (!mounted) instantShow();
@@ -278,7 +289,7 @@ function attachFloating(
       instantHide();
     }
   };
-  let release = openState.addListener(onOpen);
+  let release = () => {};
   let destroyed = false;
   let updating = false;
   let instance: FloatingInstance;
@@ -301,13 +312,14 @@ function attachFloating(
     panelId,
     update(props) {
       if (updating) return;
+      onDismiss = props.onDismiss;
       if (props.openState !== openState) {
         release();
         openState = props.openState;
-        release = openState.addListener(onOpen);
+        // emitCurrent false: a fresh uncontrolled toState(false) on a reused
+        // node is not a caller close.
+        release = subscribeOpen(openState, onOpen, false);
         // Show if the new object is already true (open:true / caller-owned).
-        // Do NOT hide on a fresh toState(false) — that is the uncontrolled
-        // default of a reused node, not a caller close.
         if (openState.get()) instantShow();
       }
       placement = props.placement;
@@ -347,19 +359,21 @@ function attachFloating(
   };
   stampPanelBehavior(content);
   // After `instance` exists: ensureMounted registers it on the panel node.
-  onOpen(openState.get());
+  // subscribeOpen notifies immediately (replaces onOpen(openState.get())).
+  release = subscribeOpen(openState, onOpen);
   return instance;
 }
 
 function createFloating(props: {
   kind: string;
   open?: ValueOrState<boolean>;
+  onDismiss?: () => void;
   placement: State<Placement>;
   content: DomphyElement;
   keepOpenOnContentHover?: boolean;
 }) {
-  const { kind, open = false, placement } = props;
-  const openState = toState(open);
+  const { kind, placement, onDismiss } = props;
+  const openState = asOpenState(props.open);
   const behaviorKey = `floating:${kind}`;
 
   // Trigger event handlers ARE live-rebound on every patch and already
@@ -384,6 +398,7 @@ function createFloating(props: {
     ...behavior<FloatingProps>(behaviorKey, attachFloating, {
       kind,
       openState,
+      onDismiss,
       placement,
       content: props.content,
       keepOpenOnContentHover: !!props.keepOpenOnContentHover,

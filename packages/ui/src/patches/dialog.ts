@@ -3,8 +3,7 @@ import {
   behavior,
   type ElementNode,
   type PartialElement,
-  type State,
-  toState,
+  type ReadableState,
   type ValueOrState,
 } from "@domphy/core";
 import {
@@ -15,13 +14,21 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { elevation } from "../utils/elevation.js";
+import {
+  asOpenState,
+  dismissOpen,
+  subscribeOpen,
+} from "../utils/openState.js";
 import { lockScroll, unlockScroll } from "../utils/scrollLock.js";
 
 const FOCUSABLE =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), details, [tabindex]:not([tabindex="-1"])';
 
 type DialogProps = {
-  state: State<boolean>;
+  state: ReadableState<boolean>;
+  // Lives on the behavior instance so a reused node gets the latest callback
+  // via update() — do not close over factory-generation onDismiss.
+  onDismiss?: () => void;
 };
 
 type DialogInstance = BehaviorInstance<DialogProps> & {
@@ -47,7 +54,7 @@ function attachDialog(
   node: ElementNode,
   initialProps: DialogProps,
 ): DialogInstance {
-  let { state } = initialProps;
+  let { state, onDismiss } = initialProps;
   let previousFocus: HTMLElement | null = null;
   let closing = false;
   let scrollLocked = false;
@@ -112,7 +119,7 @@ function attachDialog(
 
   const onCancel = (e: Event) => {
     e.preventDefault();
-    state.set(false);
+    dismissOpen(state, onDismiss);
   };
   dlg.addEventListener("cancel", onCancel);
 
@@ -169,11 +176,10 @@ function attachDialog(
       }, 350);
     }
   };
-  update(state.get());
-  let release = state.addListener(update);
+  let release = subscribeOpen(state, update);
 
   return {
-    requestClose: () => state.set(false),
+    requestClose: () => dismissOpen(state, onDismiss),
     onTransitionEnd: (e: Event) => {
       if (!closing) return;
       // Guard against bubbled transitionend from nested content (e.g. an
@@ -184,6 +190,7 @@ function attachDialog(
       finalizeClose();
     },
     update(props) {
+      onDismiss = props.onDismiss;
       // Re-subscribe when a later generation brings a genuinely different
       // state object (e.g. the default `toState(false)` allocated per
       // factory call); a caller-owned state arrives as the SAME object and
@@ -191,7 +198,7 @@ function attachDialog(
       if (props.state !== state) {
         release();
         state = props.state;
-        release = state.addListener(update);
+        release = subscribeOpen(state, update, false);
       }
     },
     destroy() {
@@ -227,7 +234,8 @@ function attachDialog(
  *
  * @hostTag dialog
  * @param props.color - Theme color tone for the dialog surface. Defaults to "neutral".
- * @param props.open - Open state (`ValueOrState<boolean>`); set it to true/false to show/hide. Defaults to false.
+ * @param props.open - Open state (`ValueOrState<boolean>`), including `Computed`/`ReadableState`. When the source is read-only, pass `onDismiss` so Escape/backdrop can close. Defaults to false.
+ * @param props.onDismiss - Called when Escape/backdrop/`requestClose` request close. Optional. Required to close when `open` is a read-only `Computed`/`ReadableState`.
  * @param props.labelledBy - `id` of the element labeling the dialog (wired to `aria-labelledby`). Optional.
  * @param props.describedBy - `id` of the element describing the dialog (wired to `aria-describedby`). Optional.
  * @example { dialog: [{ h2: "Confirm", id: "dlg-title" }], $: [dialog({ open, labelledBy: "dlg-title" })] }
@@ -236,12 +244,19 @@ function dialog(
   props: {
     color?: ThemeColor;
     open?: ValueOrState<boolean>;
+    onDismiss?: () => void;
     labelledBy?: string;
     describedBy?: string;
   } = {},
 ): PartialElement {
-  const { color = "neutral", open = false, labelledBy, describedBy } = props;
-  const state = toState(open);
+  const {
+    color = "neutral",
+    open = false,
+    labelledBy,
+    describedBy,
+    onDismiss,
+  } = props;
+  const state = asOpenState(open);
 
   return {
     _onInsert: (node) => {
@@ -249,7 +264,7 @@ function dialog(
         console.warn(`"dialog" primitive patch must use dialog tag`);
       }
     },
-    ...behavior<DialogProps>("dialog", attachDialog, { state }),
+    ...behavior<DialogProps>("dialog", attachDialog, { state, onDismiss }),
     ariaLabelledby: labelledBy,
     ariaDescribedby: describedBy,
     onClick: (e: MouseEvent, node) => {

@@ -3,8 +3,7 @@ import {
   behavior,
   type ElementNode,
   type PartialElement,
-  type State,
-  toState,
+  type ReadableState,
   type ValueOrState,
 } from "@domphy/core";
 import {
@@ -15,6 +14,11 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { elevation } from "../utils/elevation.js";
+import {
+  asOpenState,
+  dismissOpen,
+  subscribeOpen,
+} from "../utils/openState.js";
 import { lockScroll, unlockScroll } from "../utils/scrollLock.js";
 
 type PhysicalPlacement = "left" | "right" | "top" | "bottom";
@@ -46,7 +50,10 @@ function resolvePhysical(
 }
 
 type DrawerProps = {
-  state: State<boolean>;
+  state: ReadableState<boolean>;
+  // Lives on the behavior instance so a reused node gets the latest callback
+  // via update() — do not close over factory-generation onDismiss.
+  onDismiss?: () => void;
   placement: Placement;
   size?: string;
 };
@@ -59,14 +66,14 @@ function attachDrawer(
   node: ElementNode,
   initialProps: DrawerProps,
 ): DrawerInstance {
-  let { state, placement, size } = initialProps;
+  let { state, onDismiss, placement, size } = initialProps;
 
   const dlg = node.domElement as HTMLDialogElement;
   dlg.setAttribute("aria-modal", "true");
 
   const onCancel = (e: Event) => {
     e.preventDefault();
-    state.set(false);
+    dismissOpen(state, onDismiss);
   };
   dlg.addEventListener("cancel", onCancel);
 
@@ -157,16 +164,16 @@ function attachDrawer(
       closeTimer = setTimeout(finishClose, 350);
     }
   };
-  update(state.get());
-  let release = state.addListener(update);
+  let release = subscribeOpen(state, update);
 
   return {
-    requestClose: () => state.set(false),
+    requestClose: () => dismissOpen(state, onDismiss),
     update(props) {
+      onDismiss = props.onDismiss;
       if (props.state !== state) {
         release();
         state = props.state;
-        release = state.addListener(update);
+        release = subscribeOpen(state, update, false);
       }
       if (props.placement !== placement || props.size !== size) {
         placement = props.placement;
@@ -209,7 +216,8 @@ function attachDrawer(
  *
  * @hostTag dialog
  * @param props.color - Theme color tone for the drawer surface. Defaults to "neutral".
- * @param props.open - Open state (`ValueOrState<boolean>`); set true/false to show/hide. Defaults to false.
+ * @param props.open - Open state (`ValueOrState<boolean>`), including `Computed`/`ReadableState`. When the source is read-only, pass `onDismiss` so Escape/backdrop can close. Defaults to false.
+ * @param props.onDismiss - Called when Escape/backdrop/`requestClose` request close. Optional. Required to close when `open` is a read-only `Computed`/`ReadableState`.
  * @param props.placement - Edge to anchor to. "left" | "right" | "top" | "bottom" | "start" | "end". Defaults to "end".
  * @param props.size - CSS length for the drawer's width (left/right/start/end) or height (top/bottom). Defaults to themeSpacing(80) for left/right, themeSpacing(64) for top/bottom.
  * @example { dialog: [...], $: [drawer({ open, placement: "start" })] }
@@ -218,12 +226,19 @@ function drawer(
   props: {
     color?: ThemeColor;
     open?: ValueOrState<boolean>;
+    onDismiss?: () => void;
     placement?: Placement;
     size?: string;
   } = {},
 ): PartialElement {
-  const { color = "neutral", open = false, placement = "end", size } = props;
-  const state = toState(open);
+  const {
+    color = "neutral",
+    open = false,
+    onDismiss,
+    placement = "end",
+    size,
+  } = props;
+  const state = asOpenState(open);
 
   // For static rendering / SSR assume LTR as fallback; corrected at mount time.
   const physicalFallback = resolvePhysical(placement, false);
@@ -240,6 +255,7 @@ function drawer(
     },
     ...behavior<DrawerProps>("drawer", attachDrawer, {
       state,
+      onDismiss,
       placement,
       size,
     }),

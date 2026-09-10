@@ -1,5 +1,12 @@
 # @domphy/ui Changelog
 
+## 0.21.5
+
+- fix(overlays): `open` (`dialog`/`drawer`/`popover`/`tooltip`/`combobox`/`selectBox`/`createFloating`) accepts `Computed`/`ReadableState`. Subscribe with `addListener` on writable `State`, `effect()` on read-only (Computed has no `addListener`/`set`). Dismiss via optional `onDismiss`; `.set(false)` only when writable.
+- feat(stack, row, toolbar): `density?: boolean` (default true). `false` is structural gap = bare `themeSpacing(n)` (page/form columns). `stack` gains `justify`; `toolbar` forwards `wrap`/`justify`/`align`/`density`.
+- feat(heading): `size?: ElementSize` — when set, `themeSize(listener, size)` with no tag bump (`"inherit"` included).
+- fix(textarea): `autoResize` remeasures when the host becomes visible (`IntersectionObserver`) and when its box size changes (`ResizeObserver`).
+
 ## 0.21.4
 
 - a11y: datePicker ArrowDown opens `[role=grid]`, ArrowRight moves `[data-date]`; rating ArrowRight increments (gated in `a11y-keyboard.test.ts`).

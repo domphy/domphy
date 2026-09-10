@@ -76,6 +76,35 @@ describe("stack", () => {
     } as DomphyElement);
     expect(node.generateCSS()).toContain("gap: 99px");
   });
+
+  it("default gap 3 is themeSpacing(1.5 * 3) = calc(1.125em) (themeSpacing(n) → calc(n/4 em), default themeDensity 1.5)", () => {
+    const node = new ElementNode({
+      div: null,
+      $: [stack()],
+    } as DomphyElement);
+    expect(gapEm(node.generateCSS())).toBe(1.125);
+  });
+
+  it("density:false gap 3 is themeSpacing(3) = calc(0.75em) (AGENTS.md structural bare themeSpacing(n))", () => {
+    const node = new ElementNode({
+      div: null,
+      $: [stack({ gap: 3, density: false })],
+    } as DomphyElement);
+    expect(gapEm(node.generateCSS())).toBe(0.75);
+  });
+
+  it("omits justifyContent when justify is not provided", () => {
+    const node = new ElementNode({ div: null, $: [stack()] } as DomphyElement);
+    expect(node.generateCSS()).not.toContain("justify-content");
+  });
+
+  it("justify: space-between emits justify-content: space-between", () => {
+    const node = new ElementNode({
+      div: null,
+      $: [stack({ justify: "space-between" })],
+    } as DomphyElement);
+    expect(node.generateCSS()).toContain("justify-content: space-between");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -138,6 +167,22 @@ describe("row", () => {
 
     expect(customGap).toBeLessThan(defaultGap);
   });
+
+  it("default gap 4 at density 1.5 is themeSpacing(1.5 * 4) = calc(1.5em) (themeSpacing(n) → calc(n/4 em))", () => {
+    const node = new ElementNode({
+      div: null,
+      $: [row()],
+    } as DomphyElement);
+    expect(gapEm(node.generateCSS())).toBe(1.5);
+  });
+
+  it("density:false gap 4 is themeSpacing(4) = calc(1em) (AGENTS.md structural bare themeSpacing(n))", () => {
+    const node = new ElementNode({
+      div: null,
+      $: [row({ gap: 4, density: false })],
+    } as DomphyElement);
+    expect(gapEm(node.generateCSS())).toBe(1);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -170,6 +215,22 @@ describe("toolbar delegating to row", () => {
     const customGap = gapEm(customNode.generateCSS());
 
     expect(customGap).toBeLessThan(defaultGap);
+  });
+
+  it("wrap:true emits flex-wrap: wrap", () => {
+    const node = new ElementNode({
+      header: null,
+      $: [toolbar({ wrap: true })],
+    } as DomphyElement);
+    expect(node.generateCSS()).toContain("flex-wrap: wrap");
+  });
+
+  it("justify: space-between emits justify-content: space-between", () => {
+    const node = new ElementNode({
+      header: null,
+      $: [toolbar({ justify: "space-between" })],
+    } as DomphyElement);
+    expect(node.generateCSS()).toContain("justify-content: space-between");
   });
 });
 

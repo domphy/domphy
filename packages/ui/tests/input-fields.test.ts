@@ -2,7 +2,7 @@
 
 import type { DomphyElement } from "@domphy/core";
 import { ElementNode, toState } from "@domphy/core";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   inputCheckbox,
   inputNumber,
@@ -375,6 +375,28 @@ describe("inputSearch", () => {
 // textarea
 // ---------------------------------------------------------------------------
 describe("textarea", () => {
+  let intersectionCallback: IntersectionObserverCallback | undefined;
+
+  beforeEach(() => {
+    intersectionCallback = undefined;
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        constructor(callback: IntersectionObserverCallback) {
+          intersectionCallback = callback;
+        }
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    intersectionCallback = undefined;
+  });
+
   it("renders a textarea element", () => {
     const { host } = render({
       textarea: null,
@@ -408,6 +430,24 @@ describe("textarea", () => {
       configurable: true,
     });
     el.dispatchEvent(new Event("input"));
+    expect(el.style.height).toBe("120px");
+  });
+
+  it("remeasures when intersecting because hidden/non-intersecting textarea scrollHeight is not visible content height", () => {
+    const { host } = render({
+      textarea: null,
+      $: [textarea({ autoResize: true })],
+    } as DomphyElement);
+    const el = host.querySelector("textarea") as HTMLTextAreaElement;
+    Object.defineProperty(el, "scrollHeight", {
+      value: 120,
+      configurable: true,
+    });
+    expect(intersectionCallback).toBeTypeOf("function");
+    intersectionCallback!(
+      [{ isIntersecting: true } as IntersectionObserverEntry],
+      {} as IntersectionObserver,
+    );
     expect(el.style.height).toBe("120px");
   });
 

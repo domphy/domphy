@@ -2,6 +2,7 @@
 
 import type { DomphyElement } from "@domphy/core";
 import { ElementNode, toState } from "@domphy/core";
+import { themeSize } from "@domphy/theme";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   abbreviation,
@@ -30,6 +31,16 @@ function render(app: DomphyElement) {
   const node = new ElementNode(app);
   node.render(host);
   return { host, node };
+}
+
+function cssOf(app: DomphyElement): string {
+  return new ElementNode(app).generateCSS();
+}
+
+function fontSizeFromCss(css: string): string {
+  const match = css.match(/font-size:\s*([^;]+)/);
+  expect(match).not.toBeNull();
+  return (match as RegExpMatchArray)[1].trim();
 }
 
 function listenerCount(state: any): number {
@@ -73,6 +84,56 @@ describe("heading", () => {
     expect(listenerCount(color)).toBeGreaterThanOrEqual(1);
     node.remove();
     expect(listenerCount(color)).toBe(0);
+  });
+
+  it('heading({ size: "inherit" }) on h3 matches themeSize(listener, "inherit") (ElementSize inherit | increase-N | decrease-N, N≤7 — same as h5 default / context base)', () => {
+    const headingSize = fontSizeFromCss(
+      cssOf({ h3: "Title", $: [heading({ size: "inherit" })] } as DomphyElement),
+    );
+    const control = fontSizeFromCss(
+      cssOf({
+        span: "Title",
+        style: { fontSize: (listener) => themeSize(listener, "inherit") },
+      } as DomphyElement),
+    );
+    const h5Default = fontSizeFromCss(
+      cssOf({ h5: "Title", $: [heading()] } as DomphyElement),
+    );
+    expect(headingSize).toBe(control);
+    expect(headingSize).toBe(h5Default);
+  });
+
+  it('heading({ size: "decrease-2" }) on h1 matches themeSize(listener, "decrease-2") (ElementSize decrease-N, N≤7) and differs from default h1 increase-4', () => {
+    const headingSize = fontSizeFromCss(
+      cssOf({
+        h1: "Title",
+        $: [heading({ size: "decrease-2" })],
+      } as DomphyElement),
+    );
+    const control = fontSizeFromCss(
+      cssOf({
+        span: "Title",
+        style: { fontSize: (listener) => themeSize(listener, "decrease-2") },
+      } as DomphyElement),
+    );
+    const defaultH1 = fontSizeFromCss(
+      cssOf({ h1: "Title", $: [heading()] } as DomphyElement),
+    );
+    expect(headingSize).toBe(control);
+    expect(headingSize).not.toBe(defaultH1);
+  });
+
+  it('omitted size on h2 still uses themeSize(listener, "increase-3") (ElementSize increase-N HeadingShift default)', () => {
+    const omitted = fontSizeFromCss(
+      cssOf({ h2: "Title", $: [heading()] } as DomphyElement),
+    );
+    const control = fontSizeFromCss(
+      cssOf({
+        span: "Title",
+        style: { fontSize: (listener) => themeSize(listener, "increase-3") },
+      } as DomphyElement),
+    );
+    expect(omitted).toBe(control);
   });
 });
 

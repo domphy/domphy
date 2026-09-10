@@ -20,7 +20,8 @@ import { createFloating, floatingPanelId } from "../utils/floating.js";
  *
  * @param props - Configuration.
  * @param props.openOn - Interaction that opens the popover: `"click"` or `"hover"`. Defaults to `"click"`.
- * @param props.open - Open state, accepts a value or `State`. Defaults to `false`.
+ * @param props.open - Open state (`ValueOrState<boolean>`), including `Computed`/`ReadableState`. When the source is read-only, pass `onDismiss` so Escape/outside click can close. Defaults to `false`.
+ * @param props.onDismiss - Called when the panel requests close. Optional. Required to close when `open` is a read-only `Computed`/`ReadableState`.
  * @param props.placement - Floating placement (e.g. `"bottom"`, `"top-start"`), value or `State`. Defaults to `"bottom"`.
  * @param props.content - The floating content element to display.
  * @example { button: "Open", $: [popover({ openOn: "click", content: { div: "Hi" } })] }
@@ -28,6 +29,7 @@ import { createFloating, floatingPanelId } from "../utils/floating.js";
 function popover(props: {
   openOn?: "click" | "hover";
   open?: ValueOrState<boolean>;
+  onDismiss?: () => void;
   placement?: ValueOrState<Placement>;
   content: DomphyElement;
 }): PartialElement {
@@ -39,6 +41,7 @@ function popover(props: {
   const { show, hide, anchorPartial } = createFloating({
     kind: "popover",
     open: openState,
+    onDismiss: props.onDismiss,
     placement: placeState,
     content: props.content,
     // Hovering the panel itself (not just the trigger) must keep it open —

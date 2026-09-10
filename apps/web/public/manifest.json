@@ -158,7 +158,7 @@
     },
     {
       "name": "@domphy/ui",
-      "version": "0.21.4",
+      "version": "0.21.5",
       "description": "98 UI patches for the Domphy runtime — buttons, dialogs, forms, overlays, motion",
       "subpaths": ["."],
       "peerDependencies": ["@domphy/core", "@domphy/theme"]
@@ -443,7 +443,7 @@
     {
       "name": "combobox",
       "hostTag": "div",
-      "signature": "combobox(props: { multiple?: boolean; value?: ValueOrState< | Array<number | string | null | undefined> | number | string | null | undefined >; options?: Array<{ label: string; value: string }>; placement?: ValueOrState<Placement>; content: DomphyElement; color?: ThemeColor; open?: ValueOrState<boolean>; input?: DomphyElement; })",
+      "signature": "combobox(props: { multiple?: boolean; value?: ValueOrState< | Array<number | string | null | undefined> | number | string | null | undefined >; options?: Array<{ label: string; value: string }>; placement?: ValueOrState<Placement>; content: DomphyElement; color?: ThemeColor; open?: ValueOrState<boolean>; onDismiss?: () => void; input?: DomphyElement; })",
       "props": [
         {
           "name": "multiple",
@@ -485,7 +485,13 @@
           "name": "open",
           "type": "ValueOrState<boolean>",
           "optional": true,
-          "doc": "Whether the popover is open. Optional `ValueOrState<boolean>`, default false."
+          "doc": "Whether the popover is open. Optional `ValueOrState<boolean>` (including `Computed`/`ReadableState`), default false. When the source is read-only, pass `onDismiss` so dismiss can close."
+        },
+        {
+          "name": "onDismiss",
+          "type": "() => void",
+          "optional": true,
+          "doc": "Called when the popover requests close. Optional. Required to close when `open` is a read-only `Computed`/`ReadableState`."
         },
         {
           "name": "input",
@@ -680,7 +686,7 @@
     {
       "name": "dialog",
       "hostTag": "dialog",
-      "signature": "dialog(props: { color?: ThemeColor; open?: ValueOrState<boolean>; labelledBy?: string; describedBy?: string; } = {})",
+      "signature": "dialog(props: { color?: ThemeColor; open?: ValueOrState<boolean>; onDismiss?: () => void; labelledBy?: string; describedBy?: string; } = {})",
       "props": [
         {
           "name": "color",
@@ -692,7 +698,13 @@
           "name": "open",
           "type": "ValueOrState<boolean>",
           "optional": true,
-          "doc": "Open state (`ValueOrState<boolean>`); set it to true/false to show/hide. Defaults to false."
+          "doc": "Open state (`ValueOrState<boolean>`), including `Computed`/`ReadableState`. When the source is read-only, pass `onDismiss` so Escape/backdrop can close. Defaults to false."
+        },
+        {
+          "name": "onDismiss",
+          "type": "() => void",
+          "optional": true,
+          "doc": "Called when Escape/backdrop/`requestClose` request close. Optional. Required to close when `open` is a read-only `Computed`/`ReadableState`."
         },
         {
           "name": "labelledBy",
@@ -730,7 +742,7 @@
     {
       "name": "drawer",
       "hostTag": "dialog",
-      "signature": "drawer(props: { color?: ThemeColor; open?: ValueOrState<boolean>; placement?: Placement; size?: string; } = {})",
+      "signature": "drawer(props: { color?: ThemeColor; open?: ValueOrState<boolean>; onDismiss?: () => void; placement?: Placement; size?: string; } = {})",
       "props": [
         {
           "name": "color",
@@ -742,7 +754,13 @@
           "name": "open",
           "type": "ValueOrState<boolean>",
           "optional": true,
-          "doc": "Open state (`ValueOrState<boolean>`); set true/false to show/hide. Defaults to false."
+          "doc": "Open state (`ValueOrState<boolean>`), including `Computed`/`ReadableState`. When the source is read-only, pass `onDismiss` so Escape/backdrop can close. Defaults to false."
+        },
+        {
+          "name": "onDismiss",
+          "type": "() => void",
+          "optional": true,
+          "doc": "Called when Escape/backdrop/`requestClose` request close. Optional. Required to close when `open` is a read-only `Computed`/`ReadableState`."
         },
         {
           "name": "placement",
@@ -906,13 +924,19 @@
     {
       "name": "heading",
       "hostTag": "h1",
-      "signature": "heading(props: { color?: ValueOrState<ThemeColor> } = {})",
+      "signature": "heading(props: { color?: ValueOrState<ThemeColor>; size?: ElementSize } = {})",
       "props": [
         {
           "name": "color",
           "type": "ValueOrState<ThemeColor>",
           "optional": true,
           "doc": "Theme color tone (`ValueOrState<ThemeColor>`) for the heading text. Defaults to \"neutral\"."
+        },
+        {
+          "name": "size",
+          "type": "ElementSize",
+          "optional": true,
+          "doc": "Optional `ElementSize` (`\"inherit\"` | `\"increase-N\"` | `\"decrease-N\"`, N ≤ 7). When set, font size is `themeSize(listener, size)` including `\"inherit\"` (no tag bump). When omitted, follows the host tag (`h1` increase-4 … `h6` decrease-1)."
         }
       ],
       "doc": "Styles a heading, scaling its font size by level (h1 largest … h6 smallest) relative to the theme base size. Apply to a heading element `<h1>`–`<h6>`.",
@@ -1601,7 +1625,7 @@
     {
       "name": "popover",
       "hostTag": null,
-      "signature": "popover(props: { openOn?: \"click\" | \"hover\"; open?: ValueOrState<boolean>; placement?: ValueOrState<Placement>; content: DomphyElement; })",
+      "signature": "popover(props: { openOn?: \"click\" | \"hover\"; open?: ValueOrState<boolean>; onDismiss?: () => void; placement?: ValueOrState<Placement>; content: DomphyElement; })",
       "props": [
         {
           "name": "openOn",
@@ -1613,7 +1637,13 @@
           "name": "open",
           "type": "ValueOrState<boolean>",
           "optional": true,
-          "doc": "Open state, accepts a value or `State`. Defaults to `false`."
+          "doc": "Open state (`ValueOrState<boolean>`), including `Computed`/`ReadableState`. When the source is read-only, pass `onDismiss` so Escape/outside click can close. Defaults to `false`."
+        },
+        {
+          "name": "onDismiss",
+          "type": "() => void",
+          "optional": true,
+          "doc": "Called when the panel requests close. Optional. Required to close when `open` is a read-only `Computed`/`ReadableState`."
         },
         {
           "name": "placement",
@@ -1787,13 +1817,13 @@
     {
       "name": "row",
       "hostTag": null,
-      "signature": "row(props: { gap?: number; align?: FlexAlign; justify?: FlexJustify; wrap?: boolean; } = {})",
+      "signature": "row(props: { gap?: number; align?: FlexAlign; justify?: FlexJustify; wrap?: boolean; density?: boolean; } = {})",
       "props": [
         {
           "name": "gap",
           "type": "number",
           "optional": true,
-          "doc": "Spacing multiplier for gap between items (default 4 = 1em at density 1)."
+          "doc": "Spacing multiplier for gap between items (default 4). Bounded-control mode (`density: true`, default): `themeSpacing(themeDensity(l) * gap)` — at default density 1.5, gap 4 = 1.5em. Structural/page-column mode (`density: false`): bare `themeSpacing(gap)` with no density multiply — gap 4 = 1em, matching AGENTS.md \"bare themeSpacing(n)\"."
         },
         {
           "name": "align",
@@ -1812,6 +1842,12 @@
           "type": "boolean",
           "optional": true,
           "doc": "Allow items to wrap onto multiple lines. Defaults to `false`."
+        },
+        {
+          "name": "density",
+          "type": "boolean",
+          "optional": true,
+          "doc": "When true (default), gap is multiplied by theme density (bounded controls). When false, gap is structural `themeSpacing(n)` — use this for page/form columns."
         }
       ],
       "doc": "A horizontal flex row with spacing between children, vertically centered by default. The general-purpose primitive for icon+label rows, field rows, and button groups — instead of hand-rolling `display: flex; alignItems: center; gap: ...`. `toolbar()` is a semantic alias of this same shape for headers/nav bars. Styles the host only; apply to any block element.",
@@ -1893,7 +1929,7 @@
     {
       "name": "selectBox",
       "hostTag": "div",
-      "signature": "selectBox(props: { multiple?: boolean; value?: ValueOrState< | Array<number | string | null | undefined> | number | string | null | undefined >; options?: Array<{ label: string; value: string }>; placement?: ValueOrState<Placement>; content: DomphyElement; color?: ThemeColor; open?: ValueOrState<boolean>; })",
+      "signature": "selectBox(props: { multiple?: boolean; value?: ValueOrState< | Array<number | string | null | undefined> | number | string | null | undefined >; options?: Array<{ label: string; value: string }>; placement?: ValueOrState<Placement>; content: DomphyElement; color?: ThemeColor; open?: ValueOrState<boolean>; onDismiss?: () => void; })",
       "props": [
         {
           "name": "multiple",
@@ -1935,7 +1971,13 @@
           "name": "open",
           "type": "ValueOrState<boolean>",
           "optional": true,
-          "doc": "Whether the popover is open. Accepts a value or reactive state. Defaults to `false`."
+          "doc": "Whether the popover is open. Accepts a value or reactive state (`ValueOrState<boolean>`, including `Computed`/`ReadableState`). Defaults to `false`. When the source is read-only, pass `onDismiss` so dismiss can close."
+        },
+        {
+          "name": "onDismiss",
+          "type": "() => void",
+          "optional": true,
+          "doc": "Called when the popover requests close. Optional. Required to close when `open` is a read-only `Computed`/`ReadableState`."
         }
       ],
       "doc": "A clickable select trigger box that renders the currently selected option(s) as removable tags and toggles a floating popover (the dropdown content) anchored to itself. Selected labels are derived from `options` matching the bound `value`; removing a tag updates the value. Keyboard: Enter/Space toggle, ArrowDown opens, Escape closes, and printable characters typeahead-search options (closed: selects the match; open: focuses the matching `[role=option]` in the panel; a repeated character cycles matches).",
@@ -2107,19 +2149,31 @@
     {
       "name": "stack",
       "hostTag": null,
-      "signature": "stack(props: { gap?: number; align?: FlexAlign } = {})",
+      "signature": "stack(props: { gap?: number; align?: FlexAlign; justify?: FlexJustify; density?: boolean; } = {})",
       "props": [
         {
           "name": "gap",
           "type": "number",
           "optional": true,
-          "doc": "Spacing multiplier for gap between children (default 3 = 0.75em at density 1)."
+          "doc": "Spacing multiplier for gap between children (default 3). Bounded-control mode (`density: true`, default): `themeSpacing(themeDensity(l) * gap)` — at default density 1.5, gap 3 = 1.125em. Structural/page-column mode (`density: false`): bare `themeSpacing(gap)` with no density multiply — gap 3 = 0.75em, matching AGENTS.md \"bare themeSpacing(n)\"."
         },
         {
           "name": "align",
           "type": "FlexAlign",
           "optional": true,
           "doc": "Cross-axis alignment (`alignItems`). Unset by default (flex default, stretch)."
+        },
+        {
+          "name": "justify",
+          "type": "FlexJustify",
+          "optional": true,
+          "doc": "Main-axis distribution (`justifyContent`). Unset by default (flex-start)."
+        },
+        {
+          "name": "density",
+          "type": "boolean",
+          "optional": true,
+          "doc": "When true (default), gap is multiplied by theme density (bounded controls). When false, gap is structural `themeSpacing(n)` — use this for page/form columns."
         }
       ],
       "doc": "A vertical flex column with spacing between children. The general-purpose primitive for stacking blocks — form sections, panel content, card bodies — instead of hand-rolling `display: flex; flexDirection: column; gap: ...`. Styles the host only; apply to any block element.",
@@ -2307,7 +2361,7 @@
           "name": "autoResize",
           "type": "boolean",
           "optional": true,
-          "doc": "When true, grows the textarea height to fit its content on input and when `value` updates. Optional. Defaults to `false`."
+          "doc": "When true, grows the textarea height to fit its content on input and when `value` updates, and remeasures when the host becomes visible (IntersectionObserver) and when its box size changes (ResizeObserver). Optional. Defaults to `false`."
         }
       ],
       "doc": "Styles a multi-line text input (border, focus/hover/invalid/disabled states) on the host `<textarea>` element, with optional auto-resize to content.",
@@ -2422,16 +2476,40 @@
     {
       "name": "toolbar",
       "hostTag": null,
-      "signature": "toolbar(props: { gap?: number } = {})",
+      "signature": "toolbar(props: { gap?: number; wrap?: boolean; justify?: FlexJustify; align?: FlexAlign; density?: boolean; } = {})",
       "props": [
         {
           "name": "gap",
           "type": "number",
           "optional": true,
-          "doc": "Spacing multiplier for gap between items (default 4 = 1em)."
+          "doc": "Spacing multiplier for gap between items (default 4). Bounded-control mode (`density: true`, default): `themeSpacing(themeDensity(l) * gap)`. Structural mode (`density: false`): bare `themeSpacing(gap)`."
+        },
+        {
+          "name": "wrap",
+          "type": "boolean",
+          "optional": true,
+          "doc": "Allow items to wrap onto multiple lines. Defaults to `false`."
+        },
+        {
+          "name": "justify",
+          "type": "FlexJustify",
+          "optional": true,
+          "doc": "Main-axis distribution (`justifyContent`). Unset by default."
+        },
+        {
+          "name": "align",
+          "type": "FlexAlign",
+          "optional": true,
+          "doc": "Cross-axis alignment (`alignItems`). Defaults to `\"center\"` (row default)."
+        },
+        {
+          "name": "density",
+          "type": "boolean",
+          "optional": true,
+          "doc": "When true (default), gap is multiplied by theme density. When false, gap is structural `themeSpacing(n)`."
         }
       ],
-      "doc": "A horizontal flex row with vertically centered items. Useful for headers, toolbars, navigation bars, and action strips. A semantic alias of `row()` at its default alignment — reach for `row()` directly for `justify`/`wrap`/ `align` beyond this shape.",
+      "doc": "A horizontal flex row with vertically centered items. Useful for headers, toolbars, navigation bars, and action strips. A semantic alias of `row()`; wrap/justify/align/density are forwarded so callers do not drop down to hand-rolled flex.",
       "example": "{ header: [...], $: [toolbar()] }",
       "source": "packages/ui/src/patches/toolbar.ts"
     },
@@ -2447,13 +2525,19 @@
     {
       "name": "tooltip",
       "hostTag": null,
-      "signature": "tooltip(props: { open?: ValueOrState<boolean>; placement?: ValueOrState<Placement>; content?: ValueOrState<string>; } = {})",
+      "signature": "tooltip(props: { open?: ValueOrState<boolean>; onDismiss?: () => void; placement?: ValueOrState<Placement>; content?: ValueOrState<string>; } = {})",
       "props": [
         {
           "name": "open",
           "type": "ValueOrState<boolean>",
           "optional": true,
-          "doc": "Controlled open state. Optional, accepts a value or state. Defaults to `false`."
+          "doc": "Controlled open state (`ValueOrState<boolean>`), including `Computed`/`ReadableState`. When the source is read-only, pass `onDismiss` so leave/blur/Escape can close. Optional. Defaults to `false`."
+        },
+        {
+          "name": "onDismiss",
+          "type": "() => void",
+          "optional": true,
+          "doc": "Called when the tooltip requests close. Optional. Required to close when `open` is a read-only `Computed`/`ReadableState`."
         },
         {
           "name": "placement",
