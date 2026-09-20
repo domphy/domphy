@@ -594,10 +594,6 @@ export function buildHeaderGroups<TData extends RowData>(
 
   headerGroups.reverse()
 
-  // headerGroups = headerGroups.filter(headerGroup => {
-  //   return !headerGroup.headers.every(header => header.isPlaceholder)
-  // })
-
   const recurseHeadersForSpans = (
     headers: Header<TData, unknown>[]
   ): { colSpan: number; rowSpan: number }[] => {

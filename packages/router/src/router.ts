@@ -1738,16 +1738,6 @@ export class RouterCore<
     )
     const lastRoute = last(matchedRoutes)!
 
-    // I don't know if we should run the full search middleware chain, or just validateSearch
-    // // Accumulate search validation through the route chain
-    // const accumulatedSearch: Record<string, unknown> = applySearchMiddleware({
-    //   search: { ...location.search },
-    //   dest: location,
-    //   destRoutes: matchedRoutes,
-    //   _includeValidateSearch: true,
-    // })
-
-    // Accumulate search validation through route chain
     const accumulatedSearch = { ...location.search }
     for (const route of matchedRoutes) {
       try {

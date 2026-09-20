@@ -268,64 +268,6 @@ export const RowSelection: TableFeature = {
         return rowSelection
       })
 
-    // addRowSelectionRange: rowId => {
-    //   const {
-    //     rows,
-    //     rowsById,
-    //     options: { selectGroupingRows, selectSubRows },
-    //   } = table
-
-    //   const findSelectedRow = (rows: Row[]) => {
-    //     let found
-    //     rows.find(d => {
-    //       if (d.getIsSelected()) {
-    //         found = d
-    //         return true
-    //       }
-    //       const subFound = findSelectedRow(d.subRows || [])
-    //       if (subFound) {
-    //         found = subFound
-    //         return true
-    //       }
-    //       return false
-    //     })
-    //     return found
-    //   }
-
-    //   const firstRow = findSelectedRow(rows) || rows[0]
-    //   const lastRow = rowsById[rowId]
-
-    //   let include = false
-    //   const selectedRowIds = {}
-
-    //   const addRow = (row: Row) => {
-    //     mutateRowIsSelected(selectedRowIds, row.id, true, {
-    //       rowsById,
-    //       selectGroupingRows: selectGroupingRows!,
-    //       selectSubRows: selectSubRows!,
-    //     })
-    //   }
-
-    //   table.rows.forEach(row => {
-    //     const isFirstRow = row.id === firstRow.id
-    //     const isLastRow = row.id === lastRow.id
-
-    //     if (isFirstRow || isLastRow) {
-    //       if (!include) {
-    //         include = true
-    //       } else if (include) {
-    //         addRow(row)
-    //         include = false
-    //       }
-    //     }
-
-    //     if (include) {
-    //       addRow(row)
-    //     }
-    //   })
-
-    //   table.setRowSelection(selectedRowIds)
-    // },
     table.getPreSelectedRowModel = () => table.getCoreRowModel()
     table.getSelectedRowModel = memo(
       () => [table.getState().rowSelection, table.getCoreRowModel()],

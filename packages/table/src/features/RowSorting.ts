@@ -356,15 +356,6 @@ export const RowSorting: TableFeature = {
             sortingFns[column.columnDef.sortingFn as BuiltInSortingFn]
     }
     column.toggleSorting = (desc, multi) => {
-      // if (column.columns.length) {
-      //   column.columns.forEach((c, i) => {
-      //     if (c.id) {
-      //       table.toggleColumnSorting(c.id, undefined, multi || !!i)
-      //     }
-      //   })
-      //   return
-      // }
-
       // this needs to be outside of table.setSorting to be in sync with rerender
       const nextSortingOrder = column.getNextSortingOrder()
       const hasManualValue = typeof desc !== 'undefined' && desc !== null

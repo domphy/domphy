@@ -25,10 +25,6 @@ export function getGroupedRowModel<TData extends RowData>(): (
 
         const groupedFlatRows: Row<TData>[] = []
         const groupedRowsById: Record<string, Row<TData>> = {}
-        // const onlyGroupedFlatRows: Row[] = [];
-        // const onlyGroupedRowsById: Record<RowId, Row> = {};
-        // const nonGroupedFlatRows: Row[] = [];
-        // const nonGroupedRowsById: Record<RowId, Row> = {};
 
         // Recursively group the data
         const groupUpRecursively = (
@@ -129,13 +125,6 @@ export function getGroupedRowModel<TData extends RowData>(): (
               subRows.forEach(subRow => {
                 groupedFlatRows.push(subRow)
                 groupedRowsById[subRow.id] = subRow
-                // if (subRow.getIsGrouped?.()) {
-                //   onlyGroupedFlatRows.push(subRow);
-                //   onlyGroupedRowsById[subRow.id] = subRow;
-                // } else {
-                //   nonGroupedFlatRows.push(subRow);
-                //   nonGroupedRowsById[subRow.id] = subRow;
-                // }
               })
 
               return row
@@ -150,13 +139,6 @@ export function getGroupedRowModel<TData extends RowData>(): (
         groupedRows.forEach(subRow => {
           groupedFlatRows.push(subRow)
           groupedRowsById[subRow.id] = subRow
-          // if (subRow.getIsGrouped?.()) {
-          //   onlyGroupedFlatRows.push(subRow);
-          //   onlyGroupedRowsById[subRow.id] = subRow;
-          // } else {
-          //   nonGroupedFlatRows.push(subRow);
-          //   nonGroupedRowsById[subRow.id] = subRow;
-          // }
         })
 
         return {

@@ -29,14 +29,6 @@ export function getCoreRowModel<TData extends RowData>(): (
           const rows = [] as Row<TData>[]
 
           for (let i = 0; i < originalRows.length; i++) {
-            // This could be an expensive check at scale, so we should move it somewhere else, but where?
-            // if (!id) {
-            //   if (process.env.NODE_ENV !== 'production') {
-            //     throw new Error(`getRowId expected an ID, but got ${id}`)
-            //   }
-            // }
-
-            // Make the row
             const row = createRow(
               table,
               table._getRowId(originalRows[i]!, i, parentRow),
