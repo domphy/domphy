@@ -14,11 +14,7 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { elevation } from "../utils/elevation.js";
-import {
-  asOpenState,
-  dismissOpen,
-  subscribeOpen,
-} from "../utils/openState.js";
+import { asOpenState, dismissOpen, subscribeOpen } from "../utils/openState.js";
 import { lockScroll, unlockScroll } from "../utils/scrollLock.js";
 
 const FOCUSABLE =

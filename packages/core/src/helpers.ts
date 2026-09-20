@@ -18,6 +18,7 @@ import { merge } from "./utils.js";
  * never `Object.hasOwn`, in every package that can run in such a host.
  */
 export function hasOwn(object: object, key: PropertyKey): boolean {
+  // biome-ignore lint/suspicious/noPrototypeBuiltins: the suggested Object.hasOwn is Chrome 93+; this autofix is what blanked SketchUp 2022 dialogs (see above)
   return Object.prototype.hasOwnProperty.call(object, key);
 }
 

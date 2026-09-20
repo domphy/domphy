@@ -88,7 +88,10 @@ describe("heading", () => {
 
   it('heading({ size: "inherit" }) on h3 matches themeSize(listener, "inherit") (ElementSize inherit | increase-N | decrease-N, N≤7 — same as h5 default / context base)', () => {
     const headingSize = fontSizeFromCss(
-      cssOf({ h3: "Title", $: [heading({ size: "inherit" })] } as DomphyElement),
+      cssOf({
+        h3: "Title",
+        $: [heading({ size: "inherit" })],
+      } as DomphyElement),
     );
     const control = fontSizeFromCss(
       cssOf({

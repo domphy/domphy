@@ -16,7 +16,7 @@ import { behavior, toState } from "../src/utils.ts";
 
 const nativeHasOwn = Object.hasOwn;
 
-const DOMPHY_SOURCE = /[\/]packages[\/][a-z-]+[\/]src[\/]/;
+const DOMPHY_SOURCE = /[\\/]packages[\\/][a-z-]+[\\/]src[\\/]/;
 
 beforeAll(() => {
   Object.hasOwn = function legacyEngineTrap(object: object, key: PropertyKey) {
@@ -89,10 +89,16 @@ describe("engine without Object.hasOwn (Chrome 88, MDN: Object.hasOwn is Chrome 
           {
             button: "open",
             _key: "trigger",
-            $: [behavior("probe", () => {
-              attached++;
-              return { update() {}, destroy() {} };
-            }, {})],
+            $: [
+              behavior(
+                "probe",
+                () => {
+                  attached++;
+                  return { update() {}, destroy() {} };
+                },
+                {},
+              ),
+            ],
           },
         ];
       },

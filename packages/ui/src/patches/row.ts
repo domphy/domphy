@@ -33,8 +33,13 @@ function row(
     density?: boolean;
   } = {},
 ): PartialElement {
-  const { gap = 4, align = "center", justify, wrap = false, density = true } =
-    props;
+  const {
+    gap = 4,
+    align = "center",
+    justify,
+    wrap = false,
+    density = true,
+  } = props;
   return {
     style: {
       display: "flex",

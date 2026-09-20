@@ -208,9 +208,6 @@ importers:
       '@domphy/core':
         specifier: workspace:*
         version: link:../core
-      '@domphy/form':
-        specifier: workspace:*
-        version: link:../form
       '@domphy/table':
         specifier: workspace:*
         version: link:../table

@@ -2,8 +2,8 @@ import {
   effect,
   type ReadableState,
   type State,
-  type ValueOrState,
   toState,
+  type ValueOrState,
 } from "@domphy/core";
 
 export function isWritableState<T>(
