@@ -10,6 +10,7 @@ import {
   dialog,
   drawer,
   errorBoundary,
+  menu,
   popover,
   selectBox,
   toast,
@@ -900,14 +901,15 @@ describe("errorBoundary", () => {
 // Floating panel surface contract (doctor: dataTone-surface-contract)
 // ---------------------------------------------------------------------------
 describe("floating panel surface contract", () => {
-  it("popover/selectBox/combobox panels declare text color on the shift-14 surface", () => {
+  it("popover/selectBox/combobox panels declare text color on the shift-0 surface", () => {
     // A dataTone-anchored panel must declare BOTH backgroundColor and color:
     // the panel portals under the root, where an inherited text color can
     // belong to a different (potentially low-contrast) tone scope.
+    // Dropdowns match the page (menu/selectList/dialog), not tooltip invert.
     const popContent: DomphyElement = { div: "Panel" };
     popover({ content: popContent });
     const popPartial = (popContent.$ as any[])?.[0];
-    expect(popPartial?.dataTone).toBe("shift-14");
+    expect(popPartial?.dataTone).toBe("shift-0");
     expect(typeof popPartial?.style?.backgroundColor).toBe("function");
     expect(typeof popPartial?.style?.color).toBe("function");
 
@@ -915,7 +917,7 @@ describe("floating panel surface contract", () => {
       const content: DomphyElement = { div: "Panel" };
       (patch as (p: unknown) => unknown)({ content });
       const merged = content as any;
-      expect(merged.dataTone).toBe("shift-14");
+      expect(merged.dataTone).toBe("shift-0");
       expect(typeof merged.style?.backgroundColor).toBe("function");
       expect(typeof merged.style?.color).toBe("function");
       // The doctor rule named for this contract must stay silent.
@@ -924,5 +926,20 @@ describe("floating panel surface contract", () => {
       );
       expect(diags).toEqual([]);
     }
+  });
+
+  it("popover does not stamp chrome onto content that already has menu()", () => {
+    // WAI-ARIA APG menubar: the popup is role=menu, not role=dialog.
+    // menu() already sets role, dataTone shift-0, and elevation; a second
+    // stamp overwrites the role and comma-joins box-shadow.
+    const items = [{ label: "Open" }];
+    const content: DomphyElement = {
+      div: null,
+      $: [menu({ items, selectable: false })],
+    };
+    popover({ content });
+    expect(content.$).toHaveLength(1);
+    expect((content.$ as any[])[0].role).toBe("menu");
+    expect((content.$ as any[])[0].dataTone).toBe("shift-0");
   });
 });

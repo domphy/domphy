@@ -11,6 +11,18 @@ import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import { elevation } from "../utils/elevation.js";
 import { createFloating, floatingPanelId } from "../utils/floating.js";
 
+function contentOwnsSurface(content: DomphyElement): boolean {
+  const record = content as DomphyElement & { dataTone?: string };
+  if (typeof record.dataTone === "string") return true;
+  const patches = content.$;
+  if (!patches) return false;
+  return patches.some(
+    (patch) =>
+      patch != null &&
+      typeof (patch as { dataTone?: unknown }).dataTone === "string",
+  );
+}
+
 /**
  * Floating popover primitive. Attaches to its host as the anchor/trigger and
  * shows a floating `content` element (with `role="dialog"`) on click or hover,
@@ -49,17 +61,15 @@ function popover(props: {
     keepOpenOnContentHover: openOn === "hover",
   });
 
-  // The panel id is derived from the ANCHOR's nodeId and stamped by the
-  // shared floating behavior when the panel mounts (see floating.ts) — no
-  // factory-scope id variable, which a re-rendered generation would lose.
+  // Page-matching card (shift-0), same as menu/selectList/dialog — not the
+  // inverted tooltip/toast surface (shift-17). A dark shift-14 panel wrapping
+  // a light menu is the menubar recipe (`popover` + `menu`) rendered as two
+  // stacked cards.
   const popoverPartial: PartialElement = {
     role: "dialog",
-    dataTone: "shift-14",
+    dataTone: "shift-0",
     style: {
       backgroundColor: (l: Listener) => themeColor(l, "inherit"),
-      // Surface contract (dataTone-surface-contract): a tone-anchored panel
-      // must declare BOTH background and text color — on the dark shift-14
-      // surface, inherited portal context colors can fall below contrast.
       color: (l: Listener) => themeColor(l, "text"),
       borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 2),
       outline: (l: Listener) => `1px solid ${themeColor(l, "border-strong")}`,
@@ -68,8 +78,14 @@ function popover(props: {
     },
   };
 
-  props.content.$ ||= [];
-  props.content.$.push(popoverPartial);
+  // Content that already owns a surface (`menu()`, `card()`, an authored
+  // dataTone) must keep it: stamping this partial on top overwrites
+  // `role=menu` with `role=dialog` and comma-joins a second box-shadow
+  // (merge concatenates boxShadow).
+  if (!contentOwnsSurface(props.content)) {
+    props.content.$ ||= [];
+    props.content.$.push(popoverPartial);
+  }
 
   const triggerPartial: PartialElement = {
     ariaHaspopup: "dialog",

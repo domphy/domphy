@@ -504,12 +504,14 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
       div: children,
       role: "dialog",
       ariaModal: "false",
-      // Surface contract (same as popover/combobox): edge-anchor dataTone +
-      // inherit background + "text" color. The previous `themeColor(l, "base")`
-      // resolved to the ramp's MID anchor (var(--neutral-8), gray) with text
-      // only 2 tone steps away — an unreadable washed-out panel, invisible to
-      // doctor because the calendar is mounted imperatively at runtime.
-      dataTone: "shift-14",
+      // Surface contract (same as popover/combobox): page-matching shift-0
+      // (menu/selectList/dialog), inherit background + "text" color. The
+      // previous `themeColor(l, "base")` resolved to the ramp's MID anchor
+      // (var(--neutral-8), gray) with text only 2 tone steps away — an
+      // unreadable washed-out panel, invisible to doctor because the calendar
+      // is mounted imperatively at runtime. shift-14 inverted the panel in
+      // light theme (a dark calendar on a light page).
+      dataTone: "shift-0",
       style: {
         minWidth: themeSpacing(70),
         padding: themeSpacing(3),

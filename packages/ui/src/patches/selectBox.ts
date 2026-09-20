@@ -124,12 +124,12 @@ function selectBox(props: {
 
   const popoverPartial: PartialElement = {
     onClick: (_e, node) => !multiple && hide(node),
-    dataTone: "shift-14",
+    dataTone: "shift-0",
     style: {
       backgroundColor: (listener) => themeColor(listener, "inherit"),
       // Surface contract (dataTone-surface-contract): a tone-anchored panel
-      // must declare BOTH background and text color — on the dark shift-14
-      // surface, inherited portal context colors can fall below contrast.
+      // must declare BOTH background and text color. Page-matching shift-0
+      // (same as menu/selectList/dialog), not the inverted tooltip surface.
       color: (listener) => themeColor(listener, "text"),
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
       outline: (listener) =>

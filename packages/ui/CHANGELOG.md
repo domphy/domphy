@@ -1,5 +1,10 @@
 # @domphy/ui Changelog
 
+## 0.21.6
+
+- fix(popover, selectBox, combobox, datePicker): dropdown panels use the page surface (`shift-0`), same as `menu` / `selectList` / `dialog`. `shift-14` inverted the panel in light theme, so the menubar recipe (`popover` + `menu`) rendered as a dark card wrapping a light list. Tooltip / toast stay inverted (`shift-17`).
+- fix(popover): do not stamp panel chrome / `role=dialog` onto content that already owns a surface (`dataTone` on the element or a `$` patch). `menu()` already sets `role=menu`, `shift-0`, and elevation; a second stamp overwrote the role and comma-joined a second `boxShadow`.
+
 ## 0.21.5
 
 - fix(overlays): `open` (`dialog`/`drawer`/`popover`/`tooltip`/`combobox`/`selectBox`/`createFloating`) accepts `Computed`/`ReadableState`. Subscribe with `addListener` on writable `State`, `effect()` on read-only (Computed has no `addListener`/`set`). Dismiss via optional `onDismiss`; `.set(false)` only when writable.
