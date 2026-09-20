@@ -6,7 +6,13 @@ import Superscript from "../../demos/patches/Superscript.ts?raw"
 
 # Superscript
 
-Use the superscript patch to customize this element.
+Renders superscript text (shrunk, baseline-raised) for the host `<sup>` element.
+
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Tone for the text. |
 
 <CodeEditor :code="Superscript" />
 

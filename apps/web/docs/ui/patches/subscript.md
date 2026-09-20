@@ -6,7 +6,13 @@ import Subscript from "../../demos/patches/Subscript.ts?raw"
 
 # Subscript
 
-Use the subscript patch to customize this element.
+Renders subscript text (shrunk, baseline-lowered) for the host `<sub>` element.
+
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Tone for the text. |
 
 <CodeEditor :code="Subscript" />
 

@@ -9,17 +9,16 @@ A horizontal flex row with vertically centered items. Useful for headers, toolba
 ## Usage
 
 ```ts
-import { toolbar, toolbarSpacer } from "@domphy/ui"
+import { strong, toolbar, toolbarSpacer } from "@domphy/ui"
 
 const Header = {
   header: [
-    { a: "Acme", href: "/", style: { fontWeight: 700 } },
+    { a: "Acme", href: "/", $: [strong()] },
     toolbarSpacer(),
     { nav: [{ a: "Docs", href: "/docs" }, { a: "Pricing", href: "/pricing" }], $: [toolbar({ gap: 4 })] },
     { button: "Sign in", type: "button" },
   ],
   $: [toolbar({ gap: 4 })],
-  style: { padding: "0 24px", height: "56px", borderBottom: "1px solid #eee" },
 }
 ```
 

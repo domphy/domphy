@@ -208,7 +208,7 @@ import { createQuery } from "@domphy/query/domphy"
 import { skeleton } from "@domphy/ui"
 
 const postQuery = createQuery(queryClient, {
-  queryKey: () => ["post", postId],
+  queryKey: ["post", postId],
   queryFn: () => fetchPost(postId),
 })
 

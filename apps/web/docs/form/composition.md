@@ -49,7 +49,7 @@ const person = new FormGroupApi({ form, name: "person" })
 person.mount()
 ```
 
-These are Domphy originals (not in `@tanstack/form-core`). See `packages/form/tests/groups.test.ts` for the full contract.
+These are upstream `@tanstack/form-core` files (byte-identical at `@tanstack/form-core@1.33.3` — see `packages/form/SOURCES.md`). Adapter-only additions live in `src/domphy/`. See `packages/form/tests/groups.test.ts` for the contract.
 
 ## Reusable form section factories
 

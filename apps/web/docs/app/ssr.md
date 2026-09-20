@@ -16,7 +16,7 @@ const result = await app.renderToString(request.url, { headers: request.headers 
 | `html` | markup of the app root |
 | `css` | scoped CSS of the rendered tree |
 | `head` | serialized `<title>` / `<meta>` / `<link>` tags |
-| `status` | `200`, `404`, or `307`/`308` for redirects |
+| `status` | `200`, `404`, `500` (router `error`, e.g. a rewrite loop), or `307`/`308` for redirects |
 | `redirect` | redirect target, when a loader/middleware redirected |
 | `data` | loader results, keyed for hydration |
 | `bootstrapScript` | inline `<script>` exposing `data` to the client |
@@ -58,7 +58,7 @@ ${result.bootstrapScript}
 }).listen(3000)
 ```
 
-Node serves requests concurrently, so if your route tree renders any `navLink`, pass `router: app.router` to it explicitly here — see the [`navLink` router prop warning](/docs/app/navigation#navlink) for why.
+Concurrent `renderToString` / `renderToStream` calls each build their tree with that request's router on the render stack, so factory-created [`navLink`](/docs/app/navigation#navlink)s (no `router` prop) bind correctly. Pass `router` only when the link is created outside a render.
 
 ## Hydration
 

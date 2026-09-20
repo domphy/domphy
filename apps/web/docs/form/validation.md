@@ -157,19 +157,7 @@ For multiple errors (e.g. cross-field schema errors):
 
 ## Error metadata
 
-`field.meta(l)` returns the full `FieldMeta`:
-
-```ts
-interface FieldMeta {
-  isTouched: boolean
-  isDirty: boolean
-  isPristine: boolean
-  isBlurred: boolean
-  errors: unknown[]
-  errorMap: Partial<Record<"onChange"|"onBlur"|"onSubmit"|"onMount"|"onServer"|"onDynamic", unknown>>
-  isValidating: boolean
-}
-```
+`field.meta(l)` returns `AnyFieldMeta` from `@domphy/form` (there is no `FieldMeta` export). Shape: [Field meta type](./typescript#field-meta-type).
 
 Show a spinner on async validation:
 

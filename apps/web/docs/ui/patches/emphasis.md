@@ -6,7 +6,13 @@ import Emphasis from "../../demos/patches/Emphasis.ts?raw"
 
 # Emphasis
 
-Use the emphasis patch to customize this element.
+Italic emphasized inline text. Apply to an `<em>` element.
+
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Tone for the text. |
 
 <CodeEditor :code="Emphasis" />
 

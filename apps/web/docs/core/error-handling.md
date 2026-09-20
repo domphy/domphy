@@ -153,7 +153,7 @@ import { errorBoundary } from "@domphy/ui"
 const queryClient = new QueryClient()
 
 const query = createQuery(queryClient, {
-  queryKey: () => ["post", id],
+  queryKey: ["post", id],
   queryFn: () => fetchPost(id),
   throwOnError: true,   // error propagates to errorBoundary
 })

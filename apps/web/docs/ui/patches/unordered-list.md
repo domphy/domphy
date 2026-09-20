@@ -6,7 +6,13 @@ import UnorderedList from "../../demos/patches/UnorderedList.ts?raw"
 
 # Unordered List
 
-Use the unordered-list patch to customize this element.
+Styles a bulleted list (disc markers, reset margins, themed text) on the host `<ul>` element.
+
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Tone for the list text. |
 
 <CodeEditor :code="UnorderedList" />
 

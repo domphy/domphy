@@ -8,6 +8,8 @@ import BreadcrumbEllipsis from "../../demos/patches/BreadcrumbEllipsis.ts?raw"
 
 Use `breadcrumbEllipsis` on a `<button>` element to represent collapsed items in a breadcrumb trail. It renders an accessible trigger (aria-label "More breadcrumb items") with hover and focus-visible states. Typically placed inside a `breadcrumb` nav alongside `link` items.
 
+## Props
+
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Color tone for the trigger text and hover/focus states. |

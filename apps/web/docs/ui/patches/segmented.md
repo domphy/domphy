@@ -8,6 +8,8 @@ import Segmented from "../../demos/patches/Segmented.ts?raw"
 
 All-in-one single-select segmented control. Apply `segmented({ items })` to a wrapper element — it sets `role="radiogroup"` on the wrapper and generates `role="radio"` `<button>` options from the `items` array. The container has an inline pill style with a muted background.
 
+## Props
+
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `items` | `SegmentedItem[]` | `[]` | Item definitions `{ label, key? }`. `label` is a plain string (auto-wrapped) or any `DomphyElement`; `key` defaults to the item's zero-based index as a string. |

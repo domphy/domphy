@@ -34,7 +34,7 @@ Apply styles in this order of preference:
 
 Use an existing patch first. If no patch fits, use `themeSpacing()`, `themeSize()`, and `themeColor()`. Only fall back to raw fixed values when the system cannot express the value.
 
-Overlay elements should use a dark edge anchor tone (`shift-14` through `shift-17`).
+Dropdowns and popovers (`popover`, `menu`, `selectBox`, `combobox`, `datePicker`) use a page-matching edge anchor (`shift-0`), same as `dialog`. Inverted overlays (`tooltip`, `toast`) use `shift-17`.
 
 ## Not To Do
 
@@ -79,9 +79,7 @@ Some patterns should stay outside `@domphy/ui`.
 
 | Pattern | Why no patch | Alternative |
 | --- | --- | --- |
-| Accordion | Native `<details>` / `<summary>` already provide the behavior. | [`details` patch](/docs/ui/patches/details) |
-| Progress Circle | Needs fixed pixel geometry that does not fit the typography-based dimension rules. | SVG directly |
-| Drag and Drop | Hit-testing, ghost elements, and sorting logic are beyond patch scope. | [SortableJS integration](/docs/integrations/sortablejs) |
+| Drag and Drop | Hit-testing, ghost elements, and sorting logic are beyond patch scope. | [`@domphy/dnd`](/docs/dnd/) or [SortableJS](/docs/integrations/sortablejs) |
 | Form Validation | Validation belongs to the data layer, not the UI patch layer. | [Zod integration](/docs/integrations/zod) |
 | Data Fetching / Async State | Loading and caching belong to data tools. | [`@domphy/query`](/docs/query/) |
 | Routing | Routing is application-level, not element-level. | [page.js integration](/docs/integrations/pagejs) |

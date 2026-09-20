@@ -28,11 +28,9 @@ Props:
 | `replace` | `false` | replace the history entry |
 | `scroll` | `true` | scroll to top (or `#hash`) after navigating |
 | `exact` | `false` | active only on exact pathname match |
-| `router` | app router | explicit router instance |
+| `router` | app router | explicit router instance — optional for factory-created links |
 
-::: warning Pass `router` explicitly during concurrent SSR
-When no `router` prop is given, `navLink` resolves the app router lazily from a single module-level "default router" set by the most recently constructed `AppRouter`. A Node server that serves multiple requests concurrently (each calling `createApp(routes)` + `renderToString`/`renderToStream` per request, as in [Server Rendering](/docs/app/ssr)) can have that default router reassigned mid-render by another in-flight request, causing `navLink`'s active-state resolution to throw or read the wrong request's state. Always pass `router: app.router` explicitly to `navLink` on the server (or anywhere `renderToString`/`renderToStream` may run concurrently) to avoid this race; on the client there is only ever one app instance, so the default lookup is safe.
-:::
+`navLink` captures the router at patch-creation time. Page/layout factories run inside a per-request `renderStack`, so a link created in a `page` / `layout` factory binds to the router that is rendering it — concurrent `renderToString` / `renderToStream` do **not** require `router:` on every link. Pass `router` when the patch is created **outside** a render (module scope, a helper that runs before `createApp()`, a test harness). The prop is always allowed; it is not required for factory-created links.
 
 ## The Router
 

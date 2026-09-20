@@ -48,37 +48,12 @@ Before writing `button(...)` or `card(...)`, the agent should look up the patch'
 }
 ```
 
-The returned object includes:
-
-```json
-{
-  "name": "button",
-  "hostTag": "button",
-  "signature": "button(props?: { color?: ThemeColor })",
-  "props": [
-    { "name": "color", "type": "ThemeColor", "optional": true, "doc": "Theme color family." }
-  ],
-  "doc": "A themed button.",
-  "example": "{ button: \"Click me\", $: button() }",
-  "source": "packages/ui/src/patches/button.ts"
-}
-```
-
-Without this step, an agent that has not seen a recent Domphy snapshot will invent a plausible but wrong signature — wrong prop names, wrong host tag, or calling a patch that does not exist.
+The response is host tag, signature, props, example, jsdoc, and source — [Tools Reference](./tools.md#domphy_get_patch). Without this step, an agent that has not seen a recent Domphy snapshot will invent a plausible but wrong signature.
 
 To discover what patches are available, call `domphy_list_patches` first:
 
 ```json
 { "name": "domphy_list_patches", "arguments": {} }
-```
-
-Output lists every patch with its host tag and signature:
-
-```
-button <button> — button(props?: { color?: ThemeColor })
-card <article> — card(props?: { color?: ThemeColor })
-inputText <input> — inputText(props?: { … })
-…
 ```
 
 ### Step 3 — Check tones before calling themeColor()
@@ -106,27 +81,11 @@ After generating a tree, run it through `domphy_validate` before returning it:
 }
 ```
 
-Check `ok` in the response. If `ok` is `false`, there are `error`-severity issues that must be fixed:
-
-```json
-{
-  "ok": false,
-  "issues": [
-    {
-      "rule": "void-content",
-      "severity": "error",
-      "path": "div > input",
-      "message": "Void tag \"input\" must have null content (got string).",
-      "hint": "Write { input: null, … } and put attributes as sibling keys."
-    }
-  ],
-  "summary": { "error": 1, "warning": 0, "info": 0, "total": 1 }
-}
-```
+Check `ok` in the response. If `ok` is `false`, there are `error`-severity issues that must be fixed (warnings and info do not flip `ok`). Schema: [Tools Reference](./tools.md#domphy_validate).
 
 ### Step 5 — Fix and address remaining issues
 
-Call `domphy_fix` on the same tree. It applies every lossless fix (currently `void-content`) and returns what remains:
+Call `domphy_fix` on the same tree. It applies every lossless fix (currently `void-content`) and returns `{ tree, applied, report }` — [Tools Reference](./tools.md#domphy_fix).
 
 ```json
 {
@@ -134,22 +93,6 @@ Call `domphy_fix` on the same tree. It applies every lossless fix (currently `vo
   "arguments": {
     "element": "{\"div\": {\"input\": \"search here\"}}"
   }
-}
-```
-
-Response:
-
-```json
-{
-  "tree": { "div": { "input": null } },
-  "applied": [
-    {
-      "rule": "void-content",
-      "path": "div > input",
-      "message": "Void tag <input> cannot have content — cleared to null."
-    }
-  ],
-  "report": { "ok": true, "issues": [], "summary": { "error": 0, "warning": 0, "info": 0, "total": 0 } }
 }
 ```
 

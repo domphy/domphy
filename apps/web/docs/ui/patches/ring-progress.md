@@ -16,7 +16,7 @@ A circular progress indicator rendered via CSS `conic-gradient` masked into a do
 | `color` | `ValueOrState<ThemeColor>` | `"primary"` | Theme color for the filled arc. |
 | `trackColor` | `ValueOrState<ThemeColor>` | `"neutral"` | Theme color for the background track. |
 | `size` | `number` | `16` | Diameter in `themeSpacing` units (e.g. `16` → `4em`). |
-| `thickness` | `number` | `0.25` | Ring stroke as a fraction of the radius. 0 = no ring, 0.5 = solid disc. |
+| `thickness` | `number` | `0.25` | Ring stroke as a fraction of the radius (0–0.5). |
 
 ## Example
 

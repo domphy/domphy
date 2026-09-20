@@ -40,11 +40,11 @@ interface BuildOptions {
 
 ### `defineConfig(config)`
 
-Type-helper passthrough. Returns its argument typed as `SiteConfig`. Use this in `press.config.ts` for TypeScript inference:
+Builds a new `SiteConfig` with defaults — not a passthrough. Contract: [Configuration](/docs/press/config).
 
 ```ts
 import { defineConfig } from "@domphy/press"
-export default defineConfig({ /* inferred as SiteConfig */ })
+export default defineConfig({ /* UserConfig → SiteConfig */ })
 ```
 
 ## Rendering

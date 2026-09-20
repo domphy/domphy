@@ -19,7 +19,9 @@ function name(props?: SomeProps): DomphyElement
 
 ## Finding a block's own props
 
-Each block's props type is exported alongside it (e.g. `HoverBorderGradientProps` next to `hoverBorderGradient`). The fastest way to see a block's full prop contract and inline documentation is to open its source file directly — every block lives under `packages/blocks/src/<source>/<category>/<name>.ts` in the repo, and the path is recorded in [`SOURCES.md`](https://github.com/domphy/domphy/blob/main/packages/blocks/SOURCES.md) / `registry.json`.
+Each generated page under `/docs/blocks/<exportName>` has a Props table for that factory. The `@domphy/blocks` barrel (`packages/blocks/src/index.ts`) re-exports factory functions only — per-block props types are not barrel exports.
+
+Source lives under `packages/blocks/src/<source>/<category>/<name>.ts`; paths are in [`SOURCES.md`](https://github.com/domphy/domphy/blob/main/packages/blocks/SOURCES.md) / `registry.json`.
 
 ## Composing blocks
 

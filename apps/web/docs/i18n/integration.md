@@ -69,15 +69,18 @@ Use `detectLocale` with `pathSegment: true` to read the locale from `/vi/...` UR
 
 ```ts
 import { i18n } from "./i18n"
-import { createRouter } from "@domphy/router"
+import { createRootRoute, createRouter } from "@domphy/router"
 
-const router = createRouter({
-  beforeLoad: async ({ pathname }) => {
-    // Detect locale from /vi/... prefix
+// `beforeLoad` is RouteOptions only (createRootRoute / createRoute) — not RouterOptions.
+const rootRoute = createRootRoute({
+  beforeLoad: async () => {
+    // detectLocale({ pathSegment: true }) reads the first URL segment (e.g. /vi/...).
     const detected = i18n.detectLocale({ pathSegment: true, storageKey: "locale" })
     await i18n.initI18n(detected)
   },
 })
+
+const router = createRouter({ routeTree: rootRoute })
 ```
 
 ## Using translations in elements

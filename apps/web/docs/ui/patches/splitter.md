@@ -6,12 +6,19 @@ import Splitter from "../../demos/patches/Splitter.ts?raw"
 
 # Splitter
 
-Use `splitter` on a container `div` to create a resizable split layout. It works with two companion patches:
+Resizable split layout. Apply `splitter` on the container, `splitterPanel` on each panel, `splitterHandle` on the divider.
 
-- `splitterPanel` — applied to each panel `div`; reads the splitter context and binds its width (horizontal) or height (vertical) reactively. Meant for exactly two panels either side of one `splitterHandle`: the first one mounted takes the size percentage, the second takes the complement, so the pair always sums to 100% instead of both tracking the same number.
-- `splitterHandle` — applied to the divider `div` between panels; handles mouse drag and keyboard (Arrow, Home, End) resize, and sets `role="separator"` with `aria-valuenow/min/max`.
+- `splitterPanel` — binds width (horizontal) or height (vertical) from splitter context. Two panels either side of one handle: the first takes the size percentage, the second takes the complement (always 100%).
+- `splitterHandle` — mouse drag and keyboard (Arrow, Home, End) resize; `role="separator"` with `aria-valuenow/min/max`. No props.
 
-The `direction` prop sets split orientation (`"horizontal"` | `"vertical"`, default `"horizontal"`). The `defaultSize` prop sets the initial first-panel size as a percentage (default `50`). `min` and `max` clamp the draggable range (defaults `10`/`90`).
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `direction` | `"horizontal" \| "vertical"` | `"horizontal"` | Split orientation. |
+| `defaultSize` | `number` | `50` | Initial first-panel size (percentage). |
+| `min` | `number` | `10` | Minimum panel size (percentage). |
+| `max` | `number` | `90` | Maximum panel size (percentage). |
 
 <CodeEditor :code="Splitter" />
 

@@ -132,22 +132,20 @@ import {
 
 // Linear: maps numeric domain to pixel range
 const scale = createLinearScale([0, 100], [0, 400])
-scale(50)   // → 200
-scale(0)    // → 0
-scale(100)  // → 400
+scale.map(50)   // → 200
+scale.invert(200)  // → 50
 
 // Ordinal: maps category labels to pixel range (center of each band)
 const ordinal = createOrdinalScale(["A", "B", "C"], [0, 300])
-ordinal("B")  // → 150
+ordinal.map("B")  // → 150
 
 // Time: like linear but domain values are timestamps
 const time = createTimeScale([Date.UTC(2024, 0, 1), Date.UTC(2024, 11, 31)], [0, 600])
-time(Date.UTC(2024, 5, 15))  // → ~300 (mid-year ≈ half of range)
+time.map(Date.UTC(2024, 5, 15))
 
 // Log: logarithmic scale, domain must not cross zero
 const log = createLogScale([1, 1000], [0, 300])
-log(10)   // → 100  (log₁₀(10)/log₁₀(1000) × 300)
-log(100)  // → 200
+log.map(10)   // → 100  (log₁₀(10)/log₁₀(1000) × 300)
 ```
 
-All four scale types are lower-level utilities used internally by the chart engine, exposed for custom rendering or annotation overlays. Each returns a function `(value) => number`.
+All four return a scale object (`map` / `invert` / `ticks` / `bandwidth` / `format`) — not a callable `(value) => number`. Used internally by the engine; public for custom overlays.

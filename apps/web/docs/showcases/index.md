@@ -14,7 +14,7 @@ This documentation site is itself the primary showcase — a full SSG docs engin
 | **SSR + streaming** | `@domphy/app` |
 | **Code editor islands** | `@domphy/core` + CodeMirror |
 | **Live demos** | `@domphy/core` client-side hydration |
-| **Search** | `@domphy/core` + custom inverted index |
+| **Search** | `@domphy/press` (`buildSearchIndex` / `mountSearch`) |
 | **UI** | `@domphy/ui`, `@domphy/theme` |
 | **Link** | [domphy.com](https://domphy.com) |
 

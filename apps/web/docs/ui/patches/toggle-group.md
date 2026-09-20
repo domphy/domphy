@@ -6,7 +6,9 @@ import ToggleGroup from "../../demos/patches/ToggleGroup.ts?raw"
 
 # Toggle Group
 
-All-in-one toggle group — a single- or multi-select button group. Apply `toggleGroup({ items })` to a wrapper element — it sets `role="group"` on the wrapper and generates `<button>` toggles with `aria-pressed` from the `items` array. In single-select mode, clicking the selected item again deselects it; set `multiple: true` to allow several items at once.
+Single- or multi-select button group. Apply `toggleGroup({ items })` to a wrapper — `role="group"` plus generated `<button>` toggles with `aria-pressed`. In single-select mode, clicking the selected item deselects it; `multiple: true` allows several.
+
+## Props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|

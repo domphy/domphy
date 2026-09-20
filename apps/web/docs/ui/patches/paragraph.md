@@ -6,7 +6,7 @@ import Paragraph from "../../demos/patches/Paragraph.ts?raw"
 
 # Paragraph
 
-Use the paragraph patch to customize this element.
+Themed paragraph primitive: comfortable line-height, reset margins and themed text color. Apply to a `<p>` element.
 
 ## Props
 

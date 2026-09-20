@@ -6,7 +6,13 @@ import Divider from "../../demos/patches/Divider.ts?raw"
 
 # Divider
 
-Use `divider` on a `div` element. It renders a horizontal separator (`role="separator"`) with a labelled line on each side of the element's text content — suitable for "or" dividers. The `color` prop controls the text and rule color tone.
+Horizontal labelled separator (`role="separator"`) — a line on each side of the host's text, e.g. an "or" divider.
+
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Tone for the label text and rules. |
 
 <CodeEditor :code="Divider" />
 

@@ -14,7 +14,8 @@ npm install @domphy/query @domphy/core
 `@domphy/core` is a **peer dependency** of the adapter — it is the only part of `@domphy/query` that touches Domphy, so the main `@domphy/query` entry stays dependency-free. Import the adapter from the `/domphy` subpath:
 
 ```ts
-import { createQuery, createInfiniteQuery, createMutation } from "@domphy/query/domphy"
+import { createQuery, createInfiniteQuery, createMutation, bindResult } from "@domphy/query/domphy"
+import type { ReactiveResult } from "@domphy/query/domphy"
 ```
 
 ## createQuery
@@ -143,6 +144,34 @@ const Feed: DomphyElement<"div"> = {
 ```
 
 InfiniteQueryHandle accessors: `data`, `error`, `status`, `fetchStatus`, `isPending` / `isLoading`, `isFetching` / `isRefetching`, `isSuccess` / `isError`, `isStale`, `isPlaceholderData`, `hasNextPage`, `hasPreviousPage`, `isFetchingNextPage`, `isFetchingPreviousPage`. Methods: `fetchNextPage`, `fetchPreviousPage`, `refetch`, `destroy`. There is no `setOptions` on the infinite variant.
+
+## bindResult
+
+`createQuery` / `createMutation` / `createInfiniteQuery` are built on `bindResult`. Use it when you already have a subscribe/result pair (a raw observer, or something that is not one of the three handles) and want per-field `RecordState` reactivity.
+
+```ts
+import { QueryClient, QueryObserver } from "@domphy/query"
+import { bindResult } from "@domphy/query/domphy"
+import type { ReactiveResult } from "@domphy/query/domphy"
+import type { QueryObserverResult } from "@domphy/query"
+
+const queryClient = new QueryClient()
+const observer = new QueryObserver<User[]>(queryClient, {
+    queryKey: ["users"],
+    queryFn: () => fetch("/api/users").then((r) => r.json()),
+})
+
+const result: ReactiveResult<QueryObserverResult<User[]>> = bindResult(
+    observer.getCurrentResult(),
+    (callback) => observer.subscribe(callback),
+)
+
+const data = (l) => result.field("data", l)
+const isPending = (l) => result.field("isPending", l)
+// result.release() from _onRemove
+```
+
+`ReactiveResult<TResult>` is `{ state, field(key, listener?), release() }`. `createQuery` is the usual choice; `bindResult` is the primitive underneath.
 
 ## When to use the bridge directly
 

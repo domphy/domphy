@@ -132,8 +132,15 @@ const page = toState(0)
 const allRows = toState<Row[]>([])
 
 const query = createQuery(queryClient, {
-  queryKey: () => ["rows", page.get()],
+  queryKey: ["rows", page.get()],
   queryFn: () => fetchRows(page.get()),
+})
+
+page.addListener(() => {
+  query.setOptions({
+    queryKey: ["rows", page.get()],
+    queryFn: () => fetchRows(page.get()),
+  })
 })
 
 // Append new page results as they arrive

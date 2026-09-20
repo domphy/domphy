@@ -135,7 +135,7 @@ import { sidebar07, login01, dashboard01, chartBarStacked } from "@domphy/blocks
 
 | Export | Status | Reference |
 |---|---|---|
-| `dashboard01` | complete | [source](https://ui.shadcn.com/blocks#dashboard-01) |
+| `dashboard01` | ported | [source](https://ui.shadcn.com/blocks#dashboard-01) |
 
 ### sidebar
 

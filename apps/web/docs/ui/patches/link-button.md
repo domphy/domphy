@@ -18,6 +18,8 @@ Identical styling to `button()`, but the host element must be `<a>`. A console w
 | `variant` | `"solid" \| "outline" \| "ghost"` | `"outline"` | Same visual system as `button()` — filled CTA, outlined control, or transparent ghost. |
 | `size` | `"small" \| "medium" \| "large"` | `"medium"` | Density-aware padding + type size, matching `button()`. |
 
+<CodeEditor :code="LinkButton" />
+
 ## Usage
 
 ```ts

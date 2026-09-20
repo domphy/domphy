@@ -77,51 +77,46 @@ Without `batch`, each `set` triggers a separate notification cycle. For 3+ state
 
 ## Lazy / deferred rendering
 
-For heavy sections that are off-screen or behind a tab, defer their initial render:
+There is no `_if` key. Reserved keys are `_key`, `_portal`, `_context`, `_metadata`, `_behaviors`, `_doctorDisable`, `$`, and `_on*`. Conditional mount is `hidden` (keeps the node) or reactive children (return `null` until you want a tree).
 
 ```ts
 import { toState } from "@domphy/core"
 
 const activeTab = toState<"overview" | "analytics" | "settings">("overview")
-const tabMounted = toState({ overview: true, analytics: false, settings: false })
-
-// Only mount a tab's content once it has been viewed
-activeTab.addListener((tab) => {
-  tabMounted.set({ ...tabMounted.get(), [tab]: true })
-})
 
 const Tabs = {
   div: [
-    // Tab buttons
     { div: TabBar },
-    // Tab panels — use 'hidden' rather than conditional render to preserve state
+    // Always mounted; `hidden` preserves state when the tab is inactive
     {
       div: AnalyticsPanel,
       hidden: (l) => activeTab.get(l) !== "analytics",
-      // Only mount once tabMounted.analytics is true
-      _if: (l) => tabMounted.get(l).analytics,
+    },
+    // Deferred mount: no subtree until first selected (returning null again unmounts)
+    {
+      div: (l) => activeTab.get(l) === "settings" ? SettingsPanel : null,
     },
   ],
 }
 ```
 
-## Avoiding object allocation in render functions
+## Reactive `style` is per-property
 
-Creating new objects inside a render function can cause downstream listeners to re-render unnecessarily (referential inequality). For static config, define it outside the function:
+`style` is a `StyleObject`. A function as the whole `style` value applies no CSS. Put reactivity on individual properties (or use a patch). Do not inline typography (`fontWeight`, `color`, …) — those belong on typography patches.
 
 ```ts
-// BAD — new style object on every render
-const Label = {
-  span: (l) => text.get(l),
-  style: (l) => ({ color: "blue", fontWeight: "bold" }),  // new object each time
+// Not supported — whole-object function, no CSS applied
+{
+  div: "Hello",
+  style: (l) => ({ display: hidden.get(l) ? "none" : "block" }),
 }
 
-// GOOD — static object defined once
-const LABEL_STYLE = { color: "blue", fontWeight: "bold" }
-
-const Label = {
-  span: (l) => text.get(l),
-  style: LABEL_STYLE,
+// Per-property functions
+{
+  div: "Hello",
+  style: {
+    display: (l) => hidden.get(l) ? "none" : "block",
+  },
 }
 ```
 

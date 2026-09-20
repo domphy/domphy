@@ -103,58 +103,12 @@ The path is resolved relative to the process working directory (the repo root wh
 
 If `DOMPHY_APP_MANIFEST` is not set, the server defaults to `./app-manifest.json` in the working directory.
 
-## domphy_list_app_blocks
+## Tools
 
-Lists every block and patch in the manifest with its kind, signature, and file.
+`domphy_list_app_blocks` and `domphy_get_app_block` read that manifest. Input/output schemas: [Tools Reference](./tools.md#domphy_list_app_blocks).
 
-**Input:** none
-
-**Output:**
-
-```
-Hero [block] — Hero: DomphyElement<"section">  (src/blocks/hero.ts)
-Card [patch] — Card(props: { title: string; body: string }): DomphyElement<"article">  (src/blocks/card.ts)
-```
-
-If the manifest file is absent:
-
-```
-No app-manifest found at "./app-manifest.json". Generate it with
-`node apps/web/scripts/app-manifest.mjs <srcDir> <outFile>` and point
-DOMPHY_APP_MANIFEST at the output (default ./app-manifest.json).
-```
-
-## domphy_get_app_block
-
-Returns one block's full source file alongside its signature and jsdoc.
-
-**Input:**
-
-| Field | Type | Description |
-|---|---|---|
-| `name` | `string` | Block name, e.g. `"Card"` |
-
-**Output:**
-
-```json
-{
-  "name": "Card",
-  "kind": "patch",
-  "file": "src/blocks/card.ts",
-  "signature": "Card(props: { title: string; body: string }): DomphyElement<\"article\">",
-  "jsdoc": "A card with a title and body.",
-  "exportKind": "named",
-  "source": "import type { DomphyElement } from \"@domphy/core\"\n\n/** A card with a title and body. */\nexport const Card = ..."
-}
-```
-
-If the name is not found, the tool suggests near matches:
-
-```
-No app block named "Crd". Did you mean: Card?
-```
-
-The `source` field contains the full content of the file the block is declared in. If the file cannot be read (e.g. a path that moved since the manifest was generated), `source` contains an error note but all other fields are still present.
+- **List** — one line per block: `Hero [block] — Hero: DomphyElement<"section">  (src/blocks/hero.ts)`. Missing file: the tool tells you to generate the manifest and point `DOMPHY_APP_MANIFEST` at it.
+- **Get** — one block's source, signature, and jsdoc by `name`. Unknown name suggests near matches (`No app block named "Crd". Did you mean: Card?`). `source` is the full file the block is declared in; if that path cannot be read, `source` is an error note and the other fields still return.
 
 ## Keeping the manifest fresh
 

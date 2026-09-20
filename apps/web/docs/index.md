@@ -14,7 +14,7 @@ Framework-agnostic, no JSX, no virtual DOM, no build step required — and the m
 - `@domphy/theme` — context-aware color/size/spacing tokens
 - `@domphy/ui` — 98 patches for native HTML (≈ MUI)
 
-**Data & logic** — framework-agnostic API + a Domphy adapter at the `/domphy` subpath:
+**Data & logic** — `@domphy/query`, `@domphy/table`, `@domphy/virtual`, and `@domphy/form` expose a framework-agnostic API plus a Domphy adapter at the `/domphy` subpath. `@domphy/router` is the exception: `createRouter`/`createRoute` ship from the **main** entry (no `/domphy` subpath).
 
 - `@domphy/query` — async state (fetching, caching, mutations, infinite queries)
 - `@domphy/table` — headless tables (sorting, filtering, pagination, grouping)

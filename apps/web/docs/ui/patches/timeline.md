@@ -10,16 +10,16 @@ Two composable patches for vertical event timelines. Apply `timeline` to the `<o
 
 ## timeline
 
-No props. Resets list styles and arranges children in a column.
+No props. Resets list styles and arranges children in a column. Apply to `<ol>` or `<ul>`.
 
-## timelineItem
+## timelineItem props
 
-| Prop | Type | Default |
-|------|------|---------|
-| `active` | `ValueOrState<boolean>` | `false` |
-| `last` | `boolean` | `false` |
-| `color` | `ThemeColor` | `"neutral"` |
-| `accentColor` | `ThemeColor` | `"primary"` |
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `active` | `ValueOrState<boolean>` | `false` | Full-opacity dot (accent color). |
+| `last` | `boolean` | `false` | Suppress the vertical connector below this item. |
+| `color` | `ThemeColor` | `"neutral"` | Dot/connector color tone. |
+| `accentColor` | `ThemeColor` | `"primary"` | Active dot color tone. |
 
 <CodeEditor :code="Timeline" />
 

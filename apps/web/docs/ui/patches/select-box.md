@@ -6,7 +6,7 @@ import SelectBox from "../../demos/patches/SelectBox.ts?raw"
 
 # Select Box
 
-Use `selectBox` on a `div` element. It displays selected values as tags and opens a dropdown on click. The dropdown `content` is built with `selectList` and `selectItem` — state flows automatically through context with no prop drilling.
+Use `selectBox` on a `div` element. It displays selected values as tags and opens a dropdown on click. The dropdown `content` is supplied by the caller — typically `selectList` + `selectItem`, which own the `select` context (not `selectBox`). Bind the same `value` to both `selectBox` (tag labels via `options`) and `selectList` (selection).
 
 Unlike `combobox`, `selectBox` has no input field — it is suited for fixed option lists without search.
 

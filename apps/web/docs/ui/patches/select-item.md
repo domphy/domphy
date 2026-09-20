@@ -8,6 +8,8 @@ import SelectList from "../../demos/patches/SelectList.ts?raw"
 
 Use `selectItem` on a `<div>` placed inside a `selectList`. It reads the `select` context to set `aria-selected` and handle click-to-toggle. In single mode the item becomes selected; in multiple mode it toggles its value in the array.
 
+## Props
+
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `value` | `string \| number` | `null` | The option value compared against and written to the select state. |

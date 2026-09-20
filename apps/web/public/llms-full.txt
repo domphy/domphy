@@ -50,6 +50,7 @@ const App = {
 - **CSP nonce:** if the app has a Content-Security-Policy requiring nonces on inline styles, call `configure({ cspNonce: "..." })` from `@domphy/core` before mounting. This stamps the nonce on every Domphy-injected `<style>` element, and on the inline `<style>`/`<script>` tags emitted by `@domphy/app` SSR/streaming.
 - **Error boundaries:** use the `errorBoundary()` patch (`@domphy/ui`) to catch errors thrown in reactive children. It invokes `_onError` on the nearest ancestor; call `reset()` to swap in a fallback element.
 - **Lifecycle hooks** (`_onSchedule`, `_onInit`, `_onInsert`, `_onMount`, `_onBeforeUpdate`, `_onUpdate`, `_onBeforeRemove(node, done)` — must call `done()`, `_onRemove`, `_onError(node, error, reset)` — error boundary; call `reset()` to clear children and render fallback) for imperative/3rd-party integration; events stay flat (`onClick`, `onInput`).
+- **Embedded hosts run old engines.** Domphy ships inside SketchUp / Revit style web views that lag years behind evergreen browsers (SketchUp 2022 = Chrome 88). In `core`, `theme`, `ui` and `floating` do not call JS APIs newer than Chrome 88 — `Object.hasOwn` (use the internal `hasOwn()` from `core/src/helpers.ts`), `Array.prototype.at`, `structuredClone`, `findLast`, `toSorted`, `crypto.randomUUID`. tsup/esbuild `target` only lowers syntax, never APIs. `packages/core/tests/legacy-engine.test.ts` enforces the `Object.hasOwn` part.
 - **Comments in code: English only.** Names: descriptive, no abbreviations (`index` not `i` except loops; `listener` `l`, event `e`, node `node`).
 - **Self-check:** run `@domphy/doctor` `diagnose(element)` (or `validate(element)`) on what you produce and fix every reported issue before finishing. Rules: `inline-typography` (fontSize/lineHeight/fontWeight/letterSpacing/fontFamily/textDecoration literals — use patches), `raw-theme-value` (literal hex/rgb colors AND CSS named colors like "red"/"white" on direct color props — hint gives nearest `themeColor()` via CIELAB/LCH perceptual match), `raw-spacing-value` (literal rem/em/px/logical spacing props — use `themeSpacing(n)`), `low-opacity` (style.opacity < 0.6 on interactive elements — too dim to be discoverable), `tone-background-inherit` (backgroundColor must use themeColor(l, "inherit") — shift the surface via dataTone instead), `missing-color` (element uses themeColor but no style.color — text won't follow tone context shifts; null-content decorative hosts like swatches/glyphs exempt), `low-contrast` (text/bg shift gap < 9 — insufficient contrast), `dataTone-surface-contract` (dataTone set but missing backgroundColor and/or color), `color-shift-minimum` (style.color resolves to tone step < 9 on a dataTone surface), `unknown-tone` (invalid dataTone — valid: inherit/base/shift-N/increase-N/decrease-N, N ≤ 17, or aliases surface/hover/border/border-strong/muted/text; bare-numeric strings like `"3"` are invalid), `middle-surface-anchor` (dataTone shift-4–13 mid-ramp — use edge anchors 0–3 or 14–17), `unknown-density` (dataDensity invalid or N > 4), `unknown-size` (dataSize invalid or N > 7), `invalid-nesting` (HTML content-model violations the browser re-parents, breaking SSR/hydration: flow content in `<p>`, a/button inside a/button, `li`/`dt`/`dd`/`tr`/`td`/`th`/`option`/`thead`/`tbody`/`tfoot`/`caption`/`colgroup` with the wrong parent, non-`li` element child of `ul`/`ol` — declared direct parent-child only; reactive content and SVG subtrees exempt), `click-without-keyboard` (`onClick` on a non-interactive element — not a/button/input/select/textarea/summary/label, no interactive role, no tabIndex — without a keyboard handler; hidden elements exempt), `missing-required-attribute` (`img` without `alt` — aria-label/labelledby or role presentation/none OK — and `iframe` without `title` are errors; `a` with `onClick` but no `href`/`role` is a warning), `void-content`, `missing-key`, `duplicate-key`, `unstable-key`, `unknown-tag`, `unused-doctor-disable` (info — a `_doctorDisable` entry that suppresses nothing on its element: the named rule fired no diagnostic there, or the id matches no known rule — catches typo'd suppressions like "low-contrst"). `fix(element)` auto-applies the lossless ones. `DiagnoseOptions`: `only` (whitelist rule ids), `exclude` (blacklist rule ids), `rules` (custom rule array). Inline suppression: `_doctorDisable: true | "rule-id" | string[]` on an element silences its diagnostics.
 
@@ -587,7 +588,7 @@ Framework-agnostic, no JSX, no virtual DOM, no build step required — and the m
 - `@domphy/theme` — context-aware color/size/spacing tokens
 - `@domphy/ui` — 98 patches for native HTML (≈ MUI)
 
-**Data & logic** — framework-agnostic API + a Domphy adapter at the `/domphy` subpath:
+**Data & logic** — `@domphy/query`, `@domphy/table`, `@domphy/virtual`, and `@domphy/form` expose a framework-agnostic API plus a Domphy adapter at the `/domphy` subpath. `@domphy/router` is the exception: `createRouter`/`createRoute` ship from the **main** entry (no `/domphy` subpath).
 
 - `@domphy/query` — async state (fetching, caching, mutations, infinite queries)
 - `@domphy/table` — headless tables (sorting, filtering, pagination, grouping)
@@ -1075,12 +1076,16 @@ node.render(document.getElementById("app")!)
 
 Hydrates onto an existing DOM element. Used for SSR.
 
+`generateHTML()` emits **this node's own root tag**, so `mount()` must receive that element — not a wrapper. Parse the HTML into a host, then mount onto `host.firstElementChild`. In DEV, `mount()` warns when the target tag does not match `this.tagName`.
+
 ```ts
 const html = node.generateHTML()
 const css = node.generateCSS()
 // ... send to client ...
+const host = document.getElementById("app")!
+host.innerHTML = html
 const domStyle = document.getElementById("domphy-style") as HTMLStyleElement
-node.mount(document.getElementById("app")!, domStyle)
+node.mount(host.firstElementChild as HTMLElement, domStyle)
 ```
 
 When doing SSR, render CSS into `<style id="domphy-style">...</style>` on the server, then pass that same style element to `mount()` on the client.
@@ -1757,17 +1762,17 @@ Useful in tests or scheduling code to check whether any state change is still pe
 
 ## `flushPendingNotifiers()`
 
-Flushes all currently queued notifiers synchronously, without draining the full effect/computed reaction queue (unlike `flushSync`). Each pending notifier runs its downstream callbacks once.
+Flushes all currently queued notifiers synchronously, **including notifiers scheduled while draining** (a listener that writes another state re-schedules its own notifier). Unlike `flushSync`, this does **not** drain the effect/computed reaction queue.
 
 ```ts
 import { flushPendingNotifiers } from "@domphy/core"
 
 a.set(1)
 flushPendingNotifiers()
-// notifiers for `a` have fired; any newly queued notifiers are not flushed
+// notifiers for `a` have fired, including any notifiers those callbacks queued
 ```
 
-Prefer `flushSync()` when you need a fully settled reactive graph. Use `flushPendingNotifiers()` when you only need one notification pass (e.g. inside a scheduler that will call it in a loop).
+Prefer `flushSync()` when you need a fully settled reactive graph (notifiers **and** the reaction queue). `flushPendingNotifiers()` only drains the notifier set — it is not a one-pass flush.
 
 ---
 
@@ -2533,7 +2538,7 @@ import { errorBoundary } from "@domphy/ui"
 const queryClient = new QueryClient()
 
 const query = createQuery(queryClient, {
-  queryKey: () => ["post", id],
+  queryKey: ["post", id],
   queryFn: () => fetchPost(id),
   throwOnError: true,   // error propagates to errorBoundary
 })
@@ -2830,7 +2835,7 @@ const LoginForm = {
 
 ### `FormState`/`FieldState` types removed
 
-These were exports from `@domphy/ui`. They no longer exist. Use `FormState<T>` and `FieldMeta` from `@domphy/form` instead.
+These were exports from `@domphy/ui`. They no longer exist. Use `FormState<T>` from `@domphy/form`. `FieldMeta` is not exported from `@domphy/form` — use `AnyFieldMeta` / `FieldLikeMeta` from `@domphy/form`, or `ReturnType<FieldHandle["meta"]>` from `@domphy/form/domphy`.
 
 ### `onlineManager.isOnline()` is now synchronous
 
@@ -2889,13 +2894,18 @@ Typography patches (`small()`, `paragraph()`, `heading()`) now accept a `color` 
 4. Run TypeScript — removed APIs show up as type errors
 5. Run your tests
 
+## Removed
+
+| Feature | Status | Replacement |
+|---------|--------|-------------|
+| `configure({ legacy: true })` | Removed. `DomphyConfig` is only `{ cspNonce?: string }` | Drop `legacy`. Use `configure({ cspNonce })` if you need a CSP nonce |
+| `$: patch` (non-array) | Removed. `mergePartial` applies `$` only when `Array.isArray` — a single patch object is ignored | `$: [patch()]` |
+
 ## Deprecated features (still work, will be removed)
 
 | Feature | Status | Replacement |
 |---------|--------|-------------|
 | `themeVars()` raw CSS vars | Soft deprecated | Use `themeColor(el, tone, color)` |
-| `configure({ legacy: true })` | Deprecated | Remove — legacy mode has been removed |
-| `$: [patch]` single patch (not array) | Still works, no plans to remove | `$: [patch()]` array form preferred |
 
 ### patterns/insert-content.md
 
@@ -3331,17 +3341,30 @@ import { toState, effect } from "@domphy/core"
 const query = toState("")
 const results = toState<SearchResult[]>([])
 
-effect(() => {
-  const text = query.get()
-  if (!text) { results.set([]); return }
+let timer: ReturnType<typeof setTimeout> | undefined
 
-  const timer = setTimeout(async () => {
+const stop = effect(() => {
+  const text = query.get()
+  if (timer !== undefined) {
+    clearTimeout(timer)
+    timer = undefined
+  }
+  if (!text) {
+    results.set([])
+    return
+  }
+  timer = setTimeout(async () => {
     const data = await search(text)
     results.set(data)
   }, 300)
-
-  return () => clearTimeout(timer)   // cleanup cancels previous timer
 })
+
+// `effect(fn)` is `fn: () => void` — a function returned from `fn` is ignored.
+// Cleanup is `stop`, the function returned by `effect()` itself.
+function dispose() {
+  stop()
+  if (timer !== undefined) clearTimeout(timer)
+}
 ```
 
 ### performance.md
@@ -3425,51 +3448,46 @@ Without `batch`, each `set` triggers a separate notification cycle. For 3+ state
 
 ## Lazy / deferred rendering
 
-For heavy sections that are off-screen or behind a tab, defer their initial render:
+There is no `_if` key. Reserved keys are `_key`, `_portal`, `_context`, `_metadata`, `_behaviors`, `_doctorDisable`, `$`, and `_on*`. Conditional mount is `hidden` (keeps the node) or reactive children (return `null` until you want a tree).
 
 ```ts
 import { toState } from "@domphy/core"
 
 const activeTab = toState<"overview" | "analytics" | "settings">("overview")
-const tabMounted = toState({ overview: true, analytics: false, settings: false })
-
-// Only mount a tab's content once it has been viewed
-activeTab.addListener((tab) => {
-  tabMounted.set({ ...tabMounted.get(), [tab]: true })
-})
 
 const Tabs = {
   div: [
-    // Tab buttons
     { div: TabBar },
-    // Tab panels — use 'hidden' rather than conditional render to preserve state
+    // Always mounted; `hidden` preserves state when the tab is inactive
     {
       div: AnalyticsPanel,
       hidden: (l) => activeTab.get(l) !== "analytics",
-      // Only mount once tabMounted.analytics is true
-      _if: (l) => tabMounted.get(l).analytics,
+    },
+    // Deferred mount: no subtree until first selected (returning null again unmounts)
+    {
+      div: (l) => activeTab.get(l) === "settings" ? SettingsPanel : null,
     },
   ],
 }
 ```
 
-## Avoiding object allocation in render functions
+## Reactive `style` is per-property
 
-Creating new objects inside a render function can cause downstream listeners to re-render unnecessarily (referential inequality). For static config, define it outside the function:
+`style` is a `StyleObject`. A function as the whole `style` value applies no CSS. Put reactivity on individual properties (or use a patch). Do not inline typography (`fontWeight`, `color`, …) — those belong on typography patches.
 
 ```ts
-// BAD — new style object on every render
-const Label = {
-  span: (l) => text.get(l),
-  style: (l) => ({ color: "blue", fontWeight: "bold" }),  // new object each time
+// Not supported — whole-object function, no CSS applied
+{
+  div: "Hello",
+  style: (l) => ({ display: hidden.get(l) ? "none" : "block" }),
 }
 
-// GOOD — static object defined once
-const LABEL_STYLE = { color: "blue", fontWeight: "bold" }
-
-const Label = {
-  span: (l) => text.get(l),
-  style: LABEL_STYLE,
+// Per-property functions
+{
+  div: "Hello",
+  style: {
+    display: (l) => hidden.get(l) ? "none" : "block",
+  },
 }
 ```
 
@@ -3745,192 +3763,16 @@ Use the low-level API when updates are event-driven and local, and when you want
 
 ## Derived Reactivity
 
-The `(listener) => state.get(listener)` form is the foundation: an explicit listener subscribes a reactive part to a state. On top of it, Domphy ships derived primitives — `computed`, `effect`, `effectScope`, `batch`, `untrack`, and `flushSync` — for computations that depend on **other** reactive values. They build on the same `Notifier` machinery, so they participate in the same flush and cycle detection as a plain `state.get`.
+The `(listener) => state.get(listener)` form is the foundation: an explicit listener subscribes a reactive part to a state. On top of it, Domphy ships derived primitives — `computed`, `effect`, `effectScope`, `batch`, `untrack`, `flushSync`, `watch`, and `nextTick` — for computations that depend on **other** reactive values. They build on the same `Notifier` machinery, so they participate in the same flush and cycle detection as a plain `state.get`.
 
 These primitives **auto-track**: a reactive read with no explicit listener inside a `computed` or `effect` subscribes automatically. The explicit `(l) => state.get(l)` path used in elements is unchanged — both work, and they compose.
 
-```ts
-import { toState } from "@domphy/core"
+Signatures and examples: [Utilities](./api/utilities).
 
-const a = toState(1)
-const b = toState(2)
-```
+Unique to this page:
 
-### computed
-
-`computed(fn)` is a lazy, cached derived value. `fn` runs on first read and the result is cached; it re-evaluates only after a tracked dependency changes — never on every read. A `computed` is read like a state: `c.get()` for the current value, `c.get(listener)` to subscribe, and `(l) => c.get(l)` to bind it in an element.
-
-`computed` returns a `Computed<T>`, which satisfies `ReadableState<T>`:
-
-```ts
-export interface Computed<T> {
-  readonly _isState: true;
-  readonly _notifier: Notifier;
-  get(listener?: ValueListener<T>): T;
-}
-```
-
-The `_notifier` property holds the internal dependency-tracking node. It is part of the public interface but intended for advanced integrations; normal usage only needs `get(listener?)`.
-
-```ts
-import { computed } from "@domphy/core"
-
-const sum = computed(() => a.get() + b.get()) // auto-tracks a and b
-
-sum.get() // 3 — computes and caches
-
-const view = {
-  p: (listener) => `Sum: ${sum.get(listener)}`, // re-runs only when sum changes
-}
-```
-
-When a dependency changes, the computed recomputes and notifies its own downstream listeners only if the new value differs by `===` from the cached one. An identical value short-circuits, so unchanged derivations cause no downstream churn.
-
-### effect
-
-`effect(fn)` runs `fn` immediately, auto-tracking every reactive read inside it, and re-runs it whenever any tracked dependency changes. It returns a `dispose()` that releases all subscriptions.
-
-```ts
-import { effect } from "@domphy/core"
-
-const stop = effect(() => {
-  console.log("a + b =", a.get() + b.get())
-})
-// logs immediately, then re-runs whenever a or b changes
-
-stop() // unsubscribe
-```
-
-Each run re-collects dependencies, so reads no longer reached — for example behind a branch that is now false — are dropped automatically.
-
-### effectScope
-
-`effectScope()` returns an `EffectScopeHandle` that groups reactive resources so they can be disposed together. Anything created inside `scope.run(fn)` — effects, computeds, listeners, and nested scopes — is owned by the scope, and `scope.stop()` tears the whole group down in one call.
-
-```ts
-import { effectScope } from "@domphy/core"
-import type { EffectScopeHandle } from "@domphy/core"
-
-const scope: EffectScopeHandle = effectScope()
-
-scope.run(() => {
-  effect(() => console.log(a.get()))
-  effect(() => console.log(b.get()))
-})
-
-scope.stop() // disposes both effects (and any nested scope) at once
-```
-
-### batch
-
-`batch(fn)` coalesces every state write inside `fn` into a single downstream flush, so dependents react once instead of once per write.
-
-```ts
-import { batch } from "@domphy/core"
-
-batch(() => {
-  a.set(10)
-  b.set(20)
-})
-// effects / computeds depending on a and b re-run a single time
-```
-
-### untrack
-
-`untrack(fn)` runs `fn` and returns its result without registering its reads into the currently active collector. Use it to read a state inside an `effect` or `computed` without making it a dependency.
-
-```ts
-import { untrack } from "@domphy/core"
-
-effect(() => {
-  // Re-runs when `a` changes, but NOT when `b` changes.
-  console.log(a.get(), untrack(() => b.get()))
-})
-```
-
-### flushSync
-
-`flushSync()` drains the entire pending reaction queue synchronously before returning. Normally Domphy schedules flushes via microtask; `flushSync` forces all queued notifier flushes and reactive re-runs to complete immediately. Use it in tests or imperative code where you need the DOM/state to be fully settled before reading it back.
-
-```ts
-import { toState, flushSync } from "@domphy/core"
-
-const count = toState(0)
-count.set(1)
-flushSync()
-// count.get() === 1 and all downstream effects/computeds are already settled
-```
-
-If a diverging reactive loop prevents settling, `flushSync` breaks after 10 000 iterations and logs a `console.error`.
-
-### watch
-
-`watch(source, callback, options?)` tracks a reactive source and calls `callback(newValue, oldValue)` whenever the source produces a new value. Unlike `effect`, it gives you both the **new** and the **previous** value.
-
-`source` can be:
-- A `State<T>` or `Computed<T>` (anything with `.get()`)
-- A getter function `() => T` — compose multiple reads into one expression
-
-Returns a `dispose()` that stops watching and releases all subscriptions.
-
-```ts
-import { toState, watch } from "@domphy/core"
-
-const count = toState(0)
-
-const stop = watch(count, (newVal, oldVal) => {
-  console.log(`changed from ${oldVal} to ${newVal}`)
-})
-
-count.set(1) // logs: "changed from 0 to 1"
-count.set(2) // logs: "changed from 1 to 2"
-
-stop() // unsubscribe
-```
-
-Watch a derived expression (getter function):
-
-```ts
-const a = toState(1)
-const b = toState(2)
-
-const stop = watch(
-  () => a.get() + b.get(),
-  (sum, prev) => console.log(`sum: ${prev} → ${sum}`)
-)
-
-a.set(10) // logs: "sum: 3 → 12"
-```
-
-Pass `{ immediate: true }` to invoke the callback immediately on setup (the initial `oldValue` will be `undefined`):
-
-```ts
-watch(count, (n, prev) => console.log(n, prev), { immediate: true })
-// called immediately: logs current count, undefined
-```
-
-### nextTick
-
-`nextTick(fn?)` returns a `Promise<void>` that resolves on the next microtask — after scheduled reactive effects have processed. Use it when you need to read updated state or the DOM immediately after a write, without calling the synchronous `flushSync()`.
-
-```ts
-import { toState, nextTick } from "@domphy/core"
-
-const count = toState(0)
-count.set(1)
-
-await nextTick()
-// reactive effects triggered by count.set(1) have run by now
-```
-
-Or pass a callback:
-
-```ts
-count.set(42)
-nextTick(() => {
-  console.log("after flush:", count.get()) // 42
-})
-```
+- `computed` notifies downstream only when the new value differs by `===` from the cached one.
+- `effect(fn)` is `fn: () => void`. A function returned from `fn` is ignored. Cleanup is the `dispose()` **returned by `effect()`**. Each run re-collects dependencies, so reads no longer reached are dropped.
 
 ## State utilities
 
@@ -4023,7 +3865,7 @@ description: "Access DOM nodes directly using _onMount, _onRemove, and ElementNo
 
 # Refs & DOM Access
 
-Domphy does not have a `ref` API like React. Instead, use the `_onMount` and `_onRemove` lifecycle hooks to access the underlying DOM node.
+Domphy does not have a `ref` API like React. Use `_onMount` to access the underlying DOM node, `_onBeforeRemove` for work that must run while the node is still in the document, and `_onRemove` for cleanup after it has been removed.
 
 ## `_onMount`
 
@@ -4047,7 +3889,7 @@ const Canvas = {
 
 ## `_onRemove`
 
-Called before the element is removed from the DOM. Use it to clean up timers, observers, and event listeners:
+Runs **after** DOM removal (`el.remove()`, then `_dispose` fires `Remove`). Pre-removal work (exit animation, reading layout) is `_onBeforeRemove(node, done)` — that hook must call `done()`. Use `_onRemove` to drop timers, observers, and JS refs once the node is gone:
 
 ```ts
 let interval: ReturnType<typeof setInterval>
@@ -4119,16 +3961,18 @@ const Anchor = {
 
 const Popover = {
   div: "Popover content",
-  // Position relative to the anchor
-  style: (l) => {
-    const anchor = anchorRef.get(l)
-    if (!anchor) return { display: "none" }
-    const rect = anchor.getBoundingClientRect()
-    return {
-      position: "fixed",
-      top: `${rect.bottom + 8}px`,
-      left: `${rect.left}px`,
-    }
+  // `style` is a StyleObject — per-property functions only, not a whole-object function
+  style: {
+    position: "fixed",
+    display: (l) => (anchorRef.get(l) ? "block" : "none"),
+    top: (l) => {
+      const anchor = anchorRef.get(l)
+      return anchor ? `${anchor.getBoundingClientRect().bottom + 8}px` : "0"
+    },
+    left: (l) => {
+      const anchor = anchorRef.get(l)
+      return anchor ? `${anchor.getBoundingClientRect().left}px` : "0"
+    },
   },
 }
 ```
@@ -4267,6 +4111,8 @@ Call `render()` once at the app root for client-side rendering.
 
 <img alt="SSR" src="/figures/ssr.png" style="display:block;margin:auto" />
 
+`generateHTML()` emits the **root tag** (`<div class="div_…">…</div>` if `App` is `{ div: … }`). Hydrate by mounting onto that generated element, not onto a wrapper whose tag is not the root.
+
 import { ElementNode } from "@domphy/core"
 import { themeCSS } from "@domphy/theme"
 import App from "./app.js"
@@ -4290,13 +4136,14 @@ import { ElementNode } from "@domphy/core"
 import App from "./app.js"
 
 const domStyle = document.getElementById("domphy-style") as HTMLStyleElement
+const host = document.getElementById("app")!
 
-new ElementNode(App).mount(document.getElementById("app")!, domStyle)
+new ElementNode(App).mount(host.firstElementChild as HTMLElement, domStyle)
 ```
 
 For SSR, render CSS into `<style id="domphy-style">` on the server and pass that same style element to `mount()` on the client.
 
-`mount()` binds to existing DOM — attaches reactivity and events without re-rendering.
+`mount()` binds to existing DOM — attaches reactivity and events without re-rendering. Passing the wrapper `#app` (tag ≠ generated root) is a hydration mismatch.
 
 ### syntax.md
 
@@ -4485,7 +4332,10 @@ Hook timing, arguments, and usage are covered in [Lifecycle](./lifecycle).
 `$` applies one or more patches to the host element.
 
 ```ts
-{ button: "Submit", $: [button(), loading({ open: true })] }
+import { button, spinner } from "@domphy/ui"
+
+{ button: "Submit", $: [button()] }
+{ span: null, $: [spinner()] }
 ```
 
 A patch is a function returning a `PartialElement`. Domphy merges patch output into the element before rendering.
@@ -4668,15 +4518,16 @@ describe("subscription", () => {
 Mount an element tree into a real DOM node and assert the output:
 
 ```ts
-import { describe, expect, it, beforeEach, afterEach } from "vitest"
-import { toState } from "@domphy/core"
+import { describe, expect, it } from "vitest"
+import { toState, flushSync } from "@domphy/core"
 import { ElementNode } from "@domphy/core"
+import type { DomphyElement } from "@domphy/core"
 
-// Helper to mount a Domphy element and return the DOM node
-function mount(element: unknown): HTMLElement {
+// Constructor leaves `domElement` null — call `render()` (or `mount()`) first.
+function mount(element: DomphyElement): HTMLElement {
   const container = document.createElement("div")
   const node = new ElementNode(element)
-  container.appendChild(node.domElement)
+  node.render(container)
   return container
 }
 
@@ -4688,13 +4539,13 @@ describe("Counter component", () => {
     expect(dom.querySelector("span")?.textContent).toBe("0")
   })
 
-  it("updates DOM when state changes", async () => {
+  it("updates DOM when state changes", () => {
     const count = toState(0)
     const Counter = { span: (l) => String(count.get(l)) }
     const dom = mount(Counter)
 
     count.set(5)
-    await Promise.resolve()   // flush microtask queue
+    flushSync()
 
     expect(dom.querySelector("span")?.textContent).toBe("5")
   })
@@ -4722,9 +4573,9 @@ describe("input field", () => {
 
     const container = document.createElement("div")
     const node = new ElementNode(Input)
-    container.appendChild(node.domElement)
+    node.render(container)
 
-    const input = container.querySelector("input") as HTMLInputElement
+    const input = node.domElement as HTMLInputElement
     input.value = "hello"
     input.dispatchEvent(new Event("input"))
 
@@ -4774,7 +4625,9 @@ import { tooltip } from "./tooltip.js"
 describe("tooltip patch", () => {
   it("sets title attribute", () => {
     const el = { span: "hover me", $: [tooltip({ text: "A tooltip" })] }
+    const container = document.createElement("div")
     const node = new ElementNode(el)
+    node.render(container)
     expect((node.domElement as HTMLSpanElement).title).toBe("A tooltip")
   })
 })
@@ -4864,11 +4717,9 @@ function heading(text: string): DomphyElement {
 const footer: DomphyElement = { footer: "© 2025 Acme" }
 ```
 
-`DomphyElement` is the union of all valid element shapes:
-- `{ tag: content }` — element with tag as key
-- `string | number | boolean` — text node
-- `DomphyElement[]` — array of elements
-- `null | undefined` — renders nothing
+`DomphyElement` is only a tag-keyed object (`{ div: content, ... }`). It is not `string | number | boolean | array | null`.
+
+Children use `ElementInput` = primitive | `DomphyElement`. A primitive is `null | undefined | number | string | RawHTML` (`rawHtml()`). Boolean is not a valid child. An array of those is the tag's content (multiple children), not a `DomphyElement` itself.
 
 ## Typing state
 
@@ -5019,8 +4870,8 @@ UI patches are typed — TypeScript will catch invalid prop values:
 import { button, inputText, label } from "@domphy/ui"
 import type { ElementTone, ElementSize, ElementDensity } from "@domphy/theme"
 
-// button() only accepts { color?: ValueOrState<ThemeColor> }
-const btn = button({ color: "primary" })
+// button() accepts { color?, variant?: "solid" | "outline" | "ghost", size?: "small" | "medium" | "large" }
+const btn = button({ color: "primary", variant: "solid", size: "medium" })
 
 // Use ElementTone / ElementSize / ElementDensity for typing custom patches:
 function myPatch(tone: ElementTone, size: ElementSize, density: ElementDensity): import("@domphy/core").PartialElement {
@@ -5075,12 +4926,12 @@ With `strict: true`, Domphy's listener callbacks will correctly require handling
 
 ```ts
 import type {
-  DomphyElement,   // any valid element
+  DomphyElement,   // tag-keyed element object
   Listener,        // listener callback argument
   State,           // toState return type
   PartialElement,  // patch return type
   ElementNode,     // DOM element wrapper
-  AttributeList,   // $-attribute list
+  AttributeList,   // HTML attributes (`node.attributes`); `$` is the patch array, not this
   ElementList,     // element list in element.children
 } from "@domphy/core"
 ```
@@ -5252,17 +5103,39 @@ const brand = getTheme("brand")
 
 ### `generateTheme(baseColors, options?)`
 
-Build a full `PartialThemeInput` from one base hex color per semantic role,
+Build a `PartialThemeInput` from one base hex color per semantic role,
 using the built-in palette engine's `generateRamp` for every family — see
 [Theme Builder](./builder) for a live demo and [`DESIGN.md`](https://github.com/domphy/domphy/blob/main/DESIGN.md)
 for the math.
 
 ```ts
+import { generateTheme, setTheme, type GenerateThemeOptions } from "@domphy/theme"
+
 setTheme("brand", generateTheme({
   primary: "#4a7ff4",
   secondary: "#d8597d",
   neutral: "#8d8d8d",
 }))
+```
+
+`options` is `GenerateThemeOptions`:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `steps?` | `number` | `TONE_STEPS` (`18`) | Ramp length. Must be `TONE_STEPS` or omitted — any other value **throws**. `generateRamp` accepts any `N`; `generateTheme` does not. |
+| `direction?` | `"lighten" \| "darken"` | `"darken"` | Theme direction metadata. |
+| `fontSizes?` | `string[]` | `["0.75rem", "0.875rem", "1rem", "1.25rem", "1.5625rem", "1.9375rem", "2.4375rem", "3.0625rem"]` | Size scale consumed by `themeSize()`. |
+| `densities?` | `number[]` | `[0.75, 1, 1.5, 2, 2.5]` | Density scale consumed by `themeDensity()`. |
+| `darkBias?` | `number` | `1` | Tone offset applied at the dark edge. |
+| `custom?` | `Record<string, string \| number>` | `{}` | Custom tokens (`--custom-{key}`). |
+
+```ts
+const options: GenerateThemeOptions = {
+  direction: "darken",
+  darkBias: 1,
+  custom: { "sidebar-width": "240px" },
+}
+generateTheme({ primary: "#4a7ff4" }, options)
 ```
 
 Each role's `baseTones` entry is picked automatically (nearest CIEDE2000
@@ -5308,6 +5181,7 @@ For how tone and size resolution work, see [Tone](./tone) and [Size](./size).
 | --- | --- |
 | `ThemeInput` | Full theme shape accepted by `setTheme()`. All fields are optional when passing a partial. |
 | `PartialThemeInput` | Deep-partial version of `ThemeInput` — what `setTheme()` actually accepts at runtime. |
+| `GenerateThemeOptions` | Optional second argument to `generateTheme()`: `steps?` (must be `TONE_STEPS` `18` or omitted), `direction?`, `fontSizes?`, `densities?`, `darkBias?`, `custom?`. |
 | `ThemeVars` | Object of `var(--…)` CSS variable references returned by `themeVars()`. |
 | `ThemeColor` | `ColorRole \| (string & {})` — the 10 built-in role names rank first in editor autocomplete/hover, but any string still type-checks (custom themes may register their own role names via `setTheme`/`generateTheme`). This is intentionally NOT a strict union — see `ColorRole` below for the exhaustive list. |
 | `ColorRole` | Strict union of the 10 built-in semantic role names: `"neutral" \| "primary" \| "secondary" \| "info" \| "success" \| "warning" \| "attention" \| "error" \| "danger" \| "highlight"`. Derived from `COLOR_ROLES` below. |
@@ -5317,6 +5191,14 @@ For how tone and size resolution work, see [Tone](./tone) and [Size](./size).
 | `ElementDensity` | Valid density descriptor strings: `"inherit"`, `"increase-N"`, `"decrease-N"` (N 0–4). |
 
 `COLOR_ROLES` — runtime `readonly` array of the same 10 names (`ColorRole`'s source of truth: `type ColorRole = (typeof COLOR_ROLES)[number]`). Use this instead of hand-listing the 10 roles when you need them as a real iterable (e.g. rendering one control per role).
+
+## Constants
+
+| Export | Value | Description |
+| --- | --- | --- |
+| `TONE_STEPS` | `18` | Ramp length every `colors[role]` array must have. `generateTheme({ steps })` throws unless this value or omitted. |
+| `ToneAliases` | `{ surface, hover, border, border-strong, muted, text }` | Semantic tone names → `shift-N`. Table: [Semantic Aliases](./tone#semantic-aliases). |
+| `COLOR_ROLES` | 10 built-in role names | Source of `ColorRole`. |
 
 ### builder.md
 
@@ -5394,8 +5276,8 @@ Use shift scale anchors for backgrounds and borders — prefer the semantic alia
 | Border | `"border"` | `"shift-3"` | Dividers, subtle separators |
 | Control outline | `"border-strong"` | `"shift-4"` | Button/input/card boundary |
 | Placeholder text | — | `"shift-7"` | Hint text |
-| Secondary / disabled text | `"muted"` | `"shift-8"` | Labels, captions |
-| Body text / icon | `"text"` | `"shift-9"` | Primary readable content, action icons |
+| Supplementary / de-emphasis | `"muted"` | `"shift-8"` | timestamps, captions, placeholders — **not** labels |
+| Body text / labels / icon | `"text"` | `"shift-9"` | Essential readable content (labels, instructions, nav), action icons |
 | Heading text | — | `"shift-11"` | High-contrast headings |
 
 ```ts
@@ -5525,7 +5407,7 @@ const chartConfig = {
 }
 ```
 
-`themeColorToken` uses CIELAB/LCH matching — the same algorithm that powers `@domphy/doctor`'s `raw-theme-value` hint.
+`themeColorToken` is the resolved-hex form of `themeColor`: same tone / role / `dataTone` resolution, but it returns the concrete token from `themeTokens` (e.g. `"#4a7ff4"`) instead of `var(--…)`. CIELAB/LCH nearest-token matching is `@domphy/doctor`'s `raw-theme-value` hint, not this helper.
 
 ## Color audit
 
@@ -5709,7 +5591,7 @@ import { themeColor } from "@domphy/theme"
 
 const CodeEditor = {
   div: EditorContent,
-  "data-theme": "dark",   // force dark within this subtree
+  dataTheme: "dark",   // force dark within this subtree (resolvers walk dataTheme)
   style: {
     background: (l) => themeColor(l, "shift-1", "neutral"),   // near-dark edge in dark theme
     color: (l) => themeColor(l, "shift-12", "neutral"),       // near-light in dark theme
@@ -6087,9 +5969,11 @@ Colors are exposed as CSS custom properties scoped to `[data-theme]`:
 --{family}-{step}
 ```
 
-- step `0` is always white (lightest)
-- step `17` is always black (darkest)
-- step `8–9` is near the mid-range — the base accent zone
+On the built-in `light` theme (stock `primary` in `light.ts`):
+
+- `--primary-0` is white (`#ffffff`, lightest)
+- `--primary-17` is black (`#000000`, darkest)
+- steps `8–9` sit near the mid-range — the base accent zone
 
 Example:
 
@@ -6115,21 +5999,22 @@ color: var(--primary-0);
 
 ## Dark Theme
 
-The built-in `dark` theme is auto-generated from `light` by reversing each ramp:
+The built-in `dark` theme is derived **once at module init** from `light` (private `createDark`: reverse each ramp, mirror each `baseTones` index, `direction: "lighten"`). `setTheme` does **not** reverse into `"dark"` and does **not** create a dark sibling for a named theme.
 
-| Light | Dark |
-| --- | --- |
-| step `0` (lightest) | becomes step `17` (darkest) |
-| step `9` (accent) | becomes equivalent dark accent |
-| step `17` (darkest) | becomes step `0` (lightest) |
+After reverse, CSS variable **indices stay put** — the **values** swap ends. Stock `primary`:
 
-The dark theme is generated automatically by reversing the color array. You never need separate color values for dark mode — the same `--{family}-{step}` variables work in both themes, and the theme layer handles the inversion automatically.
+| CSS var | Light (`light.ts`) | Dark (after reverse) |
+| --- | --- | --- |
+| `--primary-0` | first stop (`#ffffff`) | light's last stop (`#000000`) |
+| `--primary-17` | last stop (`#000000`) | light's first stop (`#ffffff`) |
+| `--primary-N` | light `[N]` | light `[17 − N]` |
+| `baseTones.primary` | `9` | `8` (`17 − 9`) |
 
-For custom themes and the full setup, see [Setup](./setup).
+The same `--{family}-{step}` **names** work in both themes because each `[data-theme]` block supplies its own values. A custom theme registered with `setTheme("brand", …)` is a separate entry — give it a dark sibling yourself if you need one. Full contract: [Setup](./setup).
 
 ## Custom Palette
 
-Register a theme with `setTheme()` to replace any color family or add entirely new ramps. Custom ramps should follow the 18-step model.
+Register a theme with `setTheme()` to replace any color family or add entirely new ramps. Custom ramps should follow the 18-step model. A **new** family name must also be registered on `"light"` — `themeVars()` / `themeColor()` key on that structure and throw otherwise (see [Setup](./setup)).
 
 You don't have to hand-pick the 16 intermediate steps yourself — `generateTheme` builds the whole `ThemeInput` from one base hex per role, using the built-in WCAG-optimized `generateRamp` (see [`generateRamp`](../palette/generator)):
 
@@ -6144,6 +6029,8 @@ setTheme("brand", generateTheme({
 
 themeApply()
 ```
+
+That registers `"brand"` only. It does **not** reverse those ramps into `"dark"`. To update the built-in pair, `setTheme("light", …)` and `setTheme("dark", …)` separately (reverse each ramp, `baseTones` → `17 − index`, `direction: "lighten"`).
 
 `baseTones` is filled in automatically — the step closest (CIEDE2000) to the hex you passed in.
 
@@ -6447,7 +6334,7 @@ Set `dataTheme` on any root element.
 { div: [App], dataTheme: "dark" }
 ```
 
-`light` and `dark` are built in. `dark` is generated automatically from `light`.
+`light` and `dark` are built in. `dark` is derived **once at module init** from `light` (each ramp reversed, each `baseTones` index mirrored, `direction: "lighten"`). `setTheme` does not repeat that step.
 
 `dataTheme` can appear at any nesting level. Descendants inside that subtree resolve colors from the nearest theme root.
 
@@ -6476,43 +6363,46 @@ themeApply()
 
 ### Add a brand-new color family
 
-Register a completely new color name alongside the built-in ones. The `colors` key can hold any name — Domphy generates CSS variables and exposes the family to `themeColor()` automatically:
+A new `colors` key is valid on any theme name, but **`themeColor()` does not pick it up from `"brand"` alone.** `themeVars()` always reads `getTheme("light")` and emits the shared `var(--…)` baseline; `themeColor` throws unless the role is also registered on `"light"`.
 
 ```ts
 import { setTheme, themeApply, themeColor } from "@domphy/theme"
 
+const gold = [
+  "#fffef0", // 0 — near-white
+  "#fffbd0",
+  "#fff6a0",
+  "#ffee65",
+  "#ffe030",
+  "#f5cc00",
+  "#d9b200",
+  "#bf9a00",
+  "#a58200",
+  "#8a6b00", // 9 — accent zone
+  "#705600",
+  "#574200",
+  "#3f2f00",
+  "#2d1f00",
+  "#1f1500",
+  "#130d00",
+  "#070400",
+  "#000000", // 17 — black
+]
+
+// Required: the light structure is what themeVars()/themeColor() key on.
+setTheme("light", {
+  colors: { "brand-gold": gold },
+  baseTones: { "brand-gold": 9 },
+})
+
+// Optional named theme — starts as a clone of light, then deep-merges.
 setTheme("brand", {
-  colors: {
-    // New "brand-gold" family — 18-step ramp from light (#fffef0) to dark (#1a1500)
-    "brand-gold": [
-      "#fffef0",   // 0 — near-white
-      "#fffbd0",   // 1
-      "#fff6a0",   // 2
-      "#ffee65",   // 3
-      "#ffe030",   // 4
-      "#f5cc00",   // 5
-      "#d9b200",   // 6
-      "#bf9a00",   // 7
-      "#a58200",   // 8
-      "#8a6b00",   // 9  ← good accent zone
-      "#705600",   // 10
-      "#574200",   // 11
-      "#3f2f00",   // 12
-      "#2d1f00",   // 13
-      "#1f1500",   // 14
-      "#130d00",   // 15
-      "#070400",   // 16
-      "#000000",   // 17 — black
-    ],
-  },
-  baseTones: {
-    "brand-gold": 9,   // base accent at step 9
-  },
+  colors: { "brand-gold": gold },
+  baseTones: { "brand-gold": 9 },
 })
 
 themeApply()
 
-// Use the new family exactly like built-in ones:
 const GoldBadge = {
   span: "New",
   style: {
@@ -6522,9 +6412,18 @@ const GoldBadge = {
 }
 ```
 
-Custom color ramps must follow the 18-step model (index 0 = lightest, 17 = darkest). The dark theme is auto-generated by reversing the ramp — you do not need a separate dark variant.
+Ramps must be 18 steps (`TONE_STEPS`). On a `direction: "darken"` theme, index 0 is lightest and 17 is darkest.
 
-Then activate the theme:
+`setTheme` does **not** reverse into `"dark"` and does **not** create a dark sibling for `"brand"`. The built-in `"dark"` pair was reversed from `"light"` once at module init (`createDark` is private, not exported). To use the family in dark mode, register it on `"dark"` yourself:
+
+```ts
+setTheme("dark", {
+  colors: { "brand-gold": [...gold].reverse() },
+  baseTones: { "brand-gold": 17 - 9 },
+})
+```
+
+Then activate a named theme when you have one:
 
 ```ts
 { div: [App], dataTheme: "brand" }
@@ -6535,7 +6434,7 @@ Then activate the theme:
 Arbitrary key-value tokens can be stored under `custom`. They appear as `--custom-{key}` CSS variables:
 
 ```ts
-setTheme("brand", {
+setTheme("light", {
   custom: {
     "border-radius-pill": "9999px",
     "sidebar-width": "240px",
@@ -6543,7 +6442,8 @@ setTheme("brand", {
   },
 })
 
-// Access via CSS or themeVars():
+// themeVars() reads getTheme("light") — keys registered only on another
+// theme name do not appear here.
 import { themeVars } from "@domphy/theme"
 const vars = themeVars()
 // vars.custom["border-radius-pill"] === "var(--custom-border-radius-pill)"
@@ -7317,241 +7217,69 @@ Use `dataTheme` only when you truly want a different theme, not just a darker or
 
 ---
 title: "Typography"
-description: "Type scale, font tokens, responsive text, fluid sizing, and pairing with the theme tone system."
+description: "Type scale via themeSize, pairing with patches, and font stacks (not theme CSS variables)."
 ---
 
 # Typography
 
-## Type scale
+Text size in Domphy is an 8-step scale (`--fontSize-0` … `--fontSize-7`) resolved by `themeSize()`. The default with no `dataSize` ancestor is **index 2** (`1rem`).
 
-Domphy theme includes an 8-step type scale (size 0–7, matching `@domphy/theme`'s size system):
+| Index | Token | At 16px root | Typical use |
+|------|---------|--------------|-------------|
+| 0 | `0.75rem` | 12px | Captions, badges |
+| 1 | `0.875rem` | 14px | Helper text |
+| **2** | **`1rem`** | **16px** | **Body (default `themeSize(l, "inherit")`)** |
+| 3 | `1.25rem` | 20px | Lead / small heading |
+| 4 | `1.5625rem` | 25px | Section heading |
+| 5 | `1.9375rem` | 31px | H2 |
+| 6 | `2.4375rem` | 39px | Display |
+| 7 | `3.0625rem` | 49px | Page title |
 
-| Step | Default | Use case |
-|------|---------|----------|
-| 0 | 11px | Captions, legal text, badges |
-| 1 | 12px | Helper text, timestamps |
-| 2 | 14px | Body text (small) |
-| **3** | **16px** | **Body text (default)** |
-| 4 | 18px | Lead text, secondary headings |
-| 5 | 20px | H3, section headers |
-| 6 | 24px | H2, card titles |
-| 7 | 32px | H1, page titles |
-
-Access via `themeSize`:
+`themeSize(listener, size?)` takes `ElementSize`: `"inherit"` | `"increase-N"` | `"decrease-N"` with N ≤ 7 — not a numeric step.
 
 ```ts
 import { themeSize } from "@domphy/theme"
+import { heading, paragraph, small } from "@domphy/ui"
 
-const Caption = {
-  span: "Posted 3 days ago",
-  style: { fontSize: (l) => themeSize(l, "decrease-1") },   // smaller than base
-}
+{ h2: "Title", $: [heading()] }
+{ p: "Body copy.", $: [paragraph()] }
+{ small: "Posted 3 days ago", $: [small()] }
+
+// Optional: skip the heading tag bump
+{ h2: "Same size as body", $: [heading({ size: "inherit" })] }
 ```
 
-## Font tokens
+Do not set `fontSize` / `fontWeight` / `lineHeight` / `letterSpacing` / `fontFamily` / `color` in `style:` — doctor `inline-typography`. Use the patches above (and `strong()`, `emphasis()`, `code()`, `link()`).
 
-Override the theme's font stack at any scope:
+## Font stack
+
+`@domphy/theme` does **not** emit `--font-sans` / `--font-mono`, and `themeApply` does **not** take a font-options bag. `themeApply(el?: HTMLStyleElement)` writes `themeCSS()` into a `<style>` tag (or creates one). Passing `document.documentElement` would replace the page text with CSS.
+
+Set fonts on `:root` yourself. On a press site the hooks are `--dp-font-sans` / `--dp-font-mono` / `--dp-font-display`:
 
 ```ts
-import { themeApply } from "@domphy/theme"
-
-// Global font setup (in app root)
-document.documentElement.style.setProperty("--font-sans", "'Inter', system-ui, sans-serif")
-document.documentElement.style.setProperty("--font-mono", "'JetBrains Mono', monospace")
+// press.config.ts head, or any app <style>
+`<style>:root{--dp-font-sans:"Inter",system-ui,sans-serif;--dp-font-mono:"JetBrains Mono",ui-monospace,monospace}</style>`
 ```
 
-Or via theme configuration:
+Preload with `<link rel="preconnect">` + a stylesheet, or `@font-face` with `font-display: swap`.
+
+## Fluid size
+
+For display type that should grow with the viewport, use CSS `clamp()` in a stylesheet — not inline on an element (that is still `inline-typography`). Patches own control-sized text.
+
+## Color
+
+Body text: `themeColor(l, "text")`. Captions and other non-essential copy: `themeColor(l, "muted")`. `"base"` is the family's brand step (`baseTones[role]`), not a muted/text role.
 
 ```ts
-import { themeApply } from "@domphy/theme"
+import { small } from "@domphy/ui"
 
-themeApply(document.documentElement, {
-  fontSans: "'Inter', system-ui, sans-serif",
-  fontMono: "'JetBrains Mono', monospace",
-  fontSerif: "'Lora', Georgia, serif",
-})
+{ small: "Secondary info", $: [small()] }           // patch sets color
+{ small: "Error", $: [small({ color: "error" })] }
 ```
 
-In elements, reference font tokens:
-
-```ts
-const MonoText = {
-  code: "const x = 1",
-  style: { fontFamily: "var(--font-mono)" },
-}
-```
-
-## Typography patch
-
-Apply the full typography treatment (size + weight + line-height + color) with the `typography` patch:
-
-```ts
-import { typography } from "@domphy/ui"
-
-const Article = {
-  article: [
-    { h1: "Title", $: [typography({ size: 7, weight: "bold" })] },
-    { p: "Body text.", $: [typography({ size: 3 })] },
-    { small: "Caption", $: [typography({ size: 1, tone: "shift-3" })] },
-  ],
-}
-```
-
-## Responsive text
-
-Scale text size based on viewport width using CSS `clamp()`:
-
-```ts
-const Hero = {
-  h1: "Welcome",
-  style: {
-    // Scales from 24px at 320px viewport to 48px at 1280px
-    fontSize: "clamp(1.5rem, 3vw + 0.5rem, 3rem)",
-    lineHeight: "1.1",
-  },
-}
-```
-
-Or define size steps per breakpoint with CSS media queries in a `<style>` block:
-
-```css
-h1 { font-size: 1.75rem; }
-@media (min-width: 768px) { h1 { font-size: 2.25rem; } }
-@media (min-width: 1280px) { h1 { font-size: 3rem; } }
-```
-
-## Line height
-
-Line height affects readability. Theme defaults:
-
-| Use | Line height |
-|-----|------------|
-| Headings (tight) | 1.1–1.2 |
-| Body text | 1.5–1.6 |
-| Dense UI (captions, labels) | 1.25 |
-| Code | 1.75 |
-
-```ts
-const Body = {
-  p: "Readable paragraph text.",
-  style: {
-    fontSize: (l) => themeSize(l, "inherit"),
-    lineHeight: "1.6",
-  },
-}
-```
-
-## Font weight
-
-```ts
-const weights = {
-  thin:       100,
-  extralight: 200,
-  light:      300,
-  regular:    400,   // body
-  medium:     500,   // labels, buttons
-  semibold:   600,   // subheadings
-  bold:       700,   // headings
-  extrabold:  800,
-  black:      900,
-}
-
-const Heading = {
-  h2: "Section",
-  style: { fontWeight: weights.semibold },
-}
-```
-
-## Prose / content regions
-
-For user-generated or markdown-rendered content, apply the `paragraph` patch to set consistent spacing and line-height across all text elements:
-
-```ts
-import { paragraph } from "@domphy/ui"
-
-const Content = {
-  article: markdownBody,   // rendered markdown elements
-  $: [paragraph()],        // applies body typography to all text children
-}
-```
-
-## Vertical rhythm
-
-Consistent spacing between text blocks using `themeSpacing`:
-
-```ts
-import { themeSpacing } from "@domphy/theme"
-
-const TextBlock = {
-  div: [
-    { h2: "Section Title" },
-    { p: "First paragraph." },
-    { p: "Second paragraph." },
-  ],
-  style: {
-    "& h2": { marginBottom: themeSpacing(2) },
-    "& p + p": { marginTop: themeSpacing(3) },
-  },
-}
-```
-
-## Letter spacing
-
-Fine-tune tracking for display text or all-caps labels:
-
-```ts
-const Eyebrow = {
-  span: "CATEGORY",
-  style: {
-    fontSize: (l) => themeSize(l, "decrease-2"),
-    fontWeight: 600,
-    letterSpacing: "0.08em",
-    textTransform: "uppercase",
-  },
-}
-```
-
-## Font loading
-
-Preload critical fonts in your HTML head for zero-layout-shift:
-
-```ts
-// In press.config.ts or app head config
-const head = [
-  `<link rel="preconnect" href="https://fonts.googleapis.com">`,
-  `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`,
-  `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">`,
-]
-```
-
-Or self-host with `@font-face`:
-
-```css
-@font-face {
-  font-family: 'Inter';
-  src: url('/fonts/inter-var.woff2') format('woff2');
-  font-weight: 100 900;
-  font-display: swap;
-}
-```
-
-## Pairing with tone
-
-Text color inherits from the tone system — use `themeColor` for accessible text:
-
-```ts
-import { themeColor } from "@domphy/theme"
-
-const Muted = {
-  span: "Secondary info",
-  style: {
-    color: (l) => themeColor(l, "base", "neutral"),   // base neutral text color
-    fontSize: (l) => themeSize(l, "decrease-1"),
-  },
-}
-```
-
-See the [Tone guide](/docs/theme/tone) for the full color-role model.
+See [Tone](/docs/theme/tone) for the contrast contract.
 
 
 
@@ -7573,7 +7301,8 @@ npm install @domphy/query @domphy/core
 `@domphy/core` is a **peer dependency** of the adapter — it is the only part of `@domphy/query` that touches Domphy, so the main `@domphy/query` entry stays dependency-free. Import the adapter from the `/domphy` subpath:
 
 ```ts
-import { createQuery, createInfiniteQuery, createMutation } from "@domphy/query/domphy"
+import { createQuery, createInfiniteQuery, createMutation, bindResult } from "@domphy/query/domphy"
+import type { ReactiveResult } from "@domphy/query/domphy"
 ```
 
 ## createQuery
@@ -7698,6 +7427,34 @@ const Feed: DomphyElement<"div"> = {
 ```
 
 InfiniteQueryHandle accessors: `data`, `error`, `status`, `fetchStatus`, `isPending` / `isLoading`, `isFetching` / `isRefetching`, `isSuccess` / `isError`, `isStale`, `isPlaceholderData`, `hasNextPage`, `hasPreviousPage`, `isFetchingNextPage`, `isFetchingPreviousPage`. Methods: `fetchNextPage`, `fetchPreviousPage`, `refetch`, `destroy`. There is no `setOptions` on the infinite variant.
+
+## bindResult
+
+`createQuery` / `createMutation` / `createInfiniteQuery` are built on `bindResult`. Use it when you already have a subscribe/result pair (a raw observer, or something that is not one of the three handles) and want per-field `RecordState` reactivity.
+
+```ts
+import { QueryClient, QueryObserver } from "@domphy/query"
+import { bindResult } from "@domphy/query/domphy"
+import type { ReactiveResult } from "@domphy/query/domphy"
+import type { QueryObserverResult } from "@domphy/query"
+
+const queryClient = new QueryClient()
+const observer = new QueryObserver<User[]>(queryClient, {
+    queryKey: ["users"],
+    queryFn: () => fetch("/api/users").then((r) => r.json()),
+})
+
+const result: ReactiveResult<QueryObserverResult<User[]>> = bindResult(
+    observer.getCurrentResult(),
+    (callback) => observer.subscribe(callback),
+)
+
+const data = (l) => result.field("data", l)
+const isPending = (l) => result.field("isPending", l)
+// result.release() from _onRemove
+```
+
+`ReactiveResult<TResult>` is `{ state, field(key, listener?), release() }`. `createQuery` is the usual choice; `bindResult` is the primitive underneath.
 
 ## When to use the bridge directly
 
@@ -7990,6 +7747,7 @@ Complete list of exports from `@domphy/query`.
 
 - `focusManager` — window focus tracking; `setFocused`, `setEventListener`, `subscribe`
 - `onlineManager` — online/offline tracking; `setOnline`, `setEventListener`, `subscribe`
+- `environmentManager` — overridable server-environment detection; `isServer()`, `setIsServer(fn)` (`isServer` on the utils barrel is deprecated in favor of this)
 - `notifyManager` — update batching; `batch`, `schedule`, `setScheduler`, plus `defaultScheduler`
 - `timeoutManager` — pluggable timer provider (`TimeoutProvider`, `TimeoutCallback`, `ManagedTimerId`)
 
@@ -8295,7 +8053,7 @@ const App: DomphyElement<"ul"> = {
 ## What To Read Next
 
 1. [Domphy Adapter](./adapter) for `createQuery` / `createMutation` / `createInfiniteQuery` — the recommended way to consume queries
-1. [Queries](./queries) for `QueryObserver`, options, and a reusable `createQuery` helper
+1. [Queries](./queries) for `QueryObserver`, options, and the hand-rolled `makeQueryStates` bridge (the shipped API is `createQuery` from `@domphy/query/domphy`)
 2. [Mutations](./mutations) for writes, callbacks, and optimistic updates
 3. [Caching](./caching) for invalidation, prefetching, and the `staleTime` / `gcTime` model
 4. [Infinite Queries](./infinite-queries) for pagination
@@ -9208,9 +8966,11 @@ const unsubscribe = observer.subscribe((result) => {
 
 `subscribe` returns an unsubscribe function. When the last subscriber leaves, the query becomes inactive and is garbage-collected after `gcTime`.
 
-## A Reusable Query State Helper
+## Hand-rolled observer bridge (`makeQueryStates`)
 
-Most Domphy apps wrap the observer bridge once and reuse it. Note: this manual pattern is an alternative to the adapter's `createQuery` from `@domphy/query/domphy` (which takes a `QueryClient` + options directly and is the recommended approach for most use cases).
+The **shipped** API is `createQuery` from `@domphy/query/domphy` — see [Domphy Adapter](./adapter). Do not name a local helper `createQuery`; that collides with the adapter export.
+
+This `makeQueryStates` example is only the raw `QueryObserver` + `toState` wiring, for understanding what the adapter packages:
 
 ```ts
 import { QueryClient, QueryObserver } from "@domphy/query"
@@ -13002,6 +12762,17 @@ All public types are re-exported, including:
 - feature state: `SortingState`, `ColumnFiltersState`, `GlobalFilterTableState` (via `TableState`), `PaginationState`, `RowSelectionState`, `GroupingState`, `ExpandedState`, `VisibilityState`, `ColumnOrderState`, `ColumnPinningState`, `RowPinningState`, `ColumnSizingState`, `ColumnSizingInfoState`, `CellEditingState`, `EditingCellId`
 - functions: `SortingFn`, `FilterFn`, `AggregationFn`, `AccessorFn`, plus `BuiltInSortingFn`, `BuiltInFilterFn`, `BuiltInAggregationFn`
 
+## Domphy Adapter (`@domphy/table/domphy`)
+
+Import from the `/domphy` subpath — not the main `@domphy/table` barrel. See [Domphy Adapter](./adapter) for usage.
+
+```ts
+import { createDomphyTable } from "@domphy/table/domphy"
+import type { DomphyTable } from "@domphy/table/domphy"
+```
+
+- `createDomphyTable(options)` → `DomphyTable` — `{ table, version, state, setState, setOptions, destroy, getRowModel, getHeaderGroups, … }`. Feature methods (`nextPage`, `setSorting`, `toggleAllRowsSelected`, …) live on `.table`.
+
 ## CDN Global
 
 The IIFE bundle exposes everything under `Domphy.table`:
@@ -13605,7 +13376,7 @@ description: "Extend @domphy/table with custom table features, plugin factories,
 
 # Custom Features & Plugins
 
-`@domphy/table` supports custom features — extend the table with your own state, reducers, and methods following the same plugin architecture as built-in features (sorting, filtering, etc.).
+`@domphy/table` supports custom features — extend the table with your own state, reducers, and methods following the same plugin architecture as built-in features (sorting, filtering, etc.). When using `createDomphyTable`, those methods are on `dTable.table`, not on the adapter handle.
 
 ## Custom feature structure
 
@@ -13621,6 +13392,7 @@ interface HighlightFeature {
   getIsHighlighted: (id: string) => boolean
 }
 
+// Hypothetical plugin — not a shipped table-core feature.
 const HighlightFeature: TableFeature = {
   getInitialState: (state) => ({
     ...state,
@@ -13659,27 +13431,34 @@ const HighlightFeature: TableFeature = {
 
 ## Registering a custom feature
 
-Pass features to `createDomphyTable`:
+`createDomphyTable` returns a `DomphyTable` handle (`{ table, version, setState, ... }`), not the core `Table`. Pass `_features` on the handle options; feature methods live on `.table`.
+
+`HighlightFeature` above is **hypothetical** (not shipped). Shipped methods such as pagination live on the same `.table`:
 
 ```ts
+import { getCoreRowModel, getPaginationRowModel } from "@domphy/table"
 import { createDomphyTable } from "@domphy/table/domphy"
 import { toState } from "@domphy/core"
 
 const highlighted = toState<Set<string>>(new Set())
 
-const table = createDomphyTable({
-  _features: [HighlightFeature],
+const dTable = createDomphyTable({
+  _features: [HighlightFeature], // hypothetical plugin — not shipped
   data: rows,
   columns,
+  getCoreRowModel: getCoreRowModel(),
+  getPaginationRowModel: getPaginationRowModel(),
   state: {
     highlightedRows: highlighted.get(),
   },
   onHighlightChange: (newSet) => highlighted.set(newSet),
 })
 
-// Now table has .toggleHighlight() and rows have .getIsHighlighted()
-table.toggleHighlight("row-1")
+dTable.table.nextPage()              // shipped pagination
+dTable.table.toggleHighlight("row-1") // hypothetical, from HighlightFeature.createTable
 ```
+
+See [Domphy Adapter](./adapter) for the handle shape.
 
 ## Row-level state
 
@@ -13796,8 +13575,8 @@ const EditableCellFeature: TableFeature = {
 // In the data-source:
 const tableData = toState(initialRows)
 
-const table = createDomphyTable({
-  _features: [EditableCellFeature],
+const dTable = createDomphyTable({
+  _features: [EditableCellFeature], // hypothetical plugin — not shipped
   data: tableData.get(),
   columns: [
     columnHelper.accessor("name", {
@@ -14869,8 +14648,15 @@ const page = toState(0)
 const allRows = toState<Row[]>([])
 
 const query = createQuery(queryClient, {
-  queryKey: () => ["rows", page.get()],
+  queryKey: ["rows", page.get()],
   queryFn: () => fetchRows(page.get()),
+})
+
+page.addListener(() => {
+  query.setOptions({
+    queryKey: ["rows", page.get()],
+    queryFn: () => fetchRows(page.get()),
+  })
 })
 
 // Append new page results as they arrive
@@ -14968,7 +14754,7 @@ description: "Virtualizer, createVirtualizer / createWindowVirtualizer adapters,
 import { createVirtualizer } from "@domphy/virtual/domphy"
 ```
 
-Returns a **reactive virtualizer handle**. Call inside a component body (not top-level module).
+Returns a **reactive virtualizer handle**. A plain factory — construct at module scope or inside another factory; there is no component-body restriction.
 
 ```ts
 const list = createVirtualizer<HTMLDivElement, HTMLDivElement>(options)
@@ -15796,7 +15582,7 @@ const queryClient = new QueryClient()
 
 // Infinite query: loads pages of data
 const feed = createInfiniteQuery<Page>(queryClient, {
-  queryKey: () => ["feed"],
+  queryKey: ["feed"],
   queryFn: ({ pageParam }) => fetchPosts(pageParam as string),
   initialPageParam: "",
   getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
@@ -15959,7 +15745,7 @@ Pre-populate the first page to avoid a loading flash:
 const queryClient = new QueryClient()
 
 const feed = createInfiniteQuery<Page>(queryClient, {
-  queryKey: () => ["feed"],
+  queryKey: ["feed"],
   queryFn: ({ pageParam }) => fetchPosts(pageParam as string),
   initialPageParam: "",
   getNextPageParam: (page) => page.nextCursor ?? undefined,
@@ -17246,7 +17032,7 @@ import { createForm } from "@domphy/form/domphy"
 const queryClient = new QueryClient()
 
 const postQuery = createQuery(queryClient, {
-  queryKey: () => ["post", postId],
+  queryKey: ["post", postId],
   queryFn: () => fetchPost(postId),
 })
 
@@ -17476,7 +17262,7 @@ const person = new FormGroupApi({ form, name: "person" })
 person.mount()
 ```
 
-These are Domphy originals (not in `@tanstack/form-core`). See `packages/form/tests/groups.test.ts` for the full contract.
+These are upstream `@tanstack/form-core` files (byte-identical at `@tanstack/form-core@1.33.3` — see `packages/form/SOURCES.md`). Adapter-only additions live in `src/domphy/`. See `packages/form/tests/groups.test.ts` for the contract.
 
 ## Reusable form section factories
 
@@ -17773,19 +17559,7 @@ Initial
   → onSubmit → all validators run regardless of touched state
 ```
 
-Field meta:
-
-```ts
-interface FieldMeta {
-  isTouched: boolean
-  isDirty: boolean
-  isPristine: boolean
-  isBlurred: boolean
-  isValidating: boolean   // async validator in-flight
-  errors: unknown[]
-  errorMap: Partial<Record<"onChange"|"onBlur"|"onSubmit"|"onMount"|"onServer"|"onDynamic", unknown>>
-}
-```
+Field meta — `field.meta(l)` returns `AnyFieldMeta` from `@domphy/form`. There is no `FieldMeta` export. Shape: [Field meta type](./typescript#field-meta-type).
 
 ## Validation execution order
 
@@ -17841,13 +17615,13 @@ const emailField = form.field<string>("email", {
 const nameField = form.field<string>("name", {})
 ```
 
-Do not call `form.field()` inside a reactive render function (it re-registers the field on each render). Create fields in module scope or component setup.
+Repeat `form.field(name)` calls return the **cached** handle (keyed by name). New options on a later call are ignored (dev `console.warn`). Creating fields in module scope is still the usual pattern so options are not silently dropped.
 
 ## Form options
 
 ```ts
 const form = createForm<T>({
-  defaultValues: T,                      // required — initial field values
+  defaultValues?: T,                     // optional — initial field values
   onSubmit: ({ value, formApi }) => {},  // called when form is valid and submitted
   onSubmitInvalid: ({ value, formApi }) => {},  // called on submit when invalid
   validators: {                          // form-level validators
@@ -17891,12 +17665,12 @@ const field = form.field<string>("name", options)
 // Reactive
 field.value(l)   // string — current value
 field.errors(l)  // unknown[] — current errors
-field.meta(l)    // FieldMeta — full field state
+field.meta(l)    // AnyFieldMeta — full field state
 
 // Imperative
 field.handleChange(newValue)        // update + run onChange validators
 field.handleBlur()                  // mark touched + run onBlur validators
-field.setValue(newValue)            // update without running validators
+field.setValue(newValue)            // update + run onChange validators (same as handleChange)
 field.validate()                    // manually trigger validation (cause: "change")
 field.validate("blur")              // trigger with specific cause
 
@@ -18753,7 +18527,7 @@ import { createQuery } from "@domphy/query/domphy"
 import { skeleton } from "@domphy/ui"
 
 const postQuery = createQuery(queryClient, {
-  queryKey: () => ["post", postId],
+  queryKey: ["post", postId],
   queryFn: () => fetchPost(postId),
 })
 
@@ -19448,7 +19222,7 @@ const form = createForm<LoginInput>({
 ## `FormState` type
 
 ```ts
-import type { FormState } from "@domphy/form"
+import type { AnyFieldMeta, FormState } from "@domphy/form"
 
 // Full form state type (simplified):
 interface FormState<T> {
@@ -19461,20 +19235,31 @@ interface FormState<T> {
   isPristine: boolean
   canSubmit: boolean
   submissionAttempts: number
-  fieldMeta: Record<DeepKeys<T>, FieldMeta>
+  fieldMeta: Partial<Record<DeepKeys<T>, AnyFieldMeta>>
 }
 
 // Access:
 const state: FormState<LoginInput> = form.state()
 ```
 
-## `FieldMeta` type
+## Field meta type
+
+There is no `FieldMeta` export from `@domphy/form` or `@domphy/form/domphy`. The main entry exports `FieldLikeMeta` (fully generic) and `AnyFieldMeta` (erased alias of `AnyFieldLikeMeta`). On a field handle, use `ReturnType<FieldHandle["meta"]>`:
 
 ```ts
-import type { FieldMeta } from "@domphy/form"
+import type { AnyFieldMeta, FieldLikeMeta } from "@domphy/form"
+import type { FieldHandle } from "@domphy/form/domphy"
 
-interface FieldMeta {
+type FieldMeta = ReturnType<FieldHandle["meta"]>
+// or AnyFieldMeta / FieldLikeMeta<...>
+```
+
+Simplified `AnyFieldMeta` fields:
+
+```ts
+interface AnyFieldMeta {
   isTouched: boolean
+  isBlurred: boolean
   isDirty: boolean
   isPristine: boolean
   isValidating: boolean
@@ -19484,6 +19269,8 @@ interface FieldMeta {
     onBlur?: unknown
     onSubmit?: unknown
     onMount?: unknown
+    onServer?: unknown
+    onDynamic?: unknown
   }
 }
 ```
@@ -19532,17 +19319,25 @@ function ItemRow(index: number) {
 }
 ```
 
-## `onSubmit` context type
+## `onSubmit` props
+
+Adapter `createForm` types `onSubmit` as `({ value, formApi })`. `FormHandle.handleSubmit()` takes **no arguments**.
+
+Core `FormApi` `onSubmit` is `({ value, formApi, meta })` — not `context`. To pass submit meta, call the core API:
 
 ```ts
 const form = createForm<FormData>({
   defaultValues: { ... },
-  onSubmit: ({ value, formApi, context }) => {
+  onSubmit: ({ value, formApi }) => {
     // value: FormData
-    // formApi: FormApi<FormData>
-    // context: whatever was passed to form.handleSubmit(undefined, context)
+    // formApi: FormApi<FormData, ...>
   },
 })
+
+await form.handleSubmit()
+
+// Core onSubmit also receives `meta`. Adapter handleSubmit does not forward it:
+await form.form.handleSubmit(meta)
 ```
 
 ## Generic form components
@@ -19552,7 +19347,7 @@ Build typed reusable field inputs:
 ```ts
 import type { FieldHandle } from "@domphy/form/domphy"
 
-function TextInput<T>(field: FieldHandle<T, string>) {
+function TextInput(field: FieldHandle<string>) {
   return {
     div: [
       {
@@ -20144,19 +19939,7 @@ For multiple errors (e.g. cross-field schema errors):
 
 ## Error metadata
 
-`field.meta(l)` returns the full `FieldMeta`:
-
-```ts
-interface FieldMeta {
-  isTouched: boolean
-  isDirty: boolean
-  isPristine: boolean
-  isBlurred: boolean
-  errors: unknown[]
-  errorMap: Partial<Record<"onChange"|"onBlur"|"onSubmit"|"onMount"|"onServer"|"onDynamic", unknown>>
-  isValidating: boolean
-}
-```
+`field.meta(l)` returns `AnyFieldMeta` from `@domphy/form` (there is no `FieldMeta` export). Shape: [Field meta type](./typescript#field-meta-type).
 
 Show a spinner on async validation:
 
@@ -20646,10 +20429,16 @@ A Domphy patch applied via `$`. Wires the FormKit drag-and-drop engine to a reac
 Animations are **enabled by default** — pass `animated: false` to disable.
 
 ```ts
-const list = createVirtualizer(...)   // or just toState([...])
+import { toState } from "@domphy/core"
+import { dragDrop } from "@domphy/dnd"
+
+const items = toState([
+  { id: "a", label: "A" },
+  { id: "b", label: "B" },
+])
 const App = {
   ul: (l) => items.get(l).map((item) => ({ li: item.label, _key: item.id })),
-  $: [dragDrop(items, config?)],
+  $: [dragDrop(items)],
 }
 ```
 
@@ -22070,7 +21859,7 @@ import { sidebar07, login01, dashboard01, chartBarStacked } from "@domphy/blocks
 
 | Export | Status | Reference |
 |---|---|---|
-| `dashboard01` | complete | [source](https://ui.shadcn.com/blocks#dashboard-01) |
+| `dashboard01` | ported | [source](https://ui.shadcn.com/blocks#dashboard-01) |
 
 ### sidebar
 
@@ -22298,7 +22087,9 @@ function name(props?: SomeProps): DomphyElement
 
 ## Finding a block's own props
 
-Each block's props type is exported alongside it (e.g. `HoverBorderGradientProps` next to `hoverBorderGradient`). The fastest way to see a block's full prop contract and inline documentation is to open its source file directly — every block lives under `packages/blocks/src/<source>/<category>/<name>.ts` in the repo, and the path is recorded in [`SOURCES.md`](https://github.com/domphy/domphy/blob/main/packages/blocks/SOURCES.md) / `registry.json`.
+Each generated page under `/docs/blocks/<exportName>` has a Props table for that factory. The `@domphy/blocks` barrel (`packages/blocks/src/index.ts`) re-exports factory functions only — per-block props types are not barrel exports.
+
+Source lives under `packages/blocks/src/<source>/<category>/<name>.ts`; paths are in [`SOURCES.md`](https://github.com/domphy/domphy/blob/main/packages/blocks/SOURCES.md) / `registry.json`.
 
 ## Composing blocks
 
@@ -22507,9 +22298,17 @@ Use `colorFromVisualMap(vm, value)` exported from `@domphy/chart` to resolve a v
 tooltip: {
   trigger?: "axis" | "item",
   axisPointer?: { type?: "line" | "shadow" | "cross" },
-  formatter?: string | ((params: TooltipParams | TooltipParams[]) => string),
+  formatter?:
+    | string
+    | ((
+        params: TooltipParams | TooltipParams[],
+        ticket: string,
+        callback: (ticket: string, html: string) => void,
+      ) => string | DomphyElement),
 }
 ```
+
+`formatter` may return a `DomphyElement` (plain object) or a string.
 
 `trigger: "axis"` shows tooltip for all series at the hovered x value (use with line/bar). `trigger: "item"` shows tooltip for the individual data point closest to the cursor. Works for `scatter` and `pie` series.
 
@@ -22615,7 +22414,7 @@ Series are colored by cycling through Domphy theme families in order:
 primary → secondary → success → warning → error → info → highlight → attention → danger
 ```
 
-Each family is resolved at tone `shift-9` — a concrete hex color (no CSS variable). This means charts render correctly in both light and dark theme without any configuration.
+Each family is resolved at tone `shift-9`. The recommended path is `seriesColor(index)` / `familyCss(family)` — `themeColor()` `var(--…)` refs that follow `[data-theme]` at paint time. `seriesHex` / `familyHex` return a static light-theme hex (no CSS variable) for design-time use.
 
 Override a specific series color:
 
@@ -22691,40 +22490,51 @@ All four types are exported from `@domphy/chart`.
 
 ## Color utilities
 
+Barrel exports from `@domphy/chart`:
+
 ```ts
-import { hexToRgba, seriesHex, seriesRgba, familyHex, familyRgba, seriesPaletteFamily } from "@domphy/chart"
+import {
+  createColorResolver,
+  cssColor,
+  familyCss,
+  familyHex,
+  familyRgba,
+  hexToRgba,
+  seriesColor,
+  seriesHex,
+  seriesPaletteFamily,
+  seriesRgba,
+} from "@domphy/chart"
+import type { ColorResolver, Rgba } from "@domphy/chart"
+
+// type Rgba = [number, number, number, number]  // channels ÷ 255, range 0–1
 ```
+
+`seriesPaletteFamily` cycles the same `SERIES_PALETTE` order as [Series palette](#series-palette).
 
 | Function | Signature | Description |
 |---|---|---|
-| `seriesHex(index)` | `(index: number) => string` | Hex color for series `index` (0-based, cycles through theme palette) |
-| `seriesRgba(index, alpha?)` | `(index: number, alpha?: number) => Rgba` | RGBA object for series `index`. `alpha` defaults to `1`. |
-| `familyHex(family)` | `(family: ThemeFamily) => string` | Hex color for a named theme family (e.g. `"error"`, `"success"`) |
-| `familyRgba(family, tone?, alpha?)` | `(family: ThemeFamily, tone?: number, alpha?: number) => Rgba` | RGBA for a theme family at an optional tone level |
-| `seriesPaletteFamily(index)` | `(index: number) => ThemeFamily` | Maps a series index to its backing `ThemeFamily` (cycles: primary → info → success → warning → error → …) |
-| `hexToRgba(hex)` | `(hex: string) => Rgba` | Parse a hex/rgb string to `{ r, g, b, a }` |
+| `seriesColor(index)` | `(index: number) => string` | Recommended. `var(--…)` ref for series `index` at `shift-9` |
+| `familyCss(family, tone?)` | `(family: ThemeFamily, tone?: string) => string` | Recommended. `var(--…)` ref for a family. Default tone `"shift-9"` |
+| `cssColor(src, fallbackIndex)` | `(src: unknown, fallbackIndex: number) => string` | Paint-safe CSS: family → var ref; hex/rgb/var pass through; else palette fallback |
+| `createColorResolver(el)` | `(el: HTMLElement) => ColorResolver` | Per-pass resolver: `.css(src, fallbackIndex)` for SVG/HTML; `.rgba(src, fallbackIndex, alpha?)` for WebGL floats |
+| `seriesHex(index)` | `(index: number) => string` | Static light-theme hex for series `index` (design-time) |
+| `familyHex(family, tone?)` | `(family: ThemeFamily, tone?: string) => string` | Static light-theme hex. Default tone `"shift-9"` |
+| `seriesRgba(index, alpha?)` | `(index: number, alpha?: number) => Rgba` | `Rgba` tuple for series `index`. `alpha` defaults to `1` |
+| `familyRgba(family, tone?, alpha?)` | `(family: ThemeFamily, tone?: string, alpha?: number) => Rgba` | `Rgba` tuple. Default `tone = "shift-9"`, `alpha = 1` |
+| `seriesPaletteFamily(index)` | `(index: number) => ThemeFamily` | Maps series `index` to its backing family (cycles `SERIES_PALETTE`) |
+| `hexToRgba(hex, alpha?)` | `(hex: string, alpha?: number) => Rgba` | Parse `#rgb` / `#rgba` / `#rrggbb` / `#rrggbbaa` to a `Rgba` tuple |
 
 ```ts
-// Get hex for series index n (0-based):
-const color = seriesHex(0)  // hex string (primary at default tone)
-
-// Get RGBA with custom alpha (e.g. for fill opacity in area charts):
-const fill = seriesRgba(0, 0.15)  // { r, g, b, a: 0.15 }
-
-// Get hex for a theme family:
+const color = seriesColor(0)              // var(--…) ref (primary at shift-9)
+const hex = seriesHex(0)                  // static light-theme hex
+const fill = seriesRgba(0, 0.15)          // [r, g, b, 0.15]  channels in 0–1
 const red = familyHex("error")
-
-// Get RGBA for a theme family:
-const rgba = familyRgba("error", 9, 1)  // { r, g, b, a: 1 }
-
-// Which ThemeFamily backs series index 2?
-const family = seriesPaletteFamily(2)  // e.g. "success"
-
-// Build a palette:
-const palette = [0, 1, 2, 3].map(seriesHex)
-
-// Parse a hex string to RGBA object:
-const rgba2 = hexToRgba("#3a4de9")  // { r: 58, g: 77, b: 233, a: 1 }
+const css = familyCss("error")            // var(--…) ref
+const rgba = familyRgba("error", "shift-9", 1)
+const family = seriesPaletteFamily(2)     // "success"
+const palette = [0, 1, 2, 3].map(seriesColor)
+const parsed = hexToRgba("#3a4de9")       // [58/255, 77/255, 233/255, 1]
 ```
 
 ## VisualMap colors
@@ -22775,7 +22585,7 @@ series: [{
 
 ## Dark mode
 
-All theme family colors (`"primary"`, `"secondary"`, etc.) resolve to concrete hex at render time using the current theme tone. When `data-theme="dark"` is set on a parent element, the colors automatically shift to their dark-mode equivalents — no extra config.
+`seriesColor` / `familyCss` / `cssColor` emit `var(--…)` refs. SVG/HTML layers follow `[data-theme]` at paint time. The `chart()` patch re-renders on theme flips so WebGL uniforms re-resolve through `createColorResolver`. `seriesHex` / `familyHex` / `seriesRgba` / `familyRgba` stay static light-theme values.
 
 Setting `dataTone` on the chart container shifts the entire chart's color family:
 
@@ -23238,25 +23048,23 @@ import {
 
 // Linear: maps numeric domain to pixel range
 const scale = createLinearScale([0, 100], [0, 400])
-scale(50)   // → 200
-scale(0)    // → 0
-scale(100)  // → 400
+scale.map(50)   // → 200
+scale.invert(200)  // → 50
 
 // Ordinal: maps category labels to pixel range (center of each band)
 const ordinal = createOrdinalScale(["A", "B", "C"], [0, 300])
-ordinal("B")  // → 150
+ordinal.map("B")  // → 150
 
 // Time: like linear but domain values are timestamps
 const time = createTimeScale([Date.UTC(2024, 0, 1), Date.UTC(2024, 11, 31)], [0, 600])
-time(Date.UTC(2024, 5, 15))  // → ~300 (mid-year ≈ half of range)
+time.map(Date.UTC(2024, 5, 15))
 
 // Log: logarithmic scale, domain must not cross zero
 const log = createLogScale([1, 1000], [0, 300])
-log(10)   // → 100  (log₁₀(10)/log₁₀(1000) × 300)
-log(100)  // → 200
+log.map(10)   // → 100  (log₁₀(10)/log₁₀(1000) × 300)
 ```
 
-All four scale types are lower-level utilities used internally by the chart engine, exposed for custom rendering or annotation overlays. Each returns a function `(value) => number`.
+All four return a scale object (`map` / `invert` / `ticks` / `bandwidth` / `format`) — not a callable `(value) => number`. Used internally by the engine; public for custom overlays.
 
 ### events.md
 
@@ -23332,9 +23140,7 @@ const option = toState({
 })
 
 const App = {
-  div: null,
-  $: [],
-  _: [
+  div: [
     {
       div: null,
       style: { width: "600px", height: "300px", position: "relative" },
@@ -23356,20 +23162,7 @@ The chart re-renders whenever `option.set()` is called — no `setOption()` requ
 
 ## Legend interaction
 
-Legend items are interactive out of the box — clicking a legend item toggles the corresponding series. No extra config needed.
-
-To detect which series are currently hidden, read `hiddenSeries` from `ChartEngine` directly:
-
-```ts
-import { ChartEngine } from "@domphy/chart"
-
-const engine = new ChartEngine(container)
-await engine.init()
-engine.setOption(option)
-
-// After user toggles legend:
-// engine.hiddenSeries is a Set<string> of hidden series names
-```
+Legend items are interactive out of the box — clicking a legend item toggles the corresponding series. Hidden-series state is internal to `ChartEngine` (not a public field). Drive visibility from `option.legend.selected` / `option.set(...)` if the app needs to know.
 
 ## DataZoom interaction
 
@@ -23397,9 +23190,9 @@ const engine = new ChartEngine(container)
 await engine.init()
 engine.setOption(option)
 
-container.addEventListener("click", (e) => {
-  // Use tooltip params if you need the hovered data point
-  // engine.lastTooltipParams holds the last hovered params
+container.addEventListener("click", () => {
+  // ChartEngine has no lastTooltipParams. Use tooltip.formatter
+  // (string or DomphyElement) for hover, and app-level onClick for selection.
 })
 ```
 
@@ -23711,7 +23504,7 @@ description: "ECharts-grade charting for Domphy — WebGL line/bar/scatter/pie/r
 
 # @domphy/chart
 
-ECharts-grade charting for Domphy. WebGL-accelerated series for performance-critical data, SVG series for complex layouts. Full parity with ECharts including geo maps, calendar, parallel coordinates, ThemeRiver, and 3D charts. No React dependency.
+ECharts-grade charting for Domphy. WebGL-accelerated series for performance-critical data, SVG series for complex layouts. The **option types** follow ECharts; polar coordinates, brush, and toolbox are typed only (not rendered). See [vs ECharts](/docs/chart/vs-echarts) for the honest matrix. No React dependency.
 
 ## Install
 
@@ -25579,6 +25372,7 @@ There is no pre-populated class catalog — a tag resolves by reflection: your `
 | `dispose: null` | Opts this node's whole subtree out of auto-dispose on removal, regardless of any descendant's own `dispose` prop. |
 | `raycast: null` | Sets the instance's own `.raycast` to `null` (standard three.js convention) — excludes it from pointer raycasting. |
 | `_key` | Reconcile identity for this position in its parent's children — same semantics as core: keyed match wins over positional match by tag. Not DOM id / business identity. |
+| `_doctorDisable` | Suppress `diagnose()` / `validate()` on this node: `true`, a rule id, or `string[]`. Same shape as `@domphy/doctor`. |
 | `object` | The adopted `THREE` instance — only valid on a `primitive` tag. See [`primitive`](#primitive). |
 | `onFramePriority` | Sibling of `onFrame` — priority > 0 callbacks take over rendering for that frame (see [Animation & Loop](./animation)). |
 
@@ -25803,6 +25597,26 @@ If you know `@react-three/fiber`, the translation is mechanical:
 | `useLoader(GLTFLoader, url)` | `loadAsset(GLTFLoader, url)` → `{ data, error, promise }` |
 
 The first key of a scene object is its tag (the camelCase of a `THREE` class, or a name registered via `extend()`) — the three.js equivalent of core's "first key = HTML tag". Every other key is a prop.
+
+## Scene doctor
+
+`diagnose(options)` / `validate(options)` statically lint a `three()` option object — doctor cannot see a scene description because it is not a `DomphyElement`. Same contract shape as `@domphy/doctor`: `diagnose` returns `SceneDiagnostic[]`; `validate` adds `{ ok, issues, summary }` (`ok` is true when there are no error-severity issues). Options: `only` / `exclude` rule-id lists. Per-node suppression: `_doctorDisable: true | "rule-id" | string[]`.
+
+| Rule | Severity |
+| --- | --- |
+| `unknown-tag` | error |
+| `tag-not-first` | error |
+| `legacy-light-intensity` | warning |
+| `additive-blowout` | warning |
+| `camera-missing-lookat` | warning |
+
+```ts
+import { diagnose, three, validate } from "@domphy/three"
+
+const options = { scene: [{ mesh: [{ boxGeometry: null }] }] }
+diagnose(options)
+validate(options).ok
+```
 
 ## Next steps
 
@@ -27342,7 +27156,7 @@ const rgb = hexToRgb("#3b82f6")  // [0.0438, 0.2233, 0.9216]  — linear sRGB
 const hex = rgbToHex(rgb)        // "#3b82f6"
 ```
 
-Input hex must be `#rrggbb` (lowercase or uppercase, both work). Both functions use the standard sRGB gamma curve (γ = 2.4 with a linear toe).
+Input hex is accepted via `normalizeHex` / `isValidHex`: `#rgb`, `#rgba`, `#rrggbb`, or `#rrggbbaa` (case-insensitive). Shorthand expands (`#fff` → `#ffffff`). Alpha digits, if present, are ignored. Invalid input throws. Both functions use the standard sRGB gamma curve (γ = 2.4 with a linear toe).
 
 ### Linear RGB ↔ CIELAB
 
@@ -28376,9 +28190,9 @@ Props:
 | `replace` | `false` | replace the history entry |
 | `scroll` | `true` | scroll to top (or `#hash`) after navigating |
 | `exact` | `false` | active only on exact pathname match |
-| `router` | app router | explicit router instance |
+| `router` | app router | explicit router instance — optional for factory-created links |
 
-When no `router` prop is given, `navLink` resolves the app router lazily from a single module-level "default router" set by the most recently constructed `AppRouter`. A Node server that serves multiple requests concurrently (each calling `createApp(routes)` + `renderToString`/`renderToStream` per request, as in [Server Rendering](/docs/app/ssr)) can have that default router reassigned mid-render by another in-flight request, causing `navLink`'s active-state resolution to throw or read the wrong request's state. Always pass `router: app.router` explicitly to `navLink` on the server (or anywhere `renderToString`/`renderToStream` may run concurrently) to avoid this race; on the client there is only ever one app instance, so the default lookup is safe.
+`navLink` captures the router at patch-creation time. Page/layout factories run inside a per-request `renderStack`, so a link created in a `page` / `layout` factory binds to the router that is rendering it — concurrent `renderToString` / `renderToStream` do **not** require `router:` on every link. Pass `router` when the patch is created **outside** a render (module scope, a helper that runs before `createApp()`, a test harness). The prop is always allowed; it is not required for factory-created links.
 
 ## The Router
 
@@ -28657,7 +28471,7 @@ const result = await app.renderToString(request.url, { headers: request.headers 
 | `html` | markup of the app root |
 | `css` | scoped CSS of the rendered tree |
 | `head` | serialized `<title>` / `<meta>` / `<link>` tags |
-| `status` | `200`, `404`, or `307`/`308` for redirects |
+| `status` | `200`, `404`, `500` (router `error`, e.g. a rewrite loop), or `307`/`308` for redirects |
 | `redirect` | redirect target, when a loader/middleware redirected |
 | `data` | loader results, keyed for hydration |
 | `bootstrapScript` | inline `<script>` exposing `data` to the client |
@@ -28699,7 +28513,7 @@ ${result.bootstrapScript}
 }).listen(3000)
 ```
 
-Node serves requests concurrently, so if your route tree renders any `navLink`, pass `router: app.router` to it explicitly here — see the [`navLink` router prop warning](/docs/app/navigation#navlink) for why.
+Concurrent `renderToString` / `renderToStream` calls each build their tree with that request's router on the render stack, so factory-created [`navLink`](/docs/app/navigation#navlink)s (no `router` prop) bind correctly. Pass `router` only when the link is created outside a render.
 
 ## Hydration
 
@@ -32657,15 +32471,18 @@ Use `detectLocale` with `pathSegment: true` to read the locale from `/vi/...` UR
 
 ```ts
 import { i18n } from "./i18n"
-import { createRouter } from "@domphy/router"
+import { createRootRoute, createRouter } from "@domphy/router"
 
-const router = createRouter({
-  beforeLoad: async ({ pathname }) => {
-    // Detect locale from /vi/... prefix
+// `beforeLoad` is RouteOptions only (createRootRoute / createRoute) — not RouterOptions.
+const rootRoute = createRootRoute({
+  beforeLoad: async () => {
+    // detectLocale({ pathSegment: true }) reads the first URL segment (e.g. /vi/...).
     const detected = i18n.detectLocale({ pathSegment: true, storageKey: "locale" })
     await i18n.initI18n(detected)
   },
 })
+
+const router = createRouter({ routeTree: rootRoute })
 ```
 
 ## Using translations in elements
@@ -33154,11 +32971,11 @@ interface BuildOptions {
 
 ### `defineConfig(config)`
 
-Type-helper passthrough. Returns its argument typed as `SiteConfig`. Use this in `press.config.ts` for TypeScript inference:
+Builds a new `SiteConfig` with defaults — not a passthrough. Contract: [Configuration](/docs/press/config).
 
 ```ts
 import { defineConfig } from "@domphy/press"
-export default defineConfig({ /* inferred as SiteConfig */ })
+export default defineConfig({ /* UserConfig → SiteConfig */ })
 ```
 
 ## Rendering
@@ -33320,10 +33137,22 @@ description: "Full reference for @domphy/press site configuration."
 ```ts
 import { defineConfig } from "@domphy/press"
 
-export default defineConfig({ /* SiteConfig */ })
+export default defineConfig({ /* UserConfig */ })
 ```
 
-`defineConfig` is a passthrough helper for TypeScript inference — it returns its argument typed as `SiteConfig`.
+`defineConfig` builds a **new** `SiteConfig` — it is not a passthrough. Input type is `UserConfig` (`base` / `srcDir` / `outDir` / `head` optional). Defaults applied:
+
+| Field | Default |
+|---|---|
+| `base` | `"/"` |
+| `srcDir` | `"."` |
+| `outDir` | `"dist"` |
+| `head` | `[]` |
+| `themeConfig` | merged onto `{ nav: [], sidebar: {} }` |
+
+The CLI runs loaded plain-object configs through `defineConfig` as well, so they get the same defaults.
+
+`srcDir` and `outDir` on the returned `SiteConfig` stay as those path strings (relative unless you pass an absolute path). The CLI `resolve()`s them against `process.cwd()` at `build` / `dev` time.
 
 ## SiteConfig
 
@@ -33331,12 +33160,12 @@ export default defineConfig({ /* SiteConfig */ })
 |---|---|---|
 | `title` | `string` | Site title — appended to page titles |
 | `description` | `string` | Default meta description |
-| `base` | `string` | Deploy base path (e.g. `"/"` or `"/docs/"`) — internal nav/sidebar/hero links and canonical/sitemap/OG URLs are prefixed automatically (write them root-relative) |
+| `base` | `string` | Deploy base path (e.g. `"/"` or `"/docs/"`) — internal nav/sidebar/hero links and canonical/sitemap/OG URLs are prefixed automatically (write them root-relative). Default `"/"` |
 | `hostname` | `string` | Canonical hostname for sitemap and OG (e.g. `"https://example.com"`) |
-| `srcDir` | `string` | Absolute path to the Markdown source directory |
-| `outDir` | `string` | Absolute path to the build output directory |
-| `head` | `string[]` | Raw `<head>` tags injected verbatim (analytics, icons) |
-| `themeConfig` | `ThemeConfig` | Navigation, sidebar, footer, social links, etc. |
+| `srcDir` | `string` | Markdown source directory. Default `"."` (relative). The CLI `resolve()`s it against `process.cwd()` at build/dev time |
+| `outDir` | `string` | Build output directory. Default `"dist"` (relative). Same CLI resolve as `srcDir` |
+| `head` | `string[]` | Raw `<head>` tags injected verbatim (analytics, icons). Default `[]` |
+| `themeConfig` | `ThemeConfig` | Navigation, sidebar, footer, social links, etc. `defineConfig` merges the value you pass onto `{ nav: [], sidebar: {} }` |
 | `lastUpdated` | `boolean?` | Show last-updated date from `git log`. Default: `false` |
 | `continueOnError` | `boolean?` | Keep building (and exit 0) when individual pages fail. Default: `false` — any page error fails the build |
 | `cspNonce` | `string?` | Content-Security-Policy nonce stamped on every inline `<script>`/`<style>` press emits and forwarded to `@domphy/app` SSR |
@@ -33393,104 +33222,47 @@ For custom icons, pass a URL or SVG data URI as `icon`.
 
 ---
 title: "Custom Theme & Slots"
-description: "Override layout regions, customize colors and fonts, and extend the press theme for brand-specific doc sites."
+description: "Brand a press site: layout slots, logo, fonts, theme tokens, announcement bar."
 ---
 
 # Custom Theme & Slots
 
-## Slot system overview
+Slot names, `LayoutContext`, and frontmatter flags live on [Customization](/docs/press/customization). This page is the branding path: logo, fonts, colors, announcement bar.
 
-`@domphy/press` exposes named layout slots — replace any region of the default layout without rebuilding the entire shell:
+Shipped `LayoutSlots` keys: `header`, `sidebar`, `aside`, `prevNext`, `docFooter`, `footer`. There is no `logo` / `navBefore` / `sidebarHeader` / `contentBefore` / `docAside` / `notFound` slot. Logo is `themeConfig.logo`. TOC is the `aside` slot. 404 is generated HTML, not a slot.
 
 ```ts
-// press.config.ts
-import { defineConfig } from "@domphy/press"
-import { CustomLogo, CustomFooter, CustomSidebarHeader } from "./theme"
+import { defineConfig, type LayoutContext, type DomphyElement } from "@domphy/press"
 
 export default defineConfig({
   themeConfig: {
+    logo: "/logo.svg",
     slots: {
-      logo: CustomLogo,           // replace the site logo
-      footer: CustomFooter,       // replace the footer
-      sidebarHeader: CustomSidebarHeader,   // insert above sidebar nav
-      navBefore: AnnouncementBar, // before the top nav
-      contentBefore: EditBanner,  // before every page's content
-      contentAfter: PageFeedback, // after every page's content
+      footer: (_ctx: LayoutContext): DomphyElement => ({
+        footer: "© 2026 My Company",
+      }),
     },
   },
 })
 ```
 
-## Available slots
+`pageShell(ctx)` and `homeShell(ctx)` each take **one** argument. Page content is `ctx.body`, not a second parameter. `LayoutContext` has `route`, `title`, `body`, `toc`, `frontmatter`, `config`, `lastUpdated?`, `readingTime?`, `filePath?` — no `sidebar` field (the sidebar comes from `config.themeConfig.sidebar`).
 
-| Slot | Location | Default |
-|------|----------|---------|
-| `logo` | Top-left of nav | Site title text |
-| `navBefore` | Before the nav bar | — |
-| `navAfter` | After the nav bar | — |
-| `sidebarHeader` | Top of sidebar panel | — |
-| `sidebarFooter` | Bottom of sidebar panel | — |
-| `contentBefore` | Before page content | — |
-| `contentAfter` | After page content | — |
-| `footer` | Bottom of every page | Auto-generated |
-| `docAside` | Right side TOC panel | TOC |
-| `notFound` | 404 page | Default 404 |
-
-## Custom logo
-
-Replace the text logo with an SVG or image:
+## Logo
 
 ```ts
-const CustomLogo = {
-  a: [
-    {
-      img: null,
-      src: "/logo.svg",
-      alt: "My Docs",
-      style: { height: "28px", width: "auto" },
-    },
-  ],
-  href: "/",
-  style: { display: "flex", alignItems: "center" },
-}
-```
-
-## Theme colors
-
-Override the press theme colors to match your brand. The press theme uses Domphy `@domphy/theme` — set theme variables on `:root`:
-
-```ts
-// In press.config.ts — inject CSS into the head
 export default defineConfig({
-  head: [
-    `<style>
-      :root {
-        /* Override primary color family */
-        --primary-hue: 260;    /* purple */
-        --primary-chroma: 0.18;
-
-        /* Override neutral warmth */
-        --neutral-hue: 240;
-        --neutral-chroma: 0.01;
-      }
-    </style>`,
-  ],
+  themeConfig: {
+    logo: "/logo.svg",
+    // or per scheme:
+    // logo: { light: "/logo-light.svg", dark: "/logo-dark.svg" },
+  },
 })
 ```
 
-Or call `themeApply()` after `setTheme()` to inject updated CSS variables into the page:
+## Fonts
 
-```ts
-// client/theme-setup.ts
-import { setTheme, themeApply } from "@domphy/theme"
-
-setTheme("light", { colors: { primary: [/*...18 lch values...*/], neutral: [/*...18 lch values...*/] } })
-themeApply()  // injects updated CSS vars into the document
-```
-
-## Custom fonts
-
-Add Google Fonts or self-hosted fonts:
+Press reads `--dp-font-sans`, `--dp-font-mono`, `--dp-font-display` — not `--font-sans`. Layout classes are `dp-sidebar-*` / `dp-toc`, not `.doc-content`.
 
 ```ts
 export default defineConfig({
@@ -33498,126 +33270,39 @@ export default defineConfig({
     `<link rel="preconnect" href="https://fonts.googleapis.com">`,
     `<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>`,
     `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fira+Code&display=swap">`,
-    `<style>
-      :root {
-        --font-sans: 'Inter', system-ui, sans-serif;
-        --font-mono: 'Fira Code', monospace;
-      }
-    </style>`,
+    `<style>:root{--dp-font-sans:"Inter",system-ui,sans-serif;--dp-font-mono:"Fira Code",ui-monospace,monospace}</style>`,
   ],
 })
 ```
 
-## Custom CSS
+## Colors
 
-Inject global CSS for the docs site:
-
-```ts
-export default defineConfig({
-  head: [
-    `<style>
-      /* Wider content area */
-      .doc-content { max-width: 900px; }
-
-      /* Custom code block style */
-      .shiki { border-radius: 8px; border: 1px solid var(--neutral-3); }
-
-      /* Hide sidebar on print */
-      @media print {
-        .doc-sidebar { display: none; }
-        .doc-content { max-width: 100%; }
-      }
-    </style>`,
-  ],
-})
-```
-
-## Custom footer
+`@domphy/theme` does not emit `--primary-hue` / `--primary-chroma`. Change ramps with `setTheme` + `themeApply()`, or override the generated `--{family}-{N}` variables. `themeApply()` writes into a `<style>` tag — call it from client code after `setTheme`, not as a font API.
 
 ```ts
-const Footer = {
-  footer: [
-    {
-      div: [
-        { span: "© 2025 My Company" },
-        { a: "Privacy", href: "/privacy" },
-        { a: "Terms", href: "/terms" },
-      ],
-      style: {
-        display: "flex",
-        gap: "1rem",
-        justifyContent: "center",
-        padding: "2rem",
-        borderTop: "1px solid var(--neutral-3)",
-      },
-    },
-  ],
-}
+import { setTheme, themeApply } from "@domphy/theme"
+
+setTheme("light", { colors: { primary: [/* 18 hexes */] } })
+themeApply()
 ```
 
-## Page-level slots with frontmatter
-
-Control slots per-page using frontmatter:
-
-```md
----
-title: "Getting Started"
-layout: home
-aside: false
----
-```
-
-```ts
-// In press.config.ts — react to page-level layout options
-export default defineConfig({
-  themeConfig: {
-    slots: {
-      docAside: (context) =>
-        context.frontmatter.aside === false ? null : DefaultTOC,
-    },
-  },
-})
-```
-
-`context` receives:
-- `context.frontmatter` — the page's frontmatter object
-- `context.route` — current route path
-- `context.sidebar` — resolved sidebar for the current route
+Custom roles must also be registered on `"light"` or `themeColor()` throws. `setTheme` does not auto-reverse into `dark`.
 
 ## Announcement bar
-
-Show a dismissible banner at the top of the site:
 
 ```ts
 export default defineConfig({
   themeConfig: {
     announcementBar: {
-      id: "v2-release",   // unique — controls dismiss state in localStorage
-      text: "🎉 Domphy v2.0 is out! <a href='/blog/v2'>Read the release notes</a>",
+      id: "v2-release",
+      text: "Domphy v2 is out. <a href='/blog/v2'>Notes</a>",
       dismissible: true,
     },
   },
 })
 ```
 
-`text` is rendered as HTML (wrapped in `rawHtml()` by the layout) — the same controlled-markup contract as `footerMessage`. Inline tags like `<a>` are allowed; keep it to markup you control.
-
-## Extending the layout component
-
-For deeper layout customization, override the layout shell functions exported from `@domphy/press`:
-
-```ts
-import { defineConfig, homeShell, pageShell } from "@domphy/press"
-
-// pageShell(context, content) and homeShell(context) are the layout entry points.
-// Pass custom overrides via themeConfig slots (see Customization guide).
-export default defineConfig({
-  themeConfig: {
-    // Use slots to inject content into specific regions of the built-in layout.
-    // For full layout replacement, provide a custom press theme via pressCSS + custom shell.
-  },
-})
-```
+`text` is wrapped in `rawHtml()` — keep it to markup you control. Dismiss state is keyed by `id` in `localStorage`.
 
 ### customization.md
 
@@ -33895,167 +33580,14 @@ See [Customization](/docs/press/customization) for full examples.
 
 ---
 title: "Extending Markdown"
-description: "Built-in Markdown containers, code-group tabs, file imports, and badges."
+description: "There is no Markdown plugin API in @domphy/press yet."
 ---
 
 # Extending Markdown
 
-`@domphy/press` ships a VitePress-compatible Markdown pipeline built on remark + GFM. There is no config API for adding custom plugins yet (`markdown` in `press.config.ts` is reserved for a future release). The built-in feature set covers the most common documentation patterns.
+There is no config API for adding custom Markdown plugins. `SiteConfig.markdown` is typed `Record<string, never>` and is a no-op — reserved for a future release.
 
-## Containers (admonitions)
-
-Use `` to create styled callout blocks. The type becomes a CSS class `custom-block <type>`:
-
-```markdown
-
-Tip with a custom title.
-
-```
-
-All supported container types:
-
-| Type | Default title |
-|---|---|
-| `tip` | TIP |
-| `warning` | WARNING |
-| `info` | INFO |
-| `danger` | DANGER |
-| `note` | NOTE |
-| `abstract` | ABSTRACT |
-| `success` | SUCCESS |
-| `question` | QUESTION |
-| `failure` | FAILURE |
-| `bug` | BUG |
-| `example` | EXAMPLE |
-| `quote` | QUOTE |
-
-## Details (collapsible)
-
-```markdown
-
-Hidden content revealed on click.
-
-Content here.
-
-```
-
-Renders as a native `<details>`/`<summary>` element.
-
-## Steps
-
-```markdown
-
-```bash
-pnpm add @domphy/press
-```
-
-**Create `press.config.ts`:**
-
-```ts
-import { defineConfig } from "@domphy/press"
-export default defineConfig({ title: "My Docs", ... })
-```
-
-**Run the dev server:**
-
-```bash
-npx domphy-press dev
-```
-
-```
-
-Renders as a numbered step sequence (CSS counter via `.custom-block.steps`).
-
-## Card grid
-
-```markdown
-
-- Fast static output
-- Reactive Domphy theming
-
-Everything you need to get up and running.
-
-```
-
-`card` = styled content card; `link-card [Label](href)` = clickable card that links to a page.
-
-## Code-group tabs
-
-Group multiple code blocks into a tabbed panel:
-
-````markdown
-
-npm install @domphy/press
-```
-```bash [pnpm]
-pnpm add @domphy/press
-```
-```bash [yarn]
-yarn add @domphy/press
-```
-
-````
-
-The label in `[brackets]` after the language becomes the tab name.
-
-## File imports (`<<<`)
-
-Embed a file from the repo directly into a code block:
-
-```markdown
-// source: ./src/example.ts
-
-// source: ./src/example.ts [Custom Label]
-```
-
-The file extension determines the language automatically. The `@/` prefix resolves from the docs root:
-
-```markdown
-// source: /snippets/config.ts
-```
-
-## `<Badge>` inline
-
-```markdown
-Feature <Badge type="tip" text="New" /> is available.
-
-<Badge type="warning" text="Beta" />
-<Badge type="danger" text="Deprecated" />
-<Badge type="info" text="Experimental" />
-```
-
-Renders as a small inline label styled by the press theme. Available types: `tip`, `info`, `warning`, `danger`.
-
-## Frontmatter
-
-Every Markdown file supports YAML frontmatter — available in the layout as `frontmatter`:
-
-```markdown
----
-title: "My Page"
-description: "A short description."
-date: 2024-01-15
-tags: [guide, advanced]
----
-
-# Content starts here
-```
-
-Access in a custom layout slot:
-
-```ts
-// press.config.ts
-export default defineConfig({
-  themeConfig: {
-    slots: {
-      docFooter: ({ frontmatter }) =>
-        frontmatter.date
-          ? { p: `Last updated: ${frontmatter.date}`, class: "doc-date" }
-          : null,
-    },
-  },
-})
-```
+Authoring (containers, details, steps, code groups, file imports, badges, frontmatter) lives in [Markdown Features](/docs/press/markdown). The pipeline you can call yourself (`parseMarkdown`, `createMarkdown`, remark plugins) is in [Markdown](/docs/markdown/).
 
 ### i18n.md
 
@@ -34604,6 +34136,19 @@ const { prev, next } = prevNextForRoute("/guide/intro", config)
 // next: { text: "Config", link: "/guide/config" }
 ```
 
+### `withBase(base, href)`
+
+Prefixes a root-relative href with the site `base` so internal links resolve on non-root deployments (VitePress `withBase` parity). External URLs, anchors, and hrefs already under the base pass through. Also exported from `@domphy/press/browser`.
+
+```ts
+import { withBase } from "@domphy/press"
+
+withBase("/docs/", "/guide/intro")   // → "/docs/guide/intro"
+withBase("/", "/guide/intro")        // → "/guide/intro"
+withBase("/docs/", "https://x.com")  // → "https://x.com"
+withBase("/docs/", "/docs/guide/")   // → "/docs/guide/"  (already under base)
+```
+
 ## `PageEntry` type
 
 ```ts
@@ -34717,8 +34262,11 @@ interface SearchWidgetOptions {
   indexUrl?: string       // URL to the search index JSON (default: "/search-index.json")
   placeholder?: string    // input placeholder text
   limit?: number          // max results (default: 10)
+  basePath?: string       // site base without trailing slash (e.g. "/docs"); prefixed onto result hrefs so they resolve on non-root deploys. Default ""
 }
 ```
+
+The islands bundle press emits sets `basePath` from `config.base` automatically. Pass it yourself when you embed `searchWidget()` / `mountSearch()` under a sub-path.
 
 ### `mountSearch(container, options?)`
 
@@ -34820,37 +34368,12 @@ Before writing `button(...)` or `card(...)`, the agent should look up the patch'
 }
 ```
 
-The returned object includes:
-
-```json
-{
-  "name": "button",
-  "hostTag": "button",
-  "signature": "button(props?: { color?: ThemeColor })",
-  "props": [
-    { "name": "color", "type": "ThemeColor", "optional": true, "doc": "Theme color family." }
-  ],
-  "doc": "A themed button.",
-  "example": "{ button: \"Click me\", $: button() }",
-  "source": "packages/ui/src/patches/button.ts"
-}
-```
-
-Without this step, an agent that has not seen a recent Domphy snapshot will invent a plausible but wrong signature — wrong prop names, wrong host tag, or calling a patch that does not exist.
+The response is host tag, signature, props, example, jsdoc, and source — [Tools Reference](./tools.md#domphy_get_patch). Without this step, an agent that has not seen a recent Domphy snapshot will invent a plausible but wrong signature.
 
 To discover what patches are available, call `domphy_list_patches` first:
 
 ```json
 { "name": "domphy_list_patches", "arguments": {} }
-```
-
-Output lists every patch with its host tag and signature:
-
-```
-button <button> — button(props?: { color?: ThemeColor })
-card <article> — card(props?: { color?: ThemeColor })
-inputText <input> — inputText(props?: { … })
-…
 ```
 
 ### Step 3 — Check tones before calling themeColor()
@@ -34878,27 +34401,11 @@ After generating a tree, run it through `domphy_validate` before returning it:
 }
 ```
 
-Check `ok` in the response. If `ok` is `false`, there are `error`-severity issues that must be fixed:
-
-```json
-{
-  "ok": false,
-  "issues": [
-    {
-      "rule": "void-content",
-      "severity": "error",
-      "path": "div > input",
-      "message": "Void tag \"input\" must have null content (got string).",
-      "hint": "Write { input: null, … } and put attributes as sibling keys."
-    }
-  ],
-  "summary": { "error": 1, "warning": 0, "info": 0, "total": 1 }
-}
-```
+Check `ok` in the response. If `ok` is `false`, there are `error`-severity issues that must be fixed (warnings and info do not flip `ok`). Schema: [Tools Reference](./tools.md#domphy_validate).
 
 ### Step 5 — Fix and address remaining issues
 
-Call `domphy_fix` on the same tree. It applies every lossless fix (currently `void-content`) and returns what remains:
+Call `domphy_fix` on the same tree. It applies every lossless fix (currently `void-content`) and returns `{ tree, applied, report }` — [Tools Reference](./tools.md#domphy_fix).
 
 ```json
 {
@@ -34906,22 +34413,6 @@ Call `domphy_fix` on the same tree. It applies every lossless fix (currently `vo
   "arguments": {
     "element": "{\"div\": {\"input\": \"search here\"}}"
   }
-}
-```
-
-Response:
-
-```json
-{
-  "tree": { "div": { "input": null } },
-  "applied": [
-    {
-      "rule": "void-content",
-      "path": "div > input",
-      "message": "Void tag <input> cannot have content — cleared to null."
-    }
-  ],
-  "report": { "ok": true, "issues": [], "summary": { "error": 0, "warning": 0, "info": 0, "total": 0 } }
 }
 ```
 
@@ -35107,58 +34598,12 @@ The path is resolved relative to the process working directory (the repo root wh
 
 If `DOMPHY_APP_MANIFEST` is not set, the server defaults to `./app-manifest.json` in the working directory.
 
-## domphy_list_app_blocks
+## Tools
 
-Lists every block and patch in the manifest with its kind, signature, and file.
+`domphy_list_app_blocks` and `domphy_get_app_block` read that manifest. Input/output schemas: [Tools Reference](./tools.md#domphy_list_app_blocks).
 
-**Input:** none
-
-**Output:**
-
-```
-Hero [block] — Hero: DomphyElement<"section">  (src/blocks/hero.ts)
-Card [patch] — Card(props: { title: string; body: string }): DomphyElement<"article">  (src/blocks/card.ts)
-```
-
-If the manifest file is absent:
-
-```
-No app-manifest found at "./app-manifest.json". Generate it with
-`node apps/web/scripts/app-manifest.mjs <srcDir> <outFile>` and point
-DOMPHY_APP_MANIFEST at the output (default ./app-manifest.json).
-```
-
-## domphy_get_app_block
-
-Returns one block's full source file alongside its signature and jsdoc.
-
-**Input:**
-
-| Field | Type | Description |
-|---|---|---|
-| `name` | `string` | Block name, e.g. `"Card"` |
-
-**Output:**
-
-```json
-{
-  "name": "Card",
-  "kind": "patch",
-  "file": "src/blocks/card.ts",
-  "signature": "Card(props: { title: string; body: string }): DomphyElement<\"article\">",
-  "jsdoc": "A card with a title and body.",
-  "exportKind": "named",
-  "source": "import type { DomphyElement } from \"@domphy/core\"\n\n/** A card with a title and body. */\nexport const Card = ..."
-}
-```
-
-If the name is not found, the tool suggests near matches:
-
-```
-No app block named "Crd". Did you mean: Card?
-```
-
-The `source` field contains the full content of the file the block is declared in. If the file cannot be read (e.g. a path that moved since the manifest was generated), `source` contains an error note but all other fields are still present.
+- **List** — one line per block: `Hero [block] — Hero: DomphyElement<"section">  (src/blocks/hero.ts)`. Missing file: the tool tells you to generate the manifest and point `DOMPHY_APP_MANIFEST` at it.
+- **Get** — one block's source, signature, and jsdoc by `name`. Unknown name suggests near matches (`No app block named "Crd". Did you mean: Card?`). `source` is the full file the block is declared in; if that path cannot be read, `source` is an error note and the other fields still return.
 
 ## Keeping the manifest fresh
 
@@ -35323,12 +34768,14 @@ If the tool is not found, check that the config file is valid JSON and the corre
 
 ---
 title: "Doctor Tools"
-description: "Use domphy_diagnose, domphy_validate, and domphy_fix to check and repair Domphy element trees. Covers all rules, output shapes, and real examples."
+description: "Use domphy_diagnose, domphy_validate, and domphy_fix to check and repair Domphy element trees."
 ---
 
 # Doctor Tools
 
 Three tools in `@domphy/mcp` run [`@domphy/doctor`](../doctor/) on element trees locally — no network needed. They form a self-correction loop: an AI agent writes a tree, validates it, fixes safe issues automatically, then addresses the rest before returning the result.
+
+Input/output schemas: [Tools Reference](./tools.md#domphy_diagnose). Rule catalog: [Doctor](/docs/doctor/#rules).
 
 | Tool | Returns | Use when |
 |---|---|---|
@@ -35336,17 +34783,11 @@ Three tools in `@domphy/mcp` run [`@domphy/doctor`](../doctor/) on element trees
 | `domphy_validate` | JSON `{ ok, issues, summary }` | Programmatic pass/fail decision |
 | `domphy_fix` | JSON `{ tree, applied, report }` | Auto-fixing lossless issues then seeing what remains |
 
-## domphy_diagnose
+Pass the element tree as a **JSON string**. Reactive function values (`(l) => …`) are not JSON-serializable — the doctor skips those nodes on JSON input from an AI agent.
 
-Pass the element tree as a **JSON string**. The tool parses it, runs every rule, and returns a formatted text report — one line per issue.
+## Examples
 
-### Input
-
-| Field | Type | Required |
-|---|---|---|
-| `element` | `string` | Yes — JSON of the element tree |
-
-### Example — issue found
+### Issue found (`domphy_diagnose`)
 
 ```json
 {
@@ -35357,32 +34798,15 @@ Pass the element tree as a **JSON string**. The tool parses it, runs every rule,
 }
 ```
 
-Output:
-
 ```
 ✗ [void-content] input
   Void tag "input" must have null content (got string).
   → Write { input: null, … } and put attributes as sibling keys.
 ```
 
-### Example — clean tree
+Clean tree returns `✓ No issues found.`
 
-```json
-{
-  "name": "domphy_diagnose",
-  "arguments": {
-    "element": "{\"div\": \"hello\"}"
-  }
-}
-```
-
-Output:
-
-```
-✓ No issues found.
-```
-
-### Example — multiple issues
+### Multiple issues
 
 ```json
 {
@@ -35393,8 +34817,6 @@ Output:
 }
 ```
 
-Output:
-
 ```
 ⚠ [inline-typography] div > p
   Inline `fontSize` — avoid inline typography styles.
@@ -35404,32 +34826,9 @@ i [raw-theme-value] div > p
   → Prefer a theme token — (l) => themeColor(l, "base", "neutral") [perceptual LCH L=20 C=0 h=0°] — so theming and dark mode apply.
 ```
 
-## domphy_validate
+### Pass/fail (`domphy_validate`)
 
-Returns a structured JSON report suitable for programmatic use. `ok` is `false` when any `error`-severity diagnostic is present — warnings and info do not flip it.
-
-### Output shape
-
-```typescript
-{
-  ok: boolean
-  issues: Array<{
-    rule: string
-    severity: "error" | "warning" | "info"
-    path: string      // human path like "div > ul > li"
-    message: string
-    hint?: string
-  }>
-  summary: {
-    error: number
-    warning: number
-    info: number
-    total: number
-  }
-}
-```
-
-### Example
+`ok` is `false` when any `error`-severity diagnostic is present — warnings and info do not flip it.
 
 ```json
 {
@@ -35439,8 +34838,6 @@ Returns a structured JSON report suitable for programmatic use. `ok` is `false` 
   }
 }
 ```
-
-Output:
 
 ```json
 {
@@ -35454,42 +34851,13 @@ Output:
       "hint": "Write { input: null, … } and put attributes as sibling keys."
     }
   ],
-  "summary": {
-    "error": 1,
-    "warning": 0,
-    "info": 0,
-    "total": 1
-  }
+  "summary": { "error": 1, "warning": 0, "info": 0, "total": 1 }
 }
 ```
 
-## domphy_fix
+### Auto-fix then report (`domphy_fix`)
 
-Applies every **lossless** fix to a copy of the tree, then re-validates. Issues that require semantic intent (which tone to pick, which typography patch to use) are left untouched and appear in `report`.
-
-Currently the only auto-applied fix is `void-content` — setting a void tag's content to `null`. All other rules need a human or model decision.
-
-### Output shape
-
-```typescript
-{
-  tree: unknown          // deep copy of the input with lossless fixes applied
-  applied: Array<{
-    rule: string
-    path: string         // e.g. "div > input"
-    message: string
-  }>
-  report: {              // validate() run on the fixed tree
-    ok: boolean
-    issues: Diagnostic[]
-    summary: { error, warning, info, total }
-  }
-}
-```
-
-### Example
-
-Input tree has a void tag with content (lossless fix) and an inline typography style (requires intent — stays in report):
+Applies every **lossless** fix to a copy of the tree, then re-validates. Currently the only auto-applied fix is `void-content` (void tag content → `null`). Issues that need semantic intent (which tone, which typography patch) stay in `report`.
 
 ```json
 {
@@ -35499,8 +34867,6 @@ Input tree has a void tag with content (lossless fix) and an inline typography s
   }
 }
 ```
-
-Output:
 
 ```json
 {
@@ -35533,42 +34899,15 @@ Output:
 }
 ```
 
-The tree's `input` is now `null`; the `p`'s inline `fontSize` is reported but not touched — changing it to a patch requires choosing which patch fits the intent.
+The tree's `input` is now `null`; the `p`'s inline `fontSize` is reported but not touched.
 
-## All rules
-
-| Rule | Severity | What triggers it |
-|---|---|---|
-| `void-content` | error | A void tag (`input`, `img`, `br`, `hr`, …) has non-null content |
-| `unknown-tag` | warning | The first key of an element object is not a known HTML/SVG tag |
-| `inline-typography` | warning | `fontSize`, `lineHeight`, `fontWeight`, `letterSpacing`, `fontFamily`, or `textDecoration` is set inline instead of via a typography patch |
-| `raw-theme-value` | info | A color-bearing style prop (`color`, `backgroundColor`, `border`, …) uses a hex, `rgb()`/`rgba()`, or `hsl()`/`hsla()` literal instead of `themeColor()` |
-| `raw-spacing-value` | info | A spacing prop (`padding`, `margin`, `gap`, …) uses a literal `px`/`rem`/`em` value instead of `themeSpacing()` |
-| `unknown-tone` | warning | `dataTone` is not valid grammar, or the offset `N` exceeds 17 (the ramp has 18 steps, 0–17). Valid grammar includes the semantic aliases `surface`/`hover`/`border`/`border-strong`/`muted`/`text` |
-| `middle-surface-anchor` | warning | `dataTone: "shift-N"` where 4 ≤ N ≤ 13 — a mid-ramp anchor where child tones may collapse contrast |
-| `unknown-density` | warning/error | `dataDensity` uses invalid grammar, `"shift-"` (which is reserved for tone), or N > 4 |
-| `unknown-size` | warning/error | `dataSize` uses invalid grammar, `"shift-"`, or N > 7 |
-| `missing-key` | warning | A dynamic list (reactive function returning multiple elements) has children without `_key` |
-| `unstable-key` | warning | Every `_key` in a dynamic list equals its array index — index keys break on reorder |
-| `duplicate-key` | error | Two siblings in a list share the same `_key` value |
-| `low-opacity` | warning / info | `style.opacity` below 0.6 with no hover-restore (warning), or with a `&:hover: { opacity: '1' }` hover-reveal pattern (info) |
-| `tone-background-inherit` | warning | `style.backgroundColor` resolves to a fixed shifted tone instead of `themeColor(l, "inherit")` |
-| `missing-color` | warning | An element uses `themeColor()` for another style prop but has no `style.color` |
-| `low-contrast` | warning | `style.color` and `style.backgroundColor` are same-family theme vars with a shift-step gap < 9 |
-| `dataTone-surface-contract` | warning | `dataTone` (not `"inherit"`) is set but `style.backgroundColor` and/or `style.color` is missing |
-| `color-shift-minimum` | warning | `dataTone` is set and `style.color` resolves to a theme var with shift step < 9 |
-
-## Tips
-
-**Pass JSON, not TypeScript.** The tools accept element trees as JSON strings. Reactive function values (`(l) => …`) are not JSON-serializable — the doctor skips those nodes when running on JSON input from an AI agent.
-
-**Use `domphy_validate` to gate output.** An agent can call `domphy_validate` on every generated tree and refuse to return a result when `ok` is `false`. This catches structural errors before they reach the user.
-
-**Combine fix and validate.** A typical agent loop:
+## Agent loop
 
 1. Call `domphy_fix` — auto-corrects void-content issues.
-2. Check `report.ok` on the returned report.
-3. If `false`, address the remaining issues (the `report.issues` array) before finishing.
+2. Check `report.ok` on the returned report (or call `domphy_validate` and check `ok`).
+3. If `false`, address the remaining `report.issues` before finishing.
+
+Refuse to return a result when `ok` is `false` — that catches structural errors before they reach the user.
 
 ### index.md
 
@@ -36861,12 +36200,12 @@ function combobox(props: {
 
   const popoverPartial: PartialElement = {
     onClick: (_e, node) => !multiple && hide(node),
-    dataTone: "shift-14",
+    dataTone: "shift-0",
     style: {
       backgroundColor: (listener) => themeColor(listener, "inherit"),
       // Surface contract (dataTone-surface-contract): a tone-anchored panel
-      // must declare BOTH background and text color — on the dark shift-14
-      // surface, inherited portal context colors can fall below contrast.
+      // must declare BOTH background and text color. Page-matching shift-0
+      // (same as menu/selectList/dialog), not the inverted tooltip surface.
       color: (listener) => themeColor(listener, "text"),
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
       outline: (listener) =>
@@ -37726,12 +37065,14 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
       div: children,
       role: "dialog",
       ariaModal: "false",
-      // Surface contract (same as popover/combobox): edge-anchor dataTone +
-      // inherit background + "text" color. The previous `themeColor(l, "base")`
-      // resolved to the ramp's MID anchor (var(--neutral-8), gray) with text
-      // only 2 tone steps away — an unreadable washed-out panel, invisible to
-      // doctor because the calendar is mounted imperatively at runtime.
-      dataTone: "shift-14",
+      // Surface contract (same as popover/combobox): page-matching shift-0
+      // (menu/selectList/dialog), inherit background + "text" color. The
+      // previous `themeColor(l, "base")` resolved to the ramp's MID anchor
+      // (var(--neutral-8), gray) with text only 2 tone steps away — an
+      // unreadable washed-out panel, invisible to doctor because the calendar
+      // is mounted imperatively at runtime. shift-14 inverted the panel in
+      // light theme (a dark calendar on a light page).
+      dataTone: "shift-0",
       style: {
         minWidth: themeSpacing(70),
         padding: themeSpacing(3),
@@ -38204,11 +37545,7 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { elevation } from "../utils/elevation.js";
-import {
-  asOpenState,
-  dismissOpen,
-  subscribeOpen,
-} from "../utils/openState.js";
+import { asOpenState, dismissOpen, subscribeOpen } from "../utils/openState.js";
 import { lockScroll, unlockScroll } from "../utils/scrollLock.js";
 
 const FOCUSABLE =
@@ -38580,11 +37917,7 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { elevation } from "../utils/elevation.js";
-import {
-  asOpenState,
-  dismissOpen,
-  subscribeOpen,
-} from "../utils/openState.js";
+import { asOpenState, dismissOpen, subscribeOpen } from "../utils/openState.js";
 import { lockScroll, unlockScroll } from "../utils/scrollLock.js";
 
 type PhysicalPlacement = "left" | "right" | "top" | "bottom";
@@ -42171,6 +41504,18 @@ import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import { elevation } from "../utils/elevation.js";
 import { createFloating, floatingPanelId } from "../utils/floating.js";
 
+function contentOwnsSurface(content: DomphyElement): boolean {
+  const record = content as DomphyElement & { dataTone?: string };
+  if (typeof record.dataTone === "string") return true;
+  const patches = content.$;
+  if (!patches) return false;
+  return patches.some(
+    (patch) =>
+      patch != null &&
+      typeof (patch as { dataTone?: unknown }).dataTone === "string",
+  );
+}
+
 /**
  * Floating popover primitive. Attaches to its host as the anchor/trigger and
  * shows a floating `content` element (with `role="dialog"`) on click or hover,
@@ -42209,17 +41554,15 @@ function popover(props: {
     keepOpenOnContentHover: openOn === "hover",
   });
 
-  // The panel id is derived from the ANCHOR's nodeId and stamped by the
-  // shared floating behavior when the panel mounts (see floating.ts) — no
-  // factory-scope id variable, which a re-rendered generation would lose.
+  // Page-matching card (shift-0), same as menu/selectList/dialog — not the
+  // inverted tooltip/toast surface (shift-17). A dark shift-14 panel wrapping
+  // a light menu is the menubar recipe (`popover` + `menu`) rendered as two
+  // stacked cards.
   const popoverPartial: PartialElement = {
     role: "dialog",
-    dataTone: "shift-14",
+    dataTone: "shift-0",
     style: {
       backgroundColor: (l: Listener) => themeColor(l, "inherit"),
-      // Surface contract (dataTone-surface-contract): a tone-anchored panel
-      // must declare BOTH background and text color — on the dark shift-14
-      // surface, inherited portal context colors can fall below contrast.
       color: (l: Listener) => themeColor(l, "text"),
       borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 2),
       outline: (l: Listener) => `1px solid ${themeColor(l, "border-strong")}`,
@@ -42228,8 +41571,14 @@ function popover(props: {
     },
   };
 
-  props.content.$ ||= [];
-  props.content.$.push(popoverPartial);
+  // Content that already owns a surface (`menu()`, `card()`, an authored
+  // dataTone) must keep it: stamping this partial on top overwrites
+  // `role=menu` with `role=dialog` and comma-joins a second box-shadow
+  // (merge concatenates boxShadow).
+  if (!contentOwnsSurface(props.content)) {
+    props.content.$ ||= [];
+    props.content.$.push(popoverPartial);
+  }
 
   const triggerPartial: PartialElement = {
     ariaHaspopup: "dialog",
@@ -42878,8 +42227,13 @@ function row(
     density?: boolean;
   } = {},
 ): PartialElement {
-  const { gap = 4, align = "center", justify, wrap = false, density = true } =
-    props;
+  const {
+    gap = 4,
+    align = "center",
+    justify,
+    wrap = false,
+    density = true,
+  } = props;
   return {
     style: {
       display: "flex",
@@ -43403,12 +42757,12 @@ function selectBox(props: {
 
   const popoverPartial: PartialElement = {
     onClick: (_e, node) => !multiple && hide(node),
-    dataTone: "shift-14",
+    dataTone: "shift-0",
     style: {
       backgroundColor: (listener) => themeColor(listener, "inherit"),
       // Surface contract (dataTone-surface-contract): a tone-anchored panel
-      // must declare BOTH background and text color — on the dark shift-14
-      // surface, inherited portal context colors can fall below contrast.
+      // must declare BOTH background and text color. Page-matching shift-0
+      // (same as menu/selectList/dialog), not the inverted tooltip surface.
       color: (listener) => themeColor(listener, "text"),
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
       outline: (listener) =>

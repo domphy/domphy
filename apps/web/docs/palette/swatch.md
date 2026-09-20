@@ -131,7 +131,7 @@ const rgb = hexToRgb("#3b82f6")  // [0.0438, 0.2233, 0.9216]  — linear sRGB
 const hex = rgbToHex(rgb)        // "#3b82f6"
 ```
 
-Input hex must be `#rrggbb` (lowercase or uppercase, both work). Both functions use the standard sRGB gamma curve (γ = 2.4 with a linear toe).
+Input hex is accepted via `normalizeHex` / `isValidHex`: `#rgb`, `#rgba`, `#rrggbb`, or `#rrggbbaa` (case-insensitive). Shorthand expands (`#fff` → `#ffffff`). Alpha digits, if present, are ignored. Invalid input throws. Both functions use the standard sRGB gamma curve (γ = 2.4 with a linear toe).
 
 ### Linear RGB ↔ CIELAB
 

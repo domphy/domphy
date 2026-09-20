@@ -189,9 +189,17 @@ Use `colorFromVisualMap(vm, value)` exported from `@domphy/chart` to resolve a v
 tooltip: {
   trigger?: "axis" | "item",
   axisPointer?: { type?: "line" | "shadow" | "cross" },
-  formatter?: string | ((params: TooltipParams | TooltipParams[]) => string),
+  formatter?:
+    | string
+    | ((
+        params: TooltipParams | TooltipParams[],
+        ticket: string,
+        callback: (ticket: string, html: string) => void,
+      ) => string | DomphyElement),
 }
 ```
+
+`formatter` may return a `DomphyElement` (plain object) or a string.
 
 `trigger: "axis"` shows tooltip for all series at the hovered x value (use with line/bar). `trigger: "item"` shows tooltip for the individual data point closest to the cursor. Works for `scatter` and `pie` series.
 

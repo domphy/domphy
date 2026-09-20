@@ -15,7 +15,7 @@ Use `selectList` on a `div` container and `selectItem` on each child `div`. The 
 | `multiple` | `boolean` | `false` | Allow multiple selection. When `true`, value defaults to `[]` instead of `null`. |
 | `value` | `ValueOrState<Array<number \| string \| null> \| number \| string \| null>` | `[]` / `null` | Bound selection value(s). Defaults to `[]` when `multiple`, otherwise `null`. |
 | `color` | `ThemeColor` | `"neutral"` | Background tone of the list container. |
-| `name` | `string` | — | Name attribute for the hidden `<input>`(s) injected for form submission. Required for use inside `<form>`. |
+| `name` | `string` | — | Name attribute for the hidden `<input>`(s) injected for form submission. |
 
 <CodeEditor :code="SelectList" />
 

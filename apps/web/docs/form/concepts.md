@@ -52,19 +52,7 @@ Initial
   → onSubmit → all validators run regardless of touched state
 ```
 
-Field meta:
-
-```ts
-interface FieldMeta {
-  isTouched: boolean
-  isDirty: boolean
-  isPristine: boolean
-  isBlurred: boolean
-  isValidating: boolean   // async validator in-flight
-  errors: unknown[]
-  errorMap: Partial<Record<"onChange"|"onBlur"|"onSubmit"|"onMount"|"onServer"|"onDynamic", unknown>>
-}
-```
+Field meta — `field.meta(l)` returns `AnyFieldMeta` from `@domphy/form`. There is no `FieldMeta` export. Shape: [Field meta type](./typescript#field-meta-type).
 
 ## Validation execution order
 
@@ -120,13 +108,13 @@ const emailField = form.field<string>("email", {
 const nameField = form.field<string>("name", {})
 ```
 
-Do not call `form.field()` inside a reactive render function (it re-registers the field on each render). Create fields in module scope or component setup.
+Repeat `form.field(name)` calls return the **cached** handle (keyed by name). New options on a later call are ignored (dev `console.warn`). Creating fields in module scope is still the usual pattern so options are not silently dropped.
 
 ## Form options
 
 ```ts
 const form = createForm<T>({
-  defaultValues: T,                      // required — initial field values
+  defaultValues?: T,                     // optional — initial field values
   onSubmit: ({ value, formApi }) => {},  // called when form is valid and submitted
   onSubmitInvalid: ({ value, formApi }) => {},  // called on submit when invalid
   validators: {                          // form-level validators
@@ -170,12 +158,12 @@ const field = form.field<string>("name", options)
 // Reactive
 field.value(l)   // string — current value
 field.errors(l)  // unknown[] — current errors
-field.meta(l)    // FieldMeta — full field state
+field.meta(l)    // AnyFieldMeta — full field state
 
 // Imperative
 field.handleChange(newValue)        // update + run onChange validators
 field.handleBlur()                  // mark touched + run onBlur validators
-field.setValue(newValue)            // update without running validators
+field.setValue(newValue)            // update + run onChange validators (same as handleChange)
 field.validate()                    // manually trigger validation (cause: "change")
 field.validate("blur")              // trigger with specific cause
 

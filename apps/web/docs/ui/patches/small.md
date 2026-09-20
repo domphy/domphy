@@ -6,7 +6,13 @@ import Small from "../../demos/patches/Small.ts?raw"
 
 # Small
 
-Use the small patch to customize this element.
+Styles small/secondary text: one step smaller font size (`data-size="decrease-1"`) with a themed foreground color.
+
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Tone for the text. |
 
 <CodeEditor :code="Small" />
 

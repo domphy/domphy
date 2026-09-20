@@ -6,7 +6,7 @@ import Select from "../../demos/patches/Select.ts?raw"
 
 # Select
 
-Use the select patch to customize this element.
+Styles a native `<select>` control: removes the default appearance, applies themed colors, outline, density-scaled padding/radius, a custom chevron background icon, and hover/focus/disabled/optgroup/option states.
 
 ## Props
 

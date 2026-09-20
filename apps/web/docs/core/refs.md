@@ -5,7 +5,7 @@ description: "Access DOM nodes directly using _onMount, _onRemove, and ElementNo
 
 # Refs & DOM Access
 
-Domphy does not have a `ref` API like React. Instead, use the `_onMount` and `_onRemove` lifecycle hooks to access the underlying DOM node.
+Domphy does not have a `ref` API like React. Use `_onMount` to access the underlying DOM node, `_onBeforeRemove` for work that must run while the node is still in the document, and `_onRemove` for cleanup after it has been removed.
 
 ## `_onMount`
 
@@ -29,7 +29,7 @@ const Canvas = {
 
 ## `_onRemove`
 
-Called before the element is removed from the DOM. Use it to clean up timers, observers, and event listeners:
+Runs **after** DOM removal (`el.remove()`, then `_dispose` fires `Remove`). Pre-removal work (exit animation, reading layout) is `_onBeforeRemove(node, done)` — that hook must call `done()`. Use `_onRemove` to drop timers, observers, and JS refs once the node is gone:
 
 ```ts
 let interval: ReturnType<typeof setInterval>
@@ -101,16 +101,18 @@ const Anchor = {
 
 const Popover = {
   div: "Popover content",
-  // Position relative to the anchor
-  style: (l) => {
-    const anchor = anchorRef.get(l)
-    if (!anchor) return { display: "none" }
-    const rect = anchor.getBoundingClientRect()
-    return {
-      position: "fixed",
-      top: `${rect.bottom + 8}px`,
-      left: `${rect.left}px`,
-    }
+  // `style` is a StyleObject — per-property functions only, not a whole-object function
+  style: {
+    position: "fixed",
+    display: (l) => (anchorRef.get(l) ? "block" : "none"),
+    top: (l) => {
+      const anchor = anchorRef.get(l)
+      return anchor ? `${anchor.getBoundingClientRect().bottom + 8}px` : "0"
+    },
+    left: (l) => {
+      const anchor = anchorRef.get(l)
+      return anchor ? `${anchor.getBoundingClientRect().left}px` : "0"
+    },
   },
 }
 ```

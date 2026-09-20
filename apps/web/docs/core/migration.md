@@ -82,7 +82,7 @@ const LoginForm = {
 
 ### `FormState`/`FieldState` types removed
 
-These were exports from `@domphy/ui`. They no longer exist. Use `FormState<T>` and `FieldMeta` from `@domphy/form` instead.
+These were exports from `@domphy/ui`. They no longer exist. Use `FormState<T>` from `@domphy/form`. `FieldMeta` is not exported from `@domphy/form` — use `AnyFieldMeta` / `FieldLikeMeta` from `@domphy/form`, or `ReturnType<FieldHandle["meta"]>` from `@domphy/form/domphy`.
 
 ### `onlineManager.isOnline()` is now synchronous
 
@@ -141,10 +141,15 @@ Typography patches (`small()`, `paragraph()`, `heading()`) now accept a `color` 
 4. Run TypeScript — removed APIs show up as type errors
 5. Run your tests
 
+## Removed
+
+| Feature | Status | Replacement |
+|---------|--------|-------------|
+| `configure({ legacy: true })` | Removed. `DomphyConfig` is only `{ cspNonce?: string }` | Drop `legacy`. Use `configure({ cspNonce })` if you need a CSP nonce |
+| `$: patch` (non-array) | Removed. `mergePartial` applies `$` only when `Array.isArray` — a single patch object is ignored | `$: [patch()]` |
+
 ## Deprecated features (still work, will be removed)
 
 | Feature | Status | Replacement |
 |---------|--------|-------------|
 | `themeVars()` raw CSS vars | Soft deprecated | Use `themeColor(el, tone, color)` |
-| `configure({ legacy: true })` | Deprecated | Remove — legacy mode has been removed |
-| `$: [patch]` single patch (not array) | Still works, no plans to remove | `$: [patch()]` array form preferred |

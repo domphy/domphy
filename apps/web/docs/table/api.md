@@ -64,6 +64,17 @@ All public types are re-exported, including:
 - feature state: `SortingState`, `ColumnFiltersState`, `GlobalFilterTableState` (via `TableState`), `PaginationState`, `RowSelectionState`, `GroupingState`, `ExpandedState`, `VisibilityState`, `ColumnOrderState`, `ColumnPinningState`, `RowPinningState`, `ColumnSizingState`, `ColumnSizingInfoState`, `CellEditingState`, `EditingCellId`
 - functions: `SortingFn`, `FilterFn`, `AggregationFn`, `AccessorFn`, plus `BuiltInSortingFn`, `BuiltInFilterFn`, `BuiltInAggregationFn`
 
+## Domphy Adapter (`@domphy/table/domphy`)
+
+Import from the `/domphy` subpath — not the main `@domphy/table` barrel. See [Domphy Adapter](./adapter) for usage.
+
+```ts
+import { createDomphyTable } from "@domphy/table/domphy"
+import type { DomphyTable } from "@domphy/table/domphy"
+```
+
+- `createDomphyTable(options)` → `DomphyTable` — `{ table, version, state, setState, setOptions, destroy, getRowModel, getHeaderGroups, … }`. Feature methods (`nextPage`, `setSorting`, `toggleAllRowsSelected`, …) live on `.table`.
+
 ## CDN Global
 
 The IIFE bundle exposes everything under `Domphy.table`:

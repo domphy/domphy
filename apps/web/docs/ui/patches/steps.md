@@ -8,6 +8,8 @@ import Steps from "../../demos/patches/Steps.ts?raw"
 
 All-in-one step-progress indicator. Apply `steps({ items, current })` to an `<ol>` or `<ul>` element — it generates `<li>` step elements from the `items` array, each with a numbered marker, a `data-status` attribute (`"pending"` | `"active"` | `"done"`), and `aria-current="step"` on the active one.
 
+## Props
+
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `items` | `StepItem[]` | `[]` | Step definitions `{ label, key? }`. `label` is a plain string (auto-wrapped) or any `DomphyElement`; `key` defaults to the item's zero-based index. |

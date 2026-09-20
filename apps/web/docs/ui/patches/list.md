@@ -6,27 +6,27 @@ import List from "../../demos/patches/List.ts?raw"
 
 # List
 
-Three composable patches for navigation and display lists. Apply `list` to the `<ul>` container, `listItem` to non-interactive `<li>` rows, and `listItemButton` to interactive `<button>` or `<a>` elements inside each row. Set `aria-selected="true"` or `aria-current="page"` to highlight the active item.
+Three composable patches for navigation and display lists. Apply `list` to the `<ul>` container, `listItem` to non-interactive `<li>` rows, and `listItemButton` to interactive `<button>` or `<a>` elements inside each row. Highlight the active row by setting `aria-selected="true"` or `aria-current="page"` on the `listItemButton` host — not on the `<li>`.
 
-## list
+## list props
 
-| Prop | Type | Default |
-|------|------|---------|
-| `color` | `ThemeColor` | `"neutral"` |
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `color` | `ThemeColor` | `"neutral"` | Surface color tone. |
 
-## listItem
+## listItem props
 
-| Prop | Type | Default |
-|------|------|---------|
-| `dense` | `boolean` | `false` |
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `dense` | `boolean` | `false` | Reduce vertical padding. |
 
-## listItemButton
+## listItemButton props
 
-| Prop | Type | Default |
-|------|------|---------|
-| `color` | `ValueOrState<ThemeColor>` | `"neutral"` |
-| `accentColor` | `ThemeColor` | `"primary"` |
-| `dense` | `boolean` | `false` |
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Color tone. |
+| `accentColor` | `ThemeColor` | `"primary"` | Focus/active accent. |
+| `dense` | `boolean` | `false` | Reduce vertical padding. |
 
 <CodeEditor :code="List" />
 

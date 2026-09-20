@@ -87,15 +87,16 @@ describe("subscription", () => {
 Mount an element tree into a real DOM node and assert the output:
 
 ```ts
-import { describe, expect, it, beforeEach, afterEach } from "vitest"
-import { toState } from "@domphy/core"
+import { describe, expect, it } from "vitest"
+import { toState, flushSync } from "@domphy/core"
 import { ElementNode } from "@domphy/core"
+import type { DomphyElement } from "@domphy/core"
 
-// Helper to mount a Domphy element and return the DOM node
-function mount(element: unknown): HTMLElement {
+// Constructor leaves `domElement` null — call `render()` (or `mount()`) first.
+function mount(element: DomphyElement): HTMLElement {
   const container = document.createElement("div")
   const node = new ElementNode(element)
-  container.appendChild(node.domElement)
+  node.render(container)
   return container
 }
 
@@ -107,13 +108,13 @@ describe("Counter component", () => {
     expect(dom.querySelector("span")?.textContent).toBe("0")
   })
 
-  it("updates DOM when state changes", async () => {
+  it("updates DOM when state changes", () => {
     const count = toState(0)
     const Counter = { span: (l) => String(count.get(l)) }
     const dom = mount(Counter)
 
     count.set(5)
-    await Promise.resolve()   // flush microtask queue
+    flushSync()
 
     expect(dom.querySelector("span")?.textContent).toBe("5")
   })
@@ -141,9 +142,9 @@ describe("input field", () => {
 
     const container = document.createElement("div")
     const node = new ElementNode(Input)
-    container.appendChild(node.domElement)
+    node.render(container)
 
-    const input = container.querySelector("input") as HTMLInputElement
+    const input = node.domElement as HTMLInputElement
     input.value = "hello"
     input.dispatchEvent(new Event("input"))
 
@@ -193,7 +194,9 @@ import { tooltip } from "./tooltip.js"
 describe("tooltip patch", () => {
   it("sets title attribute", () => {
     const el = { span: "hover me", $: [tooltip({ text: "A tooltip" })] }
+    const container = document.createElement("div")
     const node = new ElementNode(el)
+    node.render(container)
     expect((node.domElement as HTMLSpanElement).title).toBe("A tooltip")
   })
 })

@@ -6,7 +6,13 @@ import Preformated from "../../demos/patches/Preformated.ts?raw"
 
 # Preformated
 
-Use the preformated patch to customize this element.
+Styles a preformatted text block: inherited font size, themed foreground/background, no border, density-scaled padding and rounded corners.
+
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Tone for text and background. |
 
 <CodeEditor :code="Preformated" />
 

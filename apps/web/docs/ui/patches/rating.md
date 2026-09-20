@@ -10,13 +10,13 @@ Apply `rating` to a `<div>` to render an interactive star widget. Manages its ow
 
 ## Props
 
-| Prop | Type | Default |
-|------|------|---------|
-| `value` | `ValueOrState<number>` | `0` |
-| `max` | `number` | `5` |
-| `onChange` | `(value: number) => void` | — |
-| `readOnly` | `boolean` | `false` |
-| `color` | `ThemeColor` | `"warning"` |
+| Prop | Type | Default | Description |
+|------|------|---------|-------------|
+| `value` | `ValueOrState<number>` | `0` | Current rating (0 – `max`). |
+| `max` | `number` | `5` | Total number of stars. |
+| `onChange` | `(value: number) => void` | — | Called with the new value when the user picks a star. |
+| `readOnly` | `boolean` | `false` | Disable interaction. |
+| `color` | `ThemeColor` | `"warning"` | Star color tone. |
 
 <CodeEditor :code="Rating" />
 

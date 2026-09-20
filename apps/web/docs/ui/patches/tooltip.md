@@ -6,7 +6,7 @@ import Tooltip from "../../demos/patches/Tooltip.ts?raw"
 
 # Tooltip
 
-Use the tooltip patch to customize this element.
+Attaches a floating tooltip to the host element, shown on hover/focus and hidden on leave/blur/Escape. Returns the anchor (trigger) partial; the tooltip surface is positioned via the floating utility and linked with `aria-describedby`. No host tag check; applied to the trigger element.
 
 The tooltip surface uses a low `elevation()` box-shadow (no outline, kept compact and border-free — the arrow is unbordered too).
 

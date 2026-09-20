@@ -13,7 +13,7 @@ Series are colored by cycling through Domphy theme families in order:
 primary → secondary → success → warning → error → info → highlight → attention → danger
 ```
 
-Each family is resolved at tone `shift-9` — a concrete hex color (no CSS variable). This means charts render correctly in both light and dark theme without any configuration.
+Each family is resolved at tone `shift-9`. The recommended path is `seriesColor(index)` / `familyCss(family)` — `themeColor()` `var(--…)` refs that follow `[data-theme]` at paint time. `seriesHex` / `familyHex` return a static light-theme hex (no CSS variable) for design-time use.
 
 Override a specific series color:
 
@@ -89,40 +89,51 @@ All four types are exported from `@domphy/chart`.
 
 ## Color utilities
 
+Barrel exports from `@domphy/chart`:
+
 ```ts
-import { hexToRgba, seriesHex, seriesRgba, familyHex, familyRgba, seriesPaletteFamily } from "@domphy/chart"
+import {
+  createColorResolver,
+  cssColor,
+  familyCss,
+  familyHex,
+  familyRgba,
+  hexToRgba,
+  seriesColor,
+  seriesHex,
+  seriesPaletteFamily,
+  seriesRgba,
+} from "@domphy/chart"
+import type { ColorResolver, Rgba } from "@domphy/chart"
+
+// type Rgba = [number, number, number, number]  // channels ÷ 255, range 0–1
 ```
+
+`seriesPaletteFamily` cycles the same `SERIES_PALETTE` order as [Series palette](#series-palette).
 
 | Function | Signature | Description |
 |---|---|---|
-| `seriesHex(index)` | `(index: number) => string` | Hex color for series `index` (0-based, cycles through theme palette) |
-| `seriesRgba(index, alpha?)` | `(index: number, alpha?: number) => Rgba` | RGBA object for series `index`. `alpha` defaults to `1`. |
-| `familyHex(family)` | `(family: ThemeFamily) => string` | Hex color for a named theme family (e.g. `"error"`, `"success"`) |
-| `familyRgba(family, tone?, alpha?)` | `(family: ThemeFamily, tone?: number, alpha?: number) => Rgba` | RGBA for a theme family at an optional tone level |
-| `seriesPaletteFamily(index)` | `(index: number) => ThemeFamily` | Maps a series index to its backing `ThemeFamily` (cycles: primary → info → success → warning → error → …) |
-| `hexToRgba(hex)` | `(hex: string) => Rgba` | Parse a hex/rgb string to `{ r, g, b, a }` |
+| `seriesColor(index)` | `(index: number) => string` | Recommended. `var(--…)` ref for series `index` at `shift-9` |
+| `familyCss(family, tone?)` | `(family: ThemeFamily, tone?: string) => string` | Recommended. `var(--…)` ref for a family. Default tone `"shift-9"` |
+| `cssColor(src, fallbackIndex)` | `(src: unknown, fallbackIndex: number) => string` | Paint-safe CSS: family → var ref; hex/rgb/var pass through; else palette fallback |
+| `createColorResolver(el)` | `(el: HTMLElement) => ColorResolver` | Per-pass resolver: `.css(src, fallbackIndex)` for SVG/HTML; `.rgba(src, fallbackIndex, alpha?)` for WebGL floats |
+| `seriesHex(index)` | `(index: number) => string` | Static light-theme hex for series `index` (design-time) |
+| `familyHex(family, tone?)` | `(family: ThemeFamily, tone?: string) => string` | Static light-theme hex. Default tone `"shift-9"` |
+| `seriesRgba(index, alpha?)` | `(index: number, alpha?: number) => Rgba` | `Rgba` tuple for series `index`. `alpha` defaults to `1` |
+| `familyRgba(family, tone?, alpha?)` | `(family: ThemeFamily, tone?: string, alpha?: number) => Rgba` | `Rgba` tuple. Default `tone = "shift-9"`, `alpha = 1` |
+| `seriesPaletteFamily(index)` | `(index: number) => ThemeFamily` | Maps series `index` to its backing family (cycles `SERIES_PALETTE`) |
+| `hexToRgba(hex, alpha?)` | `(hex: string, alpha?: number) => Rgba` | Parse `#rgb` / `#rgba` / `#rrggbb` / `#rrggbbaa` to a `Rgba` tuple |
 
 ```ts
-// Get hex for series index n (0-based):
-const color = seriesHex(0)  // hex string (primary at default tone)
-
-// Get RGBA with custom alpha (e.g. for fill opacity in area charts):
-const fill = seriesRgba(0, 0.15)  // { r, g, b, a: 0.15 }
-
-// Get hex for a theme family:
+const color = seriesColor(0)              // var(--…) ref (primary at shift-9)
+const hex = seriesHex(0)                  // static light-theme hex
+const fill = seriesRgba(0, 0.15)          // [r, g, b, 0.15]  channels in 0–1
 const red = familyHex("error")
-
-// Get RGBA for a theme family:
-const rgba = familyRgba("error", 9, 1)  // { r, g, b, a: 1 }
-
-// Which ThemeFamily backs series index 2?
-const family = seriesPaletteFamily(2)  // e.g. "success"
-
-// Build a palette:
-const palette = [0, 1, 2, 3].map(seriesHex)
-
-// Parse a hex string to RGBA object:
-const rgba2 = hexToRgba("#3a4de9")  // { r: 58, g: 77, b: 233, a: 1 }
+const css = familyCss("error")            // var(--…) ref
+const rgba = familyRgba("error", "shift-9", 1)
+const family = seriesPaletteFamily(2)     // "success"
+const palette = [0, 1, 2, 3].map(seriesColor)
+const parsed = hexToRgba("#3a4de9")       // [58/255, 77/255, 233/255, 1]
 ```
 
 ## VisualMap colors
@@ -173,7 +184,7 @@ series: [{
 
 ## Dark mode
 
-All theme family colors (`"primary"`, `"secondary"`, etc.) resolve to concrete hex at render time using the current theme tone. When `data-theme="dark"` is set on a parent element, the colors automatically shift to their dark-mode equivalents — no extra config.
+`seriesColor` / `familyCss` / `cssColor` emit `var(--…)` refs. SVG/HTML layers follow `[data-theme]` at paint time. The `chart()` patch re-renders on theme flips so WebGL uniforms re-resolve through `createColorResolver`. `seriesHex` / `familyHex` / `seriesRgba` / `familyRgba` stay static light-theme values.
 
 Setting `dataTone` on the chart container shifts the entire chart's color family:
 

@@ -73,6 +73,26 @@ If you know `@react-three/fiber`, the translation is mechanical:
 
 The first key of a scene object is its tag (the camelCase of a `THREE` class, or a name registered via `extend()`) — the three.js equivalent of core's "first key = HTML tag". Every other key is a prop.
 
+## Scene doctor
+
+`diagnose(options)` / `validate(options)` statically lint a `three()` option object — doctor cannot see a scene description because it is not a `DomphyElement`. Same contract shape as `@domphy/doctor`: `diagnose` returns `SceneDiagnostic[]`; `validate` adds `{ ok, issues, summary }` (`ok` is true when there are no error-severity issues). Options: `only` / `exclude` rule-id lists. Per-node suppression: `_doctorDisable: true | "rule-id" | string[]`.
+
+| Rule | Severity |
+| --- | --- |
+| `unknown-tag` | error |
+| `tag-not-first` | error |
+| `legacy-light-intensity` | warning |
+| `additive-blowout` | warning |
+| `camera-missing-lookat` | warning |
+
+```ts
+import { diagnose, three, validate } from "@domphy/three"
+
+const options = { scene: [{ mesh: [{ boxGeometry: null }] }] }
+diagnose(options)
+validate(options).ok
+```
+
 ## Next steps
 
 - [Scene Grammar](./grammar) — tags, `args`, `attach`, `primitive`, `dispose: null`, `_key`, the function-prop rules, pierced props, `extend()`

@@ -12,7 +12,7 @@ Use `pagination` on a `div`. Pass `total` (required, number of pages) and an opt
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `value` | `ValueOrState<number>` | `1` | Current page. Accepts a plain number or a reactive `State`. Optional. |
+| `value` | `ValueOrState<number>` | `1` | Current page (1-based). Accepts a plain number or a reactive `State`. |
 | `total` | `number` | — | Total number of pages. Required. |
 | `color` | `ThemeColor` | `"neutral"` | Base color tone for the page buttons. |
 | `accentColor` | `ThemeColor` | `"primary"` | Accent color tone for the active page button. |

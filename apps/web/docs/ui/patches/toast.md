@@ -10,6 +10,13 @@ Portal a transient notification into a fixed-position corner stack. The toast an
 
 The toast surface uses a medium `elevation()` box-shadow so it visibly floats above page content.
 
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `position` | `"top-left" \| "top-center" \| "top-right" \| "bottom-left" \| "bottom-center" \| "bottom-right"` | `"top-center"` | Corner of the screen for the toast stack. |
+| `color` | `ThemeColor` | `"neutral"` | Theme color for the toast surface. |
+
 <CodeEditor :code="Toast" />
 
 ::: details Customization
@@ -23,22 +30,6 @@ The toast surface uses a medium `elevation()` box-shadow so it visibly floats ab
 ::: code-group
 <<< ../../../../../packages/ui/src/patches/toast.ts [toast]
 :::
-
-## Props
-
-```ts
-toast({
-  position?: ToastPosition,  // default "top-center"
-  color?: ThemeColor,        // default "neutral"
-})
-```
-
-`ToastPosition` is one of:
-
-```
-"top-left" | "top-center" | "top-right"
-"bottom-left" | "bottom-center" | "bottom-right"
-```
 
 ## Usage
 

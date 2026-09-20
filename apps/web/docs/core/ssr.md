@@ -14,6 +14,8 @@ Call `render()` once at the app root for client-side rendering.
 
 <img alt="SSR" src="/figures/ssr.png" style="display:block;margin:auto" />
 
+`generateHTML()` emits the **root tag** (`<div class="div_…">…</div>` if `App` is `{ div: … }`). Hydrate by mounting onto that generated element, not onto a wrapper whose tag is not the root.
+
 ::: code-group
 ```ts [server.js]
 import { ElementNode } from "@domphy/core"
@@ -39,11 +41,12 @@ import { ElementNode } from "@domphy/core"
 import App from "./app.js"
 
 const domStyle = document.getElementById("domphy-style") as HTMLStyleElement
+const host = document.getElementById("app")!
 
-new ElementNode(App).mount(document.getElementById("app")!, domStyle)
+new ElementNode(App).mount(host.firstElementChild as HTMLElement, domStyle)
 ```
 :::
 
 For SSR, render CSS into `<style id="domphy-style">` on the server and pass that same style element to `mount()` on the client.
 
-`mount()` binds to existing DOM — attaches reactivity and events without re-rendering.
+`mount()` binds to existing DOM — attaches reactivity and events without re-rendering. Passing the wrapper `#app` (tag ≠ generated root) is a hydration mismatch.

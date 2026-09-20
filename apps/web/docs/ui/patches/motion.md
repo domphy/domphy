@@ -7,23 +7,16 @@ import Motion from "../../demos/patches/Motion.ts?raw"
 
 Declarative animation in one patch — the Domphy equivalent of `framer-motion`'s `<motion.div animate={…}>`. Describe the target keyframe; the patch animates to it with the Web Animations API. Enter, exit, and reactive re-animation are wired through Domphy's native lifecycle (`_onMount`, `_onBeforeRemove`), so there is no `<AnimatePresence>` wrapper and **no dependency** — just the browser's WAAPI.
 
-<CodeEditor :code="Motion" />
-
 ## Props
 
-```ts
-motion({
-  initial?: MotionKeyframe,                 // start state, applied before the enter animation
-  animate?: MotionKeyframe | State<MotionKeyframe>, // target; pass a State to re-animate on change
-  exit?: MotionKeyframe,                     // animated to right before removal
-  transition?: {
-    duration?: number,    // ms, default 300
-    delay?: number,       // ms, default 0
-    easing?: string,      // CSS easing, default "ease"
-    iterations?: number,  // default 1
-  },
-})
-```
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `initial` | `MotionKeyframe` | — | Start state, applied before the enter animation. |
+| `animate` | `MotionKeyframe \| State<MotionKeyframe>` | — | Target keyframe; pass a `State` to re-animate on change. |
+| `exit` | `MotionKeyframe` | — | Animated to right before removal. |
+| `transition` | `{ duration?: number; delay?: number; easing?: string; iterations?: number }` | `duration` 300, `delay` 0, `easing` `"ease"`, `iterations` 1 | Timing options (milliseconds / CSS easing). |
+
+<CodeEditor :code="Motion" />
 
 A `MotionKeyframe` uses shorthands `x` / `y` (px), `scale`, `rotate` (deg) — composed into one `transform` — plus any raw CSS property (`opacity`, `backgroundColor`, …):
 

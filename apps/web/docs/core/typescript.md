@@ -21,11 +21,9 @@ function heading(text: string): DomphyElement {
 const footer: DomphyElement = { footer: "© 2025 Acme" }
 ```
 
-`DomphyElement` is the union of all valid element shapes:
-- `{ tag: content }` — element with tag as key
-- `string | number | boolean` — text node
-- `DomphyElement[]` — array of elements
-- `null | undefined` — renders nothing
+`DomphyElement` is only a tag-keyed object (`{ div: content, ... }`). It is not `string | number | boolean | array | null`.
+
+Children use `ElementInput` = primitive | `DomphyElement`. A primitive is `null | undefined | number | string | RawHTML` (`rawHtml()`). Boolean is not a valid child. An array of those is the tag's content (multiple children), not a `DomphyElement` itself.
 
 ## Typing state
 
@@ -176,8 +174,8 @@ UI patches are typed — TypeScript will catch invalid prop values:
 import { button, inputText, label } from "@domphy/ui"
 import type { ElementTone, ElementSize, ElementDensity } from "@domphy/theme"
 
-// button() only accepts { color?: ValueOrState<ThemeColor> }
-const btn = button({ color: "primary" })
+// button() accepts { color?, variant?: "solid" | "outline" | "ghost", size?: "small" | "medium" | "large" }
+const btn = button({ color: "primary", variant: "solid", size: "medium" })
 
 // Use ElementTone / ElementSize / ElementDensity for typing custom patches:
 function myPatch(tone: ElementTone, size: ElementSize, density: ElementDensity): import("@domphy/core").PartialElement {
@@ -232,12 +230,12 @@ With `strict: true`, Domphy's listener callbacks will correctly require handling
 
 ```ts
 import type {
-  DomphyElement,   // any valid element
+  DomphyElement,   // tag-keyed element object
   Listener,        // listener callback argument
   State,           // toState return type
   PartialElement,  // patch return type
   ElementNode,     // DOM element wrapper
-  AttributeList,   // $-attribute list
+  AttributeList,   // HTML attributes (`node.attributes`); `$` is the patch array, not this
   ElementList,     // element list in element.children
 } from "@domphy/core"
 ```

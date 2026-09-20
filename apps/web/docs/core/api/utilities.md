@@ -203,17 +203,17 @@ Useful in tests or scheduling code to check whether any state change is still pe
 
 ## `flushPendingNotifiers()`
 
-Flushes all currently queued notifiers synchronously, without draining the full effect/computed reaction queue (unlike `flushSync`). Each pending notifier runs its downstream callbacks once.
+Flushes all currently queued notifiers synchronously, **including notifiers scheduled while draining** (a listener that writes another state re-schedules its own notifier). Unlike `flushSync`, this does **not** drain the effect/computed reaction queue.
 
 ```ts
 import { flushPendingNotifiers } from "@domphy/core"
 
 a.set(1)
 flushPendingNotifiers()
-// notifiers for `a` have fired; any newly queued notifiers are not flushed
+// notifiers for `a` have fired, including any notifiers those callbacks queued
 ```
 
-Prefer `flushSync()` when you need a fully settled reactive graph. Use `flushPendingNotifiers()` when you only need one notification pass (e.g. inside a scheduler that will call it in a loop).
+Prefer `flushSync()` when you need a fully settled reactive graph (notifiers **and** the reaction queue). `flushPendingNotifiers()` only drains the notifier set — it is not a one-pass flush.
 
 ---
 

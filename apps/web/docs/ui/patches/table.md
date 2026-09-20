@@ -6,27 +6,16 @@ import Table from "../../demos/patches/Table.ts?raw"
 
 # Table
 
-
-Use the table patch to customize this element.
+Styles a data table (header/body/footer cells, caption, row hover, borders) on the host `<table>` element.
 
 ## Props
 
-| Prop | Type | Default |
-|------|------|---------|
-| `color` | `ValueOrState<ThemeColor>` | `"neutral"` |
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Theme color applied across cells and text. |
 
 <CodeEditor :code="Table" />
 
-## Code snippets
-
-
-Zebra row
-```typescript
-"& tbody tr:nth-child(even)": {
-  backgroundColor: (listener) => themeColor(listener, "shift-1"),
-}
-```
-## Patch Sources
 ::: details Customization
 !!!include(snippets/customization.md)!!!
 :::

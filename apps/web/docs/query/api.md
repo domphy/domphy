@@ -21,6 +21,7 @@ Complete list of exports from `@domphy/query`.
 
 - `focusManager` — window focus tracking; `setFocused`, `setEventListener`, `subscribe`
 - `onlineManager` — online/offline tracking; `setOnline`, `setEventListener`, `subscribe`
+- `environmentManager` — overridable server-environment detection; `isServer()`, `setIsServer(fn)` (`isServer` on the utils barrel is deprecated in favor of this)
 - `notifyManager` — update batching; `batch`, `schedule`, `setScheduler`, plus `defaultScheduler`
 - `timeoutManager` — pluggable timer provider (`TimeoutProvider`, `TimeoutCallback`, `ManagedTimerId`)
 

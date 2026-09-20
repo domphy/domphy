@@ -10,14 +10,14 @@ Catches errors thrown inside reactive child expressions and renders a fallback e
 
 Only errors in *reactive* children (functions returning element arrays) are caught. Errors during static construction propagate normally — those are programming errors, not runtime data errors.
 
-<CodeEditor :code="ErrorBoundary" />
-
 ## Props
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `fallback` | `DomphyElement \| ((error, reset) => DomphyElement)` | `{ div: "An error occurred." }` | Fallback element shown when a child throws. Pass a factory to receive the error and a `reset` callback. |
 | `onError` | `(error: unknown) => void` | — | Optional callback invoked on every caught error, useful for logging and telemetry. |
+
+<CodeEditor :code="ErrorBoundary" />
 
 ## Basic fallback
 
@@ -32,7 +32,7 @@ Provide a static element as `fallback` for a simple message when you do not need
 
 ## Factory fallback with reset
 
-Pass a function to receive the thrown `error` and a `reset` callback. Calling `reset()` clears the boundary so the next reactive evaluation runs again:
+Pass a function to receive the thrown `error` and a `reset` callback. Calling `reset()` restores the original children (including a reactive children function) so the next evaluation runs again — it does not leave the host empty:
 
 ```ts
 {

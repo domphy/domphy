@@ -70,9 +70,7 @@ const option = toState({
 })
 
 const App = {
-  div: null,
-  $: [],
-  _: [
+  div: [
     {
       div: null,
       style: { width: "600px", height: "300px", position: "relative" },
@@ -94,20 +92,7 @@ The chart re-renders whenever `option.set()` is called — no `setOption()` requ
 
 ## Legend interaction
 
-Legend items are interactive out of the box — clicking a legend item toggles the corresponding series. No extra config needed.
-
-To detect which series are currently hidden, read `hiddenSeries` from `ChartEngine` directly:
-
-```ts
-import { ChartEngine } from "@domphy/chart"
-
-const engine = new ChartEngine(container)
-await engine.init()
-engine.setOption(option)
-
-// After user toggles legend:
-// engine.hiddenSeries is a Set<string> of hidden series names
-```
+Legend items are interactive out of the box — clicking a legend item toggles the corresponding series. Hidden-series state is internal to `ChartEngine` (not a public field). Drive visibility from `option.legend.selected` / `option.set(...)` if the app needs to know.
 
 ## DataZoom interaction
 
@@ -135,9 +120,9 @@ const engine = new ChartEngine(container)
 await engine.init()
 engine.setOption(option)
 
-container.addEventListener("click", (e) => {
-  // Use tooltip params if you need the hovered data point
-  // engine.lastTooltipParams holds the last hovered params
+container.addEventListener("click", () => {
+  // ChartEngine has no lastTooltipParams. Use tooltip.formatter
+  // (string or DomphyElement) for hover, and app-level onClick for selection.
 })
 ```
 

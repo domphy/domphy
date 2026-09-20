@@ -22,7 +22,7 @@ const queryClient = new QueryClient()
 
 // Infinite query: loads pages of data
 const feed = createInfiniteQuery<Page>(queryClient, {
-  queryKey: () => ["feed"],
+  queryKey: ["feed"],
   queryFn: ({ pageParam }) => fetchPosts(pageParam as string),
   initialPageParam: "",
   getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
@@ -185,7 +185,7 @@ Pre-populate the first page to avoid a loading flash:
 const queryClient = new QueryClient()
 
 const feed = createInfiniteQuery<Page>(queryClient, {
-  queryKey: () => ["feed"],
+  queryKey: ["feed"],
   queryFn: ({ pageParam }) => fetchPosts(pageParam as string),
   initialPageParam: "",
   getNextPageParam: (page) => page.nextCursor ?? undefined,

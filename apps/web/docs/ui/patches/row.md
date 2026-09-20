@@ -16,7 +16,7 @@ Apply the `row` patch to any block element to lay out its children as a horizont
 | `align` | `"flex-start" \| "center" \| "flex-end" \| "stretch" \| "baseline"` | `"center"` | Cross-axis alignment (`alignItems`). |
 | `justify` | `"flex-start" \| "center" \| "flex-end" \| "space-between" \| "space-around" \| "space-evenly"` | unset | Main-axis distribution (`justifyContent`). Left unset by default (flex's own default, `flex-start`). |
 | `wrap` | `boolean` | `false` | Allow items to wrap onto multiple lines (`flexWrap: "wrap"`). |
-| `density` | `boolean` | `true` | When `true`, gap is multiplied by theme density (bounded-control mode). When `false`, gap is structural `themeSpacing(n)` with no density multiply — page/form columns, matching AGENTS.md "bare themeSpacing(n)". |
+| `density` | `boolean` | `true` | When `true`, gap is multiplied by theme density (bounded-control mode). When `false`, gap is structural `themeSpacing(n)` with no density multiply — page/form columns. |
 
 ## Example
 

@@ -133,6 +133,19 @@ const { prev, next } = prevNextForRoute("/guide/intro", config)
 // next: { text: "Config", link: "/guide/config" }
 ```
 
+### `withBase(base, href)`
+
+Prefixes a root-relative href with the site `base` so internal links resolve on non-root deployments (VitePress `withBase` parity). External URLs, anchors, and hrefs already under the base pass through. Also exported from `@domphy/press/browser`.
+
+```ts
+import { withBase } from "@domphy/press"
+
+withBase("/docs/", "/guide/intro")   // → "/docs/guide/intro"
+withBase("/", "/guide/intro")        // → "/guide/intro"
+withBase("/docs/", "https://x.com")  // → "https://x.com"
+withBase("/docs/", "/docs/guide/")   // → "/docs/guide/"  (already under base)
+```
+
 ## `PageEntry` type
 
 ```ts

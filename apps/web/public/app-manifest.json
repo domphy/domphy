@@ -634,6 +634,14 @@
   {
     "name": "App",
     "kind": "block",
+    "file": "apps/web/docs/demos/patches/Grid.ts",
+    "signature": "App: DomphyElement<\"div\">",
+    "jsdoc": "",
+    "exportKind": "default"
+  },
+  {
+    "name": "App",
+    "kind": "block",
     "file": "apps/web/docs/demos/patches/Heading.ts",
     "signature": "App: DomphyElement<\"div\">",
     "jsdoc": "",

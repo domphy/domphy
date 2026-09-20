@@ -29,6 +29,7 @@ export default {
       "tests/preview-sandbox.test.ts",
       "tests/build-press.test.ts",
       "tests/llms-sync.test.ts",
+      "tests/ads-docs.test.ts",
       "tests/mermaid/tree.test.ts",
       "tests/mermaid/tree-variants.test.ts",
       "tests/mermaid/client.test.ts",

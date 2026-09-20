@@ -8,6 +8,8 @@ import Accordion from "../../demos/patches/Accordion.ts?raw"
 
 Use `accordion` on a container of `<details>` elements to build a bordered accordion. In `type: "single"` mode (default), opening one item automatically closes all siblings. Pair with `details` patches on the child `<details>` elements.
 
+## Props
+
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
 | `type` | `"single" \| "multiple"` | `"single"` | In single mode, opening one item closes all siblings. |

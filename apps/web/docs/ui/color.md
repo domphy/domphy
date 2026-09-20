@@ -27,7 +27,7 @@ Notes:
 - if the tone is `inherit`, do not set `dataTone`; it already inherits by default and keeps the current surface context.
 - `shift-1` and `shift-2` are explicit near-default surfaces, not the default itself.
 - `base` means the configured base tone of the chosen color family in `@domphy/theme`; it is not a fixed number.
-- overlay surfaces use the `Invert` branch.
+- tooltips and toasts use the Invert branch (`shift-17`). Dropdowns and popovers use `shift-0` (page surface), same as `menu` / `dialog`.
 - in the current built-in light theme, `primary` commonly reads near the middle accent band.
 - in UI usage, `base` is mainly useful when you want the theme's authored default emphasis instead of hard-coding a `shift-N`.
 
@@ -56,7 +56,7 @@ This section applies to any visual edge:
 | --- | --- | --- |
 | Separator | `shift-3` | divider, separator, table line, passive boundary |
 | Control Edge | `shift-4` | input outline, card border, select border, bounded control edge |
-| Strong Edge | `shift-6` | focus ring, current item edge, selected tab edge, selected option edge |
+| Strong Edge | `shift-6` | current item edge, selected tab edge, selected option edge |
 
 Note:
 
@@ -107,25 +107,20 @@ Notes:
 
 ## Focus Visible
 
-Use `Focus Visible` as a separate focus rule.
+Use the shared `focusRing(listener, color?)` helper exported from `@domphy/ui`. It is a layered `box-shadow` ring-offset: 2px surface gap, then a 2px accent halo at `shift-9` (outer 4px). Default `color` is `"primary"`.
 
-| Case | Use | Description |
-| --- | --- | --- |
-| Existing focus edge | reuse `Boundary Edge -> Strong Edge` | if the focused object already has a dedicated focus edge, use that same edge for focus |
-| No existing focus edge | `outline` + `outlineOffset: themeSpacing(1)` + `Strong Edge` | if the focused object does not already have a dedicated focus edge, create focus with `outline` and offset |
+```ts
+import { focusRing } from "@domphy/ui"
+
+"&:focus-visible": {
+  boxShadow: (listener) => focusRing(listener, "primary"),
+}
+```
 
 Notes:
 
-- if `Strong Edge` is already used for selected or current state, do not rely on that alone for focus; add a separate focus outline
-
-Example:
-
-```ts
-"&:focus-visible": {
-  outline: (listener) => `1px solid ${themeColor(listener, "shift-6", "primary")}`,
-  outlineOffset: themeSpacing(1),
-}
-```
+- prefer `focusRing` over a flush `outline` at `shift-6`
+- if a selected or current state already uses a strong edge, still add `focusRing` — do not reuse that edge as the only focus cue
 
 ## Disabled
 
@@ -152,20 +147,22 @@ Notes:
 | `info` | informational family for informative state, hint, and non-critical notice UI |
 | `success` | positive family for success state, confirmed action, and completed status UI |
 | `warning` | caution family for warning state and attention UI that is not destructive |
+| `attention` | heightened-caution family, stronger than warning, for urgent non-destructive notice UI |
 | `error` | error family for invalid input, error state, and failure feedback UI |
 | `danger` | destructive family for destructive action and high-risk UI such as delete or remove |
 | `highlight` | highlight family for marked content, highlighted region, and featured emphasis |
 
 ## Patch Reference
 
-This table groups patches by the `dataTone` they set themselves.
+This table groups patches by the `dataTone` they set themselves. Patches that omit `dataTone` inherit the ancestor surface and are not listed.
 
 | dataTone | Patches |
 | --- | --- |
-| `inherit` | `breadcrumb`, `button`, `card`, `combobox`, `commandSearch`, `commandItem`, `details`, `dialog`, `drawer`, `formGroup`, `inputDateTime`, `inputFile`, `inputNumber`, `inputSearch`, `inputText`, `keyboard`, `pagination`, `select`, `selectBox`, `selectItem`, `tabs`, `textarea`, `toggleGroup` |
-| `shift-2` | `alert`, `avatar`, `blockquote`, `buttonSwitch`, `code`, `image`, `inputSwitch`, `mark`, `preformated`, `skeleton`, `tag` |
-| `shift-14` | `popover` |
-| `shift-17` | `menu`, `selectList`, `toast`, `tooltip` |
+| `shift-0` | `combobox`, `datePicker`, `menu`, `popover`, `selectBox`, `selectList` |
+| `shift-1` | `skeleton` |
+| `shift-2` | `alert`, `avatar`, `blockquote`, `buttonSwitch`, `code`, `image`, `inputSwitch`, `mark`, `preformated`, `segmented`, `splitter`, `tag` |
+| `shift-3` | `horizontalRule`, `progress` |
+| `shift-17` | `toast`, `tooltip` |
 
 ## Core Pattern
 

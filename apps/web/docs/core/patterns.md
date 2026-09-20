@@ -308,15 +308,28 @@ import { toState, effect } from "@domphy/core"
 const query = toState("")
 const results = toState<SearchResult[]>([])
 
-effect(() => {
-  const text = query.get()
-  if (!text) { results.set([]); return }
+let timer: ReturnType<typeof setTimeout> | undefined
 
-  const timer = setTimeout(async () => {
+const stop = effect(() => {
+  const text = query.get()
+  if (timer !== undefined) {
+    clearTimeout(timer)
+    timer = undefined
+  }
+  if (!text) {
+    results.set([])
+    return
+  }
+  timer = setTimeout(async () => {
     const data = await search(text)
     results.set(data)
   }, 300)
-
-  return () => clearTimeout(timer)   // cleanup cancels previous timer
 })
+
+// `effect(fn)` is `fn: () => void` — a function returned from `fn` is ignored.
+// Cleanup is `stop`, the function returned by `effect()` itself.
+function dispose() {
+  stop()
+  if (timer !== undefined) clearTimeout(timer)
+}
 ```

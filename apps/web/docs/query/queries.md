@@ -22,9 +22,11 @@ const unsubscribe = observer.subscribe((result) => {
 
 `subscribe` returns an unsubscribe function. When the last subscriber leaves, the query becomes inactive and is garbage-collected after `gcTime`.
 
-## A Reusable Query State Helper
+## Hand-rolled observer bridge (`makeQueryStates`)
 
-Most Domphy apps wrap the observer bridge once and reuse it. Note: this manual pattern is an alternative to the adapter's `createQuery` from `@domphy/query/domphy` (which takes a `QueryClient` + options directly and is the recommended approach for most use cases).
+The **shipped** API is `createQuery` from `@domphy/query/domphy` — see [Domphy Adapter](./adapter). Do not name a local helper `createQuery`; that collides with the adapter export.
+
+This `makeQueryStates` example is only the raw `QueryObserver` + `toState` wiring, for understanding what the adapter packages:
 
 ```ts
 import { QueryClient, QueryObserver } from "@domphy/query"

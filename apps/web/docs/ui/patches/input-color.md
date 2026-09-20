@@ -12,8 +12,8 @@ Styles a native color picker swatch with themed padding, a rounded swatch, and d
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
-| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Accepted but currently has no visible effect. The disabled state background hardcodes `"neutral"` regardless of this value. |
-| `accentColor` | `ValueOrState<ThemeColor>` | `"primary"` | Accepted but currently has no visible effect. No style expression references this prop. |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Theme color tone for text and the focus ring. Disabled background and outline still use `"neutral"`. |
+| `accentColor` | `ValueOrState<ThemeColor>` | `"primary"` | Accepted on the options type but unused by the shipped styles. |
 
 <CodeEditor :code="InputColor" />
 

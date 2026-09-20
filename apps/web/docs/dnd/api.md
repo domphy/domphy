@@ -15,10 +15,16 @@ A Domphy patch applied via `$`. Wires the FormKit drag-and-drop engine to a reac
 Animations are **enabled by default** — pass `animated: false` to disable.
 
 ```ts
-const list = createVirtualizer(...)   // or just toState([...])
+import { toState } from "@domphy/core"
+import { dragDrop } from "@domphy/dnd"
+
+const items = toState([
+  { id: "a", label: "A" },
+  { id: "b", label: "B" },
+])
 const App = {
   ul: (l) => items.get(l).map((item) => ({ li: item.label, _key: item.id })),
-  $: [dragDrop(items, config?)],
+  $: [dragDrop(items)],
 }
 ```
 

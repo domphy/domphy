@@ -6,7 +6,13 @@ import OrderedList from "../../demos/patches/OrderedList.ts?raw"
 
 # Ordered List
 
-Use the ordered-list patch to customize this element.
+Themed ordered-list primitive: decimal markers positioned outside, reset margins and themed text color. Apply to an `<ol>` element.
+
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Tone for the list text. |
 
 <CodeEditor :code="OrderedList" />
 

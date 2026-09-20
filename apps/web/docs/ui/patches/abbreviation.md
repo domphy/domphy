@@ -6,7 +6,7 @@ import Abbreviation from "../../demos/patches/Abbreviation.ts?raw"
 
 # Abbreviation
 
-Use the abbreviation patch to customize this element.
+Styles an abbreviation/acronym with a dotted underline and a "help" cursor, shifting to the accent color on hover. Apply to an `<abbr>` element.
 
 ## Props
 

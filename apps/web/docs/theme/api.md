@@ -156,17 +156,39 @@ const brand = getTheme("brand")
 
 ### `generateTheme(baseColors, options?)`
 
-Build a full `PartialThemeInput` from one base hex color per semantic role,
+Build a `PartialThemeInput` from one base hex color per semantic role,
 using the built-in palette engine's `generateRamp` for every family — see
 [Theme Builder](./builder) for a live demo and [`DESIGN.md`](https://github.com/domphy/domphy/blob/main/DESIGN.md)
 for the math.
 
 ```ts
+import { generateTheme, setTheme, type GenerateThemeOptions } from "@domphy/theme"
+
 setTheme("brand", generateTheme({
   primary: "#4a7ff4",
   secondary: "#d8597d",
   neutral: "#8d8d8d",
 }))
+```
+
+`options` is `GenerateThemeOptions`:
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `steps?` | `number` | `TONE_STEPS` (`18`) | Ramp length. Must be `TONE_STEPS` or omitted — any other value **throws**. `generateRamp` accepts any `N`; `generateTheme` does not. |
+| `direction?` | `"lighten" \| "darken"` | `"darken"` | Theme direction metadata. |
+| `fontSizes?` | `string[]` | `["0.75rem", "0.875rem", "1rem", "1.25rem", "1.5625rem", "1.9375rem", "2.4375rem", "3.0625rem"]` | Size scale consumed by `themeSize()`. |
+| `densities?` | `number[]` | `[0.75, 1, 1.5, 2, 2.5]` | Density scale consumed by `themeDensity()`. |
+| `darkBias?` | `number` | `1` | Tone offset applied at the dark edge. |
+| `custom?` | `Record<string, string \| number>` | `{}` | Custom tokens (`--custom-{key}`). |
+
+```ts
+const options: GenerateThemeOptions = {
+  direction: "darken",
+  darkBias: 1,
+  custom: { "sidebar-width": "240px" },
+}
+generateTheme({ primary: "#4a7ff4" }, options)
 ```
 
 Each role's `baseTones` entry is picked automatically (nearest CIEDE2000
@@ -212,6 +234,7 @@ For how tone and size resolution work, see [Tone](./tone) and [Size](./size).
 | --- | --- |
 | `ThemeInput` | Full theme shape accepted by `setTheme()`. All fields are optional when passing a partial. |
 | `PartialThemeInput` | Deep-partial version of `ThemeInput` — what `setTheme()` actually accepts at runtime. |
+| `GenerateThemeOptions` | Optional second argument to `generateTheme()`: `steps?` (must be `TONE_STEPS` `18` or omitted), `direction?`, `fontSizes?`, `densities?`, `darkBias?`, `custom?`. |
 | `ThemeVars` | Object of `var(--…)` CSS variable references returned by `themeVars()`. |
 | `ThemeColor` | `ColorRole \| (string & {})` — the 10 built-in role names rank first in editor autocomplete/hover, but any string still type-checks (custom themes may register their own role names via `setTheme`/`generateTheme`). This is intentionally NOT a strict union — see `ColorRole` below for the exhaustive list. |
 | `ColorRole` | Strict union of the 10 built-in semantic role names: `"neutral" \| "primary" \| "secondary" \| "info" \| "success" \| "warning" \| "attention" \| "error" \| "danger" \| "highlight"`. Derived from `COLOR_ROLES` below. |
@@ -221,3 +244,11 @@ For how tone and size resolution work, see [Tone](./tone) and [Size](./size).
 | `ElementDensity` | Valid density descriptor strings: `"inherit"`, `"increase-N"`, `"decrease-N"` (N 0–4). |
 
 `COLOR_ROLES` — runtime `readonly` array of the same 10 names (`ColorRole`'s source of truth: `type ColorRole = (typeof COLOR_ROLES)[number]`). Use this instead of hand-listing the 10 roles when you need them as a real iterable (e.g. rendering one control per role).
+
+## Constants
+
+| Export | Value | Description |
+| --- | --- | --- |
+| `TONE_STEPS` | `18` | Ramp length every `colors[role]` array must have. `generateTheme({ steps })` throws unless this value or omitted. |
+| `ToneAliases` | `{ surface, hover, border, border-strong, muted, text }` | Semantic tone names → `shift-N`. Table: [Semantic Aliases](./tone#semantic-aliases). |
+| `COLOR_ROLES` | 10 built-in role names | Source of `ColorRole`. |

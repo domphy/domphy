@@ -15,7 +15,7 @@ Apply the `stack` patch to any block element to lay out its children as a vertic
 | `gap` | `number` | `3` | Spacing multiplier for gap between children. With `density: true` (default): `themeSpacing(density × gap)` — at default density (1.5), `gap 3` = `1.125em`. With `density: false`: bare `themeSpacing(gap)` — `gap 3` = `0.75em`. |
 | `align` | `"flex-start" \| "center" \| "flex-end" \| "stretch" \| "baseline"` | unset | Cross-axis alignment (`alignItems`). Left unset by default (flex's own default, `stretch`). |
 | `justify` | `"flex-start" \| "center" \| "flex-end" \| "space-between" \| "space-around" \| "space-evenly"` | unset | Main-axis distribution (`justifyContent`). Left unset by default (flex's own default, `flex-start`). |
-| `density` | `boolean` | `true` | When `true`, gap is multiplied by theme density (bounded-control mode). When `false`, gap is structural `themeSpacing(n)` with no density multiply — page/form columns, matching AGENTS.md "bare themeSpacing(n)". |
+| `density` | `boolean` | `true` | When `true`, gap is multiplied by theme density (bounded-control mode). When `false`, gap is structural `themeSpacing(n)` with no density multiply — page/form columns. |
 
 ## Example
 

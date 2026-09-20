@@ -6,7 +6,15 @@ import Details from "../../demos/patches/Details.ts?raw"
 
 # Details
 
-Use `details` on a `details` element. It styles a native disclosure widget: the `summary` child gets a themed header with a rotating chevron indicator, and the body content gets an expand/collapse transition. The `color` prop controls the surface and text tone. The `accentColor` prop controls the summary focus ring tone. The `duration` prop sets the transition speed in milliseconds (default `240`).
+Native `<details>` disclosure: themed `summary` with a rotating chevron, expand/collapse on the body.
+
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Tone for the body and summary. |
+| `accentColor` | `ValueOrState<ThemeColor>` | `"primary"` | Summary focus-ring tone. |
+| `duration` | `number` | `240` | Open/close transition duration in milliseconds. |
 
 <CodeEditor :code="Details" />
 

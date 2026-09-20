@@ -6,7 +6,13 @@ import Strong from "../../demos/patches/Strong.ts?raw"
 
 # Strong
 
-Use the strong patch to customize this element.
+Styles strongly emphasized (bold) text: inherited font size, `font-weight: 700`, and a themed foreground color.
+
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Tone for the text. |
 
 <CodeEditor :code="Strong" />
 

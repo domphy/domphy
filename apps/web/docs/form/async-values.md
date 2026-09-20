@@ -21,7 +21,7 @@ import { createForm } from "@domphy/form/domphy"
 const queryClient = new QueryClient()
 
 const postQuery = createQuery(queryClient, {
-  queryKey: () => ["post", postId],
+  queryKey: ["post", postId],
   queryFn: () => fetchPost(postId),
 })
 

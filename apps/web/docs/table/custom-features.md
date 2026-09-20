@@ -5,7 +5,7 @@ description: "Extend @domphy/table with custom table features, plugin factories,
 
 # Custom Features & Plugins
 
-`@domphy/table` supports custom features — extend the table with your own state, reducers, and methods following the same plugin architecture as built-in features (sorting, filtering, etc.).
+`@domphy/table` supports custom features — extend the table with your own state, reducers, and methods following the same plugin architecture as built-in features (sorting, filtering, etc.). When using `createDomphyTable`, those methods are on `dTable.table`, not on the adapter handle.
 
 ## Custom feature structure
 
@@ -21,6 +21,7 @@ interface HighlightFeature {
   getIsHighlighted: (id: string) => boolean
 }
 
+// Hypothetical plugin — not a shipped table-core feature.
 const HighlightFeature: TableFeature = {
   getInitialState: (state) => ({
     ...state,
@@ -59,27 +60,34 @@ const HighlightFeature: TableFeature = {
 
 ## Registering a custom feature
 
-Pass features to `createDomphyTable`:
+`createDomphyTable` returns a `DomphyTable` handle (`{ table, version, setState, ... }`), not the core `Table`. Pass `_features` on the handle options; feature methods live on `.table`.
+
+`HighlightFeature` above is **hypothetical** (not shipped). Shipped methods such as pagination live on the same `.table`:
 
 ```ts
+import { getCoreRowModel, getPaginationRowModel } from "@domphy/table"
 import { createDomphyTable } from "@domphy/table/domphy"
 import { toState } from "@domphy/core"
 
 const highlighted = toState<Set<string>>(new Set())
 
-const table = createDomphyTable({
-  _features: [HighlightFeature],
+const dTable = createDomphyTable({
+  _features: [HighlightFeature], // hypothetical plugin — not shipped
   data: rows,
   columns,
+  getCoreRowModel: getCoreRowModel(),
+  getPaginationRowModel: getPaginationRowModel(),
   state: {
     highlightedRows: highlighted.get(),
   },
   onHighlightChange: (newSet) => highlighted.set(newSet),
 })
 
-// Now table has .toggleHighlight() and rows have .getIsHighlighted()
-table.toggleHighlight("row-1")
+dTable.table.nextPage()              // shipped pagination
+dTable.table.toggleHighlight("row-1") // hypothetical, from HighlightFeature.createTable
 ```
+
+See [Domphy Adapter](./adapter) for the handle shape.
 
 ## Row-level state
 
@@ -196,8 +204,8 @@ const EditableCellFeature: TableFeature = {
 // In the data-source:
 const tableData = toState(initialRows)
 
-const table = createDomphyTable({
-  _features: [EditableCellFeature],
+const dTable = createDomphyTable({
+  _features: [EditableCellFeature], // hypothetical plugin — not shipped
   data: tableData.get(),
   columns: [
     columnHelper.accessor("name", {

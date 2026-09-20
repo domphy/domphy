@@ -98,7 +98,7 @@ Domphy ships a full data/logic layer alongside the UI layer:
 | Virtualization | `@domphy/virtual` |
 | Form state & validation | `@domphy/form` |
 
-Each package exposes a framework-agnostic API at the main entry and a thin Domphy adapter at the `/domphy` subpath.
+`@domphy/query`, `@domphy/table`, `@domphy/virtual`, and `@domphy/form` each expose a framework-agnostic API at the main entry and a thin Domphy adapter at the `/domphy` subpath. `@domphy/router` is the exception: `createRouter`/`createRoute` ship from the main entry (no `/domphy` subpath).
 
 ## When to use Domphy
 

@@ -47,12 +47,16 @@ node.render(document.getElementById("app")!)
 
 Hydrates onto an existing DOM element. Used for SSR.
 
+`generateHTML()` emits **this node's own root tag**, so `mount()` must receive that element — not a wrapper. Parse the HTML into a host, then mount onto `host.firstElementChild`. In DEV, `mount()` warns when the target tag does not match `this.tagName`.
+
 ```ts
 const html = node.generateHTML()
 const css = node.generateCSS()
 // ... send to client ...
+const host = document.getElementById("app")!
+host.innerHTML = html
 const domStyle = document.getElementById("domphy-style") as HTMLStyleElement
-node.mount(document.getElementById("app")!, domStyle)
+node.mount(host.firstElementChild as HTMLElement, domStyle)
 ```
 
 When doing SSR, render CSS into `<style id="domphy-style">...</style>` on the server, then pass that same style element to `mount()` on the client.

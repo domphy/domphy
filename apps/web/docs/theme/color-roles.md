@@ -34,8 +34,8 @@ Use shift scale anchors for backgrounds and borders — prefer the semantic alia
 | Border | `"border"` | `"shift-3"` | Dividers, subtle separators |
 | Control outline | `"border-strong"` | `"shift-4"` | Button/input/card boundary |
 | Placeholder text | — | `"shift-7"` | Hint text |
-| Secondary / disabled text | `"muted"` | `"shift-8"` | Labels, captions |
-| Body text / icon | `"text"` | `"shift-9"` | Primary readable content, action icons |
+| Supplementary / de-emphasis | `"muted"` | `"shift-8"` | timestamps, captions, placeholders — **not** labels |
+| Body text / labels / icon | `"text"` | `"shift-9"` | Essential readable content (labels, instructions, nav), action icons |
 | Heading text | — | `"shift-11"` | High-contrast headings |
 
 ```ts
@@ -165,7 +165,7 @@ const chartConfig = {
 }
 ```
 
-`themeColorToken` uses CIELAB/LCH matching — the same algorithm that powers `@domphy/doctor`'s `raw-theme-value` hint.
+`themeColorToken` is the resolved-hex form of `themeColor`: same tone / role / `dataTone` resolution, but it returns the concrete token from `themeTokens` (e.g. `"#4a7ff4"`) instead of `var(--…)`. CIELAB/LCH nearest-token matching is `@domphy/doctor`'s `raw-theme-value` hint, not this helper.
 
 ## Color audit
 

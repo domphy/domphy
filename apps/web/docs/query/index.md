@@ -77,7 +77,7 @@ const App: DomphyElement<"ul"> = {
 ## What To Read Next
 
 1. [Domphy Adapter](./adapter) for `createQuery` / `createMutation` / `createInfiniteQuery` — the recommended way to consume queries
-1. [Queries](./queries) for `QueryObserver`, options, and a reusable `createQuery` helper
+1. [Queries](./queries) for `QueryObserver`, options, and the hand-rolled `makeQueryStates` bridge (the shipped API is `createQuery` from `@domphy/query/domphy`)
 2. [Mutations](./mutations) for writes, callbacks, and optimistic updates
 3. [Caching](./caching) for invalidation, prefetching, and the `staleTime` / `gcTime` model
 4. [Infinite Queries](./infinite-queries) for pagination

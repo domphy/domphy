@@ -164,7 +164,7 @@ import { themeColor } from "@domphy/theme"
 
 const CodeEditor = {
   div: EditorContent,
-  "data-theme": "dark",   // force dark within this subtree
+  dataTheme: "dark",   // force dark within this subtree (resolvers walk dataTheme)
   style: {
     background: (l) => themeColor(l, "shift-1", "neutral"),   // near-dark edge in dark theme
     color: (l) => themeColor(l, "shift-12", "neutral"),       // near-light in dark theme

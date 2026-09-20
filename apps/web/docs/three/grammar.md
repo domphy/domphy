@@ -29,6 +29,7 @@ There is no pre-populated class catalog — a tag resolves by reflection: your `
 | `dispose: null` | Opts this node's whole subtree out of auto-dispose on removal, regardless of any descendant's own `dispose` prop. |
 | `raycast: null` | Sets the instance's own `.raycast` to `null` (standard three.js convention) — excludes it from pointer raycasting. |
 | `_key` | Reconcile identity for this position in its parent's children — same semantics as core: keyed match wins over positional match by tag. Not DOM id / business identity. |
+| `_doctorDisable` | Suppress `diagnose()` / `validate()` on this node: `true`, a rule id, or `string[]`. Same shape as `@domphy/doctor`. |
 | `object` | The adopted `THREE` instance — only valid on a `primitive` tag. See [`primitive`](#primitive). |
 | `onFramePriority` | Sibling of `onFrame` — priority > 0 callbacks take over rendering for that frame (see [Animation & Loop](./animation)). |
 

@@ -11,7 +11,7 @@ description: "Virtualizer, createVirtualizer / createWindowVirtualizer adapters,
 import { createVirtualizer } from "@domphy/virtual/domphy"
 ```
 
-Returns a **reactive virtualizer handle**. Call inside a component body (not top-level module).
+Returns a **reactive virtualizer handle**. A plain factory — construct at module scope or inside another factory; there is no component-body restriction.
 
 ```ts
 const list = createVirtualizer<HTMLDivElement, HTMLDivElement>(options)

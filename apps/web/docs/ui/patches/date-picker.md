@@ -18,7 +18,8 @@ The calendar popup carries a `"border-strong"` border, density-scaled radius, an
 | `value` | `ValueOrState<DatePickerValue>` | `null` / `[null, null]` | Controlled selection. A `Date` in single mode, a `[start, end]` tuple in range mode. `DatePickerValue = Date \| null \| [Date \| null, Date \| null]` |
 | `mode` | `"single" \| "range"` | `"single"` | Selection mode. |
 | `time` | `boolean` | `false` | Also pick hour + minute (applied to the selected date(s)). |
-| `min` / `max` | `Date` | — | Clamp the selectable range. |
+| `min` | `Date` | — | Clamp the earliest selectable day. |
+| `max` | `Date` | — | Clamp the latest selectable day. |
 | `disabledDate` | `(date: Date) => boolean` | — | Disable arbitrary days. |
 | `locale` | `string` | runtime locale | Drives month/weekday names, first-day-of-week, and formatting (`Intl`). |
 | `weekStartsOn` | `0..6` | from locale | Override the first day of the week (0 = Sunday). |

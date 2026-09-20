@@ -99,8 +99,11 @@ interface SearchWidgetOptions {
   indexUrl?: string       // URL to the search index JSON (default: "/search-index.json")
   placeholder?: string    // input placeholder text
   limit?: number          // max results (default: 10)
+  basePath?: string       // site base without trailing slash (e.g. "/docs"); prefixed onto result hrefs so they resolve on non-root deploys. Default ""
 }
 ```
+
+The islands bundle press emits sets `basePath` from `config.base` automatically. Pass it yourself when you embed `searchWidget()` / `mountSearch()` under a sub-path.
 
 ### `mountSearch(container, options?)`
 

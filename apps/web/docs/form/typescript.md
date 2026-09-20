@@ -90,7 +90,7 @@ const form = createForm<LoginInput>({
 ## `FormState` type
 
 ```ts
-import type { FormState } from "@domphy/form"
+import type { AnyFieldMeta, FormState } from "@domphy/form"
 
 // Full form state type (simplified):
 interface FormState<T> {
@@ -103,20 +103,31 @@ interface FormState<T> {
   isPristine: boolean
   canSubmit: boolean
   submissionAttempts: number
-  fieldMeta: Record<DeepKeys<T>, FieldMeta>
+  fieldMeta: Partial<Record<DeepKeys<T>, AnyFieldMeta>>
 }
 
 // Access:
 const state: FormState<LoginInput> = form.state()
 ```
 
-## `FieldMeta` type
+## Field meta type
+
+There is no `FieldMeta` export from `@domphy/form` or `@domphy/form/domphy`. The main entry exports `FieldLikeMeta` (fully generic) and `AnyFieldMeta` (erased alias of `AnyFieldLikeMeta`). On a field handle, use `ReturnType<FieldHandle["meta"]>`:
 
 ```ts
-import type { FieldMeta } from "@domphy/form"
+import type { AnyFieldMeta, FieldLikeMeta } from "@domphy/form"
+import type { FieldHandle } from "@domphy/form/domphy"
 
-interface FieldMeta {
+type FieldMeta = ReturnType<FieldHandle["meta"]>
+// or AnyFieldMeta / FieldLikeMeta<...>
+```
+
+Simplified `AnyFieldMeta` fields:
+
+```ts
+interface AnyFieldMeta {
   isTouched: boolean
+  isBlurred: boolean
   isDirty: boolean
   isPristine: boolean
   isValidating: boolean
@@ -126,6 +137,8 @@ interface FieldMeta {
     onBlur?: unknown
     onSubmit?: unknown
     onMount?: unknown
+    onServer?: unknown
+    onDynamic?: unknown
   }
 }
 ```
@@ -174,17 +187,25 @@ function ItemRow(index: number) {
 }
 ```
 
-## `onSubmit` context type
+## `onSubmit` props
+
+Adapter `createForm` types `onSubmit` as `({ value, formApi })`. `FormHandle.handleSubmit()` takes **no arguments**.
+
+Core `FormApi` `onSubmit` is `({ value, formApi, meta })` — not `context`. To pass submit meta, call the core API:
 
 ```ts
 const form = createForm<FormData>({
   defaultValues: { ... },
-  onSubmit: ({ value, formApi, context }) => {
+  onSubmit: ({ value, formApi }) => {
     // value: FormData
-    // formApi: FormApi<FormData>
-    // context: whatever was passed to form.handleSubmit(undefined, context)
+    // formApi: FormApi<FormData, ...>
   },
 })
+
+await form.handleSubmit()
+
+// Core onSubmit also receives `meta`. Adapter handleSubmit does not forward it:
+await form.form.handleSubmit(meta)
 ```
 
 ## Generic form components
@@ -194,7 +215,7 @@ Build typed reusable field inputs:
 ```ts
 import type { FieldHandle } from "@domphy/form/domphy"
 
-function TextInput<T>(field: FieldHandle<T, string>) {
+function TextInput(field: FieldHandle<string>) {
   return {
     div: [
       {

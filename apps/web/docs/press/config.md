@@ -10,10 +10,22 @@ description: "Full reference for @domphy/press site configuration."
 ```ts
 import { defineConfig } from "@domphy/press"
 
-export default defineConfig({ /* SiteConfig */ })
+export default defineConfig({ /* UserConfig */ })
 ```
 
-`defineConfig` is a passthrough helper for TypeScript inference — it returns its argument typed as `SiteConfig`.
+`defineConfig` builds a **new** `SiteConfig` — it is not a passthrough. Input type is `UserConfig` (`base` / `srcDir` / `outDir` / `head` optional). Defaults applied:
+
+| Field | Default |
+|---|---|
+| `base` | `"/"` |
+| `srcDir` | `"."` |
+| `outDir` | `"dist"` |
+| `head` | `[]` |
+| `themeConfig` | merged onto `{ nav: [], sidebar: {} }` |
+
+The CLI runs loaded plain-object configs through `defineConfig` as well, so they get the same defaults.
+
+`srcDir` and `outDir` on the returned `SiteConfig` stay as those path strings (relative unless you pass an absolute path). The CLI `resolve()`s them against `process.cwd()` at `build` / `dev` time.
 
 ## SiteConfig
 
@@ -21,12 +33,12 @@ export default defineConfig({ /* SiteConfig */ })
 |---|---|---|
 | `title` | `string` | Site title — appended to page titles |
 | `description` | `string` | Default meta description |
-| `base` | `string` | Deploy base path (e.g. `"/"` or `"/docs/"`) — internal nav/sidebar/hero links and canonical/sitemap/OG URLs are prefixed automatically (write them root-relative) |
+| `base` | `string` | Deploy base path (e.g. `"/"` or `"/docs/"`) — internal nav/sidebar/hero links and canonical/sitemap/OG URLs are prefixed automatically (write them root-relative). Default `"/"` |
 | `hostname` | `string` | Canonical hostname for sitemap and OG (e.g. `"https://example.com"`) |
-| `srcDir` | `string` | Absolute path to the Markdown source directory |
-| `outDir` | `string` | Absolute path to the build output directory |
-| `head` | `string[]` | Raw `<head>` tags injected verbatim (analytics, icons) |
-| `themeConfig` | `ThemeConfig` | Navigation, sidebar, footer, social links, etc. |
+| `srcDir` | `string` | Markdown source directory. Default `"."` (relative). The CLI `resolve()`s it against `process.cwd()` at build/dev time |
+| `outDir` | `string` | Build output directory. Default `"dist"` (relative). Same CLI resolve as `srcDir` |
+| `head` | `string[]` | Raw `<head>` tags injected verbatim (analytics, icons). Default `[]` |
+| `themeConfig` | `ThemeConfig` | Navigation, sidebar, footer, social links, etc. `defineConfig` merges the value you pass onto `{ nav: [], sidebar: {} }` |
 | `lastUpdated` | `boolean?` | Show last-updated date from `git log`. Default: `false` |
 | `continueOnError` | `boolean?` | Keep building (and exit 0) when individual pages fail. Default: `false` — any page error fails the build |
 | `cspNonce` | `string?` | Content-Security-Policy nonce stamped on every inline `<script>`/`<style>` press emits and forwarded to `@domphy/app` SSR |

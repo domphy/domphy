@@ -19,9 +19,11 @@ Colors are exposed as CSS custom properties scoped to `[data-theme]`:
 --{family}-{step}
 ```
 
-- step `0` is always white (lightest)
-- step `17` is always black (darkest)
-- step `8–9` is near the mid-range — the base accent zone
+On the built-in `light` theme (stock `primary` in `light.ts`):
+
+- `--primary-0` is white (`#ffffff`, lightest)
+- `--primary-17` is black (`#000000`, darkest)
+- steps `8–9` sit near the mid-range — the base accent zone
 
 Example:
 
@@ -47,21 +49,22 @@ color: var(--primary-0);
 
 ## Dark Theme
 
-The built-in `dark` theme is auto-generated from `light` by reversing each ramp:
+The built-in `dark` theme is derived **once at module init** from `light` (private `createDark`: reverse each ramp, mirror each `baseTones` index, `direction: "lighten"`). `setTheme` does **not** reverse into `"dark"` and does **not** create a dark sibling for a named theme.
 
-| Light | Dark |
-| --- | --- |
-| step `0` (lightest) | becomes step `17` (darkest) |
-| step `9` (accent) | becomes equivalent dark accent |
-| step `17` (darkest) | becomes step `0` (lightest) |
+After reverse, CSS variable **indices stay put** — the **values** swap ends. Stock `primary`:
 
-The dark theme is generated automatically by reversing the color array. You never need separate color values for dark mode — the same `--{family}-{step}` variables work in both themes, and the theme layer handles the inversion automatically.
+| CSS var | Light (`light.ts`) | Dark (after reverse) |
+| --- | --- | --- |
+| `--primary-0` | first stop (`#ffffff`) | light's last stop (`#000000`) |
+| `--primary-17` | last stop (`#000000`) | light's first stop (`#ffffff`) |
+| `--primary-N` | light `[N]` | light `[17 − N]` |
+| `baseTones.primary` | `9` | `8` (`17 − 9`) |
 
-For custom themes and the full setup, see [Setup](./setup).
+The same `--{family}-{step}` **names** work in both themes because each `[data-theme]` block supplies its own values. A custom theme registered with `setTheme("brand", …)` is a separate entry — give it a dark sibling yourself if you need one. Full contract: [Setup](./setup).
 
 ## Custom Palette
 
-Register a theme with `setTheme()` to replace any color family or add entirely new ramps. Custom ramps should follow the 18-step model.
+Register a theme with `setTheme()` to replace any color family or add entirely new ramps. Custom ramps should follow the 18-step model. A **new** family name must also be registered on `"light"` — `themeVars()` / `themeColor()` key on that structure and throw otherwise (see [Setup](./setup)).
 
 You don't have to hand-pick the 16 intermediate steps yourself — `generateTheme` builds the whole `ThemeInput` from one base hex per role, using the built-in WCAG-optimized `generateRamp` (see [`generateRamp`](../palette/generator)):
 
@@ -76,6 +79,8 @@ setTheme("brand", generateTheme({
 
 themeApply()
 ```
+
+That registers `"brand"` only. It does **not** reverse those ramps into `"dark"`. To update the built-in pair, `setTheme("light", …)` and `setTheme("dark", …)` separately (reverse each ramp, `baseTones` → `17 − index`, `direction: "lighten"`).
 
 `baseTones` is filled in automatically — the step closest (CIEDE2000) to the hex you passed in.
 

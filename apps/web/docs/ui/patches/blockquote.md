@@ -6,7 +6,13 @@ import Blockquote from "../../demos/patches/Blockquote.ts?raw"
 
 # Blockquote
 
-Use the blockquote patch to customize this element.
+Styles a quotation block with a colored inset side bar, padded surface, and shifted tone. Apply to a `<blockquote>` element.
+
+## Props
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `color` | `ValueOrState<ThemeColor>` | `"neutral"` | Surface and bar tone. |
 
 <CodeEditor :code="Blockquote" />
 
