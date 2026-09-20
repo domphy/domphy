@@ -5,6 +5,7 @@ import {
   collectCSSRules,
   ensureDomStyle,
   getTagName,
+  hasOwn,
   mergePartial,
   normalizeSelectorKey,
   validate,
@@ -587,7 +588,7 @@ export class ElementNode {
     }
     if (!prune) return;
     for (const key of [...this._behaviorInstances.keys()]) {
-      if (Object.hasOwn(next, key)) continue;
+      if (hasOwn(next, key)) continue;
       const instance = this._behaviorInstances.get(key);
       this._behaviorInstances.delete(key);
       try {
@@ -597,7 +598,7 @@ export class ElementNode {
       }
     }
     for (const key of [...this._pendingBehaviors.keys()]) {
-      if (!Object.hasOwn(next, key)) this._pendingBehaviors.delete(key);
+      if (!hasOwn(next, key)) this._pendingBehaviors.delete(key);
     }
   }
 
@@ -668,7 +669,7 @@ export class ElementNode {
 
   getContext(name: string): any {
     let node: ElementNode | null = this;
-    while (node && (!node._context || !Object.hasOwn(node._context, name))) {
+    while (node && (!node._context || !hasOwn(node._context, name))) {
       node = node.parent;
     }
     return node && node._context ? node._context[name] : undefined;

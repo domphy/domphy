@@ -3,7 +3,7 @@ import {
   CamelAttributes,
   HtmlAttributeNames,
 } from "../constants.js";
-import { camelToKebab, escapeHTML } from "../helpers.js";
+import { camelToKebab, escapeHTML, hasOwn } from "../helpers.js";
 import type { AttributeValue } from "../types.js";
 import type { ElementNode } from "./ElementNode.js";
 import { Notifier } from "./Notifier.js";
@@ -62,7 +62,7 @@ export class ElementAttribute {
     this.enumeratedBoolean = EnumeratedBooleanAttributes[name];
     if (CamelAttributes.includes(name)) {
       this.name = name;
-    } else if (Object.hasOwn(HtmlAttributeNames, name)) {
+    } else if (hasOwn(HtmlAttributeNames, name)) {
       this.name = HtmlAttributeNames[name];
     } else {
       this.name = camelToKebab(name);

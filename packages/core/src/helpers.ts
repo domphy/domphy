@@ -10,6 +10,17 @@ import type {
 } from "./types.js";
 import { merge } from "./utils.js";
 
+/**
+ * Own-property check that also runs on engines older than Chrome 93, where
+ * `Object.hasOwn` does not exist. Domphy ships inside embedded browsers that lag
+ * years behind evergreen ones (SketchUp 2022 = CEF 88): a bare `Object.hasOwn`
+ * there throws at the first mount and the host dialog renders blank. Use this,
+ * never `Object.hasOwn`, in every package that can run in such a host.
+ */
+export function hasOwn(object: object, key: PropertyKey): boolean {
+  return Object.prototype.hasOwnProperty.call(object, key);
+}
+
 export function addHook<K extends keyof HookMap>(
   partial: PartialElement,
   hookName: K,

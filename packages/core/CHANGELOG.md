@@ -1,5 +1,9 @@
 # @domphy/core Changelog
 
+## Unreleased
+
+- **fix: runs on Chrome 88-class embedded browsers again** — the five `Object.hasOwn` calls (Chrome 93+) on the mount / attribute / context / behavior paths threw `Object.hasOwn is not a function` at the first mount inside SketchUp 2022 (CEF 88), blanking the host dialog. Replaced by an internal `hasOwn()` helper; `tests/legacy-engine.test.ts` traps the API so it cannot come back.
+
 ## 0.21.3
 
 - Public entry re-exports `TextNode` (`export *` from `classes/TextNode.js`).

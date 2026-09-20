@@ -1,4 +1,5 @@
 import { BooleanAttributes } from "../constants.js";
+import { hasOwn } from "../helpers.js";
 import type { AttributeValue, Listener } from "../types.js";
 import { ElementAttribute } from "./ElementAttribute.js";
 import type { ElementNode } from "./ElementNode.js";
@@ -42,7 +43,7 @@ export class AttributeList {
 
   has(name: string): boolean {
     if (!this.items) return false;
-    return Object.hasOwn(this.items, name);
+    return hasOwn(this.items, name);
   }
 
   remove(name: string): void {
