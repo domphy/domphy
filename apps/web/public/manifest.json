@@ -1,6 +1,6 @@
 {
   "name": "domphy",
-  "version": "0.21.3",
+  "version": "0.21.4",
   "generated": "auto",
   "rules": "https://domphy.com/llms.txt",
   "tones": "https://domphy.com/tones.json",
@@ -34,7 +34,7 @@
     },
     {
       "name": "@domphy/core",
-      "version": "0.21.3",
+      "version": "0.21.4",
       "description": "Domphy core runtime — patch-based, framework-agnostic UI with plain-object element trees, listener-based reactivity, and SSR + hydration (no JSX, no virtual DOM)",
       "subpaths": ["."],
       "peerDependencies": []
