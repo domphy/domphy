@@ -1,10 +1,11 @@
 import { scrollProgress } from "@domphy/blocks";
+import type { DomphyElement } from "@domphy/core";
 import { themeColor, themeSpacing } from "@domphy/theme";
 import { paragraph } from "@domphy/ui";
 
 // In-flow demo stage: fixed-to-viewport progress is also staged as absolute
 // inside this relative host so catalog cell screenshots capture the bar.
-export default {
+const Demo: DomphyElement<"div"> = {
   div: [
     scrollProgress({
       thickness: 1.5,
@@ -33,3 +34,5 @@ export default {
     boxSizing: "border-box",
   },
 };
+
+export default Demo;

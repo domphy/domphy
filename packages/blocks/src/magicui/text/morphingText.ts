@@ -19,7 +19,7 @@
 // not routed through reactive State.
 
 import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
-import { fixed } from "../../shared/typography.js";
+import { prefersReducedMotion } from "../reducedMotion.js";
 
 export interface MorphingTextProps {
   /** Phrases cycled through in order, looping back to the first. Defaults to a short demo sequence. */
@@ -129,6 +129,9 @@ function morphingText(props: MorphingTextProps = {}): DomphyElement<"div"> {
     // Upstream container: `relative mx-auto h-16 w-full max-w-3xl text-center
     // font-sans text-[40pt] leading-none font-bold
     // filter-[url(#threshold)_blur(0.6px)] md:h-24 lg:text-[6rem]`.
+    // `fontSize` below is outside what the theme can express — see its
+    // comment for the measurement that says so.
+    _doctorDisable: "inline-typography",
     style: {
       position: "relative",
       marginLeft: "auto",
@@ -137,19 +140,30 @@ function morphingText(props: MorphingTextProps = {}): DomphyElement<"div"> {
       width: "100%",
       maxWidth: "48rem",
       textAlign: "center",
-      fontFamily: fixed("ui-sans-serif, system-ui, sans-serif"),
-      fontSize: fixed("40pt"),
-      lineHeight: fixed("1"),
-      fontWeight: fixed("700"),
+      // Upstream's `font-sans` is dropped, not ported: the themed root already
+      // carries the sans stack and font-family inherits, so redeclaring it
+      // here would only pin the block to one stack a custom theme can't swap.
+      // Display size past the top of the theme scale: --fontSize-7 is
+      // 3.0625rem (49px) and themeSize() clamps there, while 40pt = 53.3px
+      // (+9%) and the lg breakpoint below needs 6rem = 96px (+96%).
+      fontSize: "40pt",
+      lineHeight: 1,
+      // Identical face to "700", measured in Chromium, but as a cascade
+      // keyword rather than a hard-coded numeric step.
+      fontWeight: "bold",
       filter: `url(#${filterId}) blur(0.6px)`,
       "@media (min-width: 768px)": { height: "6rem" },
-      "@media (min-width: 1024px)": { fontSize: fixed("6rem") },
+      "@media (min-width: 1024px)": { fontSize: "6rem" },
       ...(props.style ?? {}),
     } as StyleObject,
     _onMount: (node: ElementNode) => {
       // Nothing to morph with 0 or 1 phrase — both spans are already seeded,
       // so skip the perpetual rAF loop entirely.
-      if (typeof window === "undefined" || count <= 1) return;
+      // WCAG 2.2.2: the morph cycles through the phrases forever. Under
+      // reduce, skip the loop — the pre-JS markup already shows the first
+      // phrase alone (the second span is seeded at opacity 0).
+      if (typeof window === "undefined" || count <= 1 || prefersReducedMotion())
+        return;
 
       let textIndex = 0;
       let morph = 0;

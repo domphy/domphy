@@ -4,6 +4,7 @@ import {
   themeColor,
   themeSize,
   themeSpacing,
+  themeWeight,
 } from "@domphy/theme";
 
 /**
@@ -20,8 +21,6 @@ function avatar(
 
   return {
     dataTone: "shift-2",
-    // Design-system initials weight (not app chrome) — consumers use avatar().
-    _doctorDisable: "inline-typography",
     style: {
       position: "relative",
       display: "inline-flex",
@@ -33,7 +32,7 @@ function avatar(
       width: themeSpacing(9),
       height: themeSpacing(9),
       fontSize: (listener) => themeSize(listener, "inherit"),
-      fontWeight: "600",
+      fontWeight: themeWeight("semibold"),
       userSelect: "none",
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),

@@ -147,3 +147,50 @@ describe("escapeHTML", () => {
     expect(escapeHTML("&amp;")).toBe("&amp;amp;");
   });
 });
+
+// Truth source: the OWASP XSS Filter Evasion cheat sheet / DOMPurify's
+// `SVG animation` vectors — an element that RE-TARGETS another attribute at
+// runtime defeats any filter that only inspects attribute names.
+describe("SVG attribute re-targeting (OWASP / DOMPurify vectors)", () => {
+  it('drops <set attributeName="on…"> — it installs a live event handler', () => {
+    const out = sanitizeHTMLString(
+      '<svg><rect><set attributeName="onmouseover" to="alert(1)"/></rect></svg>',
+    );
+    expect(out).not.toContain("<set");
+    expect(out).not.toContain("alert(1)");
+  });
+
+  it('drops <animate attributeName="href"> — it rewrites its parent <a> after the URL pass', () => {
+    const out = sanitizeHTMLString(
+      '<svg><a href="#"><animate attributeName="href" values="javascript:alert(1)"/></a></svg>',
+    );
+    expect(out).not.toContain("<animate");
+    expect(out).not.toContain("javascript:");
+  });
+
+  it("keeps a legitimate animation that targets a presentation attribute", () => {
+    const out = sanitizeHTMLString(
+      '<svg><circle r="4"><animate attributeName="opacity" values="0;1"/></circle></svg>',
+    );
+    expect(out).toContain('attributeName="opacity"');
+  });
+
+  it("drops <meta http-equiv=refresh> — the URL pass cannot see inside `content`", () => {
+    const out = sanitizeHTMLString(
+      '<meta http-equiv="refresh" content="0;url=https://evil.example">',
+    );
+    expect(out).not.toContain("evil.example");
+  });
+
+  // Truth source: DOMPurify's default FORBID_TAGS includes `base` — the tag
+  // re-targets every relative URL on the whole page, so no per-attribute URL
+  // check can make it safe.
+  it("drops <base> — it re-targets every relative URL on the page", () => {
+    expect(
+      sanitizeHTMLString('<base href="https://evil.example/">'),
+    ).not.toContain("evil.example");
+    expect(
+      sanitizeHTMLString("<base href='//evil.example'><a href='/pay'>p</a>"),
+    ).toBe("<a href='/pay'>p</a>");
+  });
+});

@@ -8,7 +8,7 @@ import Drawer from "../../demos/patches/Drawer.ts?raw"
 
 Use `drawer` on a `<dialog>` element to create an edge-anchored modal drawer. It slides in/out via a CSS transform transition, calls the native `showModal()`/`close()` API, locks page scroll while open, and closes on backdrop click. The browser automatically traps focus inside the open drawer and restores focus when it closes.
 
-> **Note:** The patch automatically sets `aria-modal="true"` on the `<dialog>` element and closes the drawer via the animated state path when Escape is pressed (intercepting the native `cancel` event). Focus restoration on `close()` is handled natively by the `<dialog>` API.
+> **Note:** The patch automatically sets `aria-modal="true"` on the `<dialog>` element and closes the drawer via the animated state path when Escape is pressed (intercepting the native `cancel` event). Focus restoration on `close()` is handled natively by the `<dialog>` API. Escape dismisses only the topmost layer — while a floating panel (`popover`, `selectBox`, `combobox`, `datePicker`) is open inside the drawer, Escape closes that panel first.
 
 The drawer surface uses a high `elevation()` box-shadow (no outline — it's edge-flush against the viewport, so a border would look out of place).
 

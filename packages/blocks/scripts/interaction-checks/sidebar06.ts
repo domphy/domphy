@@ -10,6 +10,7 @@ import {
   locate,
   mountedPage,
   report,
+  settledWidth,
   summarize,
   teardown,
 } from "../interaction-harness.js";
@@ -45,8 +46,24 @@ async function main() {
     `aria-expanded=${afterClickExpanded}`,
   );
 
-  const historyItemVisible = await page
-    .locator('[role="dialog"]', { hasText: "History" })
+  // The floating panel's role comes from its CONTENT: these rows are a
+  // `menu()`, which owns its own surface, so @domphy/ui's popover leaves
+  // `role=menu` in place instead of stamping `role=dialog` over it (ui 0.21.6,
+  // `contentOwnsSurface`). WAI-ARIA 1.2 requires the trigger's aria-haspopup
+  // to name the role the panel ACTUALLY has — follow the live panel via
+  // aria-controls rather than pinning either role string.
+  const panelId = await playgroundButton.getAttribute("aria-controls");
+  const panel = page.locator(`#${panelId}`);
+  const panelRole = await panel.getAttribute("role");
+  const haspopup = await playgroundButton.getAttribute("aria-haspopup");
+  report(
+    "sidebar06: the trigger's aria-haspopup names the open panel's own role (WAI-ARIA 1.2)",
+    Boolean(panelId) && panelRole === haspopup,
+    `aria-controls=${panelId} panelRole=${panelRole} aria-haspopup=${haspopup}`,
+  );
+
+  const historyItemVisible = await panel
+    .getByText("History", { exact: true })
     .first()
     .isVisible();
   report(
@@ -70,14 +87,10 @@ async function main() {
   const toggleButton = page
     .locator('[data-block="sidebar06"] main header button')
     .first();
-  const expandedWidth = await aside.evaluate(
-    (el) => el.getBoundingClientRect().width,
-  );
+  const expandedWidth = await settledWidth(aside);
   await toggleButton.click();
   await page.waitForTimeout(300);
-  const collapsedWidth = await aside.evaluate(
-    (el) => el.getBoundingClientRect().width,
-  );
+  const collapsedWidth = await settledWidth(aside);
   report(
     "sidebar06: the header toggle button fully collapses the sidebar (width -> ~0)",
     expandedWidth > 200 && collapsedWidth < 5,

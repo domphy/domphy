@@ -40,6 +40,7 @@ export class Router<
   TDehydrated
 > {
   private transitioner?: TransitionerHandle
+  private destroyed = false
 
   constructor(
     options: RouterConstructorOptions<
@@ -65,6 +66,18 @@ export class Router<
       }
     }
 
+    // Same instance-field problem as `update`: wrap the base `load` so a
+    // destroyed router stops loading. Without this an explicit `load()` (or a
+    // history event that raced teardown) still runs the core pipeline, which
+    // emits the whole lifecycle and writes status/resolvedLocation.
+    const baseLoad = this.load
+    this.load = async (opts) => {
+      if (this.destroyed) {
+        return
+      }
+      return baseLoad(opts)
+    }
+
     if (!this.isServer) {
       this.transitioner = setupTransitioner(this as unknown as AnyRouter)
     }
@@ -77,6 +90,7 @@ export class Router<
    * store and scroll events.
    */
   destroy(): void {
+    this.destroyed = true
     this.transitioner?.cleanup()
     this.transitioner = undefined
     this._scrollRestorationCleanup?.()

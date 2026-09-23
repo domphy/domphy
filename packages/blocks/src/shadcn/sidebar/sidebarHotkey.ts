@@ -39,3 +39,43 @@ export function sidebarHotkey(onToggle: () => void): PartialElement {
     onToggle,
   });
 }
+
+type SidebarEscapeProps = {
+  onClose: () => void;
+};
+
+function attachSidebarEscape(
+  node: ElementNode,
+  initialProps: SidebarEscapeProps,
+) {
+  let onClose = initialProps.onClose;
+  const handleKeydown = (event: KeyboardEvent) => {
+    if (event.key !== "Escape") return;
+    // Only when this host (the drawer backdrop) is actually on screen: it is
+    // `display: none` above the mobile breakpoint, where Escape must not
+    // collapse the desktop sidebar.
+    const element = node.domElement as HTMLElement | undefined;
+    if (!element || getComputedStyle(element).display === "none") return;
+    onClose();
+  };
+  window.addEventListener("keydown", handleKeydown);
+  return {
+    update: (next: SidebarEscapeProps) => {
+      onClose = next.onClose;
+    },
+    destroy: () => window.removeEventListener("keydown", handleKeydown),
+  };
+}
+
+/**
+ * Escape closes the open mobile drawer. Upstream renders the mobile sidebar in
+ * a Radix `Sheet` (a modal dialog), whose Escape dismissal is part of the
+ * WAI-ARIA APG dialog pattern; the hand-rolled off-canvas panels here had no
+ * key handler at all, so Escape left the drawer and its backdrop on screen.
+ * `behavior()` for the same reason as `sidebarHotkey` above.
+ */
+export function sidebarEscape(onClose: () => void): PartialElement {
+  return behavior<SidebarEscapeProps>("sidebar-escape", attachSidebarEscape, {
+    onClose,
+  });
+}

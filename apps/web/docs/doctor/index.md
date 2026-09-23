@@ -70,30 +70,48 @@ interface Diagnostic {
 
 | Rule | Severity | Catches |
 | --- | --- | --- |
-| `inline-typography` | warning | `fontSize` / `lineHeight` / `fontWeight` / `letterSpacing` / `fontFamily` / `textDecoration` literals in `style` — use a typography patch |
-| `raw-theme-value` | info | a literal hex/rgb/hsl color **or a CSS named color** (`"red"`, `"white"`, `"black"`, …) in a color style prop (`color`, `background`, `border`, `fill`, …). For hex/rgb values the hint uses **`@domphy/theme` chromametry** (CIELAB→LCH) to suggest the nearest `themeColor()` call with perceptual coordinates |
+| `inline-typography` | warning | `fontSize` / `lineHeight` / `fontWeight` / `letterSpacing` / `fontFamily` / `textDecoration` literals in `style` — use a typography patch, or the `@domphy/theme` token the hint names per property (`themeWeight()`, `themeLetterSpacing()`, `themeFont()`; `fontFamily` usually just goes away, since the themed root's stack inherits). Static and reactive forms are judged identically (`fontWeight: 500` and `() => 500` are the same declaration; a `var(--…)`/`calc()` is theme-driven either way). Scoped to the element itself — `&:hover`, `&::after` and conditional at-rules (`@media`, `@container`, `@supports`, `@layer`) included, at any depth — while a nested block whose selector reaches descendants (`"& h1"`, `"& > p"`) type-sets markup with no call site to patch and is not checked |
+| `raw-theme-value` | info | a literal hex/rgb/hsl color **or a CSS named color** (`"red"`, `"white"`, `"black"`, …) in a color style prop (`color`, `background`, `border`, `fill`, …). A `color-mix()` is judged by its arguments — a mix of nothing but `var(--…)` theme tokens is not a raw value; a literal inside one still is. For hex/rgb values the hint uses **`@domphy/theme` chromametry** (CIELAB→LCH) to suggest the nearest `themeColor()` call with perceptual coordinates |
 | `raw-spacing-value` | info | a literal `rem`/`em`/`px` value in a layout spacing prop (`padding`, `paddingBlock`, `paddingInline`, `margin`, `marginBlock`, `marginInline`, `gap`, …) — suggests `themeSpacing(n)` for consistent theme density |
 | `low-opacity` | warning / info | `style.opacity` < 0.6 on a control is too dim for interactive elements to be discoverable; downgraded to info if a hover-restore pattern (`&:hover: { opacity: '1' }`) is detected |
-| `tone-background-inherit` | warning | `style.backgroundColor` resolves to a fixed shifted tone instead of `"inherit"` — use `dataTone` to shift the surface context, not `backgroundColor` directly |
+| `tone-background-inherit` | warning | `style.backgroundColor` resolves to a fixed shifted tone instead of `"inherit"` — use `dataTone` to shift the surface context, not `backgroundColor` directly. Null-content decorative hosts (`{ span: null }` swatches, chips, glyphs) are exempt: they paint a fixed tone by definition and have no children for a tone context to reach |
 | `missing-color` | warning | element uses `themeColor()` for at least one styled prop but has no `style.color` — text color won't re-evaluate when the tone context shifts (CSS `color` inheritance carries the computed value, not a live theme var) |
-| `low-contrast` | warning | `style.color` and `style.backgroundColor` both resolve to theme vars but their shift-step gap is < 9 — insufficient contrast for legible text |
+| `low-contrast` | warning / info | `style.color` and `style.backgroundColor` both resolve to theme vars but their ramp gap is < `CONTRAST_SPAN` (9) — insufficient contrast for legible text. Both are resolved against the element's own surface (its `dataTone`, or the nearest declared ancestor's), since every `themeColor()` tone is relative to the tone context. Nested blocks (`&:hover`, `@media …`) are checked with the cascade applied and reported at **info** |
 | `dataTone-surface-contract` | warning | element sets `dataTone` but is missing `backgroundColor` and/or `color` — a tone context surface must declare both so children can guarantee readable contrast |
-| `color-shift-minimum` | warning | `style.color` on an element with `dataTone` resolves to tone step < 9 — below the minimum for legible body text |
+| `color-shift-minimum` | warning | `style.color` on an element with `dataTone` lands fewer than `CONTRAST_SPAN` (9) ramp steps from the surface that `dataTone` creates. A gap, not an absolute step: on a `shift-17` surface `themeColor(l, "shift-9")` resolves to step 7 and is legible. Defers to `low-contrast` when the element's own `backgroundColor` already gives it that pair |
 | `unknown-tone` | warning | a `dataTone` **string** that isn't in `ElementTones` (`inherit` / `base` / `shift-N` / `increase-N` / `decrease-N` with N ≤ 17, or aliases `surface` / `hover` / `border` / `border-strong` / `muted` / `text`) — catches invented words like `foreground` / `light`, bare-numeric strings like `"3"` (the runtime throws; use `dataTone: 3` or `"shift-3"`), and out-of-range offsets like `shift-25` |
 | `middle-surface-anchor` | warning | a `dataTone: "shift-N"` where N is 4–13 — a mid-ramp surface anchor causes child tones to clamp and collapse contrast; prefer edge anchors (0–3 light, 14–17 dark) |
 | `unknown-density` | warning / error | a `dataDensity` value that isn't `"inherit"` / `"increase-N"` / `"decrease-N"` (N ≤ 4), or uses `shift-` (invalid for density). Error when N > 4 (out of the 5-step scale). |
 | `unknown-size` | warning / error | a `dataSize` value that isn't `"inherit"` / `"increase-N"` / `"decrease-N"` (N ≤ 7), or uses `shift-` (invalid for size). Error when N > 7 (out of the 8-step scale). |
 | `void-content` | error | a void tag (`input`, `img`, `br`, …) with non-null content |
 | `missing-key` | warning | a **dynamic** list (returned by a reactive function) of element children missing `_key` |
-| `unknown-tag` | warning | an element whose first key isn't a valid HTML/SVG tag (typo) |
+| `unknown-tag` | warning | an element whose first key isn't a valid HTML/SVG tag or [custom element name](https://html.spec.whatwg.org/multipage/custom-elements.html#valid-custom-element-name) (typo) |
 | `duplicate-key` | error | two siblings sharing the same `_key` value — the reconciler can't tell them apart |
 | `unstable-key` | warning | a dynamic list whose `_key`s are the array index (`0, 1, 2, …`) — index keys shift on reorder/insert |
-| `invalid-nesting` | error | HTML content-model violations the browser re-parents (breaking SSR/hydration): flow content in `<p>`, `a`/`button` inside `a`/`button`, `li`/`dt`/`dd`/`tr`/`td`/`th`/`option`/table-section tags with the wrong parent, non-`li` element child of `ul`/`ol`. Declared direct parent-child pairs only — reactive content, `rawHtml`, and SVG subtrees are exempt |
+| `invalid-nesting` | error | HTML content-model violations the browser re-parents (breaking SSR/hydration): flow content in `<p>`, `a`/`button` inside `a`/`button`, `li`/`dt`/`dd`/`tr`/`td`/`th`/`option`/table-section tags with the wrong parent, non-`li` element child of `ul`/`ol`. Declared direct parent-child pairs only — reactive content, `rawHtml`, custom elements (no declared content model) and SVG subtrees are exempt |
 | `click-without-keyboard` | warning | an `onClick` on a non-interactive element (not a/button/input/select/textarea/summary/label, no interactive role, no `tabIndex`) without a keyboard handler — hidden elements exempt |
 | `missing-required-attribute` | error (warning for `a`) | `<img>` without `alt` (`aria-label`/`aria-labelledby`/`role: "presentation"\|"none"` accepted), `<iframe>` without `title`; `<a>` with `onClick` but no `href`/`role` is a warning |
-| `unused-doctor-disable` | info | a `_doctorDisable` entry that suppresses nothing on its element — the named rule fired no diagnostic there, `_doctorDisable: true` consumed nothing, or the id matches no known rule (typo detection) |
+| `descendant-color-override` | warning | a scoped `"& <tag>": { color }` / `{ backgroundColor }` block on an element that declares `<tag>` descendants carrying a patch which sets the same prop **to a different value** — a descendant selector is specificity (0,1,1) and a patch's own class only (0,1,0), so the patch's tone is silently overridden. A block that resolves to the same value the patch would paint changes nothing and is not reported |
+| `unused-doctor-disable` | info | a `_doctorDisable` entry that suppresses nothing on its element — the named rule fired no diagnostic there, `_doctorDisable: true` consumed nothing, or the id matches no known rule (typo detection). Only entries the element declares itself are checked, never a `$` patch's |
 
-The doctor implements **22** built-in rules. See [Rules Reference](/docs/doctor/rules) for the full contract of each.
+The doctor implements **23** built-in rules. See [Rules Reference](/docs/doctor/rules) for the full contract of each.
+
+### `$` patches are part of the element
+
+Every rule reads the element's **effective** props — the element with its `$` patches applied, exactly the way `ElementNode` composes them at runtime (each patch expanded, composed left to right, the native element last so it wins). A style, `dataTone`, `role`, `tabIndex` or `_doctorDisable` a patch contributes is therefore visible to the rules, and a rule never asks for something a patch already supplies:
+
+```ts
+// missing-color fires — panelSection({ divider: true }) themes a
+// borderBottom with themeColor(), and nothing on the element sets `color`.
+{ div: "Section A", $: [panelSection({ divider: true })] }
+
+// low-contrast does NOT fire — button()'s solid variant declares
+// _doctorDisable: ["low-contrast", …] for its deliberate deep brand fill,
+// and that suppression travels with the patch to every host.
+{ button: "Save", $: [button({ color: "primary", variant: "solid" })] }
+```
+
+The element's **children** are read from the declared tree: content a patch contributes as a default is analyzed, content the element declares itself is analyzed as written. The host tag always comes from the element, never from a patch — core resolves the tag before patches are merged.
 
 By default the doctor invokes reactive content functions with a no-op listener to inspect their output (this is how the dynamic-list rules are found). Pass `{ runReactive: false }` if your reactive functions have side effects.
 
@@ -125,7 +143,7 @@ Add `_doctorDisable` to an element to suppress rules at that node (not its child
 
 ### Custom rules
 
-Provide project-specific rules alongside the built-in 22:
+Provide project-specific rules alongside the built-in 23:
 
 ```ts
 import { type CustomRule, diagnose } from "@domphy/doctor"

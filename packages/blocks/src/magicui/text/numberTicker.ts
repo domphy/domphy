@@ -17,8 +17,14 @@
 
 import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
 import { behavior } from "@domphy/core";
-import { type ThemeColor, themeColor } from "@domphy/theme";
-import { fixed } from "../../shared/typography.js";
+import {
+  type ThemeColor,
+  themeColor,
+  themeLetterSpacing,
+  themeSize,
+  themeWeight,
+} from "@domphy/theme";
+import { prefersReducedMotion } from "../reducedMotion.js";
 
 export interface NumberTickerSpring {
   /** How fast oscillation dies out. Defaults to `60`. */
@@ -95,12 +101,25 @@ function numberTicker(props: NumberTickerProps = {}): DomphyElement<"span"> {
       display: "inline-block",
       fontVariantNumeric: "tabular-nums",
       // text-8xl (fixed 96px) + tracking-wider (0.05em) from the upstream
-      // component class + demo; no fluid clamp (upstream sets no responsive
-      // shrink) and no bold — the demos use font-medium (500). Upstream paints
-      // `text-black`, so the tone sits at the dark edge of the ramp.
-      fontSize: fixed("6rem"),
-      fontWeight: fixed("500"),
-      letterSpacing: fixed("0.05em"),
+      // component class + demo, made fluid: @domphy/theme's type scale has 8
+      // fixed steps topping out at --fontSize-7 = 3.0625rem (49px)
+      // (packages/theme/src/size.ts, `Math.min(7, ...)`), 96% short of
+      // upstream's fixed 6rem (96px) hero size — and a fixed 96px is also
+      // too large on a narrow viewport regardless. clamp() floors at the
+      // theme's own top step (still theme-owned — follows a custom type
+      // scale or dark-mode token edits) and grows to upstream's 6rem cap as
+      // the viewport widens. Slope/intercept via the same Utopia-style
+      // px-at-16px/em formula `themeFluidSpacing()` uses (packages/theme/src/theme.ts),
+      // hand-solved here because the min bound is a var() token, not a
+      // themeFluidSpacing() numeric U-unit: MEASURED interpolating 49px at
+      // 320px viewport to 96px at 1280px viewport → slope (96-49)/(1280-320)*100
+      // = 4.8958vw, intercept (49 - 4.8958*320/100)/16 = 2.0833em. No bold —
+      // the demos use font-medium (500). Upstream paints `text-black`, so
+      // the tone sits at the dark edge of the ramp.
+      fontSize: (l) =>
+        `clamp(${themeSize(l, "increase-7")}, 2.0833em + 4.8958vw, 6rem)`,
+      fontWeight: themeWeight("medium"),
+      letterSpacing: themeLetterSpacing("wider"),
       color: (listener) => themeColor(listener, "shift-14", color),
       ...(props.style ?? {}),
     },
@@ -142,6 +161,15 @@ function attachNumberTicker(
 
   const runSpring = () => {
     if (frameHandle !== null) cancelAnimationFrame(frameHandle);
+
+    // WCAG 2.3.3: the count-up is a decorative transition between two states.
+    // Under reduce the destination value is presented directly — the number
+    // is the content, so it must still appear, it just doesn't animate there.
+    if (prefersReducedMotion()) {
+      element.textContent = props.formatter.format(props.to);
+      frameHandle = null;
+      return;
+    }
 
     let position = props.from;
     let velocity = 0;

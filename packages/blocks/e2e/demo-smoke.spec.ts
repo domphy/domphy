@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { mountBlock, openDemo } from "./helpers";
+import { mountBlock, openDemo } from "./helpers.js";
 
 const SMOKE_BLOCKS = ["sidebar07", "dashboard01", "Login01"] as const;
 

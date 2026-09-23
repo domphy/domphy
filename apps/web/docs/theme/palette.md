@@ -13,7 +13,7 @@ Each family is a sequential 18-step ramp built with [Chromametry](https://github
 
 ## CSS Variables
 
-Colors are exposed as CSS custom properties scoped to `[data-theme]`:
+Colors are exposed as CSS custom properties scoped to `[data-theme]` (plus `:root` for the default `light` theme, so a page without the attribute still resolves them):
 
 ```
 --{family}-{step}
@@ -49,7 +49,7 @@ color: var(--primary-0);
 
 ## Dark Theme
 
-The built-in `dark` theme is derived **once at module init** from `light` (private `createDark`: reverse each ramp, mirror each `baseTones` index, `direction: "lighten"`). `setTheme` does **not** reverse into `"dark"` and does **not** create a dark sibling for a named theme.
+The built-in `dark` theme is **derived** from `light` (private `createDark`: reverse each ramp, mirror each `baseTones` index, `direction: "lighten"`), and that derivation re-runs on every `setTheme("light", …)` — so a new ramp or a whole new color role applied to `light` reaches dark mode automatically. Explicit `setTheme("dark", …)` overrides are replayed on top of each rebuild. `setTheme` does **not** create a dark sibling for a *named* theme.
 
 After reverse, CSS variable **indices stay put** — the **values** swap ends. Stock `primary`:
 

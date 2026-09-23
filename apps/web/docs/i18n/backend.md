@@ -51,7 +51,42 @@ async function createI18nLazy(initialLocale: Locale) {
 }
 ```
 
-For a single locale at startup, load it first and pass it at `createI18n`. `locales` is snapshotted when `createI18n` runs — assigning more keys onto the object afterwards does **not** register translations with i18next, so a later `setLocale("fr")` would have nothing to switch to.
+## On-demand with `addLocale`
+
+Ship one locale in the initial bundle and load the rest only when they are asked for. `locales` is snapshotted when `createI18n` runs — assigning more keys onto that object afterwards registers nothing with i18next — so a later locale goes in through `addLocale`, which wraps i18next's `addResourceBundle`:
+
+```ts
+import { createI18n } from "@domphy/i18n"
+import en from "./locales/en.json"
+
+type Locale = "en" | "fr" | "vi"
+
+const i18n = createI18n<Locale, typeof en>({
+  globalKey: "__myapp_i18n__",
+  namespace: "app",
+  locales: { en } as Record<Locale, typeof en>,
+  defaultLocale: "en",
+})
+
+const loaded = new Set<Locale>(["en"])
+
+export async function switchLocale(locale: Locale) {
+  if (!loaded.has(locale)) {
+    const messages = await import(`./locales/${locale}.json`)
+    await i18n.addLocale(locale, messages.default)
+    loaded.add(locale)
+  }
+  await i18n.setLocale(locale)
+}
+```
+
+`addLocale` initializes i18next first if it hasn't been yet, so it is safe to call before `initI18n`. It deep-merges into whatever the locale already has and overwrites the keys it repeats, so a partial placeholder bundle can be filled in later. Once it resolves, the locale is usable by `t`, `setLocale`, `getLocale`, `exists` and `detectLocale`.
+
+It also re-renders mounted `t(listener, key)` readers, which `setLocale` alone cannot always do: after `initI18n("fr")` with `fr` not yet loaded, i18next is *already* on `fr` (serving the fallback), so `setLocale("fr")` short-circuits and the locale state never changes. Filling in a partial bundle for the locale already on screen doesn't change the locale code at all. Both re-render.
+
+Declare the full `Locale` union up front — only the *data* is deferred, not the set of codes the app knows about.
+
+A locale the user's browser asks for at startup can also be the *only* one in the first `locales` object, with `addLocale` filling in the rest as they are chosen:
 
 ```ts
 async function createI18nOnDemand(initialLocale: Locale) {
@@ -71,7 +106,7 @@ async function createI18nOnDemand(initialLocale: Locale) {
 }
 ```
 
-To support switching, either load every locale up front (`createI18nLazy` above) or create a **new** instance after fetching the next locale (give it a distinct `globalKey` — a reuse of the same key keeps the first store and ignores the new `locales`).
+Do **not** reach for a second `createI18n` with a fresh `globalKey` to add a locale: a reuse of the same key keeps the first store and ignores the new `locales`, and a distinct key gives you two unrelated instances whose reactive `locale` states never agree. `addLocale` is the supported path.
 
 ## HTTP backend
 

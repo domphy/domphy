@@ -1,6 +1,6 @@
 import { AdditiveBlending } from "three";
 import { resolve } from "./catalog.js";
-import type { SceneChildren, ThreeOptions } from "./types.js";
+import type { SceneChildren, SceneFunction, ThreeOptions } from "./types.js";
 
 // Scene-level static analyzer — @domphy/doctor's shape applied to the
 // three() option object, which doctor itself cannot see (a scene description
@@ -199,8 +199,35 @@ function checkTagNotFirst(
   ];
 }
 
+// A child entry the reconciler's `normalizeChildren` would throw on: a
+// string/number/boolean, or a nested array that was never spread. The most
+// common way to produce one is writing props as the tag's VALUE —
+// `{ meshStandardMaterial: { color: "orange" } }` instead of
+// `{ meshStandardMaterial: null, color: "orange" }` — which makes "color" a
+// child node whose own child is the string "orange". That shipped in this
+// package's own docs four times before this rule existed; the runtime error it
+// throws names the string, not the node that produced it.
+function checkInvalidChild(child: unknown, path: string): SceneDiagnostic {
+  const description = Array.isArray(child)
+    ? "a nested array"
+    : typeof child === "string"
+      ? JSON.stringify(child)
+      : `a ${typeof child}`;
+  return {
+    rule: "invalid-child",
+    severity: "error",
+    path,
+    message: `Scene children must be description objects keyed by tag — got ${description}. Creating this node throws at runtime.`,
+    hint: Array.isArray(child)
+      ? "Spread it into the parent array instead (e.g. [...children, ...mapped])."
+      : 'Props belong beside the tag, not inside it: { meshStandardMaterial: null, color: "orange" }, not { meshStandardMaterial: { color: "orange" } }.',
+  };
+}
+
 function walkChildren(
-  children: SceneChildren,
+  // `SceneFunction` too: `scene` may be a function, and resolveValue below
+  // calls it to get the description it returns.
+  children: SceneChildren | SceneFunction,
   path: string,
   out: SceneDiagnostic[],
   seen: Set<Record<string, unknown>> = new Set(),
@@ -209,7 +236,15 @@ function walkChildren(
   if (!resolved) return;
   const list = Array.isArray(resolved) ? resolved : [resolved];
   for (const child of list) {
-    if (!child || typeof child !== "object") continue;
+    // Falsy entries are the grammar's `cond && { mesh: ... }` opt-out.
+    // `!child` exactly, not a null/undefined/false list: the reconciler's
+    // normalizeChildren drops EVERY falsy item (0 and "" included), so
+    // flagging those here would report an error the runtime never throws.
+    if (!child) continue;
+    if (Array.isArray(child) || typeof child !== "object") {
+      out.push(checkInvalidChild(child, path));
+      continue;
+    }
     const description = child as Record<string, unknown>;
     // Cycle guard: a self-referencing description (a node listed inside its
     // own children) would otherwise recurse forever. Aliased (reused but
@@ -275,9 +310,10 @@ function checkCamera(options: ThreeOptions, out: SceneDiagnostic[]): void {
 
 /**
  * Statically analyze a three() option object for the silent scene mistakes
- * that produce a wrong or empty render with no error: unknown tags, legacy
- * low light intensities (three r155+ physical units), additive particle
- * blowout, and an off-axis camera that never looks at its subject.
+ * that produce a wrong or empty render with no error: unknown tags, props
+ * written as the tag's value, legacy low light intensities (three r155+
+ * physical units), additive particle blowout, and an off-axis camera that
+ * never looks at its subject.
  *
  * Same contract shape as `@domphy/doctor`: returns a list of diagnostics;
  * suppress per node with `_doctorDisable: true | "rule-id" | string[]`.

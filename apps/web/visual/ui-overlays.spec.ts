@@ -244,11 +244,11 @@ test("popover: opens within viewport, Escape closes @ 375px", async ({
   const trigger = page.getByRole("button", { name: "Open popover" });
   await trigger.click();
   await page.waitForTimeout(300);
-  const panel = page.locator("#domphy-floating [role='dialog']");
+  const panel = page.locator("[data-domphy-floating] [role='dialog']");
   await expect(panel).toBeVisible();
   await expectWithinViewportX(
     page,
-    page.locator("#domphy-floating"),
+    page.locator("[data-domphy-floating]"),
     "popover panel",
   );
   await page.screenshot({ path: join(shotsDir, "popover-open-mobile.png") });
@@ -266,7 +266,7 @@ test("selectBox: opens, option click selects + closes @ 375px", async ({
   const box = page.locator("[data-visual='ui-selectBox'] > div").first();
   await box.click();
   await page.waitForTimeout(300);
-  const overlay = page.locator("#domphy-floating");
+  const overlay = page.locator("[data-domphy-floating]");
   await expect(overlay.getByRole("button", { name: "Beta" })).toBeVisible();
   await expectWithinViewportX(page, overlay, "selectBox panel");
   await overlay.getByRole("button", { name: "Beta" }).click();
@@ -277,15 +277,18 @@ test("selectBox: opens, option click selects + closes @ 375px", async ({
   expect(consoleErrors).toEqual([]);
 });
 
-test("combobox: focus opens, option click selects + closes @ 375px", async ({
+test("combobox: click opens, option click selects + closes @ 375px", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 375, height: 667 });
   const consoleErrors = await openSolo(page, "combobox");
   const input = page.locator("[data-visual='ui-combobox'] input");
-  await input.focus();
+  // Click / typing / ArrowDown open the popup — plain focus deliberately does
+  // not (packages/ui/src/patches/combobox.ts: an onFocus that re-opens makes
+  // Escape un-dismissable, since Escape returns focus to this input).
+  await input.click();
   await page.waitForTimeout(300);
-  const overlay = page.locator("#domphy-floating");
+  const overlay = page.locator("[data-domphy-floating]");
   await expect(overlay.getByRole("button", { name: "Gamma" })).toBeVisible();
   await expectWithinViewportX(page, overlay, "combobox panel");
   await overlay.getByRole("button", { name: "Gamma" }).click();
@@ -305,7 +308,7 @@ test("datePicker: opens within viewport, day select writes value + closes @ 375p
   const input = page.locator("[data-visual='ui-datePicker'] input");
   await input.click();
   await page.waitForTimeout(300);
-  const overlay = page.locator("#domphy-floating");
+  const overlay = page.locator("[data-domphy-floating]");
   await expect(overlay.locator("[role='gridcell']").first()).toBeVisible();
   await expectWithinViewportX(page, overlay, "datePicker panel");
   await page.screenshot({ path: join(shotsDir, "datePicker-open-mobile.png") });

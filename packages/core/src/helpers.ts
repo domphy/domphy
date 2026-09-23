@@ -125,7 +125,17 @@ export function deepClone(value: any, seen = new WeakMap()): any {
   seen.set(value, clone);
 
   for (const key of Reflect.ownKeys(value)) {
-    clone[key] = deepClone(value[key], seen);
+    // `_behaviors` is carried by reference wherever it is nested — most often
+    // inside a `$` patch array, since `behavior()` returns `{ _behaviors: … }`
+    // as a PartialElement. A behavior's `props` is application data whose
+    // IDENTITY is the contract (`attach` runs once per DOM node, later
+    // generations route in via `update(props)`), so a shared registry, Map or
+    // third-party handle passed through it has to arrive as the caller's own
+    // object. Copying it gave each sibling its own duplicate and broke the
+    // sharing silently — functions and class instances already pass through
+    // above, so only plain objects and arrays failed.
+    clone[key] =
+      key === "_behaviors" ? value[key] : deepClone(value[key], seen);
   }
 
   return clone;
@@ -145,8 +155,15 @@ export function validate(
   for (let i = 0; i < keys.length; i++) {
     const key = keys[i];
     const val = element[key as keyof typeof element];
-    if (i === 0 && !HtmlTagSet.has(key) && !asPartial) {
-      throw Error(`key ${key} is not valid HTML tag name`);
+    if (
+      i === 0 &&
+      !HtmlTagSet.has(key) &&
+      !isCustomElementTagKey(key) &&
+      !asPartial
+    ) {
+      throw Error(
+        `key ${key} is not a valid HTML tag name or custom element name`,
+      );
     } else if (
       key === "style" &&
       val &&
@@ -240,6 +257,27 @@ function isDangerousURL(value: string): boolean {
   );
 }
 
+// SVG animation elements re-target ANOTHER attribute at runtime, so the
+// attribute-name pass below (which only sees `attributeName="…"`, a harmless
+// name) never fires on them: `<set attributeName="onmouseover" to="alert(1)">`
+// installs a live event handler, and `<animate attributeName="href"
+// values="javascript:…">` rewrites its parent <a>'s URL after the URL pass has
+// already run. The element is dropped only when its target IS a handler or a
+// URL attribute — a legitimate `<animate attributeName="opacity">` is kept.
+const RETARGETS_DANGEROUS_ATTRIBUTE =
+  /\battributeName\s*=\s*["']?\s*(on[a-z-]|xlink:href\b|href\b)/i;
+
+// <meta http-equiv="refresh" content="0;url=…"> navigates the page as soon as
+// it parses — a redirect this string pass cannot make safe, since the URL pass
+// does not look inside `content`.
+const META_REFRESH = /^<meta\b[^>]*\bhttp-equiv\s*=\s*["']?\s*refresh\b/i;
+
+// <base href="//attacker"> re-targets every RELATIVE URL on the whole page,
+// not just this fragment — nothing in the URL pass below can make that safe,
+// because each individual href stays a harmless relative path. DOMPurify
+// forbids the tag outright for the same reason.
+const BASE_TAG = /^<base[\s/>]/i;
+
 // Remove <script> elements with a quote-aware scan instead of a flat regex.
 // A regex cannot tell a real tag from the text "<script>" inside a quoted
 // attribute value — `<div title="<script>">` used to truncate the whole string
@@ -294,6 +332,15 @@ function stripScriptElements(html: string): string {
       }
       const closeEnd = html.indexOf(">", close);
       index = closeEnd === -1 ? html.length : closeEnd + 1;
+      continue;
+    }
+    if (
+      RETARGETS_DANGEROUS_ATTRIBUTE.test(tagText) ||
+      META_REFRESH.test(tagText) ||
+      BASE_TAG.test(tagText)
+    ) {
+      // Drop the opening tag only; an orphaned end tag is inert to the parser.
+      index = tagEnd + 1;
       continue;
     }
     result += tagText;
@@ -428,10 +475,80 @@ export function toggleClass(element: PartialElement, className: string): void {
 // of the 138-entry array per key.
 const HtmlTagSet: Set<string> = new Set(HtmlTags);
 
+// HTML Standard §4.13.4 "valid custom element name": the PotentialCustomElementName
+// production is `[a-z] (PCENChar)* '-' (PCENChar)*`, i.e. it must start with a
+// lowercase ASCII letter, contain at least one hyphen, and carry no uppercase
+// ASCII — plus the eight SVG/MathML names below are excluded by the spec even
+// though they match the production.
+// https://html.spec.whatwg.org/multipage/custom-elements.html#valid-custom-element-name
+//
+// PCENChar, transcribed as the exact code point ranges the production lists
+// (HTML Standard §4.13.4), not an exclusion. \u{...} escapes name the ranges
+// instead of pasting the characters themselves into this source — several are
+// invisible (U+200C/U+200D, the zero-width non-joiner/joiner) or bidi-control.
+// The gaps between ranges matter: e.g. U+00D7 (multiplication sign) sits
+// between the U+00C0-U+00D6 and U+00D8-U+00F6 ranges and is NOT a valid
+// PCENChar, so a name containing it must be rejected, not merely handed to
+// document.createElement() to reject one layer down.
+const PCEN_CHAR =
+  "\\-.0-9_a-z\\u00B7\\u00C0-\\u00D6\\u00D8-\\u00F6\\u00F8-\\u037D" +
+  "\\u037F-\\u1FFF\\u200C-\\u200D\\u203F-\\u2040\\u2070-\\u218F" +
+  "\\u2C00-\\u2FEF\\u3001-\\uD7FF\\uF900-\\uFDCF\\uFDF0-\\uFFFD" +
+  "\\u{10000}-\\u{EFFFF}";
+const PCEN = new RegExp(`^[a-z][${PCEN_CHAR}]*$`, "u");
+
+const ReservedElementNames: Set<string> = new Set([
+  "annotation-xml",
+  "color-profile",
+  "font-face",
+  "font-face-src",
+  "font-face-uri",
+  "font-face-format",
+  "font-face-name",
+  "missing-glyph",
+]);
+
+export function isCustomElementName(name: string): boolean {
+  return (
+    name.indexOf("-") > 0 && PCEN.test(name) && !ReservedElementNames.has(name)
+  );
+}
+
+// Whether a descriptor key may be read as a CUSTOM ELEMENT tag. Stricter than
+// the spec production above, because Domphy's grammar has only key order to
+// tell a tag from an attribute and every hyphenated attribute name matches
+// that production. `data-*` and `aria-*` are reserved ATTRIBUTE namespaces
+// (HTML §3.2.6, WAI-ARIA), and patches add them routinely — `{ "aria-label":
+// "Close", "my-widget": "…" }` rendered an <aria-label> element instead of
+// failing loudly. A web component in either namespace is not addressable this
+// way; give it an ordinary vendor prefix (`sl-`, `ion-`, `my-`), as every
+// shipped custom element library does.
+function isCustomElementTagKey(key: string): boolean {
+  return (
+    isCustomElementName(key) &&
+    !key.startsWith("data-") &&
+    !key.startsWith("aria-")
+  );
+}
+
 export function getTagName(element: DomphyElement): TagName | undefined {
-  return Object.keys(element).find((e) => HtmlTagSet.has(e)) as
-    | TagName
-    | undefined;
+  const keys = Object.keys(element);
+  // Built-in tags win the lookup: a custom-element name (hyphen, lowercase) is
+  // also the shape of `data-*` / `aria-*` keys, so scanning for those first
+  // would mistake `{ div: ..., "data-id": 1 }` for a <data-id> element when the
+  // key order puts the attribute first.
+  const html = keys.find((key) => HtmlTagSet.has(key));
+  if (html) return html as TagName;
+  // No built-in tag, so the tag can only be a custom element name — and for
+  // that the documented "first key is the tag" contract has to be ENFORCED,
+  // not merely documented. Every hyphenated attribute key matches the
+  // valid-custom-element-name production too (`data-id`, `aria-label`,
+  // `http-equiv`, `stroke-width`), so scanning past the first key for one
+  // rendered `{ "aria-label": "Close", "my-widget": "…" }` as <aria-label>.
+  // `$` and `_`-prefixed keys are framework-owned and can never be a tag, so
+  // they are skipped rather than counted as "first".
+  const first = keys.find((key) => key !== "$" && key.charCodeAt(0) !== 95);
+  return first && isCustomElementTagKey(first) ? (first as TagName) : undefined;
 }
 
 // Clone an element descriptor for ElementNode construction/patch WITHOUT
@@ -449,6 +566,15 @@ export function getTagName(element: DomphyElement): TagName | undefined {
 export function cloneDescriptor(
   element: DomphyElement,
   contentKey: string,
+  // Custom elements only: pass USER props through by reference instead of
+  // deep-cloning them. A web component prop is real application data assigned
+  // straight onto the instance property — cloning it would break the identity
+  // web components compare against (Lit's default `hasChanged` is `!==`) and
+  // would copy a whole dataset on every render. Framework-owned keys (`style`,
+  // `$`, `_context`, `_metadata`, …) are still cloned: those are merged in
+  // place and must stay snapshots. Attribute values on built-in tags are
+  // primitives, so this only ever changes object-valued props.
+  preserveProps = false,
 ): DomphyElement {
   if (Object.getPrototypeOf(element) !== Object.prototype) {
     return deepClone(element);
@@ -456,8 +582,21 @@ export function cloneDescriptor(
   const seen = new WeakMap();
   const clone: Record<string | symbol, any> = {};
   for (const key of Reflect.ownKeys(element)) {
+    const isUserProp =
+      preserveProps &&
+      typeof key === "string" &&
+      key !== "$" &&
+      key !== "style" &&
+      key.charCodeAt(0) !== 95;
+    // `_behaviors` is the third pass-through, for the same reason as user props
+    // above: a behavior's `props` is application data whose identity IS the
+    // contract (`attach` runs once, later generations route in through
+    // `update(props)`), so a shared registry, Map or handle passed through it
+    // must arrive as the caller's object. `_processBehaviors` only ever reads
+    // the record, and `merge()` rebuilds it when patches compose, so nothing
+    // downstream mutates what is shared here.
     clone[key] =
-      key === contentKey
+      key === contentKey || key === "_behaviors" || isUserProp
         ? (element as any)[key]
         : deepClone((element as any)[key], seen);
   }
@@ -551,25 +690,44 @@ export function ensureDomStyle(
     styleParent.appendChild(domStyle);
   }
 
-  if (domStyle.dataset.domphyBase !== "true") {
-    domStyle.sheet?.insertRule("[hidden] { display: none !important; }", 0);
+  // Flag only once the rule is really in the sheet. A <style> inside a shadow
+  // root whose host is still detached has `sheet === null`, so the insert is a
+  // no-op — marking it done there meant the base rule was never added, not even
+  // after the host was attached and the next ensureDomStyle() call ran. Covered
+  // by tests/style-fixes.test.ts ("ensureDomStyle: retries the base rule once
+  // the sheet becomes available") — jsdom DOES reproduce `sheet === null` for a
+  // detached shadow root's <style>, unlike the top-level document case.
+  if (domStyle.dataset.domphyBase !== "true" && domStyle.sheet) {
+    domStyle.sheet.insertRule("[hidden] { display: none !important; }", 0);
     domStyle.dataset.domphyBase = "true";
   }
 
   return domStyle;
 }
 
+/**
+ * Collapse an element's `$` patch array into the element itself: each patch is
+ * expanded first (a patch may carry its own `$`), the results are composed
+ * left to right, and the element's own keys are applied last so a native
+ * declaration always beats a patch default.
+ *
+ * Returns the element unchanged when it has no `$`.
+ *
+ * The input is NOT modified. It used to `delete partial.$` before the final
+ * merge; that reached the caller's object, and for a memoized patch or a
+ * descriptor the caller reuses it silently removed the patches the second time
+ * around. `merge()` deep-clones what it copies, so the result was already a
+ * fresh object — only the deletion escaped.
+ */
 export const mergePartial = (
   partial: PartialElement | DomphyElement,
 ): typeof partial => {
-  if (Array.isArray(partial.$)) {
-    const part: typeof partial = {};
-    partial.$.forEach((p) => merge(part, mergePartial(p)));
-    delete partial.$;
-    merge(part, partial); // native win
-
-    return part;
-  } else {
-    return partial;
-  }
+  if (!Array.isArray(partial.$)) return partial;
+  const part: typeof partial = {};
+  for (const patch of partial.$) merge(part, mergePartial(patch));
+  // Everything but `$`, so the composed result does not carry a patch array
+  // that a second expansion would apply all over again.
+  const { $: _patches, ...own } = partial as Record<string, unknown>;
+  merge(part, own); // native wins
+  return part;
 };

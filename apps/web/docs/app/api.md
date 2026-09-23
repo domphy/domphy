@@ -20,7 +20,7 @@
 
 `StreamResult`: `stream` (`ReadableStream<Uint8Array>`), `status` (`number`), `redirect?` (`string`). `status`/`redirect` reflect pre-shell decisions only (middleware, static `route.redirect`, 404, rewrite-loop 500) — loader `redirect()` cannot change them and streams as a client-side `location.replace` after the 200 shell.
 
-`RenderToStreamOptions` extends `RenderToStringOptions` with `head?` (markup for `<head>`, sent in the first flush) and `bootstrap?` (markup before `</body>`, typically the client bundle `<script>`).
+`RenderToStreamOptions` extends `RenderToStringOptions` with `head?` (markup for `<head>`, sent in the first flush), `bootstrap?` (markup before `</body>`, typically the client bundle `<script>`) and `lang?` (the `<html lang>` value, default `"en"`). The emitted document always opens with `<meta charset="utf-8">` — the stream is UTF-8 bytes, so it declares its own encoding regardless of the response `content-type`.
 
 ## Router
 

@@ -56,7 +56,7 @@ describe("particles", () => {
       beginPath: () => {},
       arc: () => {},
       fill: () => {},
-    })) as typeof HTMLCanvasElement.prototype.getContext;
+    })) as unknown as typeof HTMLCanvasElement.prototype.getContext;
     try {
       render(particles({ quantity: 2 }));
       expect(setTransform).toHaveBeenCalled();
@@ -76,7 +76,7 @@ describe("particles", () => {
       beginPath: () => {},
       arc: () => {},
       fill: () => {},
-    })) as typeof HTMLCanvasElement.prototype.getContext;
+    })) as unknown as typeof HTMLCanvasElement.prototype.getContext;
     try {
       const refresh = toState(0);
       const host = document.createElement("div");

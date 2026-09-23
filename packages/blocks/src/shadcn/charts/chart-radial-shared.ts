@@ -26,9 +26,15 @@
 
 import type { DomphyElement, ElementNode, Listener } from "@domphy/core";
 import { behavior, type State, toState } from "@domphy/core";
-import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
+import {
+  themeColor,
+  themeDensity,
+  themeFont,
+  themeSpacing,
+  themeWeight,
+} from "@domphy/theme";
 import { card, heading, motion, paragraph, small } from "@domphy/ui";
-import { fixed } from "../../shared/typography.js";
+import { textToneOnFill } from "../../shared/contrastTone.js";
 
 // ─── Data shapes ───────────────────────────────────────────────────────────
 
@@ -421,7 +427,6 @@ export function radialTooltipLayer(
         // own. Exempt from tone-background-inherit (the swatch's whole point
         // is a fixed color, not "inherit") and from missing-color (no text to
         // color here).
-        _doctorDisable: ["tone-background-inherit", "missing-color"],
         style: {
           display: "inline-block",
           width: themeSpacing(2.5),
@@ -451,8 +456,8 @@ export function radialTooltipLayer(
         style: {
           marginInlineStart: "auto",
           color: (listener: Listener) => themeColor(listener, "shift-9"),
-          fontFamily: fixed("ui-monospace, monospace"),
-          fontWeight: fixed("500"),
+          fontFamily: themeFont("monospace"),
+          fontWeight: themeWeight("medium"),
           fontVariantNumeric: "tabular-nums",
         },
       } as DomphyElement<"small">,
@@ -670,10 +675,11 @@ export function renderRadialRingsChart(
           transform: "translate(-6%, -50%)",
           // Upstream renders insideStart labels in WHITE
           // (`fill-white capitalize mix-blend-luminosity`) directly on the
-          // bar — a light tint of the bar's own color washes out on the
-          // lighter ramp steps.
+          // bar. `shift-0` is theme-relative, so it was white in the light
+          // theme but BLACK in the dark one — derive the tone from the ring's
+          // own fill instead so it stays legible in both.
           color: (listener: Listener) =>
-            themeColor(listener, "shift-0", "neutral"),
+            themeColor(listener, textToneOnFill(tone, listener), "neutral"),
           textTransform: "capitalize",
           whiteSpace: "nowrap",
           pointerEvents: "none",

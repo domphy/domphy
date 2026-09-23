@@ -20,6 +20,7 @@ import {
   small,
   strong,
 } from "@domphy/ui";
+import { interactiveFill } from "../../shared/interactiveFill.js";
 import {
   ICON_CHEVRON_RIGHT,
   ICON_CHEVRONS_UPDOWN,
@@ -27,6 +28,8 @@ import {
   ICON_PLUS,
   ICON_SPARKLE,
   interactiveRowStyle,
+  makeSidebarToggle,
+  sidebarBackdrop,
   sidebarIcon,
   verticalDivider,
 } from "./sidebar09-12-shared.js";
@@ -278,10 +281,7 @@ function renderAccountFooter(user: Sidebar12User): DomphyElement<"div"> {
           overflow: "hidden",
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": {
-            backgroundColor: (l: Listener) =>
-              themeColor(l, "shift-2", "neutral"),
-          },
+          "&:hover": interactiveFill(2),
         },
         $: [
           popover({
@@ -426,12 +426,12 @@ function monthDatePicker(
               color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
               backgroundColor: (l: Listener) =>
                 themeColor(l, "inherit", "neutral"),
-              "&:hover:not(:disabled)": {
-                backgroundColor: (l: Listener) =>
-                  isSelected
-                    ? themeColor(l, "inherit", "neutral")
-                    : themeColor(l, "shift-2", "neutral"),
-              },
+              // The selected day already owns its surface (dataTone above), so
+              // it has no hover fill to move its label against — only the
+              // unselected cells get one.
+              ...(isSelected
+                ? {}
+                : { "&:hover:not(:disabled)": interactiveFill(2) }),
             },
           } as unknown as DomphyElement);
         }
@@ -469,9 +469,7 @@ function navButtonStyle() {
     borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
     color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
     backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-    "&:hover": {
-      backgroundColor: (l: Listener) => themeColor(l, "shift-3", "neutral"),
-    },
+    "&:hover": interactiveFill(3),
   };
 }
 
@@ -490,14 +488,16 @@ function calendarEntryRow(
   checked: State<boolean>,
   onToggle?: (groupLabel: string, entryId: string, checked: boolean) => void,
 ): DomphyElement<"li"> {
-  const inputId = `sidebar12-calendar-${entry.id}`;
   return {
     li: [
       {
+        // No `id`/`htmlFor` pair: the checkbox is a direct descendant of this
+        // label, which associates them implicitly (HTML label element,
+        // "implicit label" association) — no literal id needed, so two
+        // mounted instances never collide on one.
         label: [
           {
             input: null,
-            id: inputId,
             type: "checkbox",
             checked: (l: Listener) => checked.get(l),
             onChange: (e: Event) => {
@@ -512,7 +512,6 @@ function calendarEntryRow(
             style: { flex: "1", textAlign: "left" },
           } as unknown as DomphyElement,
         ],
-        htmlFor: inputId,
         style: {
           display: "flex",
           alignItems: "center",
@@ -524,10 +523,7 @@ function calendarEntryRow(
           cursor: "pointer",
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": {
-            backgroundColor: (l: Listener) =>
-              themeColor(l, "shift-2", "neutral"),
-          },
+          "&:hover": interactiveFill(2),
         },
       } as unknown as DomphyElement,
     ],
@@ -677,6 +673,10 @@ function sidebar12(props: Sidebar12Props = {}): DomphyElement<"div"> {
   const viewMonth = toState(startOfMonth(initialDate));
   const collapsed = toState(false);
   const mobileOpen = toState(false);
+  // `makeSidebarToggle` reads the viewport and flips only the state that is
+  // live at this width: setting BOTH meant a mobile open/close also inverted
+  // the desktop rail, so resizing back up landed on the wrong rail state.
+  const toggleSidebar = makeSidebarToggle(collapsed, mobileOpen);
 
   const selectDate = (date: Date) => {
     selectedDate.set(date);
@@ -733,10 +733,7 @@ function sidebar12(props: Sidebar12Props = {}): DomphyElement<"div"> {
               color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
               backgroundColor: (l: Listener) =>
                 themeColor(l, "inherit", "neutral"),
-              "&:hover": {
-                backgroundColor: (l: Listener) =>
-                  themeColor(l, "shift-2", "neutral"),
-              },
+              "&:hover": interactiveFill(2),
             },
           } as unknown as DomphyElement,
         ],
@@ -752,10 +749,7 @@ function sidebar12(props: Sidebar12Props = {}): DomphyElement<"div"> {
       {
         div: null,
         ariaHidden: "true",
-        onClick: () => {
-          collapsed.set(!collapsed.get());
-          mobileOpen.set(!mobileOpen.get());
-        },
+        onClick: toggleSidebar,
         style: {
           position: "absolute",
           insetBlock: "0",
@@ -775,7 +769,10 @@ function sidebar12(props: Sidebar12Props = {}): DomphyElement<"div"> {
       overflowY: "auto",
       width: (l: Listener) => (collapsed.get(l) ? "0" : themeSpacing(70)),
       overflowX: "hidden",
-      transition: "width 180ms ease-out",
+      // Collapsing to width 0 clips the panel but does NOT take its ~30 links
+      // out of the tab order (measured in Chromium) — hide it outright.
+      visibility: (l: Listener) => (collapsed.get(l) ? "hidden" : "visible"),
+      transition: "width 180ms ease-out, visibility 180ms ease-out",
       borderInlineEnd: (l: Listener) =>
         `1px solid ${themeColor(l, "shift-3", "neutral")}`,
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
@@ -788,7 +785,10 @@ function sidebar12(props: Sidebar12Props = {}): DomphyElement<"div"> {
         width: themeSpacing(70),
         transform: (l: Listener) =>
           mobileOpen.get(l) ? "translateX(0)" : "translateX(-100%)",
-        transition: "transform 180ms ease-out",
+        // `transform` alone leaves every link in the slid-out panel in the
+        // tab order (WCAG 2.4.3). `visibility` is animated so the slide runs.
+        visibility: (l: Listener) => (mobileOpen.get(l) ? "visible" : "hidden"),
+        transition: "transform 180ms ease-out, visibility 180ms ease-out",
       },
     },
   } as unknown as DomphyElement<"aside">;
@@ -799,10 +799,7 @@ function sidebar12(props: Sidebar12Props = {}): DomphyElement<"div"> {
         button: [sidebarIcon(ICON_PANEL_TOGGLE)],
         type: "button",
         ariaLabel: "Toggle sidebar",
-        onClick: () => {
-          collapsed.set(!collapsed.get());
-          mobileOpen.set(!mobileOpen.get());
-        },
+        onClick: toggleSidebar,
         style: {
           appearance: "none",
           border: "none",
@@ -883,7 +880,15 @@ function sidebar12(props: Sidebar12Props = {}): DomphyElement<"div"> {
   } as unknown as DomphyElement<"main">;
 
   return {
-    div: [asideElement, mainElement],
+    // The mobile drawer is a modal overlay (fixed panel over the content), so
+    // it gets the same dimming backdrop as every other variant — upstream's
+    // Sheet renders a SheetOverlay. The backdrop also carries the family's
+    // Escape-to-dismiss listener (WAI-ARIA APG dialog pattern).
+    div: [
+      asideElement,
+      mainElement,
+      sidebarBackdrop(mobileOpen, () => mobileOpen.set(false)),
+    ],
     dataTone: "shift-0",
     style: {
       display: "flex",
@@ -909,9 +914,7 @@ function todayButtonStyle() {
     outline: (l: Listener) =>
       `1px solid ${themeColor(l, "shift-4", "neutral")}`,
     outlineOffset: "-1px",
-    "&:hover": {
-      backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral"),
-    },
+    "&:hover": interactiveFill(2),
   };
 }
 

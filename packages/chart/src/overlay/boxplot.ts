@@ -1,4 +1,5 @@
 import { seriesColor } from "../gl/color.js";
+import { type ItemStateResolver, NO_ITEM_STATES } from "../itemStates.js";
 import type { AnyScale } from "../scale/index.js";
 import type { BoxplotSeriesOption } from "../types.js";
 
@@ -11,6 +12,60 @@ function svgEl(
   return el;
 }
 
+export interface BoxplotItemLayout {
+  seriesIndex: number;
+  dataIndex: number;
+  xLeft: number;
+  xRight: number;
+  /** Whole visual extent (whisker caps to whisker caps), not just the box. */
+  yTop: number;
+  yBottom: number;
+}
+
+// Geometry only — the whole box+whisker bounding extent per datum, the same
+// xCenter/boxW math renderBoxplot() below draws from. hitTestBoxplotItem()
+// in engine.ts rect-tests against this, so a hover/click can never land on a
+// different box than what is actually drawn here.
+export function computeBoxplotLayout(
+  series: BoxplotSeriesOption[],
+  xScales: AnyScale[],
+  yScales: AnyScale[],
+  hiddenSeries: ReadonlySet<string>,
+): BoxplotItemLayout[] {
+  const result: BoxplotItemLayout[] = [];
+  for (let si = 0; si < series.length; si++) {
+    const s = series[si];
+    if (s.name && hiddenSeries.has(s.name)) continue;
+    const xScale = xScales[s.xAxisIndex ?? 0];
+    const yScale = yScales[s.yAxisIndex ?? 0];
+    if (!xScale || !yScale) continue;
+    const bandwidth = xScale.bandwidth();
+    const boxW = Math.max(4, (bandwidth ?? 30) * 0.6);
+    const data = s.data ?? [];
+    data.forEach((item, index) => {
+      const raw = Array.isArray(item)
+        ? item
+        : Array.isArray((item as any)?.value)
+          ? (item as any).value
+          : null;
+      if (!raw || raw.length < 5) return;
+      const [vMin, , , , vMax] = raw as number[];
+      const xCenter = xScale.map(index);
+      const yMin = yScale.map(vMin);
+      const yMax = yScale.map(vMax);
+      result.push({
+        seriesIndex: si,
+        dataIndex: index,
+        xLeft: xCenter - boxW / 2,
+        xRight: xCenter + boxW / 2,
+        yTop: Math.min(yMin, yMax),
+        yBottom: Math.max(yMin, yMax),
+      });
+    });
+  }
+  return result;
+}
+
 // ECharts boxplot data format: [min, Q1, median, Q3, max]
 export function renderBoxplot(
   svg: SVGSVGElement,
@@ -18,6 +73,7 @@ export function renderBoxplot(
   xScales: AnyScale[],
   yScales: AnyScale[],
   hiddenSeries: Set<string>,
+  states: ItemStateResolver = NO_ITEM_STATES,
 ): void {
   const old = svg.querySelector(".dc-boxplot");
   if (old) old.remove();
@@ -47,6 +103,16 @@ export function renderBoxplot(
       if (!raw || raw.length < 5) return;
 
       const [vMin, vQ1, vMedian, vQ3, vMax] = raw as number[];
+      // This overlay has no ColorResolver (its stroke is a static
+      // seriesColor() hex, not a var(--…) theme reference), so only the
+      // state's opacity delta applies here — lift and an explicit
+      // itemStyle.color override (applyItemState's other two effects) need a
+      // resolver and are out of scope for this SVG-only renderer.
+      const itemGroup = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "g",
+      );
+      itemGroup.setAttribute("opacity", String(states(s, index).opacity));
       const xCenter = xScale.map(index);
       const yMin = yScale.map(vMin);
       const yQ1 = yScale.map(vQ1);
@@ -58,7 +124,7 @@ export function renderBoxplot(
       const xRight = xCenter + boxW / 2;
 
       // Upper whisker: median → max
-      group.appendChild(
+      itemGroup.appendChild(
         svgEl("line", {
           x1: xCenter,
           y1: yQ3,
@@ -70,7 +136,7 @@ export function renderBoxplot(
         }),
       );
       // Lower whisker: min → Q1
-      group.appendChild(
+      itemGroup.appendChild(
         svgEl("line", {
           x1: xCenter,
           y1: yQ1,
@@ -83,7 +149,7 @@ export function renderBoxplot(
       );
       // Whisker caps
       for (const capY of [yMax, yMin]) {
-        group.appendChild(
+        itemGroup.appendChild(
           svgEl("line", {
             x1: xLeft + boxW * 0.1,
             y1: capY,
@@ -97,7 +163,7 @@ export function renderBoxplot(
       // Box (Q1–Q3)
       const boxTop = Math.min(yQ1, yQ3);
       const boxH = Math.abs(yQ3 - yQ1);
-      group.appendChild(
+      itemGroup.appendChild(
         svgEl("rect", {
           x: xLeft,
           y: boxTop,
@@ -110,7 +176,7 @@ export function renderBoxplot(
         }),
       );
       // Median line
-      group.appendChild(
+      itemGroup.appendChild(
         svgEl("line", {
           x1: xLeft,
           y1: yMedian,
@@ -120,6 +186,7 @@ export function renderBoxplot(
           "stroke-width": 2,
         }),
       );
+      group.appendChild(itemGroup);
     });
   }
 

@@ -42,13 +42,15 @@ Deliberate limitations of the engine — documented behavior, not bugs:
 - **No `NodeSelection`.** Every selection is a text range, so clicking an atom
   node does not select it; node views get `selectNode` only when a range spans
   them. Click-to-select can be built in a node view's own `dom` handler.
-- **No built-in drop-into-document handling.** Native drops are
-  `preventDefault`-ed so the browser cannot rewrite the DOM behind the model;
-  wire the `onDrop` editor option to implement dropping.
-- **Table row/column commands assume a uniform grid.** `colspan`/`rowspan` are
-  parsed, stored and rendered, but the row and column commands ignore spans, so
-  merged cells will drift. Fixing this needs a port of prosemirror-tables'
-  `TableMap`; there is also no cell selection and no column resizing.
+- **Drops carry text, not files.** Dragging a selection inside the editor moves
+  it (copies it with the platform copy modifier), and a drop carrying
+  `text/html` or `text/plain` is inserted at the pointer. A drop with neither —
+  a file — is left to the `onDrop` editor option, which runs first in every
+  case. The browser never edits the contenteditable itself.
+- **Tables have no cell selection.** The `TableMap` port means `colspan`/
+  `rowspan` are honoured by the row and column commands, but a command always
+  acts on the cell holding the caret; there are no merge/split commands and no
+  column resizing.
 - **Deleting the whole document resets the block type.** What remains is the
   schema's default textblock (paragraph), not an empty heading — the same
   outcome as Tiptap's select-all + delete. Because there is no `NodeSelection`

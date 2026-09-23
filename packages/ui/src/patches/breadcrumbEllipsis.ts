@@ -2,6 +2,7 @@ import type { PartialElement } from "@domphy/core";
 import { toState, type ValueOrState } from "@domphy/core";
 import {
   type ThemeColor,
+  textToneOn,
   themeColor,
   themeSize,
   themeSpacing,
@@ -22,6 +23,8 @@ function breadcrumbEllipsis(
   const color = toState(props.color ?? "neutral", "color");
 
   return {
+    // Native `type` on the host still wins (mergePartial: native over patch).
+    type: "button",
     _onInsert: (node) => {
       if (node.tagName !== "button") {
         console.warn('"breadcrumbEllipsis" patch must use button tag');
@@ -42,8 +45,9 @@ function breadcrumbEllipsis(
       transition:
         "color 140ms ease, background-color 140ms ease, box-shadow 140ms ease",
       "&:hover": {
+        // Tracks the +2 hover fill; shift-10 left a gap of 8 (4.34:1).
         color: (listener) =>
-          themeColor(listener, "shift-10", color.get(listener)),
+          themeColor(listener, textToneOn(2), color.get(listener)),
         backgroundColor: (listener) =>
           themeColor(listener, "hover", color.get(listener)),
       },

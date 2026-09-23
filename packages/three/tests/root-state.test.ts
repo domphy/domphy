@@ -232,3 +232,81 @@ describe("createRootState — internal", () => {
     expect(root.internal.subscribersDirty).toBe(false);
   });
 });
+
+describe("createRootState — viewport", () => {
+  // Truth source: perspective frustum geometry. The visible height at a
+  // distance d for a vertical field of view of theta is 2 * d * tan(theta / 2)
+  // — exact, not read off this implementation. Chosen so the expected numbers
+  // are closed-form: fov 90 deg at distance 5 gives 2 * 5 * tan(45 deg) = 10.
+  it("reports the visible frame in world units: height = 2 * distance * tan(fov / 2)", () => {
+    const camera = new THREE.PerspectiveCamera(90, 1, 0.1, 1000);
+    camera.position.set(0, 0, 5);
+    const root = createRootState({
+      canvas,
+      gl: createStubRenderer(),
+      camera: { instance: camera },
+    });
+    root.setSize(800, 400);
+
+    const viewport = root.viewport();
+    expect(viewport.distance).toBeCloseTo(5, 10);
+    expect(viewport.height).toBeCloseTo(10, 10);
+    expect(viewport.aspect).toBeCloseTo(2, 10);
+    expect(viewport.width).toBeCloseTo(20, 10);
+    // factor = CSS pixels per world unit.
+    expect(viewport.factor).toBeCloseTo(800 / 20, 10);
+  });
+
+  it("measures distance to the given target, not always the origin", () => {
+    const camera = new THREE.PerspectiveCamera(90, 1, 0.1, 1000);
+    camera.position.set(0, 0, 5);
+    const root = createRootState({
+      canvas,
+      gl: createStubRenderer(),
+      camera: { instance: camera },
+    });
+    root.setSize(400, 400);
+
+    // Target at z = 3 leaves a distance of 2, so height = 2 * 2 * tan(45) = 4.
+    expect(root.viewport(null, camera, [0, 0, 3]).height).toBeCloseTo(4, 10);
+    expect(
+      root.viewport(null, camera, new THREE.Vector3(0, 0, 3)).height,
+    ).toBeCloseTo(4, 10);
+  });
+
+  // Truth source: an orthographic frustum has no perspective divide, so the
+  // visible extent is the pixel size divided by zoom, independent of distance
+  // (three's OrthographicCamera.updateProjectionMatrix scales by 1 / zoom).
+  it("uses size / zoom for an orthographic camera", () => {
+    const root = createRootState({
+      canvas,
+      gl: createStubRenderer(),
+      orthographic: true,
+    });
+    root.setSize(600, 300);
+    root.camera.zoom = 2;
+
+    const viewport = root.viewport();
+    expect(viewport.width).toBe(300);
+    expect(viewport.height).toBe(150);
+    expect(viewport.factor).toBe(1);
+  });
+
+  it("re-runs a listener on resize when read reactively", () => {
+    const root = createRootState({ canvas, gl: createStubRenderer() });
+    root.setSize(400, 400);
+
+    const widths: number[] = [];
+    const listener = (() => {
+      widths.push(root.viewport(listener).width);
+    }) as any;
+    listener.onSubscribe = () => {};
+    listener();
+
+    root.setSize(800, 400);
+    flushSync();
+
+    expect(widths).toHaveLength(2);
+    expect(widths[1]).toBeCloseTo(widths[0] * 2, 10);
+  });
+});

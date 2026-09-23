@@ -17,6 +17,8 @@ Domphy uses the `data-theme` attribute on `<html>` (or any ancestor element) to 
 <html data-theme="dark">
 ```
 
+The `light` theme is the default: `themeCSS()` emits it on `:root` as well as on `[data-theme="light"]`, so omitting the attribute entirely renders the light theme rather than an unstyled page. `[data-theme="dark"]` overrides it — same specificity, later in the stylesheet.
+
 ## Reading the theme
 
 ```ts
@@ -81,6 +83,8 @@ function toggleTheme() {
 }
 ```
 
+Blocked storage is handled: a sandboxed `<iframe>` without `allow-same-origin`, blocked third-party cookies, or Safari private mode make `localStorage` **throw** on read (`SecurityError`), not return `null`. `applySystemTheme()` catches that and falls back to the OS preference instead of taking app startup down with it.
+
 `applySystemTheme()` returns a cleanup function — call it if you ever tear down the app:
 
 ```ts
@@ -141,19 +145,29 @@ If you only need system preference (no user toggle), use media query only:
 ```css
 /* Light is default */
 :root[data-theme="light"], :root:not([data-theme]) {
+  color-scheme: light;
   --neutral-0: #ffffff;
   --neutral-9: #111111;
 }
 
-/* Dark mode: both explicit and system preference */
-:root[data-theme="dark"],
+/* Explicit opt-in */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --neutral-0: #111111;
+  --neutral-9: #ffffff;
+}
+
+/* System preference, unless the user explicitly chose light */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --neutral-0: #111111;
     --neutral-9: #ffffff;
   }
 }
 ```
+
+An `@media` rule cannot appear *inside* a selector list — it has to be its own top-level block, as above.
 
 ## Per-component dark mode
 
@@ -174,22 +188,19 @@ const CodeEditor = {
 
 ## Color-scheme property
 
-Set `color-scheme` alongside `data-theme` so the browser renders native elements (scrollbars, inputs) correctly:
+Native UI — scrollbars, `<select>`, `<input type="date">`, range tracks, spellcheck underlines — follows the CSS `color-scheme` property, not custom properties. Without it a dark page still renders white scrollbars and white form controls.
 
-```ts
-function setTheme(t: "light" | "dark") {
-  document.documentElement.setAttribute("data-theme", t)
-  document.documentElement.style.colorScheme = t   // native element theming
-  localStorage.setItem("dp-theme", t)
-}
-```
-
-Or in CSS:
+`themeCSS()` emits it for you, in every theme block:
 
 ```css
-:root[data-theme="dark"] { color-scheme: dark; }
-:root[data-theme="light"] { color-scheme: light; }
+:root,
+[data-theme="light"] { color-scheme: light; --neutral-0: #ffffff; … }
+[data-theme="dark"]  { color-scheme: dark;  --neutral-0: #000000; … }
 ```
+
+The value is derived from the theme's `direction` — `"lighten"` (a theme that lightens away from its edge, i.e. dark-based) emits `dark`, `"darken"` emits `light` — so a custom theme registered with `setTheme()` gets the right one automatically. Because it ships in the same stylesheet as the tokens, SSR output is already correct and there is no flash of light chrome before hydration.
+
+Nothing to call: setting `data-theme` is enough. Set `style.colorScheme` by hand only to override the derived value for one subtree.
 
 ## TypeScript: typed theme state
 

@@ -77,18 +77,24 @@ describe("StyleProperty.set: generateCSS/HTML does not leak subscriptions", () =
 
     expect(listenerCount(color)).toBe(1);
 
-    const styleEl =
-      document.head.querySelector<HTMLStyleElement>("#domphy-style")!;
-    const token = Array.from(host.querySelector("div")!.classList).find((c) =>
-      /_[a-z0-9]+$/i.test(c),
-    );
-    const rule = Array.from(styleEl.sheet?.cssRules ?? []).find(
-      (r) => (r as CSSStyleRule).selectorText === `.${token}`,
-    ) as CSSStyleRule;
+    // Read the rule that currently styles the element, not a captured one: a
+    // node whose declarations change leaves the shared content scope for its
+    // own class, so the CSSOM rule backing it is not guaranteed to be the same
+    // object across an update. What must hold is that the LIVE stylesheet
+    // shows the new value for this element.
+    const liveColor = (): string | undefined => {
+      const styleEl =
+        document.head.querySelector<HTMLStyleElement>("#domphy-style")!;
+      const element = host.querySelector("div")!;
+      const rules = Array.from(styleEl.sheet?.cssRules ?? []).filter((r) =>
+        element.matches((r as CSSStyleRule).selectorText ?? ":not(*)"),
+      ) as CSSStyleRule[];
+      return rules[rules.length - 1]?.style.color;
+    };
 
-    expect(rule.style.color).toBe("red");
+    expect(liveColor()).toBe("red");
     color.set("green");
     flushSync();
-    expect(rule.style.color).toBe("green");
+    expect(liveColor()).toBe("green");
   });
 });

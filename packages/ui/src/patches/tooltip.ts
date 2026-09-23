@@ -26,6 +26,8 @@ import { popoverArrow } from "./popoverArrow.js";
  * @param props.onDismiss - Called when the tooltip requests close. Optional. Required to close when `open` is a read-only `Computed`/`ReadableState`.
  * @param props.placement - Floating placement relative to the trigger. Optional, accepts a value or state (`Placement`). Defaults to `"top"`.
  * @param props.content - Tooltip text content. Optional, accepts a value or state (string only). Defaults to `"Tooltip Content"`.
+ * @param props.openDelay - Hover/focus-intent delay before showing, in ms (Radix `delayDuration` parity). Optional. Defaults to 100.
+ * @param props.closeDelay - Delay before hiding after leave/blur, in ms. Optional. Defaults to 100.
  * @example { button: "Hover me", $: [tooltip({ content: "Help text" })] }
  */
 function tooltip(
@@ -34,12 +36,16 @@ function tooltip(
     onDismiss?: () => void;
     placement?: ValueOrState<Placement>;
     content?: ValueOrState<string>;
+    openDelay?: number;
+    closeDelay?: number;
   } = {},
 ): PartialElement {
   const {
     open = false,
     placement = "top",
     content = "Tooltip Content",
+    openDelay,
+    closeDelay,
   } = props;
 
   const placeState = toState(placement);
@@ -54,12 +60,14 @@ function tooltip(
     span: (listener) => contentState.get(listener),
   };
 
-  const { show, hide, anchorPartial } = createFloating({
+  const { show, hide, anchorPartial, openState } = createFloating({
     kind: "tooltip",
     open,
     onDismiss: props.onDismiss,
     placement: placeState,
     content: contentElement,
+    openDelay,
+    closeDelay,
   });
 
   const tooltipPartial: PartialElement = {
@@ -82,11 +90,14 @@ function tooltip(
 
   const triggerPartial: PartialElement = {
     // Declared as a reactive attribute (listener.elementNode is the anchor) so
-    // it is present from first render — before the tooltip's first show() —
-    // and is re-declared on every patch (patch() strips attributes that are
-    // no longer declared, so imperative wiring would not survive re-render).
+    // it is re-declared on every patch (patch() strips attributes that are no
+    // longer declared, so imperative wiring would not survive re-render).
+    // Only points at the panel while it is actually open — Radix sets
+    // aria-describedby the same way; a dangling reference to a closed panel's
+    // id (removed from the DOM between shows) is an id-not-found reference
+    // for the whole time the tooltip is hidden.
     ariaDescribedby: (listener) =>
-      listener?.elementNode
+      listener?.elementNode && openState.get(listener)
         ? floatingPanelId("tooltip", listener.elementNode)
         : undefined,
     onMouseEnter: (_e, node) => show(node),

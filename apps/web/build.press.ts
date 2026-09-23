@@ -402,6 +402,10 @@ async function run(options?: { exitOnFailure?: boolean }): Promise<void> {
       docsDir,
       repoRoot,
       highlight,
+      // Root-relative destinations written in the Markdown are prefixed with
+      // it, the same way the layout prefixes nav/sidebar hrefs. No-op while
+      // base is "/", load-bearing the moment the site moves to a sub-path.
+      base: config.base,
     });
     // Playground pages: hide TOC aside so content expands wide; keep sidebar.
     applyPlaygroundLayout(doc.frontmatter, editorIslands.length > 0);

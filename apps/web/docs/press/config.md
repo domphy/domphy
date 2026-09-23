@@ -33,7 +33,7 @@ The CLI runs loaded plain-object configs through `defineConfig` as well, so they
 |---|---|---|
 | `title` | `string` | Site title — appended to page titles |
 | `description` | `string` | Default meta description |
-| `base` | `string` | Deploy base path (e.g. `"/"` or `"/docs/"`) — internal nav/sidebar/hero links and canonical/sitemap/OG URLs are prefixed automatically (write them root-relative). Default `"/"` |
+| `base` | `string` | Deploy base path (e.g. `"/"` or `"/docs/"`) — internal nav/sidebar/hero links, root-relative links and images written in the Markdown, and canonical/sitemap/OG URLs are prefixed automatically (write them root-relative). `domphy-press dev`/`preview` serve the site at this prefix too. Default `"/"` |
 | `hostname` | `string` | Canonical hostname for sitemap and OG (e.g. `"https://example.com"`) |
 | `srcDir` | `string` | Markdown source directory. Default `"."` (relative). The CLI `resolve()`s it against `process.cwd()` at build/dev time |
 | `outDir` | `string` | Build output directory. Default `"dist"` (relative). Same CLI resolve as `srcDir` |

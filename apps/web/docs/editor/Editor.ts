@@ -16,12 +16,15 @@ export function Editor(code: State<string>): DomphyElement<"div"> {
       const view = new EditorView({
         doc: code.get(),
         extensions: [
-          basicSetup,
-          javascript({ typescript: true }),
-          oneDark,
-          // Name the editable region — axe aria-input-field-name.
-          // contentAttributes is a Facet: set values with .of(), not a call.
-          EditorView.contentAttributes.of({ "aria-label": "Code editor" }),
+          // THIS THEME MUST STAY AHEAD OF `oneDark`. EditorView mounts theme
+          // StyleModules with `.reverse()` (@codemirror/view, its single
+          // StyleModule.mount call), so the EARLIEST theme in this array is
+          // written LAST into the sheet and wins every equal-specificity
+          // clash — the opposite of normal CSS intuition. While this sat
+          // after oneDark, every rule below that oneDark also declares was
+          // dead code: the editor painted oneDark's #282c34 instead of the
+          // #0d1117 surface these colors are contrast-checked against, and
+          // axe flagged 3 token/gutter colors at 3.86-4.43:1.
           EditorView.theme({
             "&": {
               height: "100%",
@@ -57,7 +60,12 @@ export function Editor(code: State<string>): DomphyElement<"div"> {
               minHeight: "100%",
               backgroundColor: "#0d1117",
               borderRight: "1px solid #21262d",
-              color: "#6e7681",
+              // GitHub Primer dark `--fgColor-muted`. The Primer
+              // `--fgColor-subtle` (#6e7681) this used to carry is only
+              // 4.12:1 on #0d1117 and 3.77:1 on the #161b22 active-line
+              // gutter — both under WCAG AA 4.5:1 for 14px text. #8b949e
+              // measures 6.15:1 and 5.62:1 on those two backgrounds.
+              color: "#8b949e",
             },
             ".cm-activeLineGutter": {
               backgroundColor: "#161b22",
@@ -69,6 +77,21 @@ export function Editor(code: State<string>): DomphyElement<"div"> {
             ".cm-selectionBackground, &.cm-focused .cm-selectionBackground": {
               backgroundColor: "rgba(56, 139, 253, 0.3) !important",
             },
+          }),
+          basicSetup,
+          javascript({ typescript: true }),
+          oneDark,
+          // Name the editable region — axe aria-input-field-name.
+          // contentAttributes is a Facet: set values with .of(), not a call.
+          // tabindex makes the tab stop EXPLICIT: .cm-scroller scrolls
+          // horizontally below ~600px, and axe's scrollable-region-focusable
+          // looks for a focusable descendant using isNativelyFocusable, whose
+          // nodeName switch has no contenteditable branch (axe-core 4.12.1).
+          // .cm-content is already tabbable via contenteditable, so this
+          // changes no focus order — it just states the tab stop in markup.
+          EditorView.contentAttributes.of({
+            "aria-label": "Code editor",
+            tabindex: "0",
           }),
           EditorView.updateListener.of((update) => {
             if (update.docChanged) code.set(update.state.doc.toString());

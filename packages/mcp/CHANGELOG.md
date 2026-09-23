@@ -1,5 +1,10 @@
 # @domphy/mcp
 
+## 0.19.6
+
+- All 10 tools advertise MCP `ToolAnnotations` (`readOnlyHint`, `title`, per-tool `openWorldHint`), so hint-aware clients can auto-approve them.
+- `domphy_list_packages` no longer lists `"private": true` internal packages (they were never published and had no public import path).
+
 ## 0.19.5
 
 - Corrupt/unreadable app-manifest returns "Failed to read app-manifest" (ENOENT still "No app-manifest found").

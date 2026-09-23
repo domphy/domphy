@@ -124,6 +124,35 @@ describe("createBrowserHistory", () => {
     release();
   });
 
+  // HTML Standard session history: the scroll offset belongs to the entry that
+  // was being displayed. popstate has already moved to the new entry by the
+  // time a listener runs, so the adapter must record the outgoing offset itself
+  // — otherwise nothing ever saves it and Forward lands at the top.
+  it("records the outgoing offset under the entry being left (HTML Standard session history)", () => {
+    const setScrollY = (y: number) =>
+      Object.defineProperty(window, "scrollY", {
+        configurable: true,
+        value: y,
+      });
+    const history = createBrowserHistory();
+    history.saveScroll?.({ x: 0, y: 40 }); // entry 0 sat at y=40
+    history.push("/a"); // entry 1
+    const release = history.listen(() => {});
+
+    setScrollY(700); // the visitor scrolled entry 1, then pressed Back
+    window.history.replaceState({ __domphyIndex: 0 }, "", "/");
+    window.dispatchEvent(new Event("popstate"));
+    expect(history.readScroll?.()).toEqual({ x: 0, y: 40 });
+
+    setScrollY(40); // the router restored entry 0; now Forward
+    window.history.replaceState({ __domphyIndex: 1 }, "", "/a");
+    window.dispatchEvent(new Event("popstate"));
+    expect(history.readScroll?.()).toEqual({ x: 0, y: 700 });
+
+    release();
+    setScrollY(0);
+  });
+
   it("exposes the current url", () => {
     window.history.replaceState({ __domphyIndex: 0 }, "", "/path?q=1#frag");
     const history = createBrowserHistory();

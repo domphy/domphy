@@ -72,9 +72,10 @@ import {
   themeColor,
   themeColorToken,
   themeSpacing,
+  themeWeight,
 } from "@domphy/theme";
 import { card, heading, icon, motion, paragraph, small } from "@domphy/ui";
-import { fixed } from "../../shared/typography.js";
+import { textToneOnFill } from "../../shared/contrastTone.js";
 
 // ─── Color helpers ─────────────────────────────────────────────────────────
 
@@ -651,7 +652,11 @@ export function chartBarTrendFooter(
   const foreground = (listener: Listener) =>
     themeColor(listener, "shift-11", "neutral");
   const trendRow: DomphyElement[] = [
-    { span: trendText, style: { fontWeight: fixed("500"), color: foreground } },
+    {
+      span: trendText,
+      // Upstream is `font-medium` — the theme's "medium" weight token.
+      style: { fontWeight: themeWeight("medium"), color: foreground },
+    },
   ];
   if (showIcon) {
     const trendIcon = chartBarTrendIcon(direction, color);
@@ -956,6 +961,9 @@ export interface ChartBarInsideOutsideLabelOverlayProps {
   valueDomain: [number, number];
   grid: ChartBarGrid;
   insideColor: ThemeColor;
+  /** Ramp tone the BARS are filled with — the inside label's tone is derived
+   * from it so the text clears the fill in both themes. */
+  insideFillTone: string;
   insideLabel: (index: number) => string;
   outsideLabel: (index: number) => string;
 }
@@ -978,6 +986,7 @@ export function chartBarInsideOutsideLabelOverlay(
     valueDomain,
     grid,
     insideColor,
+    insideFillTone,
     insideLabel,
     outsideLabel,
   } = props;
@@ -986,7 +995,19 @@ export function chartBarInsideOutsideLabelOverlay(
     _onMount(node) {
       const container = node.domElement as HTMLElement;
       const svg = createOverlaySvg(container);
-      const insideTextColor = themeColor(null, "shift-1", insideColor);
+      // This label sits ON the bar and the y-axis is hidden, so it is the
+      // category's only on-screen representation. A fixed `shift-1` is
+      // theme-relative and landed on the wrong side of the fill in BOTH
+      // themes: against the default `primary` shift-6 bar it measured
+      // 2.58:1 (light, #ededed on #5f91fc) and 2.24:1 (dark, #080808 on
+      // #1440aa) — under the 4.5:1 floor either way. Deriving the tone from
+      // the fill gives 6.94:1 / 8.96:1. Upstream paints var(--background)
+      // here, which has the same defect; legibility wins over that.
+      const insideTextColor = themeColor(
+        null,
+        textToneOnFill(insideFillTone),
+        insideColor,
+      );
       const outsideTextColor = themeColor(null, "shift-9", "neutral");
 
       function draw(): void {

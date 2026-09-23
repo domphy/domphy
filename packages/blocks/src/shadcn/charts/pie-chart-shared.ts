@@ -20,9 +20,15 @@ import type {
   State,
 } from "@domphy/core";
 import { behavior, toState } from "@domphy/core";
-import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
+import {
+  themeColor,
+  themeDensity,
+  themeFont,
+  themeSpacing,
+  themeWeight,
+} from "@domphy/theme";
 import { card, heading, icon, small } from "@domphy/ui";
-import { fixed } from "../../shared/typography.js";
+import { textToneOnFill } from "../../shared/contrastTone.js";
 
 // ---------------------------------------------------------------------------
 // Data shapes + sample dataset
@@ -312,8 +318,8 @@ export function pieTooltipLayer(
         style: {
           marginInlineStart: "auto",
           color: (l: Listener) => themeColor(l, "shift-11"),
-          fontFamily: fixed("ui-monospace, monospace"),
-          fontWeight: fixed("500"),
+          fontFamily: themeFont("monospace"),
+          fontWeight: themeWeight("medium"),
           fontVariantNumeric: "tabular-nums",
         },
       },
@@ -530,9 +536,12 @@ export function pieOnWedgeLabel(
     text,
     x: String(x),
     y: String(y),
-    fill: (l: Listener) => themeColor(l, "shift-0", "neutral"),
+    // Derived from the wedge's own fill tone — a fixed `shift-0` reads white
+    // in the light theme and BLACK in the dark one (invisible on a dark wedge).
+    fill: (l: Listener) =>
+      themeColor(l, textToneOnFill(slice.tone, l), "neutral"),
     fontSize,
-    fontWeight: fixed("700"),
+    fontWeight: "700",
     textAnchor: "middle",
     dominantBaseline: "middle",
     _key: `${slice.datum.key}-on-wedge-label`,
@@ -552,8 +561,8 @@ export function pieCenterText(
         y: String(PIE_CENTER - 4),
         textAnchor: "middle",
         dominantBaseline: "middle",
-        fontSize: fixed("22"),
-        fontWeight: fixed("700"),
+        fontSize: "22",
+        fontWeight: "700",
         fill: (l: Listener) => themeColor(l, "shift-11"),
       } as DomphyElement<"text">,
       {
@@ -562,7 +571,7 @@ export function pieCenterText(
         y: String(PIE_CENTER + 17),
         textAnchor: "middle",
         dominantBaseline: "middle",
-        fontSize: fixed("11"),
+        fontSize: "11",
         fill: (l: Listener) => themeColor(l, "shift-6"),
       } as DomphyElement<"text">,
     ],
@@ -696,7 +705,7 @@ export function pieCardFooter(
               {
                 span: `Trending ${trendDirection} by ${trendValue} this month`,
                 style: {
-                  fontWeight: fixed("500"),
+                  fontWeight: themeWeight("medium"),
                   color: (l: Listener) => themeColor(l, "shift-10"),
                 },
               },

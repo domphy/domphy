@@ -1,5 +1,10 @@
 import type { Buffer, Device, RenderPass } from "@luma.gl/core";
 import { Model } from "@luma.gl/engine";
+import {
+  applyItemState,
+  type ItemStateResolver,
+  NO_ITEM_STATES,
+} from "../itemStates.js";
 import type { PieDataItem, PieSeriesOption } from "../types.js";
 import type { ColorResolver } from "./color.js";
 import { PIE_FS, PIE_VS } from "./shaders/pie.glsl.js";
@@ -34,6 +39,15 @@ export function pieSweepSign(clockwise?: boolean): number {
   return clockwise === false ? -1 : 1;
 }
 
+// ECharts: a pie sums only the positive, finite values. A NaN datum used to
+// poison the total (`NaN || 1` collapsed it to 1, so a single slice swept
+// hundreds of radians) and a negative one subtracted from it, leaving the
+// remaining slices short of a full circle. Both render as zero-width slices.
+function sliceValue(item: PieDataItem): number {
+  const raw = item?.value;
+  return typeof raw === "number" && Number.isFinite(raw) && raw > 0 ? raw : 0;
+}
+
 export function computePieSlices(
   series: PieSeriesOption,
   width: number,
@@ -65,25 +79,25 @@ export function computePieSlices(
       return !hiddenSeries.has(item.name);
     });
   const total =
-    visible.reduce((sum, entry) => sum + (entry.item.value ?? 0), 0) || 1;
+    visible.reduce((sum, entry) => sum + sliceValue(entry.item), 0) || 1;
   const roseType = series.roseType;
   const maxValue =
     roseType === "radius"
-      ? Math.max(...visible.map((entry) => entry.item.value ?? 0), 0) || 1
+      ? Math.max(...visible.map((entry) => sliceValue(entry.item)), 0) || 1
       : 1;
   const direction = pieSweepSign(series.clockwise);
   let currentAngle = pieStartRadians(series.startAngle);
   const twoPi = Math.PI * 2;
 
   return visible.map(({ item, dataIndex }) => {
-    const fraction = (item.value ?? 0) / total;
+    const fraction = sliceValue(item) / total;
     const sweepAngle = direction * fraction * twoPi;
     const startAngle = currentAngle;
     const endAngle = currentAngle + sweepAngle;
     currentAngle = endAngle;
     const effectiveOuter =
       roseType === "radius"
-        ? innerR + (outerR - innerR) * ((item.value ?? 0) / maxValue)
+        ? innerR + (outerR - innerR) * (sliceValue(item) / maxValue)
         : roseType === "area"
           ? innerR + (outerR - innerR) * Math.sqrt(fraction)
           : outerR;
@@ -143,6 +157,7 @@ export class PieRenderer {
     _seriesOffset: number,
     color: ColorResolver,
     hiddenSeries?: ReadonlySet<string>,
+    states: ItemStateResolver = NO_ITEM_STATES,
   ): void {
     if (series.length === 0) return;
     const model = this.ensureModel();
@@ -152,31 +167,51 @@ export class PieRenderer {
       const opacity = (s.itemStyle?.opacity as number) ?? 1;
 
       for (const slice of slices) {
+        // A zero-value datum (or a NaN/negative one, which counts as zero)
+        // sweeps no angle. The shader's `angle >= start && angle <= end` test
+        // still matches the single ray where start === end, so each such slice
+        // painted a 1px line out from the center.
+        if (slice.endAngle === slice.startAngle) continue;
         const sliceColor = color.rgba(
           slice.item.itemStyle?.color,
           slice.dataIndex,
         );
+        const state = states(s, slice.dataIndex);
+        const stateColor = applyItemState(
+          sliceColor,
+          state,
+          color,
+          slice.dataIndex,
+        );
         const finalColor = [
-          sliceColor[0],
-          sliceColor[1],
-          sliceColor[2],
-          sliceColor[3] * opacity,
+          stateColor[0],
+          stateColor[1],
+          stateColor[2],
+          stateColor[3] * opacity,
         ];
 
-        const quadSize = slice.effectiveOuter + 2;
+        // Emphasis grows the sector (`emphasis.scaleSize`) and selection
+        // slides it out along its own bisector (`selectedOffset`) — the two
+        // gestures ECharts gives a pie.
+        const outer = slice.effectiveOuter * state.scale + state.scaleSize;
+        const midAngle = (slice.startAngle + slice.endAngle) / 2;
+        const cx = slice.cx + Math.cos(midAngle) * state.offset;
+        const cy = slice.cy + Math.sin(midAngle) * state.offset;
+
+        const quadSize = outer + 2;
         const quadVerts = new Float32Array([
-          slice.cx - quadSize,
-          slice.cy - quadSize,
-          slice.cx + quadSize,
-          slice.cy - quadSize,
-          slice.cx - quadSize,
-          slice.cy + quadSize,
-          slice.cx + quadSize,
-          slice.cy - quadSize,
-          slice.cx + quadSize,
-          slice.cy + quadSize,
-          slice.cx - quadSize,
-          slice.cy + quadSize,
+          cx - quadSize,
+          cy - quadSize,
+          cx + quadSize,
+          cy - quadSize,
+          cx - quadSize,
+          cy + quadSize,
+          cx + quadSize,
+          cy - quadSize,
+          cx + quadSize,
+          cy + quadSize,
+          cx - quadSize,
+          cy + quadSize,
         ]);
         const buffer = this.device.createBuffer({
           data: quadVerts,
@@ -192,13 +227,18 @@ export class PieRenderer {
         const start = slice.startAngle;
         const end = slice.endAngle;
         const [uStart, uEnd] = end >= start ? [start, end] : [end, start];
+        // A slice that sweeps the whole circle (a single-datum pie, or the
+        // last one left after the others are hidden) normalizes to
+        // start === end, which the shader's angular test reads as one ray —
+        // the pie used to render as a hairline. uFullTurn skips the test.
         setUniforms(model, {
           uResolution: [width, height],
-          uCenter: [slice.cx, slice.cy],
-          uOuterRadius: slice.effectiveOuter,
+          uCenter: [cx, cy],
+          uOuterRadius: outer,
           uInnerRadius: slice.innerR,
           uStartAngle: mod2pi(uStart),
           uEndAngle: mod2pi(uEnd),
+          uFullTurn: uEnd - uStart >= FULL_TURN - 1e-9 ? 1 : 0,
           uColor: finalColor,
         });
         model.draw(renderPass);
@@ -212,9 +252,10 @@ export class PieRenderer {
   }
 }
 
+const FULL_TURN = Math.PI * 2;
+
 function mod2pi(angle: number): number {
-  const PI2 = Math.PI * 2;
-  return ((angle % PI2) + PI2) % PI2;
+  return ((angle % FULL_TURN) + FULL_TURN) % FULL_TURN;
 }
 
 /** True when `cursor` (atan2, y-down) lies on the signed start→end sweep. */

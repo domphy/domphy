@@ -160,6 +160,8 @@ const Menu = {
 }
 ```
 
+`props` reaches `attach()` and `update()` **by reference** — unlike the rest of a descriptor, which Domphy deep-clones. That is what lets several elements share one object through their props: a registry every child registers into, a `Map`, a third-party handle. Two patches declaring the same behavior key is a collision, not a merge — the last one wins, and nothing is merged into a spec.
+
 Compose it with other patch fields via object spread, `merge()`, or `$` — `behavior()` just returns a `{ _behaviors: {...} }` fragment keyed so multiple concerns on one element ($-composed patches) don't collide. See `@domphy/ui`'s `packages/ui/src/utils/floating.ts` (shared by `popover`/`tooltip`/`selectBox`/`combobox`/`datePicker`) for a full real-world instance: a persistent per-anchor "floating panel" state (position cleanup, outside-click dismissal, Escape-to-close) that used to be a hand-rolled `WeakMap<Element, ...>` generation-eviction workaround.
 
 ## Compound component pattern
@@ -308,28 +310,21 @@ import { toState, effect } from "@domphy/core"
 const query = toState("")
 const results = toState<SearchResult[]>([])
 
-let timer: ReturnType<typeof setTimeout> | undefined
-
 const stop = effect(() => {
   const text = query.get()
-  if (timer !== undefined) {
-    clearTimeout(timer)
-    timer = undefined
-  }
   if (!text) {
     results.set([])
     return
   }
-  timer = setTimeout(async () => {
+  const timer = setTimeout(async () => {
     const data = await search(text)
     results.set(data)
   }, 300)
+  // Returned from the effect body = per-run cleanup: it runs before the next
+  // re-run and once when `stop()` is called.
+  return () => clearTimeout(timer)
 })
 
-// `effect(fn)` is `fn: () => void` — a function returned from `fn` is ignored.
-// Cleanup is `stop`, the function returned by `effect()` itself.
-function dispose() {
-  stop()
-  if (timer !== undefined) clearTimeout(timer)
-}
+// Tearing the whole thing down (also runs the pending cleanup):
+stop()
 ```

@@ -145,6 +145,67 @@ describe("AppRouter", () => {
     expect(app.router.state.get("pathname")).toBe("/about");
   });
 
+  // Every peer router (Next.js route announcer, SvelteKit's announcer + body
+  // focus) tells assistive tech about a client navigation and restarts the tab
+  // order, because no document load happens to do it. WAI-ARIA: the live region
+  // must be aria-live and stay in the accessibility tree.
+  it("announces the new route and resets focus (Next.js/SvelteKit route announcer)", async () => {
+    await startApp();
+    const link = document.createElement("a");
+    container.appendChild(link);
+    link.tabIndex = 0;
+    link.focus();
+    expect(document.activeElement).toBe(link);
+
+    await app.router.navigate("/about");
+    await flush();
+
+    const announcer = document.getElementById("domphy-route-announcer");
+    expect(announcer?.getAttribute("aria-live")).toBe("assertive");
+    expect(announcer?.getAttribute("aria-atomic")).toBe("true");
+    expect(announcer?.textContent?.trim()).toBe("About | Site");
+    expect(document.activeElement).toBe(document.body);
+
+    // A background re-render is not a navigation: it must not steal focus.
+    link.focus();
+    await app.router.refresh();
+    await flush();
+    expect(document.activeElement).toBe(link);
+  });
+
+  // The announcer div is a singleton created lazily on the first navigation;
+  // leaving it in the document after the router that owns it is gone is a
+  // one-element-per-router-instance leak in any app that creates/destroys
+  // routers repeatedly (route-level tests, an SPA remounting on auth change).
+  it("removes the route announcer on router.destroy()", async () => {
+    await startApp();
+    await app.router.navigate("/about");
+    await flush();
+    expect(document.getElementById("domphy-route-announcer")).not.toBeNull();
+
+    app.router.destroy();
+
+    expect(document.getElementById("domphy-route-announcer")).toBeNull();
+  });
+
+  // WCAG 3.2.2 On Input: operating a control must not change context by itself.
+  // A page that syncs a filter or a search box into `?q=` navigates on every
+  // keystroke — taking focus there rips it out of the field being typed into,
+  // and the next character is lost.
+  it("does not move focus when only the query string changes (WCAG 3.2.2)", async () => {
+    await startApp();
+    const field = document.createElement("input");
+    container.appendChild(field);
+    field.focus();
+
+    await app.router.navigate("/?q=ab", { replace: true });
+    await flush();
+
+    expect(document.activeElement).toBe(field);
+    expect(document.getElementById("domphy-route-announcer")).toBeNull();
+    field.remove();
+  });
+
   it("keeps the shared layout when navigating", async () => {
     await startApp();
     await app.router.navigate("/about");
@@ -435,6 +496,54 @@ describe("navLink", () => {
     anchor.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true }));
     await flush(40);
     expect(loaderCalls).toEqual(["hover"]);
+
+    node.remove();
+    linkContainer.remove();
+  });
+
+  // The dedupe used to live in a closure-local flag (`let prefetched = false`),
+  // which is fresh on every call the reactive parent makes to the navLink()
+  // factory even though the real DOM node — and the earlier prefetch — is the
+  // SAME one (reused-node lifecycle, AGENTS.md). A second hover after such a
+  // re-render re-ran the loader.
+  it("dedupes hover prefetch across a reused node's reactive re-render", async () => {
+    await startApp();
+    const generation = toState(0);
+    const node = new ElementNode({
+      div: (listener) => {
+        generation.get(listener);
+        return [
+          {
+            a: "Post",
+            $: [
+              navLink({
+                href: "/blog/hover-reuse",
+                prefetch: "hover",
+                router: app.router,
+              }),
+            ],
+            _key: "link",
+          },
+        ];
+      },
+    });
+    const linkContainer = document.createElement("div");
+    document.body.appendChild(linkContainer);
+    node.render(linkContainer);
+    await flush();
+
+    const anchor = linkContainer.querySelector("a") as HTMLAnchorElement;
+    anchor.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true }));
+    await flush(40);
+    expect(loaderCalls).toEqual(["hover-reuse"]);
+
+    generation.set(1);
+    await flush();
+    expect(linkContainer.querySelector("a")).toBe(anchor); // same DOM node, reused
+
+    anchor.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true }));
+    await flush(40);
+    expect(loaderCalls).toEqual(["hover-reuse"]); // not re-fetched
 
     node.remove();
     linkContainer.remove();

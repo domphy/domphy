@@ -13,6 +13,7 @@ import type { DomphyElement, ElementNode } from "@domphy/core";
 import { behavior } from "@domphy/core";
 import type { ThemeColor } from "@domphy/theme";
 import { themeColor, themeSpacing } from "@domphy/theme";
+import { prefersReducedMotion } from "../reducedMotion.js";
 
 /** A circular badge node placed inside the diagram canvas. */
 export interface AnimatedBeamNode {
@@ -191,6 +192,7 @@ function animatedBeam(props: AnimatedBeamProps = {}): DomphyElement<"div"> {
   let animationFrameId: number | null = null;
   let animationStart: number | null = null;
   let removeWindowListeners: (() => void) | null = null;
+  const reduceMotion = prefersReducedMotion();
 
   function quadraticPathData(
     startX: number,
@@ -265,6 +267,15 @@ function animatedBeam(props: AnimatedBeamProps = {}): DomphyElement<"div"> {
       runtime.staticPathElement.setAttribute("d", d);
       runtime.glowPathElement?.setAttribute("d", d);
     });
+
+    // The gradients are `gradientUnits="userSpaceOnUse"`, so `tick` writes
+    // their x coordinates as absolute px derived from `svgWidth`. Under reduce
+    // the loop paints one frame and stops, which would leave those coordinates
+    // scaled to the pre-resize width forever. Re-arm the single frame the new
+    // geometry needs — a no-op while the normal-motion loop is running.
+    if (reduceMotion && animationFrameId === null) {
+      animationFrameId = window.requestAnimationFrame(tick);
+    }
   }
 
   // The gradient vector is a fixed ~10%-of-viewport-wide band whose stops run
@@ -296,7 +307,12 @@ function animatedBeam(props: AnimatedBeamProps = {}): DomphyElement<"div"> {
 
       const duration = connection.duration ?? 5000;
       const delay = connection.delay ?? 0;
-      const elapsed = timestamp - animationStart! - delay;
+      // Under reduce every beam is pinned at progress 0 rather than read off
+      // the clock: a delayed connection would otherwise bail below
+      // (`elapsed < 0`) and never get its gradient painted at all, and the
+      // repaint `recompute()` re-arms after a resize would land on whatever
+      // phase the clock had drifted to — i.e. motion, one jump at a time.
+      const elapsed = reduceMotion ? 0 : timestamp - animationStart! - delay;
       if (elapsed < 0) return;
 
       const progress = easeOutExpo((elapsed % duration) / duration);
@@ -314,6 +330,14 @@ function animatedBeam(props: AnimatedBeamProps = {}): DomphyElement<"div"> {
       gradient.setAttribute("y2", "0");
     });
 
+    // WCAG 2.2.2: the sweep restarts forever (`elapsed % duration`) and starts
+    // on its own. Under reduce the single frame painted above — every beam's
+    // gradient at progress 0 — is the final one, so don't reschedule. The
+    // static connector paths and the `recompute()` geometry are unaffected.
+    if (reduceMotion) {
+      animationFrameId = null;
+      return;
+    }
     animationFrameId = window.requestAnimationFrame(tick);
   }
 
@@ -351,6 +375,12 @@ function animatedBeam(props: AnimatedBeamProps = {}): DomphyElement<"div"> {
         color: (listener) =>
           themeColor(listener, "shift-4", connection.pathColor ?? "neutral"),
         opacity: connection.pathOpacity ?? 0.35,
+        // Decorative line, not a control — the enclosing <svg> already sets
+        // pointer-events: none, restated here so doctor's low-opacity rule
+        // (which reads each element's own style, not an inherited one) can
+        // see the same exemption it already grants a `pointer-events: none`
+        // element.
+        pointerEvents: "none",
       },
     } as DomphyElement;
   }
@@ -403,7 +433,6 @@ function animatedBeam(props: AnimatedBeamProps = {}): DomphyElement<"div"> {
         stop: null,
         offset,
         style: { stopColor: color, stopOpacity: opacity },
-        _doctorDisable: "missing-color",
       }) as DomphyElement;
     // Upstream's 4 asymmetric stops (animated-beam.tsx:177-184): start color at
     // 0% transitioning to stop color, opaque middle, fading to transparent at 100%.
@@ -488,7 +517,9 @@ function animatedBeam(props: AnimatedBeamProps = {}): DomphyElement<"div"> {
 
         recomputeFrameId = window.requestAnimationFrame(() => {
           recompute();
-          animationFrameId = window.requestAnimationFrame(tick);
+          // `recompute()` already armed the first frame under reduce.
+          if (animationFrameId === null)
+            animationFrameId = window.requestAnimationFrame(tick);
         });
 
         if (typeof ResizeObserver !== "undefined") {

@@ -64,6 +64,10 @@ const packages = [];
 for (const name of pkgNames) {
   try {
     const p = await readJson(resolve(pkgDir, name, "package.json"));
+    // "private": true packages (e.g. @domphy/pages) are internal/parked —
+    // never published, never a public import — so they don't belong in a
+    // manifest whose whole point is "what can a consumer import".
+    if (p.private) continue;
     packages.push({
       name: p.name,
       version: p.version,
@@ -152,21 +156,71 @@ function readJsDoc(node) {
   return { summary, hostTag, example, paramDocs };
 }
 
-/** Resolves a named type to the member list of its object-literal shape, if any. */
-function membersOfNamedType(sourceFile, name) {
+/** Resolves a named type alias/interface to its type NODE (not yet flattened). */
+function namedTypeNode(sourceFile, name) {
   for (const statement of sourceFile.statements) {
     if (ts.isInterfaceDeclaration(statement) && statement.name.text === name) {
-      return statement.members;
+      return statement;
     }
-    if (
-      ts.isTypeAliasDeclaration(statement) &&
-      statement.name.text === name &&
-      ts.isTypeLiteralNode(statement.type)
-    ) {
-      return statement.type.members;
+    if (ts.isTypeAliasDeclaration(statement) && statement.name.text === name) {
+      return statement.type;
     }
   }
   return null;
+}
+
+// Recursively flattens a type node into its property-signature members,
+// keyed by name (last write wins — good enough for a manifest's "what props
+// exist" question, not a structural-typing checker). Handles the shapes
+// patch prop types actually use in this codebase:
+//   { a, b }                    TypeLiteral — its own members
+//   A & B                       Intersection — union of both sides' members
+//   A | B                       Union (e.g. a discriminated variant prop
+//                                like ImageProps's alt/decorative pair) —
+//                                union of every branch's members, so a prop
+//                                that exists on ANY branch is documented
+//   SomeInterface / SomeAlias   TypeReference — resolve then recurse
+function collectMembers(sourceFile, typeNode, seen = new Set()) {
+  if (!typeNode) return new Map();
+  if (ts.isTypeLiteralNode(typeNode)) {
+    const map = new Map();
+    for (const member of typeNode.members) {
+      if (!ts.isPropertySignature(member) || !member.name) continue;
+      const name = propertyKeyText(member.name);
+      if (name) map.set(name, member);
+    }
+    return map;
+  }
+  if (ts.isIntersectionTypeNode(typeNode) || ts.isUnionTypeNode(typeNode)) {
+    const map = new Map();
+    for (const part of typeNode.types) {
+      for (const [name, member] of collectMembers(sourceFile, part, seen)) {
+        map.set(name, member);
+      }
+    }
+    return map;
+  }
+  if (ts.isTypeReferenceNode(typeNode)) {
+    const name = typeReferenceName(typeNode);
+    if (!name || seen.has(name)) return new Map();
+    seen.add(name);
+    const resolved = namedTypeNode(sourceFile, name);
+    if (!resolved) return new Map();
+    if (ts.isInterfaceDeclaration(resolved)) {
+      const map = new Map();
+      for (const member of resolved.members) {
+        if (!ts.isPropertySignature(member) || !member.name) continue;
+        const propName = propertyKeyText(member.name);
+        if (propName) map.set(propName, member);
+      }
+      return map;
+    }
+    return collectMembers(sourceFile, resolved, seen);
+  }
+  if (ts.isParenthesizedTypeNode(typeNode)) {
+    return collectMembers(sourceFile, typeNode.type, seen);
+  }
+  return new Map();
 }
 
 /** Extracts props [{ name, type, optional, doc }] from a patch fn's first param. */
@@ -174,19 +228,9 @@ function extractProps(fn, sourceFile, paramDocs) {
   const param = fn.parameters?.[0];
   if (!param || !param.type) return [];
 
-  let members = null;
-  if (ts.isTypeLiteralNode(param.type)) {
-    members = param.type.members;
-  } else if (ts.isTypeReferenceNode(param.type)) {
-    members = membersOfNamedType(sourceFile, typeReferenceName(param.type));
-  }
-  if (!members) return [];
-
+  const members = collectMembers(sourceFile, param.type);
   const props = [];
-  for (const member of members) {
-    if (!ts.isPropertySignature(member) || !member.name) continue;
-    const name = propertyKeyText(member.name);
-    if (!name) continue;
+  for (const [name, member] of members) {
     props.push({
       name,
       type: member.type ? oneLine(member.type.getText(sourceFile)) : "unknown",
@@ -194,6 +238,7 @@ function extractProps(fn, sourceFile, paramDocs) {
       doc: paramDocs.get(name) ?? "",
     });
   }
+  props.sort((a, b) => a.name.localeCompare(b.name));
   return props;
 }
 

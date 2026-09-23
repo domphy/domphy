@@ -68,7 +68,7 @@ const noopCanvasContext = new Proxy(
   },
 );
 HTMLCanvasElement.prototype.getContext = (() =>
-  noopCanvasContext) as typeof HTMLCanvasElement.prototype.getContext;
+  noopCanvasContext) as unknown as typeof HTMLCanvasElement.prototype.getContext;
 if (!Element.prototype.scrollTo) {
   (Element.prototype as any).scrollTo = () => {};
 }

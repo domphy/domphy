@@ -34,7 +34,7 @@ import {
   small,
   strong,
 } from "@domphy/ui";
-import { fixed } from "../../shared/typography.js";
+import { interactiveFill } from "../../shared/interactiveFill.js";
 import {
   glyphChild,
   ICON_CHEVRON_RIGHT,
@@ -330,9 +330,7 @@ function quickLinkRow(
     textDecoration: () => "none",
     color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
     backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-    "&:hover": {
-      backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral"),
-    },
+    "&:hover": interactiveFill(2),
     "&[aria-current=page]": {
       // Upstream active nav item is monochrome (sidebar-accent), not brand blue.
       backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral"),
@@ -443,10 +441,7 @@ function favoriteRow(
           borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": {
-            backgroundColor: (l: Listener) =>
-              themeColor(l, "shift-2", "neutral"),
-          },
+          "&:hover": interactiveFill(2),
           "&:hover [data-slot=row-more], &:focus-within [data-slot=row-more]": {
             display: (l: Listener) =>
               collapsed.get(l) ? "none" : "inline-flex",
@@ -557,10 +552,7 @@ function workspaceGroupRow(
               borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
               display: "none",
               color: (l: Listener) => themeColor(l, "shift-7", "neutral"),
-              "&:hover": {
-                backgroundColor: (l: Listener) =>
-                  themeColor(l, "shift-3", "neutral"),
-              },
+              "&:hover": interactiveFill(3),
             },
           } as unknown as DomphyElement,
         ],
@@ -568,10 +560,7 @@ function workspaceGroupRow(
           position: "relative",
           display: (l: Listener) => (collapsed.get(l) ? "none" : "block"),
           borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
-          "&:hover": {
-            backgroundColor: (l: Listener) =>
-              themeColor(l, "shift-2", "neutral"),
-          },
+          "&:hover": interactiveFill(2),
           "&:hover [data-slot=workspace-toggle], &:focus-within [data-slot=workspace-toggle]":
             {
               display: (l: Listener) => (collapsed.get(l) ? "none" : "flex"),
@@ -603,10 +592,7 @@ function workspaceGroupRow(
                   themeSpacing(themeDensity(l) * 1),
                 textDecoration: () => "none",
                 color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
-                "&:hover": {
-                  backgroundColor: (l: Listener) =>
-                    themeColor(l, "shift-2", "neutral"),
-                },
+                "&:hover": interactiveFill(2),
               },
             } as unknown as DomphyElement,
           ],
@@ -657,9 +643,10 @@ function teamTriggerBadge(glyph: string): DomphyElement<"span"> {
       width: themeSpacing(5),
       height: themeSpacing(5),
       flexShrink: "0",
-      // Sizes the glyph's own `1em` SVG box, not body text — intentional,
-      // non-token typography (fixed() marks it for the doctor).
-      fontSize: fixed(themeSpacing(3)),
+      // Sizes the glyph's own `1em` SVG box, not body text: themeSpacing()
+      // returns a calc() the theme owns, which is why the doctor's
+      // inline-typography rule accepts it (literal metrics only).
+      fontSize: themeSpacing(3),
       borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1.5),
       backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
@@ -682,7 +669,7 @@ function teamMenuBadge(glyph: string): DomphyElement<"span"> {
       flexShrink: "0",
       // Sizes the glyph's own `1em` SVG box, not body text — see
       // teamTriggerBadge()'s matching fontSize above.
-      fontSize: fixed(themeSpacing(4)),
+      fontSize: themeSpacing(4),
       borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
       border: (l: Listener) =>
         `1px solid ${themeColor(l, "shift-4", "neutral")}`,
@@ -811,10 +798,7 @@ function localTeamSwitcher(
           overflow: "hidden",
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": {
-            backgroundColor: (l: Listener) =>
-              themeColor(l, "shift-2", "neutral"),
-          },
+          "&:hover": interactiveFill(2),
         },
         $: [popover({ placement: "bottom-start", content: dropdown })],
       } as unknown as DomphyElement,
@@ -950,10 +934,7 @@ function currentUserHeader(user: CurrentUser): DomphyElement<"div"> {
           overflow: "hidden",
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": {
-            backgroundColor: (l: Listener) =>
-              themeColor(l, "shift-2", "neutral"),
-          },
+          "&:hover": interactiveFill(2),
         },
         $: [popover({ placement: "bottom", content: accountMenu })],
       } as unknown as DomphyElement,
@@ -978,9 +959,7 @@ function calendarNavButtonStyle() {
     borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
     color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
     backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-    "&:hover": {
-      backgroundColor: (l: Listener) => themeColor(l, "shift-3", "neutral"),
-    },
+    "&:hover": interactiveFill(3),
   };
 }
 
@@ -1086,12 +1065,12 @@ function inlineMonthCalendar(
               color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
               backgroundColor: (l: Listener) =>
                 themeColor(l, "inherit", "neutral"),
-              "&:hover:not(:disabled)": {
-                backgroundColor: (l: Listener) =>
-                  isSelected
-                    ? themeColor(l, "inherit", "neutral")
-                    : themeColor(l, "shift-2", "neutral"),
-              },
+              // The selected day already owns its surface (dataTone above), so
+              // it has no hover fill to move its label against — only the
+              // unselected cells get one.
+              ...(isSelected
+                ? {}
+                : { "&:hover:not(:disabled)": interactiveFill(2) }),
             },
           } as unknown as DomphyElement);
         }
@@ -1124,14 +1103,16 @@ function calendarEntryRow(
   entry: CalendarEntry,
   visibility: RecordState<Record<string, boolean>>,
 ): DomphyElement<"li"> {
-  const inputId = `sidebar-left-right-calendar-${entry.id}`;
   return {
     li: [
       {
+        // No `id`/`htmlFor` pair: the checkbox is a direct descendant of this
+        // label, which associates them implicitly (HTML label element,
+        // "implicit label" association) — no literal id needed, so two
+        // mounted instances never collide on one.
         label: [
           {
             input: null,
-            id: inputId,
             type: "checkbox",
             checked: (l: Listener) => visibility.get(entry.id, l),
             onChange: (e: Event) =>
@@ -1143,7 +1124,6 @@ function calendarEntryRow(
             style: { flex: "1", textAlign: "left" },
           } as unknown as DomphyElement,
         ],
-        htmlFor: inputId,
         style: {
           display: "flex",
           alignItems: "center",
@@ -1155,10 +1135,7 @@ function calendarEntryRow(
           cursor: "pointer",
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": {
-            backgroundColor: (l: Listener) =>
-              themeColor(l, "shift-2", "neutral"),
-          },
+          "&:hover": interactiveFill(2),
         },
       } as unknown as DomphyElement,
     ],
@@ -1274,7 +1251,10 @@ function sidebarLeftRight(
     children,
   } = props;
 
-  const leftSidebarOpen = toState(true);
+  // Mobile drawer state. Upstream `SidebarProvider.openMobile` defaults to
+  // FALSE — starting it open rendered the off-canvas panel over the page on
+  // first paint at phone widths (measured at 375px).
+  const leftSidebarOpen = toState(false);
   const leftCollapsed = toState(defaultLeftCollapsed);
   // Viewport-aware trigger/hotkey: mobile flips the drawer, desktop the rail.
   const toggleLeftSidebar = makeSidebarToggle(leftCollapsed, leftSidebarOpen);
@@ -1439,7 +1419,11 @@ function sidebarLeftRight(
         width: themeSpacing(72),
         transform: (l: Listener) =>
           leftSidebarOpen.get(l) ? "translateX(0)" : "translateX(-100%)",
-        transition: "transform 0.2s ease",
+        // `transform` alone leaves every link in the slid-out panel in the
+        // tab order (WCAG 2.4.3). `visibility` is animated so the slide runs.
+        visibility: (l: Listener) =>
+          leftSidebarOpen.get(l) ? "visible" : "hidden",
+        transition: "transform 0.2s ease, visibility 0.2s ease",
         boxShadow: (l: Listener) =>
           `0 0 ${themeSpacing(6)} ${themeColor(l, "shift-3", "neutral")}`,
       },
@@ -1544,10 +1528,7 @@ function sidebarLeftRight(
               color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
               backgroundColor: (l: Listener) =>
                 themeColor(l, "inherit", "neutral"),
-              "&:hover": {
-                backgroundColor: (l: Listener) =>
-                  themeColor(l, "shift-2", "neutral"),
-              },
+              "&:hover": interactiveFill(2),
             },
           } as unknown as DomphyElement,
         ],

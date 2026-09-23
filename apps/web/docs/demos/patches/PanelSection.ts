@@ -22,6 +22,7 @@ const App: DomphyElement<"div"> = {
     width: themeSpacing(96),
     outline: (l) => `1px solid ${themeColor(l, "shift-3")}`,
     borderRadius: themeSpacing(2),
+    color: (l) => themeColor(l, "text"),
     overflow: "hidden",
   },
 };

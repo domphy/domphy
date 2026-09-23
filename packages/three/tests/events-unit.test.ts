@@ -1,6 +1,7 @@
 import { State } from "@domphy/core";
 import * as THREE from "three";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { FrameClock } from "../src/clock.js";
 import { createEvents } from "../src/events.js";
 import { applyProps } from "../src/props.js";
 import type {
@@ -62,7 +63,7 @@ function createTestRoot(): RootState {
     canvas,
     raycaster: new THREE.Raycaster(),
     pointer: new THREE.Vector2(),
-    clock: new THREE.Clock(),
+    clock: new FrameClock(),
     frameloop: "always",
     size,
     invalidate: vi.fn(),

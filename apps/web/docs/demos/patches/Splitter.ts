@@ -9,9 +9,6 @@ const App: DomphyElement<"div"> = {
       div: null,
       $: [splitterHandle()],
       style: { width: themeSpacing(1) },
-      // Decorative drag handle, no text content — "missing-color" would
-      // otherwise ask for a color that has nothing to apply to.
-      _doctorDisable: "missing-color",
     },
     { div: "Right panel", $: [splitterPanel()] },
   ],

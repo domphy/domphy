@@ -14,9 +14,6 @@ const App: DomphyElement<"div"> = {
       ],
     }),
   ],
-  // Text color is set by the menuitem buttons the menu() patch renders —
-  // the outer container itself carries no text.
-  _doctorDisable: "missing-color",
 };
 
 export default App;

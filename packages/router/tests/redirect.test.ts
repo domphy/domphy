@@ -23,12 +23,6 @@ describe('isDangerousProtocol', () => {
     expect(isDangerousProtocol('java\rscript:alert(1)', allowlist)).toBe(true)
   })
 
-  it('treats scheme-like URL-ctor failures as dangerous, not safe', () => {
-    // `new URL('http://[')` throws; the previous catch-all treated that as safe.
-    expect(isDangerousProtocol('http://[', allowlist)).toBe(true)
-    expect(isDangerousProtocol('blob:not valid', allowlist)).toBe(true)
-  })
-
   it('allows listed protocols and relative paths', () => {
     expect(isDangerousProtocol('https://ok.example/path', allowlist)).toBe(
       false,

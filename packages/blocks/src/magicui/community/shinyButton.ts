@@ -30,9 +30,12 @@ import { hashString } from "@domphy/core";
 import {
   themeColor,
   themeDensity,
+  themeLetterSpacing,
   themeSize,
   themeSpacing,
+  themeWeight,
 } from "@domphy/theme";
+import { REDUCED_MOTION_PAUSE } from "../reducedMotion.js";
 
 export interface ShinyButtonProps {
   /** Label content. Plain text or a full element (e.g. text + icon). Defaults to `"Shiny Button"`. */
@@ -129,11 +132,11 @@ function shinyButton(props: ShinyButtonProps = {}): DomphyElement<"button"> {
       display: "block",
       width: "100%",
       textTransform: "uppercase",
-      // Typography props are wrapped in `() =>` so the doctor's inline-typography
-      // rule (which only fires on non-function values) stays quiet.
-      letterSpacing: () => "0.025em",
+      // Upstream's `tracking-wide font-medium` — both land exactly on a theme
+      // token (`wide` = 0.025em, `medium` = 500).
+      letterSpacing: themeLetterSpacing("wide"),
       fontSize: (listener: Listener) => themeSize(listener, "decrease-1"),
-      fontWeight: () => "500",
+      fontWeight: themeWeight("medium"),
       color: (listener: Listener) =>
         `color-mix(in srgb, ${themeColor(listener, "shift-9", "neutral")} 65%, transparent)`,
       WebkitMaskImage: labelMask,
@@ -143,9 +146,10 @@ function shinyButton(props: ShinyButtonProps = {}): DomphyElement<"button"> {
       WebkitMaskRepeat: "no-repeat",
       maskRepeat: "no-repeat",
       animation: `${labelSweepName} var(--shiny-button-duration, ${totalMs}ms) ${SWEEP_EASING} infinite`,
+      ...REDUCED_MOTION_PAUSE,
       [`@keyframes ${labelSweepName}`]: labelSweepKeyframes,
       "@media (prefers-color-scheme: dark)": {
-        fontWeight: () => "300",
+        fontWeight: themeWeight("light"),
         color: (listener: Listener) =>
           `color-mix(in srgb, ${themeColor(listener, "shift-9", "neutral")} 90%, transparent)`,
       },
@@ -154,12 +158,11 @@ function shinyButton(props: ShinyButtonProps = {}): DomphyElement<"button"> {
 
   // Border-ring sheen: a primary gradient masked to the 1px padding box so only
   // the ring shows (magicCard's content-box exclude idiom), swept in sync with
-  // the label band. `_doctorDisable: "missing-color"` — a purely decorative,
-  // text-free layer, so the missing-color heuristic doesn't apply.
+  // the label band. A purely decorative, text-free layer, which the
+  // missing-color contract exempts.
   const ringSpan = {
     span: null,
     ariaHidden: "true",
-    _doctorDisable: "missing-color",
     style: {
       position: "absolute",
       inset: 0,
@@ -182,6 +185,7 @@ function shinyButton(props: ShinyButtonProps = {}): DomphyElement<"button"> {
       backgroundSize: "250% 100%",
       backgroundRepeat: "no-repeat",
       animation: `${ringSweepName} var(--shiny-button-duration, ${totalMs}ms) ${SWEEP_EASING} infinite`,
+      ...REDUCED_MOTION_PAUSE,
       [`@keyframes ${ringSweepName}`]: ringSweepKeyframes,
     } as StyleObject,
   } as DomphyElement<"span">;

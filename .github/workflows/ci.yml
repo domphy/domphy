@@ -35,6 +35,9 @@ jobs:
       - name: Biome check
         run: pnpm check
 
+      - name: Typecheck
+        run: pnpm typecheck
+
       - name: Build
         run: pnpm -r build
 
@@ -66,6 +69,9 @@ jobs:
 
       - name: Scripts tests
         run: node --test scripts/scripts.test.mjs
+
+      - name: Known debt ledger
+        run: node --test scripts/known-debt.test.mjs
 
       - name: Stable readiness matrix
         run: node scripts/stable-readiness-check.mjs

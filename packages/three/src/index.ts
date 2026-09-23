@@ -22,7 +22,9 @@ export { diagnose, validate } from "./diagnose.js";
 export type {
   DomEvent,
   EventCaptureTarget,
+  EventPrefix,
   Intersection,
+  IntersectionEvent,
   ThreeEvent,
 } from "./events.js";
 export type { AssetResult } from "./loader.js";
@@ -33,6 +35,8 @@ export type {
   CreatedRootState,
   Dpr,
   FrameCallback,
+  InstanceEventHandler,
+  ReactiveProp,
   RendererLike,
   RootInternal,
   RootState,
@@ -40,6 +44,9 @@ export type {
   SceneChildren,
   SceneFunction,
   SceneNode,
+  SceneProps,
+  SceneValue,
   SizeState,
   ThreeOptions,
+  ViewportState,
 } from "./types.js";

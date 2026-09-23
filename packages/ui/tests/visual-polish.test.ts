@@ -130,7 +130,7 @@ describe("button/input focus-visible ring", () => {
 
   it("inputText's generated CSS includes a focus-visible box-shadow rule", () => {
     const { node } = render({
-      input: "",
+      input: null,
       type: "text",
       $: [inputText()],
     } as DomphyElement);
@@ -142,7 +142,7 @@ describe("button/input focus-visible ring", () => {
 
   it("interactive patches expose unified focus rings", () => {
     for (const [name, el] of [
-      ["buttonSwitch", { button: { span: null }, $: [buttonSwitch()] }],
+      ["buttonSwitch", { button: [{ span: null }], $: [buttonSwitch()] }],
       [
         "linkButton",
         { a: "Go", href: "#", $: [linkButton({ variant: "solid" })] },

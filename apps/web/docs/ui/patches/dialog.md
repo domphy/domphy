@@ -10,6 +10,10 @@ Apply the `dialog` patch to a `<dialog>` element. It drives open/close via the n
 
 The patch handles accessibility automatically: it sets `aria-modal="true"`, traps Tab focus within the dialog while open (cycling between first and last focusable elements), restores focus to the previously focused element when closed, and locks page scroll while open.
 
+Initial focus goes to the first element carrying the `autofocus` attribute, falling back to the first focusable element (the HTML dialog focusing steps; Radix / MUI / Mantine behave the same).
+
+Escape dismisses only the topmost layer: while a `popover`, `selectBox`, `combobox` or `datePicker` panel is open inside the dialog, Escape closes that panel and leaves the dialog open. The next Escape closes the dialog.
+
 The dialog surface uses a high `elevation()` box-shadow (no outline — shadow-only, the modern modal look) and a density-scaled border-radius.
 
 ## Props

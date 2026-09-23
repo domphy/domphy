@@ -16,6 +16,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { horizontalArrowStep } from "../utils/direction.js";
 import { focusRing } from "../utils/focusRing.js";
 
 const STAR_FILLED =
@@ -76,6 +77,17 @@ function insertStar(
     _key: index,
     type: "button",
     ariaLabel: `${index} star${index > 1 ? "s" : ""}`,
+    // WAI-ARIA APG radio group: the stars ARE the radios. Without a role and
+    // aria-checked a screen reader read five identically-shaped buttons and
+    // could not tell which rating was chosen, and Tab stopped on every star
+    // instead of entering the group once (roving tabindex).
+    role: "radio",
+    ariaChecked: (listener: Listener) =>
+      live.valueState.get(listener) === index,
+    tabindex: (listener: Listener) => {
+      const current = live.valueState.get(listener);
+      return (current === 0 ? 1 : current) === index ? 0 : -1;
+    },
     onClick: () => {
       if (live.readOnly) return;
       const next = index === live.valueState.get() ? 0 : index;
@@ -92,11 +104,22 @@ function insertStar(
       if (live.readOnly) return;
       const current = live.valueState.get();
       let next = current;
-      if (e.key === "ArrowRight" || e.key === "ArrowUp") {
+      if (e.key === "ArrowUp") {
         next = Math.min(live.max, current + 1);
         e.preventDefault();
-      } else if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
+      } else if (e.key === "ArrowDown") {
         next = Math.max(0, current - 1);
+        e.preventDefault();
+      } else if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+        const step = horizontalArrowStep(e.key, e.target as Element);
+        next =
+          step > 0 ? Math.min(live.max, current + 1) : Math.max(0, current - 1);
+        e.preventDefault();
+      } else if (e.key === "Home") {
+        next = 1;
+        e.preventDefault();
+      } else if (e.key === "End") {
+        next = live.max;
         e.preventDefault();
       } else {
         return;
@@ -117,6 +140,11 @@ function insertStar(
       fontSize: "inherit",
       display: "flex",
       alignItems: "center",
+      justifyContent: "center",
+      // WCAG 2.2 SC 2.5.8 Target Size (Minimum) is 24x24 CSS px. The glyph is
+      // 1em, so an unpadded star measured 16x16 — a miss on touch.
+      minWidth: themeSpacing(6),
+      minHeight: themeSpacing(6),
       transition: "box-shadow 140ms ease",
       "&:focus-visible": {
         boxShadow: (listener) => focusRing(listener, live.color),
@@ -168,8 +196,9 @@ function rating(props: RatingProps = {}): PartialElement {
   const hoveredState = toState(0);
 
   return {
-    role: "group",
+    role: "radiogroup",
     ariaLabel: "Rating",
+    ariaReadonly: live.readOnly ? "true" : undefined,
     style: {
       display: "inline-flex",
       gap: themeSpacing(0.5),

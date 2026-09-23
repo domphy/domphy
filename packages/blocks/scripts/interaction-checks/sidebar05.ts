@@ -12,6 +12,7 @@ import {
   locate,
   mountedPage,
   report,
+  settledWidth,
   summarize,
   teardown,
 } from "../interaction-harness.js";
@@ -70,14 +71,10 @@ async function main() {
   const toggleButton = page
     .locator('[data-block="sidebar05"]')
     .getByRole("button", { name: "Toggle sidebar" });
-  const expandedWidth = await aside.evaluate(
-    (el) => el.getBoundingClientRect().width,
-  );
+  const expandedWidth = await settledWidth(aside);
   await toggleButton.click();
   await page.waitForTimeout(300);
-  const collapsedWidth = await aside.evaluate(
-    (el) => el.getBoundingClientRect().width,
-  );
+  const collapsedWidth = await settledWidth(aside);
   report(
     "sidebar05: the header toggle button fully collapses the sidebar (width -> ~0), not to an icon rail",
     expandedWidth > 200 && collapsedWidth < 5,
@@ -86,9 +83,7 @@ async function main() {
 
   await toggleButton.click();
   await page.waitForTimeout(300);
-  const reExpandedWidth = await aside.evaluate(
-    (el) => el.getBoundingClientRect().width,
-  );
+  const reExpandedWidth = await settledWidth(aside);
   report(
     "sidebar05: clicking the toggle button again restores the full width",
     reExpandedWidth > 200,

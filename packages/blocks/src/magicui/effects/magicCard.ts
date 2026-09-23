@@ -373,6 +373,10 @@ function magicCard(props: MagicCardProps = {}): DomphyElement<"div"> {
       attachMagicCard,
       { variant, spotlightSize, orbOpacity, offCard },
     ),
+    // `borderRadius` is a caller-supplied number prop (matches upstream's own
+    // contract), not a design-system constant — the theme scale has no lever
+    // for an arbitrary caller pixel value.
+    _doctorDisable: "raw-spacing-value",
     style: {
       position: "relative",
       // Own stacking context so the orb's mix-blend-mode composites only within

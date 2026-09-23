@@ -1,3 +1,5 @@
+import { formatTick } from "./linear.js";
+
 export interface LogScale {
   type: "log";
   domain: [number, number];
@@ -81,10 +83,11 @@ export function createLogScale(
     bandwidth() {
       return 0;
     },
-    format(value: number) {
-      const exp = Math.round(log(value));
-      if (base === 10) return `10^${exp}`;
-      return `${base}^${exp}`;
-    },
+    // ECharts labels a log axis with the tick's VALUE (1, 10, 100 …), the same
+    // way it labels a linear one. Printing `base^round(log(value))` instead
+    // mislabelled every intermediate tick: ticks() emits 2, 3 and 5 times a
+    // power when the decades are sparse, and those all rounded onto a
+    // neighbouring power — a chart could show "10^1, 10^1, 10^0, 10^0, 10^0".
+    format: formatTick,
   };
 }

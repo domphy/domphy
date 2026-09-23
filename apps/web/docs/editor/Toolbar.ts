@@ -5,7 +5,13 @@ import {
   rawHtml,
   type State,
 } from "@domphy/core";
-import { themeColor, themeSize, themeSpacing } from "@domphy/theme";
+import {
+  textToneOn,
+  themeColor,
+  themeSize,
+  themeSpacing,
+  themeWeight,
+} from "@domphy/theme";
 import { buttonGhost, icon, row, tooltip } from "@domphy/ui";
 
 const svgDark = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" /></svg>`;
@@ -22,7 +28,11 @@ export type PlaygroundPane = "code" | "preview" | "split";
 
 function toolButton(
   svg: string | ((l: Listener) => string),
-  label: string | ((l: Listener) => string),
+  // The listener is OPTIONAL because this label is read two ways: with a
+  // listener for `ariaLabel`, and with none inside the `computed()` below,
+  // where dependency tracking is ambient. Typing it as required made that
+  // second call a TS2554 ("Expected 1 arguments, but got 0").
+  label: string | ((l?: Listener) => string),
   onClick: () => void,
   opts: { active?: (l: Listener) => boolean } = {},
 ): DomphyElement<"button"> {
@@ -70,7 +80,9 @@ function paneTab(
     button: label,
     type: "button",
     // APG tabs pattern: a tablist's children must be tabs (axe
-    // aria-required-children), selected state via aria-selected.
+    // aria-required-children), selected state via aria-selected — backed
+    // visually by a persistent indicator bar (`borderBottom`, below) and a
+    // weight token, never by fontWeight literals or a background fill.
     role: "tab",
     ariaSelected: (l: Listener) => (pane.get(l) === id ? "true" : "false"),
     onClick: () => pane.set(id),
@@ -78,7 +90,8 @@ function paneTab(
       appearance: "none",
       border: "none",
       cursor: "pointer",
-      fontWeight: (l: Listener) => (pane.get(l) === id ? "600" : "500"),
+      fontWeight: (l: Listener) =>
+        pane.get(l) === id ? themeWeight("semibold") : themeWeight("medium"),
       fontSize: (l: Listener) => themeSize(l, "decrease-1"),
       paddingBlock: themeSpacing(1.5),
       paddingInline: themeSpacing(3),
@@ -87,16 +100,31 @@ function paneTab(
         pane.get(l) === id
           ? themeColor(l, "shift-12", "primary")
           : themeColor(l, "text"),
-      backgroundColor: (l: Listener) =>
-        pane.get(l) === id
-          ? themeColor(l, "shift-2", "primary")
-          : "transparent",
-      transition: "background-color 140ms ease, color 140ms ease",
-      "&:hover": {
-        backgroundColor: (l: Listener) =>
+      // Selection is carried by the indicator bar + weight/color, never by a
+      // backgroundColor fill: the tablist track is a dataTone("shift-2")
+      // context, and a fixed-family fill there is what a plain dataTone
+      // shift can never express (a tone shifts the step, never the color
+      // family) — painting the accent onto `borderBottom` instead of
+      // `backgroundColor` sidesteps the conflict outright rather than
+      // suppressing the doctor rule that (correctly) flags it.
+      backgroundColor: "transparent",
+      borderBottom: (l: Listener) =>
+        `2px solid ${
           pane.get(l) === id
-            ? themeColor(l, "shift-3", "primary")
-            : themeColor(l, "hover"),
+            ? themeColor(l, "shift-9", "primary")
+            : "transparent"
+        }`,
+      transition:
+        "background-color 140ms ease, color 140ms ease, border-color 140ms ease",
+      // Hover paints a fill 2 steps off the track, so the label travels with
+      // it via textToneOn(2) — holding the label at "text" leaves a 7-step
+      // gap over that fill, short of the 9-step contrast contract.
+      "&:hover": {
+        color: (l: Listener) =>
+          pane.get(l) === id
+            ? themeColor(l, textToneOn(3), "primary")
+            : themeColor(l, textToneOn(2)),
+        backgroundColor: (l: Listener) => themeColor(l, "hover"),
       },
       "&:focus-visible": {
         boxShadow: (l: Listener) =>
@@ -200,6 +228,11 @@ export const Toolbar = (props: ToolbarProps): DomphyElement<"div"> => {
   if (error) {
     left.push({
       span: (l: Listener) => (error.get(l) ? "Error" : "Ready"),
+      // A SOLID-FILL status pill: shift-9 fill with a shift-0 label is a full
+      // 9-step inversion (axe measures it clean in both themes). It cannot be
+      // expressed as a dataTone context — shift-9 is mid-ramp, which the tone
+      // model rejects as a surface anchor (middle-surface-anchor).
+      _doctorDisable: ["tone-background-inherit"],
       style: {
         fontSize: (l: Listener) => themeSize(l, "decrease-2"),
         fontWeight: "600",
@@ -227,13 +260,21 @@ export const Toolbar = (props: ToolbarProps): DomphyElement<"div"> => {
       ],
       role: "tablist",
       ariaLabel: "Playground view",
+      // The tablist track is a RAISED SURFACE, so it declares a tone context
+      // instead of painting a bare shift-2 background. With a bare background
+      // the tabs' own themeColor(l, "text") still resolved against the page
+      // surface — a 7-step gap, which axe measured at 3.66:1 (light) and
+      // 4.44:1 (dark). As a dataTone context the same "text" resolves
+      // relative to shift-2, restoring the 9-step contrast contract.
+      dataTone: "shift-2",
       style: {
         display: "flex",
         alignItems: "center",
         gap: themeSpacing(0.5),
         padding: themeSpacing(0.5),
         borderRadius: themeSpacing(2),
-        backgroundColor: (l: Listener) => themeColor(l, "shift-2"),
+        backgroundColor: (l: Listener) => themeColor(l, "inherit"),
+        color: (l: Listener) => themeColor(l, "text"),
         // On very narrow screens wrap under the title.
         "@media (max-width: 480px)": {
           order: 3,
@@ -257,6 +298,10 @@ export const Toolbar = (props: ToolbarProps): DomphyElement<"div"> => {
         style: { flexShrink: "0" },
       },
     ],
+    // Its siblings in Container's reactive workspace list are keyed
+    // ("pane-*"/"console-*"); an unkeyed child mixed in with keyed ones falls
+    // back to positional matching during reconcile.
+    _key: "toolbar",
     dataTone: "shift-1",
     style: {
       display: "flex",

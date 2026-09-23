@@ -23,7 +23,7 @@ const option: ChartOption = {
       type: "line3D",
       name: "helix",
       data: helixData,
-      lineStyle: { width: 2, color: "#3b82f6" },
+      lineStyle: { width: 2, color: "primary" },
     },
   ],
 };

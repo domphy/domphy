@@ -134,7 +134,7 @@ describe("validate", () => {
 
   it("rejects invalid tags and invalid hook types", () => {
     expect(() => validate({ noSuchTag: "x" } as any)).toThrow(
-      /not valid HTML tag/i,
+      /not a valid HTML tag name or custom element name/i,
     );
     expect(() => validate({ div: "x", _onMount: "bad" } as any)).toThrow(
       /must be a function/i,
@@ -145,9 +145,12 @@ describe("validate", () => {
     expect(() => validate({} as any)).toThrow(/no tag key/i);
   });
 
-  it("rejects a dash-named (unsupported custom-element) first key", () => {
-    expect(() => validate({ "my-widget": "hello" } as any)).toThrow(
-      /not valid HTML tag/i,
+  // Custom element names ARE valid tag keys — see tests/custom-elements.test.ts
+  // for the HTML Standard production this accepts.
+  it("accepts a custom element name as a first key but not a bare dash name", () => {
+    expect(() => validate({ "my-widget": "hello" } as any)).not.toThrow();
+    expect(() => validate({ "-widget": "hello" } as any)).toThrow(
+      /not a valid HTML tag name or custom element name/i,
     );
   });
 

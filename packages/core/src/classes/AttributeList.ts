@@ -1,8 +1,25 @@
 import { BooleanAttributes } from "../constants.js";
+import { __DEV__ } from "../dev.js";
 import { hasOwn } from "../helpers.js";
 import type { AttributeValue, Listener } from "../types.js";
 import { ElementAttribute } from "./ElementAttribute.js";
 import type { ElementNode } from "./ElementNode.js";
+
+// An attribute name must match the XML Name production — the same rule
+// `Element.setAttribute()` enforces ("did not match the Name production",
+// InvalidCharacterError) and the same guard React applies before serializing.
+// Without it the two render paths disagree on an attacker-shaped key (a
+// spread of untrusted props, `{...props}`): the client THROWS, while
+// `generateHTML()` interpolated the key verbatim, so a name like
+// `x" onmouseover="alert(1)` escaped its own attribute and injected a live
+// event handler into the server HTML. Conservative ASCII subset — every real
+// HTML/SVG/ARIA/data-* attribute passes, and anything containing a quote,
+// space, `=`, `>`, `/` or a control character is dropped on BOTH paths.
+const VALID_ATTRIBUTE_NAME = /^[:A-Z_a-z][-.:0-9A-Z_a-z]*$/;
+
+function isValidAttributeName(name: string): boolean {
+  return VALID_ATTRIBUTE_NAME.test(name);
+}
 
 export class AttributeList {
   items: Record<string, ElementAttribute> | null = {};
@@ -28,6 +45,14 @@ export class AttributeList {
 
   set(name: string, value: AttributeValue): void {
     if (!this.items || !this.parent) return;
+    if (!isValidAttributeName(name)) {
+      if (__DEV__) {
+        console.warn(
+          `[Domphy] Ignored attribute "${name}" on <${this.parent.tagName}>: outside the ASCII XML Name production Domphy accepts. A name containing a space, quote, "=", ">" or a control character makes setAttribute() throw in the browser and would break out of the attribute in SSR output — check the object being spread onto this element.`,
+        );
+      }
+      return;
+    }
     if (this.items[name]) {
       this.items[name].set(value);
     } else {
@@ -54,6 +79,10 @@ export class AttributeList {
     // same name render()/setAttribute() used, or the real DOM attribute is
     // left stuck forever for any name camelToKebab()/HtmlAttributeNames changed.
     const domName = this.items[name]?.name ?? name;
+
+    // A custom-element prop lives on the instance, not in an attribute —
+    // removeAttribute() below would leave it set.
+    this.items[name]?.clearCustomProperty();
 
     if (this.items[name]) {
       this.items[name]._dispose();
@@ -154,12 +183,26 @@ export class AttributeList {
 
   removeClass(className: string): void {
     if (!className || typeof className !== "string") return;
-    const current = this.get("class") || "";
-    const list: string[] = current.split(" ").filter((e: string) => e);
-    const updated = list.filter((cls) => cls !== className);
-    updated.length > 0
-      ? this.set("class", updated.join(" "))
-      : this.remove("class");
+    const strip = (classes: string) =>
+      (classes || "")
+        .split(" ")
+        .filter((cls: string) => cls && cls !== className)
+        .join(" ");
+
+    // Same `declaredValue` rule as addClass: `.get("class")` is the RESOLVED
+    // string, so writing it back as a plain string froze a reactive class at
+    // whatever the function last returned and it never updated again. A node
+    // leaving the shared style scope (_detachStyleScope) removes a class on
+    // every such element, so this path is reached by ordinary trees.
+    const declared = this.items?.class?.declaredValue;
+    if (typeof declared === "function") {
+      const declaredFn = declared as (listener: Listener) => string;
+      this.set("class", (listener: Listener) => strip(declaredFn(listener)));
+      return;
+    }
+
+    const updated = strip(this.get("class") || "");
+    updated ? this.set("class", updated) : this.remove("class");
   }
 
   replaceClass(oldClass: string, newClass: string): void {

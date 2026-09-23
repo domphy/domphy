@@ -13,6 +13,11 @@ import * as domphyEditorDomphy from "@domphy/editor/domphy";
 import * as domphyFloating from "@domphy/floating";
 import * as domphyForm from "@domphy/form/domphy";
 import * as domphyI18n from "@domphy/i18n";
+// The markdown API moved to @domphy/press. The main entry statically imports
+// Node.js built-ins (build pipeline), so the playground takes the browser
+// subpath, which ships the same markdown surface, and exposes it under
+// "@domphy/press" in the module map below.
+import * as domphyMarkdown from "@domphy/press/browser";
 import * as domphyQuery from "@domphy/query";
 import * as domphyQueryDomphy from "@domphy/query/domphy";
 import * as domphyRouter from "@domphy/router";
@@ -32,12 +37,6 @@ import * as threeEffectComposer from "three/addons/postprocessing/EffectComposer
 import * as threeRenderPass from "three/addons/postprocessing/RenderPass.js";
 import * as threeUnrealBloomPass from "three/addons/postprocessing/UnrealBloomPass.js";
 import * as zod from "zod";
-// The markdown API moved to @domphy/press, but the press main entry statically
-// imports Node.js built-ins (build pipeline) and its browser subpath does not
-// re-export the markdown functions. The playground only needs the browser-safe
-// markdown module, so bundle its source directly and expose it under
-// "@domphy/press" in the module map below.
-import * as domphyMarkdown from "../../../../packages/press/src/markdown/index.js";
 // GeoJSON asset for the geo/map chart demos ("world" is not built into
 // @domphy/chart — demos must registerMap() it, see docs/chart/geo.md).
 // Converted from world-atlas@2 countries-110m (TopoJSON → GeoJSON, 2-decimal

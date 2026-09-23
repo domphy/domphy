@@ -12,7 +12,7 @@ import {
  *
  * @hostTag figure
  * @param props.color - Theme color tone (`ValueOrState<ThemeColor>`) for the figure/caption text. Defaults to "neutral".
- * @example { figure: [{ img: "", src }, { figcaption: "A caption" }], $: [figure()] }
+ * @example { figure: [{ img: null, src: "chart.png", alt: "Quarterly revenue" }, { figcaption: "A caption" }], $: [figure()] }
  */
 function figure(
   props: { color?: ValueOrState<ThemeColor> } = {},

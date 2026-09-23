@@ -8,6 +8,10 @@ import ToggleGroup from "../../demos/patches/ToggleGroup.ts?raw"
 
 Single- or multi-select button group. Apply `toggleGroup({ items })` to a wrapper — `role="group"` plus generated `<button>` toggles with `aria-pressed`. In single-select mode, clicking the selected item deselects it; `multiple: true` allows several.
 
+Keyboard: ArrowRight/ArrowDown move to the next toggle, ArrowLeft/ArrowUp to the previous (both wrap), Home/End jump to the first/last.
+
+The selection is published on a `toggleGroup` context (`{ value, multiple }`) that descendants can read with `node.getContext("toggleGroup")` — the same `State` the buttons write to, including when `value` was passed as a plain value or omitted.
+
 ## Props
 
 | Prop | Type | Default | Description |

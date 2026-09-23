@@ -11,6 +11,7 @@ import {
   locate,
   mountedPage,
   report,
+  settledWidth,
   summarize,
   teardown,
 } from "../interaction-harness.js";
@@ -60,14 +61,10 @@ async function main() {
   const toggleButton = page
     .locator('[data-block="sidebar07"] main header button')
     .first();
-  const expandedWidth = await aside.evaluate(
-    (el) => el.getBoundingClientRect().width,
-  );
+  const expandedWidth = await settledWidth(aside);
   await toggleButton.click();
   await page.waitForTimeout(300);
-  const collapsedWidth = await aside.evaluate(
-    (el) => el.getBoundingClientRect().width,
-  );
+  const collapsedWidth = await settledWidth(aside);
   report(
     "sidebar07: the sticky header's toggle button collapses the aside to the icon rail",
     collapsedWidth < expandedWidth / 2,
@@ -76,9 +73,7 @@ async function main() {
 
   await page.keyboard.press("Control+b");
   await page.waitForTimeout(300);
-  const reExpandedWidth = await aside.evaluate(
-    (el) => el.getBoundingClientRect().width,
-  );
+  const reExpandedWidth = await settledWidth(aside);
   report(
     "sidebar07: the window-level Ctrl+B shortcut re-expands the aside back to full width",
     reExpandedWidth > collapsedWidth * 2,

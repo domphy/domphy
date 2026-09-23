@@ -216,13 +216,20 @@ describe("H1: popover id / aria-controls wiring", () => {
 
 describe("H2: tooltip id is deterministic", () => {
   it("aria-describedby is stable across generations (no Math.random churn)", () => {
+    // Caller-owned open state (not the hover/focus debounce path): stays
+    // open across the ancestor re-renders below, so this isolates id
+    // stability from the separate (pre-existing, unrelated to this test)
+    // uncontrolled-state visual-reset-on-refresh behavior covered by
+    // popover-rerender-repro.test.ts.
     const refresh = toState(0);
+    const open = toState(true);
     const { host } = render({
       div: (l: any) => {
         refresh.get(l);
-        return [{ button: "Hover", $: [tooltip({ content: "Tip" })] }];
+        return [{ button: "Hover", $: [tooltip({ content: "Tip", open })] }];
       },
     } as DomphyElement);
+    flushSync();
 
     const before = host
       .querySelector("button")!
@@ -388,7 +395,15 @@ describe("toast overlay teardown", () => {
         {
           div: (l: any) =>
             show.get(l)
-              ? [{ div: "Msg", $: [toast({ position: "top-right" })] }]
+              ? [
+                  {
+                    div: "Msg",
+                    // duration: Infinity — this test's concern is manual-removal
+                    // teardown, not auto-dismiss; runAllTimers() below must only
+                    // settle the exit-animation fallback timer.
+                    $: [toast({ position: "top-right", duration: Infinity })],
+                  },
+                ]
               : [],
         },
       ],
@@ -412,10 +427,20 @@ describe("toast overlay teardown", () => {
         {
           div: (l: any) =>
             showFirst.get(l)
-              ? [{ div: "First", $: [toast({ position: "top-right" })] }]
+              ? [
+                  {
+                    div: "First",
+                    // duration: Infinity — same reasoning as the sibling test
+                    // above: isolate teardown from auto-dismiss timing.
+                    $: [toast({ position: "top-right", duration: Infinity })],
+                  },
+                ]
               : [],
         },
-        { div: "Second", $: [toast({ position: "top-right" })] },
+        {
+          div: "Second",
+          $: [toast({ position: "top-right", duration: Infinity })],
+        },
       ],
     } as DomphyElement);
     expect(document.getElementById("domphy-toast-top-right")).not.toBeNull();
@@ -424,5 +449,62 @@ describe("toast overlay teardown", () => {
     flushSync();
     vi.runAllTimers();
     expect(document.getElementById("domphy-toast-top-right")).not.toBeNull();
+  });
+});
+
+describe("toast auto-dismiss", () => {
+  // toast()'s own JSDoc contract (src/patches/toast.ts): "Auto-dismisses
+  // after `duration` ..., paused while hovered or focused." The behavior()
+  // instance that implements this was previously never wired into the
+  // returned element (dead code — the `_attachAutoDismiss` function was
+  // defined but never called), so `duration`/`onDismiss` were accepted and
+  // silently ignored. These assert the documented contract end to end
+  // against real timers and real DOM events, not the implementation's own
+  // internals.
+  it("removes itself and calls onDismiss after duration elapses", () => {
+    vi.useFakeTimers();
+    const onDismiss = vi.fn();
+    render({
+      div: [{ div: "Saved", $: [toast({ duration: 1000, onDismiss })] }],
+    } as DomphyElement);
+    expect(document.getElementById("domphy-toast-top-center")).not.toBeNull();
+
+    vi.advanceTimersByTime(999);
+    expect(onDismiss).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(onDismiss).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not dismiss while duration is Infinity", () => {
+    vi.useFakeTimers();
+    const onDismiss = vi.fn();
+    render({
+      div: [{ div: "Pinned", $: [toast({ duration: Infinity, onDismiss })] }],
+    } as DomphyElement);
+    vi.advanceTimersByTime(60_000);
+    expect(onDismiss).not.toHaveBeenCalled();
+  });
+
+  it("pauses the countdown on pointerenter and resumes on pointerleave", () => {
+    vi.useFakeTimers();
+    const onDismiss = vi.fn();
+    const { node } = render({
+      div: [{ div: "Hoverable", $: [toast({ duration: 1000, onDismiss })] }],
+    } as DomphyElement);
+    const toastElement = node.domElement!.querySelector(
+      '[role="status"]',
+    ) as HTMLElement;
+    expect(toastElement).not.toBeNull();
+
+    vi.advanceTimersByTime(800);
+    toastElement.dispatchEvent(new Event("pointerenter", { bubbles: true }));
+    // Paused: the remaining 200ms never elapses while hovered.
+    vi.advanceTimersByTime(10_000);
+    expect(onDismiss).not.toHaveBeenCalled();
+
+    toastElement.dispatchEvent(new Event("pointerleave", { bubbles: true }));
+    // Resumed with the ~200ms that was remaining when paused.
+    vi.advanceTimersByTime(200);
+    expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 });

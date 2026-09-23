@@ -56,7 +56,7 @@ const App: DomphyElement<"div"> = {
             flex: "1 1 360px",
             minWidth: "280px",
             height: "380px",
-            borderRadius: "12px",
+            borderRadius: themeSpacing(3),
             overflow: "hidden",
           },
           $: [

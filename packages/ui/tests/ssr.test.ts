@@ -136,15 +136,19 @@ describe("UI patches: SSR generate + hydrate", () => {
       $: [button({ color })],
     } as DomphyElement);
 
-    const token = classToken(rootEl);
-    const rule = ruleFor(styleEl, token);
-    expect(rule?.style.backgroundColor).toContain("var(--primary-");
+    // Read the element's class again after the update: a node whose
+    // declarations change leaves the shared content scope for its own class,
+    // so the rule backing it need not be the same one. The contract is that
+    // the live stylesheet shows the new value for THIS element.
+    expect(
+      ruleFor(styleEl, classToken(rootEl))?.style.backgroundColor,
+    ).toContain("var(--primary-");
 
     color.set("danger");
     await flush();
-    expect(ruleFor(styleEl, token)?.style.backgroundColor).toContain(
-      "var(--danger-",
-    );
+    expect(
+      ruleFor(styleEl, classToken(rootEl))?.style.backgroundColor,
+    ).toContain("var(--danger-");
   });
 
   it("inputPassword renders its input/toggle markup in generateHTML() (not only via imperative _onMount DOM mutation)", () => {

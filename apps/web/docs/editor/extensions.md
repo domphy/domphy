@@ -46,6 +46,11 @@ const editor = createEditor({ extensions: [starterKit()] })
 
 `Mod` is <kbd>Ctrl</kbd> on Windows and Linux, <kbd>Cmd</kbd> on macOS.
 
+Two <kbd>Enter</kbd>/<kbd>Backspace</kbd> behaviours come from the engine rather than an extension, so they apply to any node with the matching schema flag:
+
+- Inside a `code` textblock <kbd>Enter</kbd> inserts a newline instead of splitting the block (prosemirror-commands `newlineInCode`). The triple-<kbd>Enter</kbd> exit in `CodeBlock` still ends it.
+- <kbd>Backspace</kbd> at the start of a block with nothing before it lifts that block out of its parent (prosemirror-commands `joinBackward`) — pressing it in the first list item outdents the item; in a top-level paragraph it does nothing.
+
 Two names are worth knowing because they differ from what you would guess:
 
 - `Document`'s schema name is `"doc"`, not `"document"` — the `starterKit()` option key is `document`, but anything addressing the node type (`isActive`, content expressions) uses `"doc"`.
@@ -89,15 +94,17 @@ const editor = createEditor({
 | --- | --- |
 | `insertTable({ rows, cols, withHeaderRow })` | Defaults to a 3×3 with a header row. |
 | `deleteTable()` | |
-| `addRowAfter()` / `deleteRow()` | Relative to the cell holding the cursor. |
-| `addColumnAfter()` / `deleteColumn()` | Refuses to delete the last remaining column. |
+| `addRowAfter()` / `deleteRow()` | Relative to the cell holding the cursor — for a merged cell, to the bottom/whole height of its rectangle. |
+| `addColumnAfter()` / `deleteColumn()` | Same, on the horizontal axis. Both refuse when the cell's rectangle spans the entire table (use `deleteTable()`). |
 | `goToNextCell()` / `goToPreviousCell()` | |
 
 <kbd>Tab</kbd> moves to the next cell and <kbd>Shift-Tab</kbd> to the previous one. <kbd>Tab</kbd> in the last cell appends a row and moves into it, the same as Tiptap.
 
 Schema: `Table` is a `block` containing `tableRow+`; `TableRow` contains `tableCell+`, which is a *group* both `TableCell` (`td`) and `TableHeader` (`th`) belong to — so a row accepts either. Cells carry `colspan`, `rowspan` and `colwidth` attributes and contain `block+`.
 
-This is a subset, not a port of `prosemirror-tables`. Spans round-trip through HTML but the row and column commands treat the table as a uniform grid and ignore them, so merged cells will drift; there is no cell selection and no column resizing. See [Deviations from Tiptap](./api#deviations-from-tiptap).
+`colspan`/`rowspan` are honoured: the commands build a table map — a port of `prosemirror-tables`' `TableMap` — so inserting a column next to a merged cell widens that cell instead of splitting the grid, deleting a row shortens or pushes down the cells that span across it, and `goToNextCell()` visits every cell exactly once. Every case is checked against prosemirror-tables 1.8.5 itself in `tests/extensions/tableMap.test.ts`.
+
+This is still a subset, not a full port: there is no cell selection (a command acts on the cell holding the caret), no cell merge/split commands and no column resizing. See [Deviations from Tiptap](./api#deviations-from-tiptap).
 
 ## `configure()` vs `extend()`
 
@@ -167,6 +174,33 @@ addCommands() {
   }
 }
 ```
+
+### Input rules
+
+`addInputRules()` returns the Markdown-style shortcuts an extension contributes. The four builders that every built-in uses are exported from the main entry, so a custom extension writes its rules the same way:
+
+```ts
+import { Mark, markInputRule } from "@domphy/editor"
+
+const Highlight = Mark.create({
+  name: "highlight",
+  // ...parseHTML / renderHTML
+
+  addInputRules() {
+    // `==text==` → highlighted. The LAST capture group is the marked text.
+    return [markInputRule({ find: /(?:^|\s)(==([^=]+)==)$/, type: this.name })]
+  },
+})
+```
+
+| Builder | Produces | Built-in using it |
+| --- | --- | --- |
+| `textblockTypeInputRule({ find, type, getAttributes? })` | retypes the current textblock | `# ` → heading, ` ``` ` → code block |
+| `wrappingInputRule({ find, type, getAttributes? })` | wraps the current textblock | `> ` → blockquote, `- ` → bullet list |
+| `markInputRule({ find, type, getAttributes? })` | marks the last capture group and strips the delimiters | `**bold**`, `*italic*`, `` `code` `` |
+| `nodeInputRule({ find, type, getAttributes? })` | replaces the match with a node | `---` → horizontal rule |
+
+`find` is matched against the text before the caret inside the current textblock, so anchor it with `$` (and `^` for the textblock/wrapping rules). `getAttributes` is either an object or a function of the `RegExpMatchArray`; returning `false` or `null` from it cancels the rule — that is how `Heading` rejects a level outside its `levels` option. For anything the builders do not cover, return a raw `InputRule`: `{ find, handler({ editor, range, match, chain }) }`, where `chain()` gives the same command chain as a command body (one undo step for the whole rule).
 
 Node extensions add `content`, `group`, and `addAttributes`. Attributes declare a default and are omitted from JSON when every attribute is at its default:
 

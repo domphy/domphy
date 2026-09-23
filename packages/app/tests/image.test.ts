@@ -77,7 +77,7 @@ describe("optimizedImage", () => {
     // Render, then fire `load`; the onLoad handler must clear the inline
     // placeholder background. (Seed the background directly because jsdom's CSS
     // parser does not round-trip data-URL shorthand through core's render path.)
-    const node = new ElementNode({ img: "", $: [part] });
+    const node = new ElementNode({ img: null, $: [part] });
     const host = document.createElement("div");
     document.body.appendChild(host);
     node.render(host);

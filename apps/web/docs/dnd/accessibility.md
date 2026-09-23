@@ -5,15 +5,17 @@ description: "Keyboard alternatives, screen reader announcements, and touch acce
 
 # Accessibility
 
-`@domphy/dnd` wraps `@formkit/drag-and-drop`, whose engine is **pointer-based**. Keyboard drag-and-drop is not implemented upstream (`handleNodeKeydown` is an empty stub; the only built-in key handling is `Escape` clearing a multi-drag selection), and FormKit does not manage `tabindex`, `aria-grabbed`, or `aria-dropeffect` for you. This page shows how to build the keyboard alternative yourself.
+`@domphy/dnd` wraps `@formkit/drag-and-drop`, whose engine is **pointer-based**. Keyboard drag-and-drop is not implemented upstream (`handleNodeKeydown` is an empty stub; the only built-in key handling is `Escape` clearing a multi-drag selection), and FormKit does not manage `tabindex`, `aria-grabbed`, or `aria-dropeffect` for you.
 
-## Keyboard Alternative: Reorder the State
+[WCAG 2.2 SC 2.5.7 (Dragging Movements, AA)](https://www.w3.org/WAI/WCAG22/Understanding/dragging-movements.html) requires that everything a drag does can also be done without a dragging movement, and SC 2.1.1 requires the list be operable from the keyboard at all. `keyboardSort()` supplies both.
 
-The supported pattern is to make items focusable and reorder the bound state from a key handler. Because Domphy re-renders the keyed children from the same state the drag engine writes to, a keyboard reorder and a pointer drag stay in sync automatically:
+## `keyboardSort()` — the keyboard path
+
+Apply the sorter to each item; it makes the item focusable, handles pick-up / move / drop / cancel, and announces every step. It writes the **same** state the drag engine writes, so pointer and keyboard reorders stay in sync:
 
 ```ts
 import { toState } from "@domphy/core"
-import { dragDrop } from "@domphy/dnd"
+import { dragDrop, keyboardSort } from "@domphy/dnd"
 
 type Task = { id: number; title: string }
 
@@ -23,56 +25,32 @@ const tasks = toState<Task[]>([
   { id: 3, title: "Review PR" },
 ])
 
-const announcement = toState("")
-
-// Move the item at `index` by `delta` (-1 up, +1 down) and announce it.
-function move(index: number, delta: number) {
-  const list = tasks.get()
-  const target = index + delta
-  if (target < 0 || target >= list.length) return
-  const next = list.slice()
-  const [item] = next.splice(index, 1)
-  next.splice(target, 0, item)
-  tasks.set(next)
-  announcement.set(
-    `"${item.title}" moved to position ${target + 1} of ${next.length}.`,
-  )
-}
+const sortTask = keyboardSort(tasks, { label: (task) => task.title })
 
 const App = {
-  div: [
-    {
-      ul: (l) =>
-        tasks.get(l).map((task, index) => ({
-          li: task.title,
-          _key: task.id,
-          tabindex: "0", // <li> is not natively focusable — add it yourself
-          onKeydown: (e: KeyboardEvent) => {
-            if (e.key === "ArrowUp") {
-              e.preventDefault()
-              move(index, -1)
-            } else if (e.key === "ArrowDown") {
-              e.preventDefault()
-              move(index, 1)
-            }
-          },
-        })),
-      $: [dragDrop(tasks)],
-      role: "list",
-    },
-    {
-      // Invisible ARIA live region — screen readers announce reorders politely.
-      div: (l) => announcement.get(l),
-      ariaLive: "polite",
-      ariaAtomic: "true",
-    },
-  ],
+  ul: (l) =>
+    tasks.get(l).map((task, index) => ({
+      li: task.title,
+      _key: task.id,
+      $: [sortTask(index)],
+    })),
+  $: [dragDrop(tasks)],
 }
 ```
 
-The same approach works between lists: move the item between the two state arrays. If you need the engine's own bookkeeping updated instead (e.g. mid-drag), the low-level `performSort` / `performTransfer` functions are re-exported from `@domphy/dnd`.
+| Key | Action |
+| --- | --- |
+| <kbd>Tab</kbd> | move focus to an item |
+| <kbd>Space</kbd> / <kbd>Enter</kbd> | pick the item up, then drop it |
+| <kbd>↑</kbd> <kbd>↓</kbd> | move the held item one position |
+| <kbd>Home</kbd> / <kbd>End</kbd> | move it to the first or last position |
+| <kbd>Esc</kbd> | cancel and restore the original order |
 
-Add a focus-visible ring in a stylesheet so the focused item is visible:
+Focus follows the item as it moves, so a screen reader user never loses their place.
+
+### Styling the held item
+
+The sorter sets `data-grabbed="true"` on the item while it is held, and leaves the element's own semantics alone (an `<li>` stays a listitem, so its `<ul>` stays a valid list). Give it a visible held state and a focus ring:
 
 ```ts
 const sheet = document.createElement("style")
@@ -81,13 +59,58 @@ sheet.textContent = `
     outline: 2px solid currentColor;
     outline-offset: 2px;
   }
+  li[data-grabbed="true"] {
+    outline: 2px dashed currentColor;
+    outline-offset: 2px;
+  }
 `
 document.head.appendChild(sheet)
 ```
 
-## Announcing Reorders to Screen Readers
+### Across lists
 
-FormKit does not automatically announce sort results to screen readers. Add an ARIA live region and update it in `onSort` and `onTransfer`:
+`keyboardSortGroup()` is the keyboard counterpart of `multiListGroup()` — one sorter per list, sharing one held-item session. <kbd>←</kbd> / <kbd>→</kbd> move the held item to the previous / next list, and <kbd>Esc</kbd> unwinds a cross-list move as well:
+
+```ts
+const [dropTodo, dropDone] = multiListGroup("kanban", [todo, done])
+const [sortTodo, sortDone] = keyboardSortGroup([todo, done], {
+  label: (task) => task.title,
+  listLabel: (index) => (index === 0 ? "To Do" : "Done"),
+})
+
+const Board = {
+  div: [
+    {
+      ul: (l) =>
+        todo.get(l).map((task, index) => ({
+          li: task.title,
+          _key: task.id,
+          $: [sortTodo(index)],
+        })),
+      $: [dropTodo],
+      ariaLabel: "To Do column",
+    },
+    {
+      ul: (l) =>
+        done.get(l).map((task, index) => ({
+          li: task.title,
+          _key: task.id,
+          $: [sortDone(index)],
+        })),
+      $: [dropDone],
+      ariaLabel: "Done column",
+    },
+  ],
+}
+```
+
+### Rolling your own
+
+If you need different keys or your own bookkeeping, reorder the bound state from your own `onKeyDown` and leave the sorter off that item — Domphy chains event handlers, so an item's own handler runs *in addition to* the sorter's, it does not replace it. The low-level `performSort` / `performTransfer` functions (for updating the engine's state mid-drag) are re-exported from `@domphy/dnd`.
+
+## Announcing Pointer Drags to Screen Readers
+
+`keyboardSort()` announces keyboard moves. FormKit does not announce **pointer** drags — add an ARIA live region and update it in `onSort` and `onTransfer`:
 
 ```ts
 import { toState } from "@domphy/core"

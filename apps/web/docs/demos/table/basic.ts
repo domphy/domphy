@@ -7,7 +7,7 @@ import {
 } from "@domphy/table";
 import { createDomphyTable } from "@domphy/table/domphy";
 import { themeSpacing } from "@domphy/theme";
-import { button, table as tableUI } from "@domphy/ui";
+import { button, buttonGhost, table as tableUI } from "@domphy/ui";
 
 type Person = {
   id: number;
@@ -62,21 +62,33 @@ const App: DomphyElement<"div"> = {
                 const sorted = header.column.getIsSorted();
                 const marker =
                   sorted === "asc" ? " ▲" : sorted === "desc" ? " ▼" : "";
+                // WAI-ARIA APG "Sortable Table": the sort control is a real
+                // <button> inside the <th> (keyboard-operable, focusable) and
+                // the header itself carries aria-sort. A bare onClick on the
+                // <th> is mouse-only.
                 return {
-                  th: `${String(header.column.columnDef.header)}${marker}`,
-                  onClick: (e) => {
-                    const handler = header.column.getToggleSortingHandler();
-                    if (handler) handler(e);
+                  th: {
+                    button: `${String(header.column.columnDef.header)}${marker}`,
+                    type: "button",
+                    $: [buttonGhost()],
+                    onClick: (e: MouseEvent) => {
+                      const handler = header.column.getToggleSortingHandler();
+                      if (handler) handler(e);
+                    },
                   },
-                  style: {
-                    cursor: "pointer",
-                    userSelect: "none",
-                  },
+                  ariaSort:
+                    sorted === "asc"
+                      ? "ascending"
+                      : sorted === "desc"
+                        ? "descending"
+                        : "none",
+                  style: { userSelect: "none" },
                   _key: header.id,
                 };
               }),
               _key: headerGroup.id,
             })),
+            _key: "head",
           },
           {
             tbody: table.getRowModel().rows.map((row) => ({
@@ -86,6 +98,7 @@ const App: DomphyElement<"div"> = {
               })),
               _key: row.id,
             })),
+            _key: "body",
           },
         ];
       },

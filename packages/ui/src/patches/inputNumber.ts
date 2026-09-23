@@ -6,6 +6,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { fieldTextStyle } from "../utils/fieldText.js";
 import { focusRing } from "../utils/focusRing.js";
 
 /**
@@ -37,7 +38,6 @@ function inputNumber(
       }
     },
     style: {
-      fontFamily: "inherit",
       lineHeight: "inherit",
       minWidth: themeSpacing(10),
       paddingInlineStart: (listener) =>
@@ -51,7 +51,7 @@ function inputNumber(
       outlineOffset: "-1px",
       outline: (listener) =>
         `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
-      color: (listener) => themeColor(listener, "text", color.get(listener)),
+      ...fieldTextStyle(color),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
       transition: "outline-color 140ms ease, box-shadow 140ms ease",

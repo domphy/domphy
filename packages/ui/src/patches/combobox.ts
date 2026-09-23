@@ -19,8 +19,11 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { elevation } from "../utils/elevation.js";
+import { fieldTextStyle } from "../utils/fieldText.js";
 import { createFloating, floatingPanelId } from "../utils/floating.js";
 import { focusRing } from "../utils/focusRing.js";
+import { subscribeOpen } from "../utils/openState.js";
+import { enabledOptionsIn } from "../utils/optionList.js";
 import { tag } from "./tag.js";
 
 /**
@@ -103,7 +106,10 @@ function combobox(props: {
     height: themeSpacing(6),
     marginInlineStart: themeSpacing(2),
     fontSize: (listener: any) => themeSize(listener, "inherit"),
-    color: (listener: any) => themeColor(listener, "text", color),
+    // Without an explicit rule the placeholder falls back to the UA default
+    // (`darkgray` on the Chrome 88-class engines Domphy ships into — 2.3:1 on
+    // a light field).
+    ...fieldTextStyle(color),
     backgroundColor: (listener: any) => themeColor(listener, "inherit", color),
   };
 
@@ -137,20 +143,72 @@ function combobox(props: {
     return from;
   };
 
+  // WAI-ARIA APG "Combobox with List Autocomplete": Down/Up move into the
+  // popup, Enter with nothing highlighted just closes it. Escape is already
+  // handled document-wide by createFloating. Without this the popup was
+  // mouse-only — Tab from the input skipped straight past every option.
+  const moveIntoPanel = (node: ElementNode, toLast: boolean): void => {
+    const anchor = findComboboxAnchor(node);
+    const root = anchor.getRoot().domElement as Element | null;
+    const panel =
+      root?.querySelector(`#${floatingPanelId("combobox", anchor)}`) ?? null;
+    const options = enabledOptionsIn(panel);
+    if (!options.length) return;
+    const target = options[toLast ? options.length - 1 : 0]!;
+    target.focus();
+    target.scrollIntoView?.({ block: "nearest" });
+  };
+
+  // show() is debounced by 100ms and flips `openState` only AFTER mounting the
+  // panel, so waiting on that flip is exact where a fixed delay is not: a bare
+  // requestAnimationFrame (~16ms) ran while the panel did not exist yet, and
+  // in Chromium the first ArrowDown left focus on the input — only a SECOND
+  // press reached an option. The extra frame after the flip is also required:
+  // floating.ts drives the panel's `visibility` from the same state and that
+  // style write has not landed when the listener runs, so `focus()` would hit
+  // a `visibility: hidden` element and do nothing.
+  const openThenMove = (node: ElementNode, toLast: boolean): void => {
+    let release: (() => void) | undefined;
+    release = subscribeOpen(
+      openState,
+      (isOpen) => {
+        if (!isOpen) return;
+        release?.();
+        requestAnimationFrame(() => moveIntoPanel(node, toLast));
+      },
+      false,
+    );
+    show(node);
+  };
+
+  const onInputKey = (event: Event, node: ElementNode): void => {
+    const key = (event as KeyboardEvent).key;
+    if (key !== "ArrowDown" && key !== "ArrowUp") return;
+    event.preventDefault();
+    if (openState.get()) {
+      moveIntoPanel(node, key === "ArrowUp");
+      return;
+    }
+    openThenMove(node, key === "ArrowUp");
+  };
+
   const inputAria: PartialElement = {
     role: "combobox",
     ariaHaspopup: "listbox",
+    // The popup filters an existing list; it does not complete inline.
+    ariaAutocomplete: "list",
     ariaExpanded: (listener) => openState.get(listener),
     ariaControls: (listener) =>
       listener?.elementNode
         ? floatingPanelId("combobox", findComboboxAnchor(listener.elementNode))
         : undefined,
+    onKeyDown: onInputKey,
   };
 
   const buildInput = (custom?: DomphyElement): DomphyElement => {
     if (custom) {
       merge(custom, {
-        onFocus: (_e: Event, node: ElementNode) => show(node),
+        onClick: (_e: Event, node: ElementNode) => show(node),
         style: inputStyle,
         _key: "combobox-input",
         ...inputAria,
@@ -161,13 +219,19 @@ function combobox(props: {
       input: null,
       // Accessible name for the filter field (critical for axe label rule).
       ariaLabel: "Filter options",
-      onFocus: (_e: Event, node: ElementNode) => show(node),
+      // Click / typing / ArrowDown open the popup — NOT plain focus. Escape
+      // returns focus to this input (floating.ts), so an onFocus that re-opens
+      // made Escape un-dismissable: measured in Chromium, the panel was back
+      // within 100ms of every Escape and never closed again. MUI Autocomplete
+      // defaults `openOnFocus` to false for the same reason.
+      onClick: (_e: Event, node: ElementNode) => show(node),
       value: (listener: { elementNode?: ElementNode }) =>
         readQuery(listener)?.get(listener as never) ?? "",
       onInput: (event: Event, node: ElementNode) => {
         node
           .getBehavior<ComboboxInner>("comboboxInner")
           ?.query.set((event.target as HTMLInputElement).value);
+        show(node);
       },
       style: inputStyle,
       _key: "combobox-input",

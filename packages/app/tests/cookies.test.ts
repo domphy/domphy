@@ -52,6 +52,17 @@ describe("cookies()", () => {
     expect(map.get("b")).toBe("2");
   });
 
+  // RFC 6265 4.1.1: cookie-value may be DQUOTE-wrapped; the quotes delimit the
+  // value and are not part of it (the `cookie` package strips them likewise).
+  it("unwraps a DQUOTE-wrapped cookie-value (RFC 6265 4.1.1)", () => {
+    const headers = new Headers({ cookie: 'a="hello world"; b="; c=""' });
+    const map = cookies(headers);
+    expect(map.get("a")).toBe("hello world");
+    // A single quote is data, not a wrapper.
+    expect(map.get("b")).toBe('"');
+    expect(map.get("c")).toBe("");
+  });
+
   it("falls back to the raw value for malformed percent-encoding", () => {
     const headers = new Headers({ cookie: "session=100%; ok=fine" });
     const map = cookies(headers);

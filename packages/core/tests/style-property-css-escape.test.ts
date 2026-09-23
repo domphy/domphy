@@ -17,8 +17,10 @@ describe("StyleProperty.cssText: CSS value escaping", () => {
 
     expect(css.toLowerCase()).not.toContain("</style");
     expect(css).not.toMatch(/color:\s*red;/);
-    // The declaration must stay a single property inside the rule.
-    const ruleBody = css.slice(css.indexOf("{"), css.indexOf("}") + 1);
+    // The declaration must stay a single property inside the NODE's own rule
+    // (generateCSS() also emits the `[hidden]` base rule at the root).
+    const own = css.slice(css.indexOf(".div_"));
+    const ruleBody = own.slice(own.indexOf("{"), own.indexOf("}") + 1);
     expect(ruleBody).toContain("color:");
     expect(ruleBody.match(/;/g)?.length ?? 0).toBeLessThanOrEqual(1);
   });

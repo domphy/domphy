@@ -41,9 +41,14 @@ describe("textarea empty text child", () => {
     expect(el.value).toBe("");
   });
 
-  it("non-textarea parents still use the ZWSP slot-holder", () => {
+  it("non-textarea parents hold the slot with an empty text node", () => {
     const el = render({ div: "" } as DomphyElement);
-    expect(el.textContent).toBe(String.fromCharCode(0x200b));
+    // No printable character: a zero-width space here landed in the
+    // accessible name, so `<button aria-label="Close">{null}</button>`
+    // computed its name from content and a role="alert" was never empty.
+    expect(el.textContent).toBe("");
+    expect(el.childNodes.length).toBe(1);
+    expect(el.childNodes[0].nodeType).toBe(3);
   });
 });
 
@@ -82,5 +87,58 @@ describe("textarea empty text child — SSR", () => {
     text.set("after hydration");
     flushSync();
     expect(rootEl.value).toBe("after hydration");
+  });
+});
+
+describe("empty text child and the accessible name", () => {
+  // HTML-AAM / accname: text nodes contribute to an element's name from
+  // content; comments and empty text nodes do not. A U+200B placeholder is a
+  // printable character, so it made these two cases wrong.
+  it("leaves a button with a reactive null child textually empty", () => {
+    const label = toState<string | null>(null);
+    const el = render({
+      button: (l: any) => label.get(l),
+      ariaLabel: "Close",
+    } as DomphyElement);
+    expect(el.textContent).toBe("");
+    label.set("Dismiss");
+    flushSync();
+    expect(el.textContent).toBe("Dismiss");
+    label.set(null);
+    flushSync();
+    expect(el.textContent).toBe("");
+  });
+
+  it("leaves an empty live region textually empty", () => {
+    const message = toState("");
+    const el = render({
+      div: (l: any) => message.get(l),
+      role: "alert",
+    } as DomphyElement);
+    expect(el.textContent).toBe("");
+    expect(el.innerHTML).toBe("");
+  });
+
+  it("SSR + hydration of an empty child: no printable placeholder, updates land", () => {
+    const message = toState("");
+    const App = {
+      div: (l: any) => message.get(l),
+      role: "alert",
+    } as DomphyElement;
+    const server = new ElementNode(App);
+    const host = document.createElement("div");
+    host.innerHTML = server.generateHTML();
+    document.body.appendChild(host);
+    const rootEl = host.firstElementChild as HTMLElement;
+    expect(rootEl.textContent).toBe("");
+
+    new ElementNode(App).mount(rootEl);
+    expect(rootEl.textContent).toBe("");
+    message.set("Saved");
+    flushSync();
+    expect(rootEl.textContent).toBe("Saved");
+    message.set("");
+    flushSync();
+    expect(rootEl.textContent).toBe("");
   });
 });

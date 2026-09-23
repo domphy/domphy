@@ -15,8 +15,9 @@ export interface MultiListOptions<T> {
   config?: DragDropConfig<T>;
 }
 
-// Shared frozen default — see dragDrop.ts for why a fresh `{}` per factory
-// call would force a pointless re-registration on every parent re-render.
+// Shared frozen default, same instance shape dragDrop() uses (configEquals
+// compares own keys, so an empty literal is equal too — this just avoids the
+// per-call allocation and keeps the two entry points identical).
 const DEFAULT_CONFIG = Object.freeze({}) as DragDropConfig<any>;
 
 /**
@@ -75,7 +76,7 @@ export function multiList<T>(options: MultiListOptions<T>): PartialElement {
 export function multiListGroup<T>(
   group: string,
   lists: State<T[]>[],
-  config: DragDropConfig<T> = {},
+  config: DragDropConfig<T> = DEFAULT_CONFIG,
 ): PartialElement[] {
   return lists.map((values) => multiList({ group, values, config }));
 }

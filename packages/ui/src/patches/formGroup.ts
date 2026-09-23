@@ -5,6 +5,7 @@ import {
   themeDensity,
   themeSize,
   themeSpacing,
+  themeWeight,
 } from "@domphy/theme";
 
 /**
@@ -15,7 +16,7 @@ import {
  * @hostTag fieldset
  * @param props.color - Theme color tone (`ValueOrState<ThemeColor>`) for legend/text/surface. Defaults to "neutral".
  * @param props.layout - Field arrangement, "horizontal" (label beside control) | "vertical" (label above). Defaults to "horizontal".
- * @example { fieldset: [{ legend: "Profile" }, { label: "Name" }, { input: "" }], $: [formGroup({ layout: "vertical" })] }
+ * @example { fieldset: [{ legend: "Profile" }, { label: "Name" }, { input: null }], $: [formGroup({ layout: "vertical" })] }
  */
 function formGroup(
   props: {
@@ -34,8 +35,6 @@ function formGroup(
         console.warn(`"formGroup" patch must use fieldset tag`);
       }
     },
-    // Legend weight is design-system chrome for field groups.
-    _doctorDisable: "inline-typography",
     style: {
       margin: 0,
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
@@ -57,7 +56,7 @@ function formGroup(
         gridColumn: "1 / -1",
         margin: 0,
         fontSize: (listener) => themeSize(listener, "inherit"),
-        fontWeight: 600,
+        fontWeight: themeWeight("semibold"),
         paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
         borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
         color: (listener) => themeColor(listener, "text", color.get(listener)),
@@ -74,12 +73,23 @@ function formGroup(
       "& > label:has(+ :not(legend, label, p) + p)": {
         gridRow: isVertical ? "auto" : "span 2",
       },
-      "& > :not(legend, label, p)": {
-        gridColumn: isVertical ? "1" : "2",
-        minWidth: 0,
-        width: "100%",
-        boxSizing: "border-box",
-      },
+      // Fixed-size controls are EXCLUDED from the stretch rather than
+      // overriding it afterwards: a checkbox / switch / radio / colour swatch
+      // dropped into a formGroup rendered as a full-column-wide pill
+      // (observed in Chromium), and `width: auto` on an appearance:none
+      // input collapses it to 0 instead of restoring its declared size.
+      "& > :not(legend, label, p, input[type=checkbox], input[type=radio], input[type=color])":
+        {
+          gridColumn: isVertical ? "1" : "2",
+          minWidth: 0,
+          width: "100%",
+          boxSizing: "border-box",
+        },
+      "& > input[type=checkbox], & > input[type=radio], & > input[type=color]":
+        {
+          gridColumn: isVertical ? "1" : "2",
+          justifySelf: "start",
+        },
       "& > p": {
         gridColumn: isVertical ? "1" : "2",
         minWidth: 0,

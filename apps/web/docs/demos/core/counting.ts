@@ -13,6 +13,8 @@ const text: DomphyElement<"p"> = {
 
 const button: DomphyElement<"button"> = {
   button: "Increment",
+  // Without it a <button> defaults to type="submit" and posts any enclosing form.
+  type: "button",
   onClick: () => count.set(count.get() + 1),
 
   // Deliberate solid fill: a fixed shifted background is exactly what
@@ -26,7 +28,11 @@ const button: DomphyElement<"button"> = {
     borderRadius: themeSpacing(1.5),
     color: (listener) => themeColor(listener, "inherit", "primary"),
     "&:hover": {
-      backgroundColor: (listener) => themeColor(listener, "shift-7", "primary"),
+      // Hover steps the solid fill DEEPER (+1), the way button({variant:"solid"})
+      // does. Lightening it to shift-7 pulled the fill toward the shift-0 label
+      // and collapsed the gap to 7 steps.
+      backgroundColor: (listener) =>
+        themeColor(listener, "shift-10", "primary"),
     },
   },
 };

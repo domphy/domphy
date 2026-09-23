@@ -26,7 +26,8 @@
     "visual:three": "playwright test -c visual/three.config.ts",
     "visual:chart": "playwright test -c visual/chart.config.ts",
     "postinstall": "puppeteer browsers install chrome-headless-shell",
-    "visual:editor": "playwright test -c visual/editor.config.ts"
+    "visual:editor": "playwright test -c visual/editor.config.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "keywords": [],
   "author": "Huu Khanh Nguyen",
@@ -57,6 +58,7 @@
     "@playwright/test": "^1.62.1",
     "@tanstack/query-core": "^5.90.20",
     "@types/sortablejs": "^1.15.9",
+    "@types/three": "^0.185.3",
     "axe-core": "^4.12.1",
     "codemirror": "^6.0.2",
     "esbuild": "^0.28.1",

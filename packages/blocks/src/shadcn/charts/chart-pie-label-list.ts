@@ -9,6 +9,7 @@
 import type { DomphyElement, Listener } from "@domphy/core";
 import { themeColor } from "@domphy/theme";
 import { motion } from "@domphy/ui";
+import { textToneOnFill } from "../../shared/contrastTone.js";
 import {
   createPieTooltipState,
   DEFAULT_PIE_DATA,
@@ -27,8 +28,8 @@ import {
 } from "./pie-chart-shared.js";
 
 // On-wedge display-name label: sits at each wedge's own mid-radius/bisector
-// (not past the outer rim) with a fixed light fill so it reads against any
-// slice color, matching the "printed on the fill" spec this block calls for.
+// (not past the outer rim) with a fill derived from the wedge's own tone so it
+// reads against any slice color, matching the "printed on the fill" spec.
 // Upstream's <LabelList> labels every sector regardless of size, so there is
 // no minimum-fraction cutoff here.
 function pieWedgeNameLabel(
@@ -41,7 +42,10 @@ function pieWedgeNameLabel(
     text,
     x: String(x),
     y: String(y),
-    fill: (l: Listener) => themeColor(l, "shift-0", "neutral"),
+    // Derived from the wedge's own fill tone — a fixed `shift-0` reads white
+    // in the light theme and BLACK in the dark one (invisible on a dark wedge).
+    fill: (l: Listener) =>
+      themeColor(l, textToneOnFill(slice.tone, l), "neutral"),
     fontSize,
     textAnchor: "middle",
     dominantBaseline: "middle",

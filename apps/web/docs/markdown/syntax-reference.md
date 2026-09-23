@@ -327,26 +327,39 @@ Four-space-indented code blocks produce the same `pre > code` shape but carry no
 
 ```ts
 {
-  table: [
-    {
-      thead: [{
-        tr: [
-          { th: ["Name"] },
-          { th: ["Age"] },
+  div: [{
+    table: [
+      {
+        thead: [{
+          tr: [
+            { th: ["Name"] },
+            { th: ["Age"] },
+          ],
+        }],
+      },
+      {
+        tbody: [
+          { tr: [{ td: ["Alice"] }, { td: ["30"] }] },
+          { tr: [{ td: ["Bob"] },   { td: ["25"] }] },
         ],
-      }],
-    },
-    {
-      tbody: [
-        { tr: [{ td: ["Alice"] }, { td: ["30"] }] },
-        { tr: [{ td: ["Bob"] },   { td: ["25"] }] },
-      ],
-    },
-  ],
+      },
+    ],
+  }],
+  class: "dp-table-scroll",
+  role: "region",
+  ariaLabel: "Table 1",
+  tabIndex: 0,
 }
 ```
 
-The full `table > thead/tbody > tr > th/td` structure is preserved.
+The full `table > thead/tbody > tr > th/td` structure is preserved. The
+wrapper is the horizontal scroll container for a table wider than the page:
+it is focusable and named so a keyboard-only visitor can reach and identify
+the scroll (WCAG 2.1.1, axe `scrollable-region-focusable`). Putting
+`overflow-x` on the `<table>` itself would be simpler but makes it
+`display: block`, which drops the table's semantics in several screen
+readers. `aria-label` is numbered per document so two tables on one page do
+not become two identically-named landmarks.
 
 ### Column alignment
 

@@ -11,7 +11,7 @@ import {
   editorContent,
   editorState,
 } from "@domphy/editor/domphy";
-import { themeColor, themeSpacing } from "@domphy/theme";
+import { textToneOn, themeColor, themeSpacing } from "@domphy/theme";
 import { buttonGhost, stack, toolbar } from "@domphy/ui";
 
 const editor = createEditor({
@@ -47,9 +47,13 @@ const toggleButton = (
   $: [buttonGhost({ size: "small" })],
   style: {
     minWidth: themeSpacing(9),
+    // The pressed fill sits 2 steps off the surface, so the label has to
+    // travel with it: textToneOn(2) keeps the 9-step contrast gap instead of
+    // pinning the label to "text" (shift-9), which leaves only 7 steps over a
+    // shift-2 fill — axe measured that pairing at 3.47:1 in dark theme.
     "&[aria-pressed=true]": {
       backgroundColor: (listener) => themeColor(listener, "hover", "primary"),
-      color: (listener) => themeColor(listener, "text", "primary"),
+      color: (listener) => themeColor(listener, textToneOn(2), "primary"),
     },
   },
 });

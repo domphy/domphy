@@ -27,6 +27,23 @@ export const SERVER_VERSION: string = (
   ) as { version: string }
 ).version;
 
+// Behaviour hints (MCP `ToolAnnotations`). Every tool here only reads — from
+// domphy.com, from the app-manifest, or from an element tree the caller passes
+// in — so none of them ever writes, and clients can auto-approve them instead
+// of prompting per call. `openWorldHint` splits the two kinds: the manifest /
+// llms.txt / tones tools reach domphy.com over the network, while the doctor
+// tools are pure functions of their argument.
+const READ_ONLY_NETWORK = {
+  readOnlyHint: true,
+  destructiveHint: false,
+  idempotentHint: true,
+  openWorldHint: true,
+} as const;
+const READ_ONLY_LOCAL = {
+  ...READ_ONLY_NETWORK,
+  openWorldHint: false,
+} as const;
+
 // Annotated as Tool[] so the literal `type: "object"` members are checked
 // against the spec type instead of widening to string (v2 types the
 // tools/list handler return from the method name).
@@ -35,6 +52,7 @@ export const TOOLS: Tool[] = [
     name: "domphy_list_patches",
     description: "List every @domphy/ui patch with its host tag and signature.",
     inputSchema: { type: "object", properties: {} },
+    annotations: { title: "List Domphy patches", ...READ_ONLY_NETWORK },
   },
   {
     name: "domphy_get_patch",
@@ -47,22 +65,29 @@ export const TOOLS: Tool[] = [
       },
       required: ["name"],
     },
+    annotations: { title: "Get a Domphy patch contract", ...READ_ONLY_NETWORK },
   },
   {
     name: "domphy_list_packages",
     description: "List all @domphy/* packages with versions and descriptions.",
     inputSchema: { type: "object", properties: {} },
+    annotations: { title: "List @domphy packages", ...READ_ONLY_NETWORK },
   },
   {
     name: "domphy_rules",
     description: "Get the Domphy code-generation rules (llms.txt) to follow.",
     inputSchema: { type: "object", properties: {} },
+    annotations: {
+      title: "Get Domphy code-generation rules",
+      ...READ_ONLY_NETWORK,
+    },
   },
   {
     name: "domphy_tones",
     description:
       'Get the valid tone names and theme color names for themeColor()/dataTone (e.g. themeColor(l, "text", "primary"), same as themeColor(l, "shift-9", "primary")). Includes the semantic aliases (surface/hover/border/border-strong/muted/text) — prefer those over invented tone words.',
     inputSchema: { type: "object", properties: {} },
+    annotations: { title: "Get Domphy theme tones", ...READ_ONLY_NETWORK },
   },
   {
     name: "domphy_diagnose",
@@ -77,6 +102,10 @@ export const TOOLS: Tool[] = [
         },
       },
       required: ["element"],
+    },
+    annotations: {
+      title: "Diagnose a Domphy element tree",
+      ...READ_ONLY_LOCAL,
     },
   },
   {
@@ -93,6 +122,10 @@ export const TOOLS: Tool[] = [
       },
       required: ["element"],
     },
+    annotations: {
+      title: "Validate a Domphy element tree",
+      ...READ_ONLY_LOCAL,
+    },
   },
   {
     name: "domphy_fix",
@@ -108,12 +141,14 @@ export const TOOLS: Tool[] = [
       },
       required: ["element"],
     },
+    annotations: { title: "Autofix a Domphy element tree", ...READ_ONLY_LOCAL },
   },
   {
     name: "domphy_list_app_blocks",
     description:
       "List the current app's OWN reusable Domphy blocks (name, kind, signature, file) from its app-manifest.json. Run `app-manifest.mjs` first if absent.",
     inputSchema: { type: "object", properties: {} },
+    annotations: { title: "List this app's Domphy blocks", ...READ_ONLY_LOCAL },
   },
   {
     name: "domphy_get_app_block",
@@ -126,6 +161,7 @@ export const TOOLS: Tool[] = [
       },
       required: ["name"],
     },
+    annotations: { title: "Get one app block's source", ...READ_ONLY_LOCAL },
   },
 ];
 

@@ -1,6 +1,7 @@
 import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
 import {
   type ThemeColor,
+  textToneOn,
   themeColor,
   themeDensity,
   themeSize,
@@ -75,13 +76,15 @@ function listItemButton(
   const { dense = false } = props;
 
   return {
+    // Native `type` on the host still wins (mergePartial: native over patch).
+    type: "button",
     style: {
       cursor: "pointer",
       appearance: "none",
       border: "none",
       background: "transparent",
       textDecoration: "none",
-      textAlign: "left",
+      textAlign: "start",
       display: "flex",
       alignItems: "center",
       width: "100%",
@@ -93,11 +96,17 @@ function listItemButton(
       color: (listener) => themeColor(listener, "text", color.get(listener)),
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
       transition: "background-color 150ms ease, box-shadow 140ms ease",
+      // The fill moves 2 steps off the surface, so the label moves with it —
+      // keeping the resting "text" tone measured 3.58:1 on the hover fill.
       "&:hover:not([disabled])": {
+        color: (listener) =>
+          themeColor(listener, textToneOn(2), color.get(listener)),
         backgroundColor: (listener) =>
           themeColor(listener, "hover", color.get(listener)),
       },
       "&:active:not([disabled])": {
+        color: (listener) =>
+          themeColor(listener, textToneOn(2), color.get(listener)),
         backgroundColor: (listener) =>
           themeColor(listener, "increase-2", color.get(listener)),
       },

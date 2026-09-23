@@ -21,7 +21,7 @@ The vendored upstream lives at `reference/react-three-fiber/packages/fiber/`
 | Decision | Rule |
 | --- | --- |
 | Version-agnostic | No class catalog. Tag resolves by reflection: `registry[Pascal] ?? THREE[Pascal]` — the THREE fallback accepts functions only (namespace constants like `AdditiveBlending`/`REVISION`/`MOUSE` are not constructors and must fail with the friendly unknown-tag error, not a runtime `is not a constructor`). Duck-type props (`.set`/`.copy`/`.setScalar`). Attach inference via three's `.isBufferGeometry`/`.isMaterial`/`.isObject3D` flags, never `instanceof`. |
-| Renderer injectable | `createRenderer?: (canvas) => RendererLike`. Default `new THREE.WebGLRenderer({ canvas, antialias: true, ...gl })`. Tests inject a stub. |
+| Renderer injectable | `createRenderer?: (canvas) => RendererLike`. Default `new THREE.WebGLRenderer({ canvas, powerPreference: "high-performance", antialias: true, alpha: true, ...gl })` — the reference's own `defaultProps` (renderer.tsx), so an unset scene background is transparent, not opaque black. Tests inject a stub. |
 | State-in | `three(options \| ReadableState<options>)`. Lifecycle hooks run once per DOM node — a fresh plain option object per parent re-render must NOT be required for updates; reactivity lives INSIDE the option (`scene: (l) => [...]`) or the option itself is a State. |
 | `primitive` first-class | `{ primitive: [children...], object: existingObject3D }` adopts a user-created instance. Never disposed by us (implicit `dispose: null`). |
 | `dispose: null` | Opts a node's subtree object out of auto-dispose on removal. |
@@ -39,7 +39,8 @@ except `index.ts` (integration agent) and your own test file.
 | `src/catalog.ts` | `renderer.tsx` catalogue part | `extend()`, `resolve(tag)` |
 | `src/props.ts` | `core/utils.tsx` (`applyProps`/`diffProps`/`attach`/`detach`) | prop application, pierced props, attach/detach, reactive binding |
 | `src/loop.ts` | `core/loop.ts` | global loop, `invalidate`, `advance`, frameloop modes, priority takeover |
-| `src/rootState.ts` | `core/store.ts` | `createRootState()` — camera/size/pointer/clock, resize |
+| `src/rootState.ts` | `core/store.ts` | `createRootState()` — camera/size/pointer/clock, viewport, resize |
+| `src/clock.ts` | `three/src/core/Clock.js` | `FrameClock` — THREE.Clock's semantics, minus its r183 deprecation warning |
 | `src/loader.ts` | `core/hooks.tsx` (useLoader part) | `loadAsset`, `preloadAsset`, `clearAsset` |
 | `src/reconciler.ts` | `core/reconciler.tsx` + `core/renderer.tsx` | `SceneNode` create/patch/reconcile/dispose |
 | `src/events.ts` | `core/events.ts` + `web/events.ts` | raycast pointer events, capture, occlusion, `onPointerMissed` |
@@ -80,6 +81,15 @@ export interface SizeState {
 
 export type Dpr = number | [min: number, max: number];
 
+export interface ViewportState {
+  width: number;    // visible width in WORLD units
+  height: number;   // visible height in WORLD units
+  aspect: number;
+  distance: number; // camera -> target
+  factor: number;   // CSS pixels per world unit
+  dpr: number;
+}
+
 export interface RootState {
   gl: RendererLike;
   scene: any; // THREE.Scene
@@ -87,9 +97,16 @@ export interface RootState {
   canvas: HTMLCanvasElement;
   raycaster: any; // THREE.Raycaster
   pointer: any; // THREE.Vector2 — NDC coords, updated by events
-  clock: any; // THREE.Clock
+  clock: any; // FrameClock (src/clock.ts) — THREE.Clock's API
   frameloop: "always" | "demand" | "never";
   size: State<SizeState>; // reactive — read with size.get(listener)
+  // Port of store.ts's getCurrentViewport — reads `size` through `listener`
+  // instead of mirroring it into a second piece of state.
+  viewport(
+    listener?: Listener | null,
+    camera?: any,
+    target?: any,
+  ): ViewportState;
   invalidate(frames?: number): void;
   advance(timestamp: number, runGlobalCallbacks?: boolean): void;
   frame(callback: FrameCallback, priority?: number): () => void;
@@ -133,7 +150,45 @@ export interface SceneNode {
   disposed: boolean;
 }
 
-export type SceneChild = Record<string, any> | null | undefined | false;
+// SceneProps exists for CONTEXTUAL TYPING, not validation: the grammar is
+// open (any registered tag, any three.js prop, any pierced path), so nothing
+// here rejects a key. Its index signature is a UNION with exactly one call
+// signature rather than `any`, which is what lets TS type every callback
+// written inline in a scene without a single annotation in user code —
+// r3f's ThreeElements/EventHandlers contract.
+export type ReactiveProp<T = any> = (listener: Listener, root: RootState) => T;
+export type InstanceEventHandler = (event: any, root: RootState, self: any) => void;
+type SceneStaticValue = SceneChildren | {} | null | undefined;
+export type SceneValue = ReactiveProp | SceneStaticValue;
+
+export interface SceneProps {
+  // Rule 1 — raycast pointer events.
+  onClick?: (event: ThreeEvent<MouseEvent>) => void;
+  onWheel?: (event: ThreeEvent<WheelEvent>) => void;
+  onPointerMove?: (event: ThreeEvent<PointerEvent>) => void;
+  // ...the rest of the 14-key whitelist; onPointerMissed takes a raw MouseEvent
+  // Rule 2/3
+  onFrame?: (root: RootState, delta: number, self: any) => void;
+  onFramePriority?: number;
+  onUpdate?: (self: any) => void;
+  // Rule 4 — three's own assignable callbacks (signatures vary per class)
+  onBeforeRender?: (...args: any[]) => void; // + onAfterRender/onBefore|AfterShadow/onBeforeCompile
+  // Rule 6
+  on?: Record<string, InstanceEventHandler>;
+  // Reconciler bookkeeping
+  args?: any[] | ReactiveProp<any[]>;
+  attach?: string | ((parent: any, self: any) => any) | null;
+  dispose?: null;
+  object?: any;
+  _key?: string | number;
+  _doctorDisable?: boolean | string | string[];
+  // Rule 5 — any other `on[A-Z]…` key
+  [key: `on${string}`]: InstanceEventHandler | SceneStaticValue;
+  // Tag key + every other prop
+  [key: string]: SceneValue;
+}
+
+export type SceneChild = SceneProps | null | undefined | false;
 export type SceneChildren = SceneChild | SceneChild[];
 export type SceneFunction = (l: Listener, root: RootState) => SceneChildren;
 
@@ -142,13 +197,16 @@ export interface ThreeOptions {
   camera?: Record<string, any> | { instance: any };
   orthographic?: boolean;
   createRenderer?: (canvas: HTMLCanvasElement) => RendererLike;
-  gl?: Record<string, any>; // WebGLRenderer constructor params when using default
+  // Merged over { powerPreference: "high-performance", antialias: true,
+  // alpha: true } — the reference defaults (renderer.tsx defaultProps).
+  gl?: Record<string, any>;
   frameloop?: "always" | "demand" | "never"; // default "always"
-  dpr?: Dpr;
+  dpr?: Dpr; // default [1, 2] — reference default (renderer.tsx)
   shadows?: boolean | "basic" | "percentage" | "soft" | "variance";
   flat?: boolean; // NoToneMapping
   linear?: boolean; // disable sRGB output
   raycaster?: Record<string, any>;
+  fallback?: string; // <canvas> fallback content — the scene's accessible name
   events?: false; // false disables the pointer event system
   onCreated?: (root: CreatedRootState) => void;
   onPointerMissed?: (event: MouseEvent) => void;
@@ -232,6 +290,14 @@ ancestors, `stopPropagation()`, pointer capture map
 derivation from over/out, `onPointerMissed` (per-object and canvas-level),
 `filter`/custom raycaster support, touch offset handling. DOM listeners bind
 to the canvas in `connect()`, unbind in `disconnect()`.
+
+Event type, r3f parity (`ThreeEvent<TEvent> = IntersectionEvent<TEvent> &
+Properties<TEvent>`): the intersection data is `IntersectionEvent<TEvent>`,
+and the handler's argument type INTERSECTS it with the native event's
+non-function properties — which is exactly what `handleIntersects` copies
+onto the object at runtime, so `event.deltaY` / `event.clientX` /
+`event.shiftKey` are typed, not just present. Keys this package defines
+itself (`target`, `currentTarget`, `pointer`, …) win over the native ones.
 
 ### Loop (loop.ts) — port `core/loop.ts`
 

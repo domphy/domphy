@@ -23,7 +23,7 @@ import {
   small,
   spinner,
 } from "@domphy/ui";
-import { fixed } from "../../shared/typography.js";
+import { instanceScoped } from "../../shared/instanceScope.js";
 
 /**
  * Visual formula for a bounded text-like `<input>`, matching @domphy/ui's
@@ -35,8 +35,8 @@ import { fixed } from "../../shared/typography.js";
 function authFieldInput(): PartialElement {
   return {
     style: {
-      fontFamily: fixed("inherit"),
-      lineHeight: fixed("inherit"),
+      fontFamily: "inherit",
+      lineHeight: "inherit",
       width: "100%",
       boxSizing: "border-box",
       paddingInline: (listener: Listener) =>
@@ -90,22 +90,29 @@ function field(config: FieldConfig): DomphyElement<"div"> {
     autoComplete,
   } = config;
 
+  const buildRow = (inputId: string): (DomphyElement | null)[] => [
+    { label: labelText, for: inputId, $: [label()] },
+    {
+      input: null,
+      id: inputId,
+      name: id,
+      type,
+      placeholder,
+      required: true,
+      autocomplete: autoComplete,
+      ...(type === "password" ? { minlength: 8 } : {}),
+      $: [authFieldInput()],
+    },
+    caption ? { small: caption, $: [small({ color: "neutral" })] } : null,
+  ];
+
   return {
-    div: [
-      { label: labelText, for: id, $: [label()] },
-      {
-        input: null,
-        id,
-        name: id,
-        type,
-        placeholder,
-        required: true,
-        autocomplete: autoComplete,
-        ...(type === "password" ? { minlength: 8 } : {}),
-        $: [authFieldInput()],
-      },
-      caption ? { small: caption, $: [small({ color: "neutral" })] } : null,
-    ],
+    // `id` stays the form-payload `name` and the readable prefix; the real
+    // DOM id is scoped to this row's nodeId so two mounted instances never
+    // share one id (see ../../shared/instanceScope.ts). The eager children
+    // keep the subtree visible to @domphy/doctor.
+    div: buildRow(id),
+    ...instanceScoped((instanceId) => buildRow(`${id}-${instanceId}`)),
     style: {
       display: "flex",
       flexDirection: "column",
@@ -210,7 +217,7 @@ function signup01(props: Signup01Props = {}): DomphyElement<"div"> {
       {
         a: signInLinkText,
         href: signInHref,
-        style: { textDecoration: fixed("underline") },
+        style: { textDecoration: "underline" },
         $: [link({ color: "primary" })],
       },
     ],

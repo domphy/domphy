@@ -4,7 +4,10 @@
  */
 
 import type { Editor } from "../Editor.js";
-import { isLinkUriAllowed } from "../extensions/link.js";
+import {
+  isLinkUriAllowed,
+  stripDisallowedLinkHrefs,
+} from "../extensions/link.js";
 import {
   findParentNode,
   getMarkAttributes,
@@ -41,8 +44,18 @@ function schemaOf(editor: EditorInstance): Schema {
   return editor.schema as Schema;
 }
 
-function documentFrom(schema: Schema, content: Content): JSONContent {
-  return createDocument(schema, content, (html) => parseHTML(schema, html));
+/**
+ * Coerce `Content` into a document the way the editor's own constructor does —
+ * including the link-href guard. Commands must not be a back door past a
+ * sanitization the `new Editor({ content })` path applies.
+ */
+function documentFrom(editor: EditorInstance, content: Content): JSONContent {
+  return stripDisallowedLinkHrefs(
+    editor,
+    createDocument(schemaOf(editor), content, (html) =>
+      parseHTML(schemaOf(editor), html),
+    ),
+  );
 }
 
 function canSetMark(
@@ -135,7 +148,7 @@ export const generalCommands: RawCommands = {
     ({ tr, dispatch, editor }: CommandProps) => {
       if (dispatch) {
         const schema = schemaOf(editor);
-        const document = documentFrom(schema, content);
+        const document = documentFrom(editor, content);
         tr.replaceRange(0, contentSize(schema, tr.doc), childrenOf(document));
         tr.setMeta("preventUpdate", options?.emitUpdate === false);
       }
@@ -159,7 +172,7 @@ export const generalCommands: RawCommands = {
           typeof position === "number"
             ? { from: position, to: position }
             : position;
-        const document = documentFrom(schema, content);
+        const document = documentFrom(editor, content);
         let nodes = childrenOf(document);
         const $from = resolveInternal(schema, tr.doc, range.from);
         const intoTextblock = schema.isTextblock($from.parent.type ?? "");

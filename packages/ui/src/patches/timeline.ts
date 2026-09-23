@@ -82,7 +82,7 @@ function timelineItem(
             "&::after": {
               content: '""',
               position: "absolute",
-              left: "calc(1rem - 1px)",
+              insetInlineStart: "calc(1rem - 1px)",
               top: "1.25rem",
               bottom: (listener) => themeSpacing(themeDensity(listener) * -4),
               width: "2px",

@@ -17,18 +17,21 @@ import {
 } from "@domphy/floating";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import type { EditorInstance } from "../types";
-import { selectionFor } from "../utils.js";
+import { rootOf, selectionFor } from "../utils.js";
 
 type BubbleMenuLive = {
   editor: EditorInstance;
   shouldShow: (editor: EditorInstance) => boolean;
   children: DomphyElement;
+  label: string;
 };
 
 export type BubbleMenuProps = {
   editor: EditorInstance;
   shouldShow?: (editor: EditorInstance) => boolean;
   children: DomphyElement;
+  /** Accessible name for the `role="toolbar"` panel. */
+  label?: string;
 };
 
 // Layered soft shadow (tight contact + broad ambient), black at low alpha so
@@ -54,6 +57,12 @@ const ZERO_RECT = {
   height: 0,
 };
 
+// WAI-ARIA APG, Toolbar pattern: the toolbar is ONE tab stop, and Left/Right
+// (plus Home/End) move between its controls. Everything focusable counts,
+// including items already carrying tabindex="-1" from the roving itself.
+const TOOLBAR_ITEMS =
+  "button, [href], input, select, textarea, [tabindex], [role='button']";
+
 /** Visible whenever the selection covers something in an editable editor. */
 function defaultShouldShow(editor: EditorInstance): boolean {
   return editor.isEditable && !editor.state.selection.empty;
@@ -63,10 +72,12 @@ function attachBubbleMenu(
   node: ElementNode,
   initialProps: BubbleMenuLive,
 ): BehaviorInstance<BubbleMenuLive> {
-  let { editor, shouldShow, children } = initialProps;
+  let { editor, shouldShow, children, label } = initialProps;
   const host = node.domElement as HTMLElement;
   const rootNode = node.getRoot();
   const visible = toState(false);
+  /** Set by Escape, cleared by the next selection change. */
+  let dismissed = false;
 
   let panelNode: ElementNode | null = null;
   let panelElement: HTMLElement | null = null;
@@ -81,6 +92,11 @@ function attachBubbleMenu(
     const selection = selectionFor(host);
     if (!selection || selection.rangeCount === 0) return null;
     const range = selection.getRangeAt(0);
+    // jsdom implements neither `Range` rect method, and floating-ui asks for
+    // them from inside a promise — a consumer testing a bubble menu under
+    // jsdom would get unhandled rejections instead of a menu that simply does
+    // not position itself.
+    if (typeof range.getBoundingClientRect !== "function") return null;
     return host.contains(range.commonAncestorContainer) ? range : null;
   };
 
@@ -156,10 +172,15 @@ function attachBubbleMenu(
   const buildPanel = (): DomphyElement<"div"> => ({
     div: [children],
     role: "toolbar",
+    // `role="toolbar"` needs an accessible name (axe `aria-toolbar-name`);
+    // a host that names it itself keeps its own label.
+    ariaLabel: label,
     // Pressing a menu button must not move focus out of the editable area —
     // a blur would collapse the selection (and hide this menu) before the
     // button's own click handler ever runs its command.
     onMouseDown: (event) => event.preventDefault(),
+    onKeyDown: onPanelKeyDown,
+    onFocusOut: onPanelFocusOut,
     _portal: () => ensureOverlay(),
     style: {
       position: "fixed",
@@ -197,6 +218,10 @@ function attachBubbleMenu(
 
   const show = () => {
     ensureMounted();
+    // Re-applied on every open: the toolbar's children may be reactive, and a
+    // freshly rendered button is natively tabbable, which would silently add a
+    // second tab stop.
+    refreshRoving();
     visible.set(true);
     if (!stopAutoUpdate && panelElement) {
       stopAutoUpdate = autoUpdate(selectionReference, panelElement, reposition);
@@ -228,10 +253,131 @@ function attachBubbleMenu(
     }
   };
 
-  const sync = () => {
-    if (editor.isDestroyed) return hide();
+  /** Visibility for the current selection, honouring an Escape dismissal. */
+  const refresh = () => {
+    if (editor.isDestroyed || dismissed) return hide();
     if (shouldShow(editor)) show();
     else hide();
+  };
+
+  // A new selection (or an edit) is what clears a dismissal — not a refocus,
+  // which would re-open the panel the moment Escape returns focus to the
+  // editor.
+  const sync = () => {
+    dismissed = false;
+    refresh();
+  };
+
+  const panelHas = (target: EventTarget | null | undefined): boolean =>
+    target instanceof Node && panelElement !== null
+      ? panelElement.contains(target)
+      : false;
+
+  /** The toolbar's focusable controls, in DOM order. */
+  const toolbarItems = (): HTMLElement[] =>
+    panelElement === null
+      ? []
+      : Array.from(
+          panelElement.querySelectorAll<HTMLElement>(TOOLBAR_ITEMS),
+        ).filter(
+          (item) =>
+            !item.hasAttribute("disabled") &&
+            item.getAttribute("aria-hidden") !== "true",
+        );
+
+  // Roving tabindex: exactly one item is tabbable, so Tab enters the toolbar
+  // once and Shift+Tab leaves it — the rest are reached with the arrow keys.
+  const rove = (activeIndex: number) => {
+    const items = toolbarItems();
+    for (let index = 0; index < items.length; index += 1) {
+      items[index].tabIndex = index === activeIndex ? 0 : -1;
+    }
+    return items;
+  };
+
+  /** Index of the item the event came from, or -1. */
+  const itemIndexOf = (items: HTMLElement[], target: EventTarget | null) =>
+    items.findIndex(
+      (item) =>
+        item === target || (target instanceof Node && item.contains(target)),
+    );
+
+  const onToolbarArrows = (event: KeyboardEvent) => {
+    const items = toolbarItems();
+    const current = itemIndexOf(items, event.target);
+    if (current === -1) return;
+    let next = current;
+    switch (event.key) {
+      // The toolbar is horizontal, so the arrows follow the writing direction.
+      case "ArrowRight":
+        next = (current + 1) % items.length;
+        break;
+      case "ArrowLeft":
+        next = (current - 1 + items.length) % items.length;
+        break;
+      case "Home":
+        next = 0;
+        break;
+      case "End":
+        next = items.length - 1;
+        break;
+      default:
+        return;
+    }
+    // Arrows would otherwise scroll the page or move the caret in the editor.
+    event.preventDefault();
+    rove(next)[next]?.focus();
+  };
+
+  /** Keep the tab stop on whatever currently has focus, else the first item. */
+  const refreshRoving = () => {
+    const items = toolbarItems();
+    if (items.length === 0) return;
+    const focused = itemIndexOf(items, rootOf(host).activeElement);
+    rove(focused === -1 ? 0 : focused);
+  };
+
+  // Escape dismisses the overlay (WAI-ARIA APG: every non-modal overlay must
+  // be dismissible from the keyboard) and, when the keypress came from inside
+  // the toolbar, hands focus back to the text. The next selection change
+  // brings the panel back.
+  const dismissOnEscape = (event: KeyboardEvent) => {
+    if (event.key !== "Escape" || dismissed || !visible.get()) return;
+    // This overlay consumes the key: a dialog wrapping the editor must not
+    // close as well.
+    event.stopPropagation();
+    const fromPanel = panelHas(event.target);
+    dismissed = true;
+    hide();
+    if (fromPanel) editor.commands.focus();
+  };
+  host.addEventListener("keydown", dismissOnEscape);
+
+  const onPanelKeyDown = (event: KeyboardEvent) => {
+    if (event.key === "Escape") {
+      dismissOnEscape(event);
+      return;
+    }
+    onToolbarArrows(event);
+  };
+
+  // Tabbing out of the toolbar to something that is neither the toolbar nor
+  // the editor ends the interaction — the editor's own blur already fired
+  // when focus first entered the toolbar, so nothing else would close it.
+  const onPanelFocusOut = (event: FocusEvent) => {
+    const next = event.relatedTarget;
+    if (panelHas(next) || (next instanceof Node && host.contains(next))) return;
+    hide();
+  };
+
+  // tiptap's `BubbleMenuPlugin.blurHandler`: a blur whose `relatedTarget` is
+  // inside the menu is focus ARRIVING in the menu, not a dismissal. Without
+  // this the panel is hidden mid-Tab, the browser finds nothing focusable
+  // where it was about to land, and focus falls to <body> — the toolbar is
+  // unreachable by keyboard.
+  const onEditorBlur = (event: unknown) => {
+    if (panelHas((event as FocusEvent | undefined)?.relatedTarget)) return;
+    hide();
   };
 
   // Wired inside attach(), not from a bare _onMount closure: the patch factory
@@ -240,15 +386,15 @@ function attachBubbleMenu(
   const bind = (target: EditorInstance) => {
     target.on("selectionUpdate", sync);
     target.on("update", sync);
-    target.on("focus", sync);
-    target.on("blur", hide);
+    target.on("focus", refresh);
+    target.on("blur", onEditorBlur);
     target.on("destroy", teardownPanel);
   };
   const unbind = (target: EditorInstance) => {
     target.off("selectionUpdate", sync);
     target.off("update", sync);
-    target.off("focus", sync);
-    target.off("blur", hide);
+    target.off("focus", refresh);
+    target.off("blur", onEditorBlur);
     target.off("destroy", teardownPanel);
   };
 
@@ -262,16 +408,19 @@ function attachBubbleMenu(
         bind(editor);
       }
       shouldShow = props.shouldShow;
-      if (props.children !== children) {
+      if (props.children !== children || props.label !== label) {
         children = props.children;
+        label = props.label;
         // Patch the already-inserted panel in place (same DOM node, no
         // teardown) rather than re-inserting it — the ordinary reused-node
         // contract, applied to the imperatively-inserted panel too.
         panelNode?.patch(buildPanel());
+        refreshRoving();
       }
       sync();
     },
     destroy() {
+      host.removeEventListener("keydown", dismissOnEscape);
       unbind(editor);
       teardownPanel();
     },
@@ -292,6 +441,7 @@ function attachBubbleMenu(
  * @param editor - The editor whose selection anchors the menu.
  * @param props.children - The menu content (compose buttons from `@domphy/ui`).
  * @param props.shouldShow - Predicate deciding visibility on every selection change. Optional. Defaults to "editable, with a non-empty selection".
+ * @param props.label - Accessible name for the `role="toolbar"` panel. Optional. Defaults to `"Formatting"`.
  * @example { div: null, $: [editorContent(editor), bubbleMenu(editor, { children: { div: [...] } })] }
  */
 function bubbleMenu(
@@ -299,12 +449,14 @@ function bubbleMenu(
   props: {
     children: DomphyElement;
     shouldShow?: (editor: EditorInstance) => boolean;
+    label?: string;
   },
 ): PartialElement {
   return behavior<BubbleMenuLive>("dp-editor-bubble-menu", attachBubbleMenu, {
     editor,
     children: props.children,
     shouldShow: props.shouldShow ?? defaultShouldShow,
+    label: props.label ?? "Formatting",
   });
 }
 

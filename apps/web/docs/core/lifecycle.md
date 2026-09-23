@@ -60,7 +60,7 @@ const App: DomphyElement<"div"> = {
 | `_onSchedule(node, raw)` | Before parsing, while the raw element can still be changed | `parent`, `_context`, `_metadata`, mutable `raw` |
 | `_onInit(node)` | After parsing, before insertion | node properties, no siblings yet |
 | `_onInsert(node)` | Added to the parent child list | siblings, position in tree |
-| `_onMount(node)` | DOM element created and connected to the node | `domElement` and all node properties |
+| `_onMount(node)` | DOM element created and connected to the node | `domElement`, its rendered subtree, and all node properties |
 | `_onBeforeUpdate(node, rawChildren)` | Before a child update cycle applies new children | current node, current DOM, incoming raw children |
 | `_onUpdate(node)` | After the update cycle finishes | updated children and `domElement` |
 | `_onBeforeRemove(node, done)` | Before removal, must call `done()` | `domElement`, current runtime state |
@@ -70,6 +70,10 @@ const App: DomphyElement<"div"> = {
 For a declarative error boundary, use the `errorBoundary()` patch from `@domphy/ui`, which wraps `_onError` with a fallback-rendering API — see [Error Boundary](/docs/ui/patches/error-boundary).
 
 `_onSchedule` is the right place to apply context-aware patches. Unlike inline `$: [patches]`, it can read parent context before parsing begins.
+
+`_onMount` fires **bottom-up**: every child mounts before its parent, on a fresh `render()` and on `mount()` hydration alike. A hook that measures or queries its own subtree can rely on that subtree already being in the DOM.
+
+The flip side: a parent must **not** publish state its descendants read — `setContext()`, a registry a child registers into — from `_onMount`, because the children already ran theirs. Publish it from `_onSchedule` or `_onInit` instead, which do run parent-first. `splitter()` in `@domphy/ui` is the pattern to copy: it sets its `_context` in `_onSchedule`, so `splitterPanel()` / `splitterHandle()` still resolve `getContext("splitter")` from their own `_onMount`.
 
 **Hooks fire once per real DOM node**, not once per patch-factory call. A patch factory invoked again by a reactive ancestor (the node is reused, not recreated) gets a brand-new closure, but `_onInit`/`_onMount`/etc. do NOT re-run on that reused node — so imperative state wired inside them (a document listener, a `ResizeObserver`) stays bound to whichever generation attached it first. For per-node imperative state that must track the CURRENT generation's props across re-renders, use `behavior(key, attach, props)` instead of a raw `_onMount` — see [Common Patterns → Per-node behavior](./patterns#per-node-behavior-imperative-state-that-survives-re-renders).
 

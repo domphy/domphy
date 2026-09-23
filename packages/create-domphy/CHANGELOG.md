@@ -1,5 +1,10 @@
 # create-domphy Changelog
 
+## 0.18.10
+
+- Pin scaffolded `@domphy/core` / `theme` / `ui` to 0.22.0 / 0.23.0 / 0.22.0.
+- Next-step commands name the package manager that invoked the scaffolder (`npm_config_user_agent`); diagnostics go to stderr, keeping stdout clean.
+
 ## 0.18.9
 
 - Pin scaffolded `@domphy/core` / `theme` / `ui` to 0.21.3 / 0.22.3 / 0.21.4.

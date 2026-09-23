@@ -257,7 +257,6 @@ function hexagonPattern(props: HexagonPatternProps = {}): DomphyElement<"div"> {
         ariaHidden: "true",
         // Decorative highlight cell with no text of its own — exempt from the
         // missing-color contract (mirrors meteors()/dottedMap() in this package).
-        _doctorDisable: "missing-color",
         // Upstream highlight polygons carry no fill of their own and inherit the
         // svg's fill-gray-400/30 — the SAME tone as the grid outlines — so they
         // read as a subtle same-color fill, not a distinct hue. Match the grid's

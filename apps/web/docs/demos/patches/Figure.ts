@@ -16,9 +16,6 @@ const App: DomphyElement<"figure"> = {
           style: {
             stroke: (listener) => themeColor(listener, "shift-3", "neutral"),
           },
-          // Decorative chart track stroke, no text content — "missing-color" would
-          // otherwise ask for a color that has nothing to apply to.
-          _doctorDisable: "missing-color",
         },
         {
           circle: null,
@@ -33,26 +30,23 @@ const App: DomphyElement<"figure"> = {
           style: {
             stroke: (listener) => themeColor(listener, "shift-6", "primary"),
           },
-          // Decorative chart progress stroke, no text content — "missing-color" would
-          // otherwise ask for a color that has nothing to apply to.
-          _doctorDisable: "missing-color",
         },
       ],
       viewBox: "0 0 100 100",
       role: "img",
       ariaLabel: "Completion chart",
+      // The chart panel is its own surface: declare it with dataTone and let
+      // the background inherit, so the strokes below shift with it. Painting a
+      // fixed "shift-1" here instead pins them to the page context.
+      dataTone: "shift-1",
       style: {
         width: "100%",
         maxWidth: themeSpacing(40),
-        backgroundColor: (listener) =>
-          themeColor(listener, "shift-1", "neutral"),
+        backgroundColor: (listener) => themeColor(listener, "inherit"),
+        color: (listener) => themeColor(listener, "text"),
         padding: themeSpacing(3),
         borderRadius: themeSpacing(2),
       },
-      // Decorative chart canvas (svg circles carry the visible content), no
-      // text content — "missing-color" would otherwise ask for a color that
-      // has nothing to apply to.
-      _doctorDisable: "missing-color",
     },
     {
       figcaption:

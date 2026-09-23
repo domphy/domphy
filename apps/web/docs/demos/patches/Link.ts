@@ -9,9 +9,14 @@ const App: DomphyElement<"div"> = {
       href: "#",
       $: [link()],
     },
+    // A disabled link has no `href` (nothing to navigate to) — WAI-ARIA's
+    // pattern is role="link" + aria-disabled, kept in the tab order so
+    // keyboard users can still find it. `<a disabled>` is not valid HTML.
     {
       a: "Disabled Link",
-      disabled: true,
+      role: "link",
+      ariaDisabled: "true",
+      tabindex: 0,
       $: [link()],
     },
   ],

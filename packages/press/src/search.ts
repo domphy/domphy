@@ -136,52 +136,133 @@ function editDistance1(a: string, b: string): boolean {
   return true;
 }
 
+// The widget hands the SAME index string to every query, and parsing it is by
+// far the dominant cost: measured on the docs site's 1.3 MB index, a query
+// took 74 ms of which JSON.parse was 66 ms — on every debounced keystroke,
+// blocking the main thread while the visitor types. One slot, keyed by string
+// identity, is all that is needed to make the parse a once-per-index cost.
+let parsedIndexSource: string | null = null;
+let parsedIndex: SerializedIndex | null = null;
+// Sorted vocabulary, cached with the parse. Object.keys() on the 8855-term
+// postings map is itself 1.8 ms, and `for (const term in postings)` — the
+// dictionary-mode scan the prefix match used to do — is 3.0 ms PER QUERY TERM
+// (measured, Node 22, the docs site's index), which is what put a three-word
+// query over one frame.
+let parsedTerms: string[] | null = null;
+// Vocabulary bucketed by term length, cached with the parse. The fuzzy pass
+// below only ever wants terms whose length is within 1 of the query term's —
+// `editDistance1` rejects everything else immediately — so bucketing by
+// length turns "scan every term, reject 95% on a length check" into "look up
+// the 2-3 buckets that could possibly match". Built once per index (an O(V)
+// pass, same cost class as the `Object.keys().sort()` above), not per query.
+let parsedTermsByLength: Map<number, string[]> | null = null;
+
+function parseIndex(serializedIndex: string): SerializedIndex {
+  if (
+    parsedIndexSource === serializedIndex &&
+    parsedIndex &&
+    parsedTerms &&
+    parsedTermsByLength
+  )
+    return parsedIndex;
+  parsedIndex = JSON.parse(serializedIndex) as SerializedIndex;
+  // Sorted explicitly: JSON.stringify emits integer-like keys ("0", "12") in
+  // numeric order ahead of the rest, so the build-time sort does not survive.
+  parsedTerms = Object.keys(parsedIndex.postings).sort();
+  parsedTermsByLength = new Map();
+  for (const term of parsedTerms) {
+    let bucket = parsedTermsByLength.get(term.length);
+    if (!bucket) {
+      bucket = [];
+      parsedTermsByLength.set(term.length, bucket);
+    }
+    bucket.push(term);
+  }
+  parsedIndexSource = serializedIndex;
+  return parsedIndex;
+}
+
+/** Index of the first term that is not ordered before `prefix`. */
+function lowerBound(terms: string[], prefix: string): number {
+  let low = 0;
+  let high = terms.length;
+  while (low < high) {
+    const middle = (low + high) >> 1;
+    if (terms[middle] < prefix) low = middle + 1;
+    else high = middle;
+  }
+  return low;
+}
+
 export function queryIndex(
   serializedIndex: string,
   query: string,
   limit = 10,
 ): SearchResult[] {
-  const index = JSON.parse(serializedIndex) as SerializedIndex;
+  const index = parseIndex(serializedIndex);
+  const vocabulary = parsedTerms as string[];
+  const vocabularyByLength = parsedTermsByLength as Map<number, string[]>;
   const terms = tokenize(query);
   if (terms.length === 0) return [];
 
-  const scoreByEntry = new Map<number, number>();
-  const matchedTermsByEntry = new Map<number, number>();
+  // Dense integer keys over a few thousand entries: typed arrays are ~5x the
+  // Map/Set pair here (2.61 ms -> 0.53 ms scoring the 2883 postings a
+  // two-letter query reaches, measured on the docs site's index).
+  const entryCount = index.entries.length;
+  const scoreByEntry = new Float64Array(entryCount);
+  const matchedTermsByEntry = new Int32Array(entryCount);
+  // Stamped with termIndex + 1 instead of cleared per term.
+  const seenForTerm = new Int32Array(entryCount);
+  const touched: number[] = [];
 
-  for (const term of terms) {
-    const seen = new Set<number>();
-    for (const indexedTerm in index.postings) {
-      let weight: number;
-      if (indexedTerm === term) {
-        weight = 1.0;
-      } else if (indexedTerm.startsWith(term)) {
-        weight = 0.5;
-      } else if (term.length >= 4 && editDistance1(term, indexedTerm)) {
-        weight = 0.3;
-      } else {
-        continue;
-      }
-      for (const [entryIndex, fieldWeight] of index.postings[indexedTerm]) {
-        const contribution = fieldWeight * weight;
-        scoreByEntry.set(
-          entryIndex,
-          (scoreByEntry.get(entryIndex) ?? 0) + contribution,
-        );
-        if (!seen.has(entryIndex)) {
-          seen.add(entryIndex);
-          matchedTermsByEntry.set(
-            entryIndex,
-            (matchedTermsByEntry.get(entryIndex) ?? 0) + 1,
-          );
+  for (let termIndex = 0; termIndex < terms.length; termIndex++) {
+    const term = terms[termIndex];
+    const stamp = termIndex + 1;
+    const score = (indexedTerm: string, weight: number): void => {
+      const postings = index.postings[indexedTerm];
+      for (let i = 0; i < postings.length; i++) {
+        const entryIndex = postings[i][0];
+        if (scoreByEntry[entryIndex] === 0) touched.push(entryIndex);
+        scoreByEntry[entryIndex] += postings[i][1] * weight;
+        if (seenForTerm[entryIndex] !== stamp) {
+          seenForTerm[entryIndex] = stamp;
+          matchedTermsByEntry[entryIndex]++;
         }
+      }
+    };
+
+    // Exact + prefix: the vocabulary is sorted, so every term starting with
+    // `term` sits in one contiguous run beginning at its lower bound — and
+    // `term` itself, when present, is that run's first element.
+    for (
+      let i = lowerBound(vocabulary, term);
+      i < vocabulary.length && vocabulary[i].startsWith(term);
+      i++
+    )
+      score(vocabulary[i], vocabulary[i] === term ? 1.0 : 0.5);
+
+    // Fuzzy (unchanged semantics: additive, not a fallback). An edit-distance-1
+    // neighbour differs in length by at most one, so it can only ever live in
+    // the length-1/length/length+1 buckets — look those up directly instead
+    // of scanning the whole vocabulary and rejecting the rest on a length
+    // check (that used to be one full pass over every indexed term, per
+    // query term with 4+ chars).
+    if (term.length < 4) continue;
+    for (let length = term.length - 1; length <= term.length + 1; length++) {
+      const bucket = vocabularyByLength.get(length);
+      if (!bucket) continue;
+      for (const indexedTerm of bucket) {
+        if (indexedTerm.startsWith(term)) continue; // already scored above
+        if (editDistance1(term, indexedTerm)) score(indexedTerm, 0.3);
       }
     }
   }
 
   const results: SearchResult[] = [];
-  for (const [entryIndex, score] of scoreByEntry) {
+  for (const entryIndex of touched) {
     const entry = index.entries[entryIndex];
-    const coverage = matchedTermsByEntry.get(entryIndex) ?? 0;
+    const score = scoreByEntry[entryIndex];
+    const coverage = matchedTermsByEntry[entryIndex];
     results.push({
       route: entry.route,
       pageTitle: entry.pageTitle,
@@ -211,6 +292,10 @@ export interface SearchWidgetOptions {
    *  deployed under a sub-path). Result hrefs are prefixed with it so they
    *  resolve on non-root deployments. Default "" (root deployment). */
   basePath?: string;
+  /** Accessible name for the input. A `role="combobox"` with only a
+   *  placeholder has no accessible name (axe `aria-input-field-name`), so
+   *  this is always emitted. Default "Search documentation". */
+  label?: string;
 }
 
 interface WidgetState {
@@ -239,13 +324,19 @@ function resultRow(
   state: RecordState<WidgetState>,
 ): DomphyElement {
   const id = optionId(widgetId, resultIndex);
+  // Built conditionally rather than with a `null` hole: a null child still
+  // renders a placeholder text node, which lands inside the option's
+  // accessible name.
+  const rowChildren: DomphyElement[] = [
+    { div: result.isPage ? result.pageTitle : result.heading },
+  ];
+  if (!result.isPage)
+    rowChildren.push({
+      small: result.pageTitle,
+      $: [small({ color: "neutral" })],
+    });
   return {
-    a: [
-      { div: result.isPage ? result.pageTitle : result.heading },
-      result.isPage
-        ? null
-        : { small: result.pageTitle, $: [small({ color: "neutral" })] },
-    ],
+    a: rowChildren,
     href: result.href,
     role: "option",
     id,
@@ -300,6 +391,7 @@ export function searchWidget(options: SearchWidgetOptions = {}): DomphyElement {
     placeholder = "Search docs…",
     limit = 10,
     basePath = "",
+    label = "Search documentation",
   } = options;
   const widgetId = ++widgetCounter;
   const listboxId = `dp-search-${widgetId}-listbox`;
@@ -351,6 +443,7 @@ export function searchWidget(options: SearchWidgetOptions = {}): DomphyElement {
     placeholder,
     autocomplete: "off",
     role: "combobox",
+    ariaLabel: label,
     ariaExpanded: (l) => (state.get("open", l) ? "true" : "false"),
     ariaControls: listboxId,
     ariaAutocomplete: "list",

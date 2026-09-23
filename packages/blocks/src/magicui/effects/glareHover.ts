@@ -86,17 +86,12 @@ function glareHover(props: GlareHoverProps = {}): DomphyElement<"div"> {
         } as DomphyElement,
       ];
 
-  // `_doctorDisable` is a doctor-only annotation not present in core's strict
-  // `PartialElement` type — build through an untyped literal, then assert, so
-  // the excess-property check doesn't fire (mirrors fadeOverlay() in the
-  // marquee block).
   const glareBand = {
     div: null,
     dataGlareBand: "true",
     ariaHidden: "true",
     // Decorative gradient streak with no text of its own — exempt from the
     // missing-color contract.
-    _doctorDisable: "missing-color",
     style: {
       position: "absolute",
       inset: 0,

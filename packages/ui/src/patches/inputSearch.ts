@@ -6,6 +6,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { fieldTextStyle } from "../utils/fieldText.js";
 import { focusRing } from "../utils/focusRing.js";
 
 /**
@@ -37,10 +38,9 @@ function inputSearch(
       }
     },
     style: {
-      fontFamily: "inherit",
       fontSize: (listener) => themeSize(listener, "inherit"),
       lineHeight: "inherit",
-      color: (listener) => themeColor(listener, "text", color.get(listener)),
+      ...fieldTextStyle(color),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
       border: "none",
@@ -52,10 +52,6 @@ function inputSearch(
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
       paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
       transition: "outline-color 140ms ease, box-shadow 140ms ease",
-      "&::placeholder": {
-        color: (listener) =>
-          themeColor(listener, "shift-7", color.get(listener)),
-      },
       "&::-webkit-search-decoration": {
         display: "none",
       },

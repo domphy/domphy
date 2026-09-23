@@ -30,7 +30,7 @@ The calendar popup carries a `"border-strong"` border, density-scaled radius, an
 
 ## Notes
 
-- The input is **read-only** and shows the formatted selection; the calendar opens on click / focus / `ArrowDown` / `Enter`.
+- The input is **read-only** and shows the formatted selection; the calendar opens on click / `ArrowDown` / `Enter` (not on focus: an open-on-focus field can never be dismissed with Escape, since Escape returns focus to it).
 - **Keyboard:** arrow keys move day-by-day, `Home`/`End` jump to week edges, `PageUp`/`PageDown` change month (`Shift` = year), `Enter`/`Space` select, `Esc` closes.
 - In range mode the in-between days are highlighted, with a live preview while choosing the second endpoint.
 - In time mode the chosen hour/minute apply to both endpoints of a range (shared time).

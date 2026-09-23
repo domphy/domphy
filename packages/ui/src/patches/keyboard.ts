@@ -3,13 +3,14 @@ import {
   type ThemeColor,
   themeColor,
   themeDensity,
+  themeFont,
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
 
 /**
- * Renders keyboard-key styling (themed background, border and padding) for a
- * keystroke hint. Apply to a `<kbd>` element.
+ * Renders keyboard-key styling (the theme's monospace stack, themed background,
+ * border and padding) for a keystroke hint. Apply to a `<kbd>` element.
  *
  * @hostTag kbd
  * @param props - Optional configuration.
@@ -29,6 +30,10 @@ function keyboard(
     },
     style: {
       fontSize: (listener) => themeSize(listener, "inherit"),
+      // The theme owns the code stack; <code>/<kbd>/<pre> otherwise keep the
+      // UA generic "monospace" (Courier New on Windows), so a theme that swaps
+      // fontFamilies.monospace never reaches them.
+      fontFamily: themeFont("monospace"),
       color: (listener) => themeColor(listener, "text", color.get(listener)),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),

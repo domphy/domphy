@@ -1,10 +1,11 @@
 // shadcn/ui "chart-bar" (custom label recipe) — clean-room reimplementation.
 //
 // A horizontal single-series bar chart with both axes fully hidden: each
-// bar prints its own category name near its inside-left edge (in a light,
-// on-fill-legible color) and its numeric value just past its right end (in
-// the normal foreground color), so the chart is self-describing without
-// visible axis chrome.
+// bar prints its own category name near its inside-left edge (in the ramp
+// step derived from the bar's own fill tone, so it stays legible in either
+// theme) and its numeric value just past its right end (in the normal
+// foreground color), so the chart is self-describing without visible axis
+// chrome.
 //
 // Implemented purely from the block's public functional/visual spec — no
 // upstream shadcn/ui source was viewed or copied.
@@ -42,6 +43,9 @@ export interface ChartBarLabelCustomProps {
 
 const DEFAULT_GRID: ChartBarGrid = { left: 8, right: 48, top: 8, bottom: 8 };
 
+/** Upstream's var(--chart-2) ≈ blue-500 — the ramp's second step. */
+const BAR_SERIES_COLOR = chartBarSeriesColor(1);
+
 // Upstream prints the FULL month name inside each bar — its LabelList
 // (dataKey="month") has no formatter; only the hidden YAxis abbreviates via
 // slice(0,3). The shared demo dataset stores abbreviated labels, so expand
@@ -73,7 +77,7 @@ function chartBarLabelCustom(
   const {
     data = CHART_BAR_TWO_SERIES_DATA,
     seriesLabel = "Desktop",
-    seriesColor = chartBarSeriesColor(1).css,
+    seriesColor = BAR_SERIES_COLOR.css,
     title = "Bar Chart - Custom Label",
     subtitle = "January - June 2026",
     trendText = "Trending up by 5.2% this month",
@@ -132,10 +136,12 @@ function chartBarLabelCustom(
               values,
               valueDomain,
               grid,
-              // Upstream fills the inside label with var(--background) (a
-              // neutral, near-background color) — not the series hue. Neutral
-              // shift-1 is the closest role match the shared overlay exposes.
+              // Upstream fills the inside label with var(--background) — not
+              // the series hue — so the label stays neutral here too; its
+              // ramp step is derived from the bar's fill tone so it clears
+              // the bar in both themes (see the overlay).
               insideColor: "neutral",
+              insideFillTone: BAR_SERIES_COLOR.tone,
               insideLabel: (index) => categories[index] ?? "",
               outsideLabel: (index) => String(values[index] ?? ""),
             }),

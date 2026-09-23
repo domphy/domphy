@@ -8,7 +8,7 @@ import InputPassword from "../../demos/patches/InputPassword.ts?raw"
 
 A password field wrapper: applies to a `<div>` and inserts a native `<input type="password">` plus a show/hide toggle button. The outer div carries the focus-ring via `:focus-within`, so it behaves visually like a single input.
 
-The toggle switches `input.type` between `"password"` and `"text"` and updates its `aria-label` accordingly.
+The toggle switches `input.type` between `"password"` and `"text"` and updates its `aria-label` accordingly. Its hit area is at least 24x24 CSS px (WCAG 2.2 SC 2.5.8 Target Size Minimum) even though the eye glyph is 1em; a negative inline margin keeps the field's visual padding unchanged.
 
 ## Props
 

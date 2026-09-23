@@ -1,6 +1,6 @@
 {
   "name": "@domphy/mcp",
-  "version": "0.19.5",
+  "version": "0.19.6",
   "description": "Domphy MCP server - exposes patches, packages, rules, and the doctor to MCP-capable AI agents",
   "type": "module",
   "bin": {
@@ -27,7 +27,8 @@
     "dev": "tsup --watch",
     "prepublishOnly": "node ../../scripts/guard-pnpm-publish.mjs && npm run build",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json --noEmit"
   },
   "keywords": [
     "domphy",

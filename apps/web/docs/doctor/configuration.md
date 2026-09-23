@@ -93,7 +93,7 @@ interface DiagnoseOptions {
   exclude?: string[]
 
   /**
-   * Additional custom rules to run alongside the 22 built-in rules.
+   * Additional custom rules to run alongside the 23 built-in rules.
    * Custom rule ids are also subject to `only`/`exclude` filtering.
    * See "Custom Rules" section below.
    */
@@ -173,6 +173,10 @@ The annotation suppresses diagnostics at **this element's path** — both elemen
 ```
 
 Diagnostics from **child elements** are never suppressed — only diagnostics at the annotated element's own path.
+
+A `$` patch may carry its own `_doctorDisable` — `button()`'s solid variant declares `["low-contrast", "color-shift-minimum", "tone-background-inherit"]`, because a deep brand fill with light text is deliberate. Since the doctor analyzes the element with its patches applied, those entries suppress at every host the patch is used on, and the **union** of the patch's and the element's entries applies (an element adding its own entry never drops the patch's).
+
+`unused-doctor-disable`, however, only reports entries the element declares **itself**. Whether a patch's entry fires depends on the patch's props and the host, and the call site could not remove it anyway.
 
 ---
 
@@ -420,6 +424,8 @@ npx domphy-doctor src/app.ts src/pages/
 
 It walks the given files/directories (skipping `node_modules`, `dist`, `.git`, `.next`, `.nuxt`, and dotfiles), imports each `.ts`/`.tsx`/`.js`/`.mjs` file, collects every exported Domphy element (including zero-arg exported factory functions, called once to get their return value), and runs `diagnose()` on each one. `.ts`/`.tsx` files require `tsx` in your `devDependencies` — without it they're skipped with a warning.
 
+**Each export is analyzed once per run.** A barrel re-exported by many files hands back the same function object every time, so the CLI remembers export identity across files: a component library's 173 blocks are executed and diagnosed once, not once per importing file, and their diagnostics are attributed to the first file that exported them. The report is written as each file finishes rather than collected and printed at the end, so memory does not grow with the size of the tree being scanned.
+
 ```
 Usage: domphy-doctor [options] <path...>
 
@@ -433,18 +439,60 @@ Options:
   --no-output          Skip Layer 4 HTML+CSS linting (htmlhint + stylelint)
   --no-factory-exec    Never invoke exported functions as zero-arg factories
                        (suppresses factory-threw warnings on component-library
-                       files whose factories require props)
+                       files whose factories require props); also skip Layer 4
+                       ElementNode construction, which would run _onInit
+  --no-dom             Do not install a DOM. By default, when the scanned
+                       project has jsdom installed, a window/document is put on
+                       globalThis so modules that touch the DOM at import time
+                       can be analyzed instead of failing to import
+  --merge-patches      A $-patch factory (returns a PartialElement — a
+                       style/$ object with no tag key, meant to be applied via
+                       { button: "…", $: [button()] }) is analyzed as its own
+                       element instead of being walked as a plain container:
+                       synthesized onto the host tag its JSDoc @hostTag names
+                       (packages/ui's own convention), or "div" when none is
+                       found. Off by default — it changes what gets analyzed,
+                       not just how noisily
   --format text|json   Output format (default: text)
   -h, --help           Show this help
 
 Exit codes:
   0  No errors (warnings/info are fine)
   1  One or more error-severity diagnostics, a file failed to import,
-     or an input path was not found
-  2  CLI usage error or nothing to analyze
+     or an input path was not found alongside files that were analyzed
+  2  CLI usage error (unknown flag, rule id or format), nothing to
+     analyze at all (including when every input path was not found),
+     or the run did not complete (crash, unhandled rejection in a
+     scanned module, out of memory)
 ```
 
+A run that does not finish never exits `0`. The failing code is set before any work begins and only replaced once the report has been written, so a crash, an out-of-memory abort, or an error a scanned module leaves pending after its import settled all end the process non-zero with a message naming the CLI — never a clean exit over code nobody checked.
+
+`--only`/`--exclude` reject a rule id that matches no rule, with exit `2`. A typo'd id would otherwise whitelist a rule that can never fire — every real diagnostic filtered away, the run exiting `0`, and CI green over unchecked code. Layer 4 ids are generated from the `htmlhint`/`stylelint` rule names at run time, so namespaced ids (`html/…`, `css/…`) are accepted without checking. The accepted set is `BUILTIN_RULE_IDS`, a named export of `@domphy/doctor`, plus `factory-threw`.
+
 `--no-factory-exec` is the flag to reach for when scanning component-library files: factories that genuinely require props cannot be invoked zero-arg, so without the flag each one produces a `factory-threw` warning. With the flag those exports are left untouched — no invocation, no warning (they are simply not analyzed).
+
+### DOM environment
+
+Scanning means **importing** each file, and a module that touches `document` at import time (a page island wiring listeners, a library feature-detecting the DOM at module scope) throws `document is not defined` under plain Node — the whole file then fails to import and everything it exports goes unanalyzed.
+
+Before any file is imported the CLI installs a `jsdom` window on `globalThis`. `jsdom` is an **optional peer dependency** resolved from the scanned project's own `node_modules` (the same "use it if the host has it" contract Layer 4 has with `htmlhint`/`stylelint`) — so `npm install -D jsdom` in the project you scan is all it takes, and nothing changes if you don't. Node's own globals (`navigator`, `fetch`, `crypto`, …) are left alone; only the DOM half is added.
+
+Pass `--no-dom` to skip it — for example when a scanned module starts a real runtime (an animation loop, a mount) as soon as a DOM exists. A file that then fails to import with a DOM-shaped error says so, naming the reason the DOM was unavailable; per-file import failures are always reported individually and counted in the summary, never aborting the run.
+
+Since scanning means importing (and, with factory execution on, invoking) real code, a scanned module CAN start something that outlives its own import — a `setInterval` poll, a `requestAnimationFrame` chain (available once a DOM is installed). The CLI wraps `setTimeout`/`setInterval`/`requestAnimationFrame` before the first file is imported and clears every handle a file created once that file's report is written, so a runaway from one bad file cannot accumulate across the rest of a large scan. This needs no flag — it is always on.
+
+### Analyzing `$`-patch factories
+
+A `$`-patch factory (`button()`, `card()`, …) is exported as a plain function, but what it RETURNS is a `PartialElement` — a `style`/`$`/attribute bag meant to be spread onto a real element via `{ button: "…", $: [button()] }` — never a tag of its own. Left to the default walk, a factory result with no tag key is treated as a namespace object (the same code path a route map `{ home: { div: … } }` goes through) and descended into key by key; a reactive style callback found that way is not a nested element, so nothing further happens with it, and the patch's own style is never actually checked.
+
+`--merge-patches` recognizes a `PartialElement` (a tagless object carrying a `style` object or its own `$` array) and synthesizes a real element around it instead: `{ [hostTag]: null, $: [patchResult] }`, where `hostTag` comes from the JSDoc `@hostTag <tag>` line `packages/ui/src/patches/*.ts` already documents above each factory (falling back to `"div"` when a factory has none). `diagnose()` then expands that `$` exactly the way it expands one on a real declared element, so the patch's literal colors, spacing, and typography are checked for real:
+
+```bash
+npx domphy-doctor --merge-patches src/
+```
+
+Without a DOM the synthesized element is still just a plain object — no `--no-dom` interaction, and Layer 4 (`new ElementNode`) works on it the same as any other unit. `@hostTag` is best-effort: it is read from each file's own source text (not the compiled export, which carries no comments), paired with the `function <name>` declaration it precedes, so a factory that does not follow that "doc comment directly above the function" shape falls back to `"div"` rather than going unanalyzed.
 
 ```json
 // package.json
@@ -480,6 +528,8 @@ function auditOutput(node: ElementNode, options?: Layer4Options): Promise<Diagno
 
 - **HTML** — `htmlhint` checks `node.generateHTML()` for structural/a11y issues: `alt-require`, `attr-no-duplication`, `button-type-require`, `id-unique`, `input-requires-label`, `src-not-empty`, `spec-char-escape`, `tag-no-obsolete`, `tag-pair`, `tagname-lowercase`. Diagnostics use `rule: "html/<rule-id>"`.
 - **CSS** — `stylelint` checks `node.generateCSS()` for `color-no-invalid-hex`, `declaration-no-important`, `no-duplicate-selectors`, `no-empty-source`, `length-zero-no-unit` (named colors are intentionally excluded — `raw-theme-value` already catches those at the source with better context). Diagnostics use `rule: "css/<rule-name>"`.
+
+  The one declaration Layer 4 does **not** lint is the framework's own base rule. `ElementNode.generateCSS()` prepends `[hidden] { display: none !important; }` to every root's stylesheet — the `!important` is load-bearing (the UA rule loses to any author declaration, and `[hidden]` ties the generated per-node class on specificity while coming first), and no user edit can change it. Reporting it fired `css/declaration-no-important` on every audited tree with no possible fix, so that exact prefix is exempted. An `!important` **you** wrote is still reported, and reported positions still address the CSS you can see.
 - Both diagnostic kinds carry `category: "output"` and a `path` suffixed with `[html:line:col]`/`[css:line:col]`.
 - `htmlhint` and `stylelint` are optional peer dependencies, not bundled. If either isn't installed, `auditOutput()` silently returns `[]` for that linter — install what you need: `npm install --save-dev htmlhint stylelint`.
 

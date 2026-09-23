@@ -17,7 +17,7 @@ import {
   paragraph,
   small,
 } from "@domphy/ui";
-import { fixed } from "../../shared/typography.js";
+import { instanceScoped } from "../../shared/instanceScope.js";
 
 // Generic monochrome mark — an original, brand-neutral logo glyph placeholder.
 const LOGO_ICON =
@@ -35,8 +35,8 @@ const LOGO_ICON =
 function authFieldInput(): PartialElement {
   return {
     style: {
-      fontFamily: fixed("inherit"),
-      lineHeight: fixed("inherit"),
+      fontFamily: "inherit",
+      lineHeight: "inherit",
       width: "100%",
       boxSizing: "border-box",
       paddingInline: (listener: Listener) =>
@@ -80,20 +80,27 @@ interface FieldConfig {
 
 function field(config: FieldConfig): DomphyElement<"div"> {
   const { id, labelText, type = "text", placeholder } = config;
+  const buildRow = (inputId: string): (DomphyElement | null)[] => [
+    { label: labelText, for: inputId, $: [label()] },
+    {
+      input: null,
+      id: inputId,
+      name: id,
+      type,
+      placeholder,
+      required: true,
+      ...(type === "password" ? { minlength: 8 } : {}),
+      $: [authFieldInput()],
+    },
+  ];
+
   return {
-    div: [
-      { label: labelText, for: id, $: [label()] },
-      {
-        input: null,
-        id,
-        name: id,
-        type,
-        placeholder,
-        required: true,
-        ...(type === "password" ? { minlength: 8 } : {}),
-        $: [authFieldInput()],
-      },
-    ],
+    // `id` stays the form-payload `name` and the readable prefix; the real
+    // DOM id is scoped to this row's nodeId so two mounted instances never
+    // share one id (see ../../shared/instanceScope.ts). The eager children
+    // keep the subtree visible to @domphy/doctor.
+    div: buildRow(id),
+    ...instanceScoped((instanceId) => buildRow(`${id}-${instanceId}`)),
     style: {
       display: "flex",
       flexDirection: "column",
@@ -127,12 +134,14 @@ function logoRow(companyName: string, href: string): DomphyElement<"a"> {
     a: [logoMark(), companyName],
     href,
     $: [link({ color: "neutral" })],
+    // Upstream logo link is font-medium (500) across the whole anchor,
+    // including the "Acme Inc." wordmark — not a bold <strong>. No theme
+    // token expresses weight 500, so the literal stays, declared.
+    _doctorDisable: "inline-typography",
     style: {
       display: "inline-flex",
       alignItems: "center",
-      // Upstream logo link is font-medium (500) across the whole anchor,
-      // including the "Acme Inc." wordmark — not a bold <strong>.
-      fontWeight: fixed(500),
+      fontWeight: 500,
       gap: (listener: Listener) => themeSpacing(themeDensity(listener) * 2),
     },
   };
@@ -148,14 +157,14 @@ function legalLine(
       {
         a: "Terms of Service",
         href: termsHref,
-        style: { textDecoration: fixed("underline") },
+        style: { textDecoration: "underline" },
         $: [link({ color: "primary" })],
       },
       " and ",
       {
         a: "Privacy Policy",
         href: privacyHref,
-        style: { textDecoration: fixed("underline") },
+        style: { textDecoration: "underline" },
         $: [link({ color: "primary" })],
       },
       ".",
@@ -242,7 +251,7 @@ function signup03(props: Signup03Props = {}): DomphyElement<"div"> {
       {
         a: signInLinkText,
         href: signInHref,
-        style: { textDecoration: fixed("underline") },
+        style: { textDecoration: "underline" },
         $: [link({ color: "primary" })],
       },
     ],

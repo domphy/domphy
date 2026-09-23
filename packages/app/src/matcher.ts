@@ -140,7 +140,18 @@ export function matchPath(
   segments: PatternSegment[],
   pathname: string,
 ): Params | null {
-  const parts = splitPath(pathname).map((part) => decodeURIComponent(part));
+  // A part whose percent-encoding is invalid (`/%`, `/%E0%A4%A`) cannot be
+  // decoded and matches nothing: `decodeURIComponent` would throw a URIError
+  // out of every caller (SSR streaming had no catch for it), so an attacker-
+  // shaped URL must simply miss every route and fall through to 404.
+  const parts: string[] = [];
+  for (const part of splitPath(pathname)) {
+    try {
+      parts.push(decodeURIComponent(part));
+    } catch {
+      return null;
+    }
+  }
   const params: Params = {};
   let partIndex = 0;
 

@@ -43,9 +43,9 @@ import {
   themeColor,
   themeColorToken,
   themeSpacing,
+  themeWeight,
 } from "@domphy/theme";
 import { card, heading, icon, motion, paragraph, small } from "@domphy/ui";
-import { fixed } from "../../shared/typography.js";
 
 // ─── Data shapes ───────────────────────────────────────────────────────────
 
@@ -527,7 +527,7 @@ export function chartTrendFooter(
     {
       span: trendText,
       style: {
-        fontWeight: fixed("500"),
+        fontWeight: themeWeight("medium"),
         color: (listener: Listener) => themeColor(listener, "shift-11", color),
       },
     },

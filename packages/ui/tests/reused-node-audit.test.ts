@@ -277,7 +277,7 @@ describe("selectBox/combobox: panel-originated close", () => {
     (host.querySelector(".sb") as HTMLElement).click();
     vi.advanceTimersByTime(200);
     flushSync();
-    const panel = () => document.querySelector("#domphy-floating");
+    const panel = () => document.querySelector("[data-domphy-floating]");
     expect(panel()?.textContent).toContain("Option A");
 
     const option = Array.from(panel()!.querySelectorAll("button")).find(
@@ -301,10 +301,12 @@ describe("selectBox/combobox: panel-originated close", () => {
         }),
       ],
     }));
-    host.querySelector(".cb input")!.dispatchEvent(new Event("focus"));
+    host
+      .querySelector(".cb input")!
+      .dispatchEvent(new MouseEvent("click", { bubbles: true }));
     vi.advanceTimersByTime(200);
     flushSync();
-    const panel = () => document.querySelector("#domphy-floating");
+    const panel = () => document.querySelector("[data-domphy-floating]");
     expect(panel()?.textContent).toContain("Option A");
 
     const option = Array.from(panel()!.querySelectorAll("button")).find(
@@ -330,9 +332,9 @@ describe("tooltip: document-level Escape dismisses a hover-opened panel", () => 
       .dispatchEvent(new Event("mouseenter", { bubbles: true }));
     vi.advanceTimersByTime(200);
     flushSync();
-    expect(document.querySelector("#domphy-floating")?.textContent).toContain(
-      "TIP_TEXT",
-    );
+    expect(
+      document.querySelector("[data-domphy-floating]")?.textContent,
+    ).toContain("TIP_TEXT");
 
     // Focus is on <body> (mouse-only hover) — Escape must still dismiss.
     document.body.dispatchEvent(
@@ -341,7 +343,7 @@ describe("tooltip: document-level Escape dismisses a hover-opened panel", () => 
     vi.advanceTimersByTime(200);
     flushSync();
     expect(
-      document.querySelector("#domphy-floating")?.textContent ?? "",
+      document.querySelector("[data-domphy-floating]")?.textContent ?? "",
     ).not.toContain("TIP_TEXT");
   });
 });

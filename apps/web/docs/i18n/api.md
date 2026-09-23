@@ -19,7 +19,7 @@ createI18n<TLocale extends string, TMessages>(options): I18nInstance
 | `namespace` | `string` | i18next resource namespace |
 | `locales` | `Record<TLocale, Record<string, unknown>>` | Translation objects keyed by locale code |
 | `defaultLocale` | `TLocale` | Fallback locale |
-| `interpolation` | `{ escapeValue?: boolean }` (optional) | i18next interpolation options — `escapeValue` defaults to `true` (i18next's safe default); pass `false` to disable HTML escaping globally |
+| `interpolation` | `{ escapeValue?: boolean }` (optional) | i18next interpolation options — `escapeValue` defaults to **`false`** because Domphy already escapes at the render boundary (see [Escaping](/docs/i18n/formatting#escaping)); pass `true` to have i18next escape interpolated values as well |
 
 `TMessages` is a separately-supplied generic used only to type `t()`'s key argument (via `FlattenKeys<TMessages>`) — it isn't structurally checked against `locales`, so passing a `TMessages` shape that doesn't match your `locales` values won't be caught by TypeScript.
 
@@ -36,6 +36,7 @@ createI18n<TLocale extends string, TMessages>(options): I18nInstance
 | `setLocale` | `(locale) → Promise<void>` | Switch locale and trigger reactive re-renders |
 | `getLocale` | `() → TLocale` | Get current locale (non-reactive) |
 | `detectLocale` | `(opts?) → TLocale` | Detect locale from URL path prefix or localStorage |
+| `addLocale` | `(locale, messages) → Promise<void>` | Register a locale's messages after `createI18n` — the on-demand loading path. See [Lazy Loading](/docs/i18n/backend) |
 
 ## runWithI18n
 

@@ -11,10 +11,12 @@ import {
 } from "@domphy/core";
 import {
   type ThemeColor,
+  textToneOn,
   themeColor,
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { horizontalArrowStep } from "../utils/direction.js";
 import { elevation } from "../utils/elevation.js";
 import { focusRing } from "../utils/focusRing.js";
 
@@ -57,14 +59,29 @@ function moveSegment(
   value: State<string>,
 ): void {
   const k = (e as KeyboardEvent).key;
-  if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(k)) return;
+  // WAI-ARIA APG radio group: both axes navigate (Right/Down = next,
+  // Left/Up = previous), Home/End jump to the ends.
+  if (
+    ![
+      "ArrowLeft",
+      "ArrowRight",
+      "ArrowUp",
+      "ArrowDown",
+      "Home",
+      "End",
+    ].includes(k)
+  )
+    return;
   e.preventDefault();
   const keys = items.map((item, index) => item.key ?? String(index));
   const idx = keys.indexOf(key);
   let next = idx;
-  if (k === "ArrowRight") next = (idx + 1) % keys.length;
-  else if (k === "ArrowLeft") next = (idx - 1 + keys.length) % keys.length;
-  else if (k === "Home") next = 0;
+  if (k === "ArrowDown") next = (idx + 1) % keys.length;
+  else if (k === "ArrowUp") next = (idx - 1 + keys.length) % keys.length;
+  else if (k === "ArrowRight" || k === "ArrowLeft") {
+    const step = horizontalArrowStep(k, e.target as Element);
+    next = (idx + step + keys.length) % keys.length;
+  } else if (k === "Home") next = 0;
   else if (k === "End") next = keys.length - 1;
   value.set(keys[next]);
   const group = (e.target as HTMLElement).closest("[role=radiogroup]");
@@ -110,11 +127,16 @@ function buildSegmentButtons(
         backgroundColor: "transparent",
         transition:
           "background-color 140ms ease, color 140ms ease, box-shadow 140ms ease",
+        // Labels track their fill (+3 hover, +2 press) off the track's own
+        // shift-2 anchor: the resting "text" tone measured 3.20:1 on the hover
+        // fill and 3.78:1 on the pressed fill (light), below WCAG AA.
         "&:hover:not([disabled]):not([aria-checked=true])": {
           backgroundColor: (l: Listener) => themeColor(l, "shift-3", color),
+          color: (l: Listener) => themeColor(l, textToneOn(3), color),
         },
         "&:active:not([disabled]):not([aria-checked=true])": {
           backgroundColor: (l: Listener) => themeColor(l, "increase-2", color),
+          color: (l: Listener) => themeColor(l, textToneOn(3), color),
         },
         "&[aria-checked=true]": {
           backgroundColor: (l: Listener) =>
@@ -167,10 +189,6 @@ function segmented(
 
   return {
     role: "radiogroup",
-    // Publish value so descendants can read the selected segment.
-    _context: {
-      segmented: { value: toState(props.value ?? items[0]?.key ?? "") },
-    },
     _onSchedule: (node, element) => {
       const value = persistValue(
         node,
@@ -178,6 +196,12 @@ function segmented(
         props.value,
         items[0]?.key ?? "",
       );
+      // Publish the SAME state the buttons write to. A declared `_context`
+      // could not: the partial is node-agnostic, so it had to allocate its
+      // own `toState()` that never saw a click — and because ElementNode.patch
+      // re-merges `element._context` on every re-render, merging one State
+      // instance into another also clobbered the live notifier's listeners.
+      node.setContext("segmented", { value });
       (element as Record<string, unknown>)[node.tagName] = buildSegmentButtons(
         items,
         value,

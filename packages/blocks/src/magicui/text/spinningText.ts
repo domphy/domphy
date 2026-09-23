@@ -10,6 +10,7 @@
 
 import type { DomphyElement, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
+import { REDUCED_MOTION_PAUSE } from "../reducedMotion.js";
 
 export interface SpinningTextTransition {
   /** Seconds per full rotation. Overrides `duration` when set. */
@@ -118,6 +119,7 @@ function spinningText(props: SpinningTextProps = {}): DomphyElement<"div"> {
       height: `${boxCh}ch`,
       // Keep letters visible when CSS animations are frozen (visual QA).
       animation: `${animationName} ${durationSeconds}s ${easing} infinite ${reverse ? "reverse" : "normal"}`,
+      ...REDUCED_MOTION_PAUSE,
       [`@keyframes ${animationName}`]: keyframes,
       ...(props.style ?? {}),
     } as StyleObject,

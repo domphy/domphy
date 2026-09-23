@@ -27,10 +27,29 @@ new ElementNode(domphyElement: DomphyElement, parent?: ElementNode | null)
 | `attributes` | `AttributeList` | HTML attributes |
 | `domElement` | `HTMLElement \| null` | Mounted DOM element |
 | `key` | `string \| number \| null` | Identity key for diffing |
-| `nodeId` | `string` | Hash used for scoped CSS class generation |
+| `nodeId` | `string` | Per-instance id, assigned in document order (`"n0"`, `"n1"`, …) |
+| `scopeClass` | `string \| null` | The class this node's CSS rules are scoped to, or `null` when it declares no style |
 | `_portal` | `((root) => Element) \| undefined` | Redirects DOM mount target when present |
 
-The scoped CSS class is attached through `node.attributes` using the pattern ``${tagName}_${nodeId}``.
+### Ids and the scope class
+
+`nodeId` identifies a node's position in **its own tree**, assigned in construction order. Two mounts of the same component inside one tree get different ids, which is what makes ids derived from it (`domphy-popover-${nodeId}`, `aria-controls`) unique on a page.
+
+The counter belongs to the **root** of each tree, not to the module, and children draw from their root. An id is therefore a function of the tree and nothing else: an unlabelled root always numbers from `n0`, whatever the process rendered before it. That is what lets a static-site build render many pages from one process, or a server handle many requests from one, and still serve each page the ids its own hydrating browser computes from scratch. There is no reset call and no request-scoped state.
+
+Because every root numbers from zero, several roots in **one document** need a discriminator, and `_idPrefix` on the root descriptor is the only one — there is deliberately no automatic scheme, since anything automatic would have to count how much work the process had done, which is the dependency this design exists to remove. This is React's rule for `useId`: ids are a function of the tree, and rendering several independent apps into one page means passing `identifierPrefix`.
+
+```ts
+// Two roots sharing a document — a streamed shell and its content.
+new ElementNode({ div: [shell],   _idPrefix: "s" })   // ids: sn0, sn1, …
+new ElementNode({ div: [content], _idPrefix: "c" })   // ids: cn0, cn1, …
+```
+
+`@domphy/app` does this for the streaming path; `renderToString()` and `hydrate()` each build one unlabelled root, so their ids match without any prefix. Mounting several independent trees into one page yourself — a demo harness, a page of embedded widgets — means giving each root its own prefix, or ids built on `nodeId` (`domphy-popover-${nodeId}`, `aria-controls`) will repeat across them.
+
+`scopeClass` identifies the **style**. It is a hash of the node's resolved CSS rule text, so every node whose computed style is identical lands on the same class and shares one set of CSSOM rules — a list of 200 identically styled rows has one rule, not 200. A node that declares no style gets no class at all.
+
+When a declaration actually changes (a reactive value moves, a patch writes a new value), the node leaves the shared class for a private one and keeps its own rule from then on: the shared class is a promise that the rules under it are exactly the text that was hashed, and other nodes are relying on it. That private class is numbered per document rather than per tree — it only ever happens against a live stylesheet, so it is never serialized and never has to match a server render, which frees it to stay unique across separately-mounted roots.
 
 ## Methods
 

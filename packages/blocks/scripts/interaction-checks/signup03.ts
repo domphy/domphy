@@ -16,10 +16,10 @@ async function main() {
   const page = await mountedPage(demoUrl, "signup03");
   const block = await locate(page, "signup03");
 
-  const name = block.locator("#signup03-name");
-  const email = block.locator("#signup03-email");
-  const password = block.locator("#signup03-password");
-  const confirmPassword = block.locator("#signup03-confirm-password");
+  const name = block.locator('[name="signup03-name"]');
+  const email = block.locator('[name="signup03-email"]');
+  const password = block.locator('[name="signup03-password"]');
+  const confirmPassword = block.locator('[name="signup03-confirm-password"]');
   const submit = block.getByRole("button", { name: "Create Account" });
 
   const passwordType = await password.getAttribute("type");
@@ -49,8 +49,8 @@ async function main() {
   const nameValid = await name.evaluate(
     (element: HTMLInputElement) => element.validity.valid,
   );
-  const focusedAfterEmptySubmit = await page.evaluate(
-    () => document.activeElement?.id,
+  const focusedAfterEmptySubmit = await page.evaluate(() =>
+    document.activeElement?.getAttribute("name"),
   );
   report(
     "signup03: empty submit blocked by native required validation (focus -> Full Name)",
@@ -64,13 +64,19 @@ async function main() {
   await name.click();
   await name.fill("Jane Doe");
   await page.keyboard.press("Tab");
-  const afterName = await page.evaluate(() => document.activeElement?.id);
+  const afterName = await page.evaluate(() =>
+    document.activeElement?.getAttribute("name"),
+  );
   await email.fill("jane@example.com");
   await page.keyboard.press("Tab");
-  const afterEmail = await page.evaluate(() => document.activeElement?.id);
+  const afterEmail = await page.evaluate(() =>
+    document.activeElement?.getAttribute("name"),
+  );
   await password.fill("longenough123");
   await page.keyboard.press("Tab");
-  const afterPassword = await page.evaluate(() => document.activeElement?.id);
+  const afterPassword = await page.evaluate(() =>
+    document.activeElement?.getAttribute("name"),
+  );
   report(
     "signup03: tab order is name -> email -> password -> confirm-password",
     afterName === "signup03-email" &&

@@ -23,10 +23,27 @@ function clickThemeToggle() {
   button.remove();
 }
 
+// jsdom ships no matchMedia, which is also the "unavailable" case the script
+// guards. Install a minimal one when a test needs a definite answer.
+function stubPrefersDark(matches: boolean) {
+  (window as unknown as { matchMedia: unknown }).matchMedia = (
+    query: string,
+  ) => ({
+    matches: matches && query.includes("dark"),
+    media: query,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  });
+}
+
 beforeEach(() => {
   localStorage.clear();
   document.documentElement.setAttribute("data-theme", "light");
   document.body.innerHTML = "";
+  // Removing the property, not setting it undefined: `'matchMedia' in window`
+  // is what an engine without it actually reports, and that is the state the
+  // bootstrap has to survive.
+  delete (window as unknown as { matchMedia?: unknown }).matchMedia;
 });
 
 describe("RUNTIME_SCRIPT theme bootstrap", () => {
@@ -36,7 +53,29 @@ describe("RUNTIME_SCRIPT theme bootstrap", () => {
     expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
   });
 
-  it("keeps the SSR default when no preference is stored", () => {
+  // Truth source: the OS/browser colour preference exposed as
+  // prefers-color-scheme, which the document already advertises support for
+  // via <meta name="color-scheme" content="light dark">. VitePress, Starlight
+  // and Docusaurus all follow it when the visitor has made no explicit choice.
+  it("follows prefers-color-scheme when no preference is stored", () => {
+    stubPrefersDark(true);
+    evalBootstrap();
+    expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
+
+    document.documentElement.setAttribute("data-theme", "light");
+    stubPrefersDark(false);
+    evalBootstrap();
+    expect(document.documentElement.getAttribute("data-theme")).toBe("light");
+  });
+
+  it("lets a stored choice override the system preference", () => {
+    stubPrefersDark(true);
+    localStorage.setItem("dp-theme", "light");
+    evalBootstrap();
+    expect(document.documentElement.getAttribute("data-theme")).toBe("light");
+  });
+
+  it("keeps the SSR default when matchMedia is unavailable", () => {
     evalBootstrap();
     expect(document.documentElement.getAttribute("data-theme")).toBe("light");
   });

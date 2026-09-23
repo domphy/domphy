@@ -46,12 +46,48 @@ export interface LabelOption {
   fontSize?: number;
   fontWeight?: "normal" | "bold" | "bolder" | "lighter" | number;
   align?: "left" | "center" | "right";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   verticalAlign?: "top" | "middle" | "bottom";
   padding?: number | [number, number] | [number, number, number, number];
   backgroundColor?: ThemeFamily;
   borderColor?: ThemeFamily;
   borderWidth?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   borderRadius?: number;
+}
+
+/**
+ * Payload of the `selectchanged` event (ECharts shape): the WHOLE selection
+ * after a `selectedMode` toggle, not just the datum that changed.
+ */
+export interface SelectChangedParams {
+  type: "selectchanged";
+  fromAction: "select" | "unselect";
+  isFromClick: boolean;
+  selected: { seriesIndex: number; dataIndex: number[] }[];
+}
+
+/** One drawn brush selection area, in pixel space. */
+export interface BrushArea {
+  brushType: "rect" | "lineX" | "lineY";
+  /** Normalized [[minX, minY], [maxX, maxY]]. */
+  range: [[number, number], [number, number]];
+}
+
+/**
+ * Payload of the `brushSelected` event (ECharts shape, `batch` trimmed to
+ * this build's single-brush-component support): every current area plus
+ * the data indices, per series, that fall inside at least one of them.
+ */
+export interface BrushSelectedParams {
+  type: "brushSelected";
+  batch: {
+    brushId: string;
+    brushIndex: number;
+    brushName: string;
+    areas: BrushArea[];
+    selected: { seriesIndex: number; dataIndex: number[] }[];
+  }[];
 }
 
 export interface LabelParams {
@@ -68,17 +104,31 @@ export interface LineStyleOption {
   color?: ThemeFamily;
   width?: number;
   type?: "solid" | "dashed" | "dotted" | number[];
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   dashOffset?: number;
   opacity?: number;
   curveness?: number;
 }
 
 // ─── Item style ──────────────────────────────────────────────────────────────
+/**
+ * Geo/map region fill. ECharts spells the region fill `areaColor` here (not
+ * `color`), because `color` on a map series is the palette array.
+ */
+export interface GeoItemStyleOption {
+  areaColor?: ThemeFamily;
+  borderColor?: ThemeFamily;
+  borderWidth?: number;
+  opacity?: number;
+}
+
 export interface ItemStyleOption {
   color?: ThemeFamily;
   borderColor?: ThemeFamily;
   borderWidth?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   borderType?: "solid" | "dashed" | "dotted";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   borderRadius?: number | [number, number, number, number];
   opacity?: number;
 }
@@ -96,6 +146,7 @@ export interface LinearGradient {
   x2: number;
   y2: number;
   colorStops: ColorStop[];
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   global?: boolean;
 }
 
@@ -105,6 +156,7 @@ export interface RadialGradient {
   y: number;
   r: number;
   colorStops: ColorStop[];
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   global?: boolean;
 }
 
@@ -114,6 +166,7 @@ export type GradientObject = LinearGradient | RadialGradient;
 export interface AreaStyleOption {
   color?: ThemeFamily | GradientObject;
   opacity?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   origin?: "auto" | "start" | "end" | number;
 }
 
@@ -121,9 +174,12 @@ export interface AreaStyleOption {
 export interface EmphasisOption {
   disabled?: boolean;
   scale?: boolean | number;
+  /** Extra outer radius, in px, for an emphasised pie sector (ECharts: 10). */
+  scaleSize?: number;
   focus?: "none" | "self" | "series" | "adjacency";
   blurScope?: "coordinateSystem" | "series" | "global";
   label?: LabelOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   labelLine?: LabelLineOption;
   itemStyle?: ItemStyleOption;
   lineStyle?: LineStyleOption;
@@ -133,10 +189,13 @@ export interface EmphasisOption {
 // ─── Label line ──────────────────────────────────────────────────────────────
 export interface LabelLineOption {
   show?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   showAbove?: boolean;
   length?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   length2?: number;
   smooth?: boolean | number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   minTurnAngle?: number;
   lineStyle?: LineStyleOption;
 }
@@ -152,8 +211,10 @@ export interface MarkPointOption {
   silent?: boolean;
   label?: LabelOption;
   itemStyle?: ItemStyleOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   emphasis?: EmphasisOption;
   animation?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDuration?: number;
 }
 
@@ -175,9 +236,11 @@ export interface MarkLineOption {
   silent?: boolean;
   symbol?: SymbolType | [SymbolType, SymbolType];
   symbolSize?: number | [number, number];
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   precision?: number;
   label?: LabelOption;
   lineStyle?: LineStyleOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   emphasis?: EmphasisOption;
   data?: [MarkLineEndpoint, MarkLineEndpoint][];
   animation?: boolean;
@@ -200,6 +263,7 @@ export interface MarkAreaOption {
   silent?: boolean;
   label?: LabelOption;
   itemStyle?: ItemStyleOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   emphasis?: EmphasisOption;
   data?: [[MarkAreaCorner, MarkAreaCorner]];
   animation?: boolean;
@@ -221,6 +285,7 @@ export type AxisType = "value" | "category" | "time" | "log";
 export interface AxisLabelOption {
   show?: boolean;
   interval?: number | "auto" | ((index: number, value: string) => boolean);
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   inside?: boolean;
   rotate?: number;
   margin?: number;
@@ -229,16 +294,21 @@ export interface AxisLabelOption {
   fontSize?: number;
   fontWeight?: "normal" | "bold" | "bolder" | "lighter" | number;
   align?: "left" | "center" | "right" | "auto";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   verticalAlign?: "top" | "middle" | "bottom";
   width?: number;
   overflow?: "truncate" | "break" | "breakAll" | "none";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   ellipsis?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   hideOverlap?: boolean;
 }
 
 export interface AxisLineOption {
   show?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   onZero?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   onZeroAxisIndex?: number;
   symbol?: SymbolType | [SymbolType, SymbolType];
   symbolSize?: [number, number];
@@ -247,8 +317,10 @@ export interface AxisLineOption {
 
 export interface AxisTickOption {
   show?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   alignWithLabel?: boolean;
   interval?: number | "auto";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   inside?: boolean;
   length?: number;
   lineStyle?: LineStyleOption;
@@ -269,24 +341,30 @@ export interface SplitAreaOption {
 export interface AxisPointerOption {
   show?: boolean | "auto";
   type?: "line" | "shadow" | "none" | "cross";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   snap?: boolean;
   label?: LabelOption;
   lineStyle?: LineStyleOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   shadowStyle?: ItemStyleOption;
   value?: number | string | Date;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   status?: "show" | "hide";
 }
 
 export interface AxisOption {
   id?: string;
   show?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   gridIndex?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   polarIndex?: number;
   position?: "top" | "bottom" | "left" | "right";
   offset?: number;
   type?: AxisType;
   name?: string;
   nameLocation?: "start" | "middle" | "center" | "end";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   nameTextStyle?: {
     color?: ThemeFamily;
     fontSize?: number;
@@ -295,7 +373,9 @@ export interface AxisOption {
     verticalAlign?: "top" | "middle" | "bottom";
     lineHeight?: number;
   };
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   nameGap?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   nameRotate?: number;
   inverse?: boolean;
   boundaryGap?: boolean | [string | number, string | number];
@@ -311,14 +391,18 @@ export interface AxisOption {
     | ((value: { min: number; max: number }) => number);
   scale?: boolean;
   splitNumber?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   minInterval?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   maxInterval?: number;
   interval?: number;
   logBase?: number;
   silent?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   triggerEvent?: boolean;
   axisLine?: AxisLineOption;
   axisTick?: AxisTickOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   minorTick?: {
     show?: boolean;
     splitNumber?: number;
@@ -327,7 +411,9 @@ export interface AxisOption {
   };
   axisLabel?: AxisLabelOption;
   splitLine?: SplitLineOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   minorSplitLine?: SplitLineOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   splitArea?: SplitAreaOption;
   data?: (
     | string
@@ -342,11 +428,13 @@ export interface AxisOption {
 
 export interface RadiusAxisOption
   extends Omit<AxisOption, "position" | "gridIndex"> {
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   polarIndex?: number;
 }
 
 export interface AngleAxisOption
   extends Omit<AxisOption, "position" | "gridIndex"> {
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   polarIndex?: number;
   startAngle?: number;
   clockwise?: boolean;
@@ -362,6 +450,7 @@ export interface GridOption {
   bottom?: number | string;
   width?: number | string;
   height?: number | string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   containLabel?: boolean;
   backgroundColor?: ThemeFamily;
   borderColor?: ThemeFamily;
@@ -382,6 +471,7 @@ export interface TitleOption {
   id?: string;
   show?: boolean;
   text?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   link?: string;
   target?: "self" | "blank";
   textStyle?: {
@@ -395,7 +485,9 @@ export interface TitleOption {
     ellipsis?: string;
   };
   subtext?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   sublink?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   subtarget?: "self" | "blank";
   subtextStyle?: {
     color?: ThemeFamily;
@@ -405,7 +497,9 @@ export interface TitleOption {
     lineHeight?: number;
   };
   textAlign?: "auto" | "left" | "center" | "right";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   textVerticalAlign?: "auto" | "top" | "middle" | "bottom";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   triggerEvent?: boolean;
   padding?: number | [number, number] | [number, number, number, number];
   itemGap?: number;
@@ -416,6 +510,7 @@ export interface TitleOption {
   backgroundColor?: ThemeFamily;
   borderColor?: ThemeFamily;
   borderWidth?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   borderRadius?: number | [number, number, number, number];
   z?: number;
   zlevel?: number;
@@ -438,11 +533,16 @@ export interface LegendOption {
   itemGap?: number;
   itemWidth?: number;
   itemHeight?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   symbolKeepAspect?: boolean;
   formatter?: string | ((name: string) => string);
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   selectedMode?: boolean | "single" | "multiple";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   inactiveColor?: ThemeFamily;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   inactiveBorderColor?: ThemeFamily;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   inactiveBorderWidth?: number | "auto";
   selected?: Record<string, boolean>;
   textStyle?: {
@@ -465,15 +565,24 @@ export interface LegendOption {
   backgroundColor?: ThemeFamily;
   borderColor?: ThemeFamily;
   borderWidth?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   borderRadius?: number | [number, number, number, number];
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   pageButtonItemGap?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   pageButtonGap?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   pageButtonPosition?: "start" | "end";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   pageIconColor?: ThemeFamily;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   pageIconInactiveColor?: ThemeFamily;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   pageIconSize?: number | [number, number];
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   pageTextStyle?: { color?: ThemeFamily; fontSize?: number };
   animation?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDurationUpdate?: number;
   z?: number;
   zlevel?: number;
@@ -494,16 +603,24 @@ export interface TooltipOption {
     crossStyle?: LineStyleOption;
     animation?: boolean;
   };
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   showContent?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   alwaysShowContent?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   triggerOn?: "mousemove" | "click" | "mousemove|click" | "none";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   showDelay?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   hideDelay?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   enterable?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   renderMode?: "html" | "richText";
   confine?: boolean;
   appendToBody?: boolean;
   className?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   transitionDuration?: number;
   position?:
     | "top"
@@ -559,12 +676,19 @@ export interface TooltipParams {
   value: any;
   color: string;
   percent?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   marker?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   axisDim?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   axisIndex?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   axisType?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   axisId?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   axisValue?: string | number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   axisValueLabel?: string;
 }
 
@@ -593,6 +717,8 @@ export interface ToolboxOption {
       title?: { zoom?: string; back?: string };
       show?: boolean;
       filterMode?: "filter" | "weakFilter" | "empty" | "none";
+      xAxisIndex?: number | number[] | "none" | false;
+      yAxisIndex?: number | number[] | "none" | false;
     };
     magicType?: {
       type?: ("line" | "bar" | "stack")[];
@@ -620,20 +746,32 @@ export interface DataZoomSliderOption {
   show?: boolean;
   xAxisIndex?: number | number[];
   yAxisIndex?: number | number[];
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   radiusAxisIndex?: number | number[];
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   angleAxisIndex?: number | number[];
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   filterMode?: "filter" | "weakFilter" | "empty" | "none";
   start?: number;
   end?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   startValue?: number | string | Date;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   endValue?: number | string | Date;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   minSpan?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   maxSpan?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   minValueSpan?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   maxValueSpan?: number;
   orient?: OrientType;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   zoomLock?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   throttle?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   rangeMode?: ["value" | "percent", "value" | "percent"];
   left?: number | string;
   top?: number | string;
@@ -642,30 +780,47 @@ export interface DataZoomSliderOption {
   width?: number | string;
   height?: number | string;
   borderColor?: ThemeFamily;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   borderRadius?: number;
   backgroundColor?: ThemeFamily;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   dataBackground?: { lineStyle?: LineStyleOption; areaStyle?: AreaStyleOption };
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   selectedDataBackground?: {
     lineStyle?: LineStyleOption;
     areaStyle?: AreaStyleOption;
   };
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   fillerColor?: ThemeFamily;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   handleColor?: ThemeFamily;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   handleStyle?: ItemStyleOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   handleSize?: number | string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   handleIcon?: SymbolType;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   moveHandleStyle?: ItemStyleOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   moveHandleSize?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   labelPrecision?: number | "auto";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   labelFormatter?:
     | string
     | ((value: number | string, valueStr: string) => string);
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   showDetail?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   showDataShadow?: "auto" | boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   realtime?: boolean;
   textStyle?: { color?: ThemeFamily; fontSize?: number };
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   brushSelect?: boolean;
   brushStyle?: ItemStyleOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   emphasis?: {
     handleStyle?: ItemStyleOption;
     moveHandleStyle?: ItemStyleOption;
@@ -680,20 +835,32 @@ export interface DataZoomInsideOption {
   disabled?: boolean;
   xAxisIndex?: number | number[];
   yAxisIndex?: number | number[];
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   filterMode?: "filter" | "weakFilter" | "empty" | "none";
   start?: number;
   end?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   startValue?: number | string | Date;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   endValue?: number | string | Date;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   minSpan?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   maxSpan?: number;
   orient?: OrientType;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   zoomLock?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   throttle?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   rangeMode?: ["value" | "percent", "value" | "percent"];
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   zoomOnMouseWheel?: boolean | "shift" | "ctrl" | "alt";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   moveOnMouseMove?: boolean | "shift" | "ctrl" | "alt";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   moveOnMouseWheel?: boolean | "shift" | "ctrl" | "alt";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   preventDefaultMouseMove?: boolean;
 }
 
@@ -706,18 +873,23 @@ export interface VisualMapContinuousOption {
   min: number;
   max: number;
   range?: [number, number];
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   calculable?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   realtime?: boolean;
   inverse?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   precision?: number;
   itemWidth?: number;
   itemHeight?: number;
   align?: "auto" | "left" | "right" | "top" | "bottom";
   text?: [string, string];
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   textGap?: number;
   show?: boolean;
   dimension?: number;
   seriesIndex?: number | number[];
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   hoverLink?: boolean;
   inRange?: {
     color?: ThemeFamily[];
@@ -726,6 +898,7 @@ export interface VisualMapContinuousOption {
     symbolSize?: [number, number];
   };
   outOfRange?: { color?: ThemeFamily[]; opacity?: number };
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   controller?: { inRange?: object; outOfRange?: object };
   orient?: OrientType;
   left?: number | string;
@@ -739,11 +912,17 @@ export interface VisualMapContinuousOption {
   color?: ThemeFamily[];
   textStyle?: { color?: ThemeFamily; fontSize?: number };
   formatter?: string | ((value: number, value2: number) => string);
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   handleIcon?: SymbolType;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   handleSize?: number | string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   handleStyle?: ItemStyleOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   indicatorIcon?: SymbolType;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   indicatorSize?: number | string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   indicatorStyle?: ItemStyleOption;
   z?: number;
   zlevel?: number;
@@ -768,25 +947,34 @@ export interface VisualMapPiecewiseOption {
   categories?: string[];
   min?: number;
   max?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   minOpen?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   maxOpen?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   selectedMode?: "multiple" | "single";
   inverse?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   precision?: number;
   itemWidth?: number;
   itemHeight?: number;
   align?: "auto" | "left" | "right";
   text?: [string, string];
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   textGap?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   showLabel?: boolean;
   itemGap?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   itemSymbol?: SymbolType;
   show?: boolean;
   dimension?: number;
   seriesIndex?: number | number[];
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   hoverLink?: boolean;
   inRange?: { color?: ThemeFamily[]; opacity?: number; symbol?: SymbolType };
   outOfRange?: { color?: ThemeFamily[]; opacity?: number };
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   controller?: { inRange?: object; outOfRange?: object };
   orient?: OrientType;
   left?: number | string;
@@ -814,6 +1002,7 @@ export type VisualMapOption =
 export interface BrushOption {
   id?: string;
   toolbox?: ("rect" | "polygon" | "lineX" | "lineY" | "keep" | "clear")[];
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   brushLink?: number[] | "all" | "none";
   seriesIndex?: number[] | "all" | "none";
   geoIndex?: number[] | "all" | "none";
@@ -821,10 +1010,14 @@ export interface BrushOption {
   yAxisIndex?: number[] | "all" | "none";
   brushType?: "rect" | "polygon" | "lineX" | "lineY";
   brushMode?: "single" | "multiple";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   transformable?: boolean;
   brushStyle?: ItemStyleOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   throttleType?: "debounce" | "fixRate";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   throttleDelay?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   removeOnClick?: boolean;
   inBrush?: {
     color?: ThemeFamily[];
@@ -840,6 +1033,7 @@ export interface BrushOption {
 export interface DatasetOption {
   id?: string;
   source?: any[][] | Record<string, any[]> | Record<string, any>[];
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   dimensions?: (
     | string
     | {
@@ -852,12 +1046,14 @@ export interface DatasetOption {
   transform?: TransformOption[];
   fromDatasetIndex?: number;
   fromDatasetId?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   fromTransformResult?: number;
 }
 
 export interface TransformOption {
   type: "filter" | "sort" | string;
   config?: Record<string, any>;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   print?: boolean;
 }
 
@@ -869,8 +1065,10 @@ export interface EncodeOption {
   angle?: string | number;
   value?: string | number;
   seriesName?: string | number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   itemId?: string | number;
   itemName?: string | number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   itemGroupId?: string | number;
   tooltip?: string | number | (string | number)[];
 }
@@ -890,6 +1088,7 @@ export interface LineSeriesOption {
   coordinateSystem?: "cartesian2d" | "polar";
   xAxisIndex?: number;
   yAxisIndex?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   polarIndex?: number;
   symbol?: SymbolType;
   symbolSize?:
@@ -897,20 +1096,27 @@ export interface LineSeriesOption {
     | [number, number]
     | ((value: any, params: any) => number);
   symbolRotate?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   symbolKeepAspect?: boolean;
   symbolOffset?: [number | string, number | string];
   showSymbol?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   showAllSymbol?: boolean | "auto";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   hoverAnimation?: boolean;
   legendHoverLink?: boolean;
   stack?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   stackStrategy?: "samesign" | "all" | "positive" | "negative";
   cursor?: string;
   connectNulls?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   clip?: boolean;
   step?: false | "start" | "middle" | "end";
   label?: LabelOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   endLabel?: LabelOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   labelLayout?: object;
   itemStyle?: ItemStyleOption;
   lineStyle?: LineStyleOption;
@@ -930,10 +1136,14 @@ export interface LineSeriesOption {
   };
   selectedMode?: boolean | "single" | "multiple" | "series";
   smooth?: boolean | number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   smoothMonotone?: "x" | "y" | "none";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   sampling?: "lttb" | "average" | "min" | "max" | "minmax" | "sum";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   dimensions?: string[];
   encode?: EncodeOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   seriesLayoutBy?: "column" | "row";
   datasetIndex?: number;
   data?: (
@@ -956,12 +1166,19 @@ export interface LineSeriesOption {
   zlevel?: number;
   silent?: boolean;
   animation?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationThreshold?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDuration?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationEasing?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDelay?: number | ((index: number) => number);
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDurationUpdate?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationEasingUpdate?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDelayUpdate?: number | ((index: number) => number);
   color?: ThemeFamily;
 }
@@ -973,10 +1190,13 @@ export interface BarSeriesOption {
   coordinateSystem?: "cartesian2d" | "polar";
   xAxisIndex?: number;
   yAxisIndex?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   polarIndex?: number;
   legendHoverLink?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   coordinateSystemIndex?: number;
   label?: LabelOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   labelLayout?: object;
   itemStyle?: ItemStyleOption;
   emphasis?: EmphasisOption;
@@ -984,22 +1204,29 @@ export interface BarSeriesOption {
   select?: { label?: LabelOption; itemStyle?: ItemStyleOption };
   selectedMode?: boolean | "single" | "multiple" | "series";
   stack?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   stackStrategy?: "samesign" | "all" | "positive" | "negative";
   cursor?: string;
   barWidth?: number | string;
   barMaxWidth?: number | string;
   barMinWidth?: number | string;
   barMinHeight?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   barMinAngle?: number;
   barGap?: string;
   barCategoryGap?: string;
   large?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   largeThreshold?: number;
   progressive?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   progressiveThreshold?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   progressiveChunkMode?: "mod" | "sequential";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   dimensions?: string[];
   encode?: EncodeOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   seriesLayoutBy?: "column" | "row";
   datasetIndex?: number;
   data?: (
@@ -1015,9 +1242,13 @@ export interface BarSeriesOption {
         emphasis?: EmphasisOption;
       }
   )[];
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   clip?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   realtimeSort?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   showBackground?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   backgroundStyle?: ItemStyleOption & {
     borderRadius?: number | [number, number, number, number];
   };
@@ -1028,14 +1259,22 @@ export interface BarSeriesOption {
   zlevel?: number;
   silent?: boolean;
   animation?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationThreshold?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDuration?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationEasing?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDelay?: number | ((index: number) => number);
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDurationUpdate?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationEasingUpdate?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDelayUpdate?: number | ((index: number) => number);
   color?: ThemeFamily;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   borderRadius?: number | [number, number, number, number];
 }
 
@@ -1044,10 +1283,14 @@ export interface PieDataItem {
   value: number;
   selected?: boolean;
   label?: LabelOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   labelLine?: LabelLineOption;
   itemStyle?: ItemStyleOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   emphasis?: EmphasisOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   blur?: { label?: LabelOption; itemStyle?: ItemStyleOption };
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   select?: { label?: LabelOption; itemStyle?: ItemStyleOption };
   tooltip?: TooltipOption;
 }
@@ -1063,24 +1306,33 @@ export interface PieSeriesOption {
   selectedOffset?: number;
   clockwise?: boolean;
   startAngle?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   minAngle?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   minShowLabelAngle?: number;
   roseType?: false | "radius" | "area";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   avoidLabelOverlap?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   stillShowZeroSum?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   percentPrecision?: number;
   cursor?: string;
   center?: [string | number, string | number];
   radius?: string | number | [string | number, string | number];
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   dimensions?: string[];
   encode?: EncodeOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   seriesLayoutBy?: "column" | "row";
   datasetIndex?: number;
   data?: PieDataItem[];
   label?: LabelOption & {
     position?: "outside" | "inside" | "inner" | "center";
   };
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   labelLine?: LabelLineOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   labelLayout?: object;
   itemStyle?: ItemStyleOption;
   emphasis?: EmphasisOption;
@@ -1093,14 +1345,22 @@ export interface PieSeriesOption {
   zlevel?: number;
   silent?: boolean;
   animation?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationThreshold?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDuration?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationEasing?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDelay?: number | ((index: number) => number);
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDurationUpdate?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationEasingUpdate?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDelayUpdate?: number | ((index: number) => number);
   color?: ThemeFamily[];
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   borderRadius?: number | [number, number, number, number];
 }
 
@@ -1111,6 +1371,7 @@ export interface ScatterSeriesOption {
   coordinateSystem?: "cartesian2d" | "polar" | "geo";
   xAxisIndex?: number;
   yAxisIndex?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   polarIndex?: number;
   geoIndex?: number;
   legendHoverLink?: boolean;
@@ -1120,12 +1381,15 @@ export interface ScatterSeriesOption {
     | [number, number]
     | ((value: any, params: any) => number);
   symbolRotate?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   symbolKeepAspect?: boolean;
   symbolOffset?: [number | string, number | string];
   large?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   largeThreshold?: number;
   cursor?: string;
   label?: LabelOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   labelLayout?: object;
   itemStyle?: ItemStyleOption;
   emphasis?: EmphasisOption;
@@ -1133,10 +1397,14 @@ export interface ScatterSeriesOption {
   select?: { label?: LabelOption; itemStyle?: ItemStyleOption };
   selectedMode?: boolean | "single" | "multiple" | "series";
   progressive?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   progressiveThreshold?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   progressiveChunkMode?: "mod" | "sequential";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   dimensions?: string[];
   encode?: EncodeOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   seriesLayoutBy?: "column" | "row";
   datasetIndex?: number;
   data?: (
@@ -1161,16 +1429,21 @@ export interface ScatterSeriesOption {
   zlevel?: number;
   silent?: boolean;
   animation?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationThreshold?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDuration?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationEasing?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDelay?: number | ((index: number) => number);
   color?: ThemeFamily;
 }
 
 export interface RadarIndicator {
   name?: string;
-  max: number;
+  /** Axis maximum. Derived from the series data when omitted (ECharts does the same). */
+  max?: number;
   min?: number;
   color?: ThemeFamily;
 }
@@ -1182,6 +1455,7 @@ export interface RadarOption {
   center?: [string | number, string | number];
   radius?: string | number | [string | number, string | number];
   startAngle?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   axisName?: {
     show?: boolean;
     formatter?: string | ((name: string) => string);
@@ -1192,16 +1466,19 @@ export interface RadarOption {
     borderRadius?: number;
     padding?: number | [number, number];
   };
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   nameGap?: number;
   splitNumber?: number;
   shape?: "polygon" | "circle";
   scale?: boolean;
   silent?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   triggerEvent?: boolean;
   axisLine?: AxisLineOption;
   axisTick?: AxisTickOption;
   axisLabel?: AxisLabelOption;
   splitLine?: SplitLineOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   splitArea?: SplitAreaOption;
   indicator: RadarIndicator[];
 }
@@ -1214,9 +1491,11 @@ export interface RadarSeriesOption {
   symbol?: SymbolType;
   symbolSize?: number | [number, number];
   symbolRotate?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   symbolKeepAspect?: boolean;
   legendHoverLink?: boolean;
   label?: LabelOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   labelLayout?: object;
   itemStyle?: ItemStyleOption;
   lineStyle?: LineStyleOption;
@@ -1250,8 +1529,11 @@ export interface RadarSeriesOption {
   zlevel?: number;
   silent?: boolean;
   animation?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDuration?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationEasing?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDelay?: number | ((index: number) => number);
   color?: ThemeFamily;
 }
@@ -1265,12 +1547,18 @@ export interface HeatmapSeriesOption {
   yAxisIndex?: number;
   geoIndex?: number;
   calendarIndex?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   blurSize?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   pointSize?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   maxOpacity?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   minOpacity?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   dimensions?: string[];
   encode?: EncodeOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   seriesLayoutBy?: "column" | "row";
   datasetIndex?: number;
   data?: [number, number, number][];
@@ -1278,6 +1566,7 @@ export interface HeatmapSeriesOption {
   itemStyle?: ItemStyleOption;
   emphasis?: EmphasisOption;
   progressive?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   progressiveThreshold?: number;
   markPoint?: MarkPointOption;
   markLine?: MarkLineOption;
@@ -1314,12 +1603,17 @@ export interface CandlestickSeriesOption {
   select?: { itemStyle?: object };
   selectedMode?: boolean | "single" | "multiple" | "series";
   large?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   largeThreshold?: number;
   progressive?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   progressiveThreshold?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   progressiveChunkMode?: "mod" | "sequential";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   dimensions?: string[];
   encode?: EncodeOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   seriesLayoutBy?: "column" | "row";
   datasetIndex?: number;
   data?:
@@ -1328,20 +1622,29 @@ export interface CandlestickSeriesOption {
   markPoint?: MarkPointOption;
   markLine?: MarkLineOption;
   markArea?: MarkAreaOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   clip?: boolean;
   z?: number;
   zlevel?: number;
   silent?: boolean;
   animation?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDuration?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationEasing?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDelay?: number | ((index: number) => number);
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDurationUpdate?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationEasingUpdate?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDelayUpdate?: number | ((index: number) => number);
   upColor?: ThemeFamily;
   downColor?: ThemeFamily;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   upBorderColor?: ThemeFamily;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   downBorderColor?: ThemeFamily;
 }
 
@@ -1354,14 +1657,17 @@ export interface BoxplotSeriesOption {
   yAxisIndex?: number;
   legendHoverLink?: boolean;
   layout?: "horizontal" | "vertical";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   boxWidth?: [number | string, number | string];
   itemStyle?: ItemStyleOption;
   emphasis?: EmphasisOption;
   blur?: { itemStyle?: ItemStyleOption };
   select?: { itemStyle?: ItemStyleOption };
   selectedMode?: boolean | "single" | "multiple" | "series";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   dimensions?: string[];
   encode?: EncodeOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   seriesLayoutBy?: "column" | "row";
   datasetIndex?: number;
   data?:
@@ -1378,8 +1684,11 @@ export interface BoxplotSeriesOption {
   zlevel?: number;
   silent?: boolean;
   animation?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDuration?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationEasing?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDelay?: number | ((index: number) => number);
   color?: ThemeFamily;
 }
@@ -1455,6 +1764,7 @@ export interface GaugeSeriesOption {
     keepAspect?: boolean;
     itemStyle?: ItemStyleOption;
   };
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   anchor?: {
     show?: boolean;
     showAbove?: boolean;
@@ -1497,27 +1807,42 @@ export interface GaugeSeriesOption {
   zlevel?: number;
   silent?: boolean;
   animation?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDuration?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationEasing?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDelay?: number | ((index: number) => number);
   color?: ThemeFamily;
 }
 
 export interface TreemapLevelOption {
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   visualDimension?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   visualMin?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   visualMax?: number;
   color?: ThemeFamily[];
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   colorAlpha?: [number, number];
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   colorSaturation?: number | [number, number];
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   colorMappingBy?: "value" | "index" | "id";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   visibleMin?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   childrenVisibleMin?: number;
   label?: LabelOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   upperLabel?: LabelOption;
   itemStyle?: ItemStyleOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   emphasis?: EmphasisOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   blur?: object;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   select?: object;
 }
 
@@ -1525,15 +1850,22 @@ export interface TreemapDataItem {
   id?: string;
   name?: string;
   value: number | number[];
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   groupId?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   childGroupId?: string;
   children?: TreemapDataItem[];
   label?: LabelOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   upperLabel?: LabelOption;
   itemStyle?: ItemStyleOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   emphasis?: EmphasisOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   blur?: object;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   select?: object;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   link?: string;
   target?: "self" | "blank";
   color?: ThemeFamily;
@@ -1551,28 +1883,48 @@ export interface TreemapSeriesOption {
   bottom?: string | number;
   width?: string | number;
   height?: string | number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   squareRatio?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   leafDepth?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   drillDownIcon?: string;
   roam?: boolean | "scale" | "move";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   nodeClick?: false | "zoomToNode" | "link";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   zoomToNodeRatio?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   universalTransition?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   visualDimension?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   visualMin?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   visualMax?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   colorAlpha?: [number, number];
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   colorSaturation?: number | [number, number];
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   colorMappingBy?: "value" | "index" | "id";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   visibleMin?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   childrenVisibleMin?: number;
   label?: LabelOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   upperLabel?: LabelOption;
   itemStyle?: ItemStyleOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   emphasis?: EmphasisOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   blur?: object;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   select?: object;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   selectedMode?: boolean | "single" | "multiple";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   breadcrumb?: {
     show?: boolean;
     left?: string | number;
@@ -1584,15 +1936,22 @@ export interface TreemapSeriesOption {
     itemStyle?: ItemStyleOption;
     emphasis?: EmphasisOption;
   };
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   levels?: TreemapLevelOption[];
   data?: TreemapDataItem[];
   silent?: boolean;
   animation?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDuration?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationEasing?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDelay?: number | ((index: number) => number);
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDurationUpdate?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationEasingUpdate?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDelayUpdate?: number | ((index: number) => number);
   color?: ThemeFamily[];
 }
@@ -1601,10 +1960,14 @@ export interface FunnelDataItem {
   name?: string;
   value: number;
   label?: LabelOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   labelLine?: LabelLineOption;
   itemStyle?: ItemStyleOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   emphasis?: EmphasisOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   blur?: { label?: LabelOption; itemStyle?: ItemStyleOption };
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   select?: { label?: LabelOption; itemStyle?: ItemStyleOption };
   color?: ThemeFamily;
 }
@@ -1615,7 +1978,9 @@ export interface FunnelSeriesOption {
   name?: string;
   min?: number;
   max?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   minSize?: string | number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   maxSize?: string | number;
   orient?: OrientType;
   sort?:
@@ -1625,6 +1990,7 @@ export interface FunnelSeriesOption {
     | ((a: FunnelDataItem, b: FunnelDataItem) => number);
   gap?: number;
   legendHoverLink?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   funnelAlign?: "left" | "right" | "center";
   left?: string | number;
   top?: string | number;
@@ -1644,6 +2010,7 @@ export interface FunnelSeriesOption {
       | "insideRight"
       | "insideLeft";
   };
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   labelLine?: LabelLineOption;
   itemStyle?: ItemStyleOption;
   emphasis?: EmphasisOption;
@@ -1658,11 +2025,17 @@ export interface FunnelSeriesOption {
   zlevel?: number;
   silent?: boolean;
   animation?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDuration?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationEasing?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDelay?: number | ((index: number) => number);
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDurationUpdate?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationEasingUpdate?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDelayUpdate?: number | ((index: number) => number);
   color?: ThemeFamily[];
 }
@@ -1674,9 +2047,13 @@ export interface SankeyNode {
   depth?: number;
   itemStyle?: ItemStyleOption;
   label?: LabelOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   emphasis?: EmphasisOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   blur?: { label?: LabelOption; itemStyle?: ItemStyleOption };
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   select?: { label?: LabelOption; itemStyle?: ItemStyleOption };
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   focusNodeAdjacency?: boolean;
   color?: ThemeFamily;
 }
@@ -1686,9 +2063,13 @@ export interface SankeyLink {
   target: string;
   value: number;
   lineStyle?: LineStyleOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   emphasis?: EmphasisOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   blur?: { lineStyle?: LineStyleOption };
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   select?: { lineStyle?: LineStyleOption };
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   focusNodeAdjacency?: boolean;
 }
 
@@ -1706,26 +2087,34 @@ export interface SankeySeriesOption {
   height?: string | number;
   nodeWidth?: number;
   nodeGap?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   nodeAlign?: "justify" | "left" | "right";
   orient?: OrientType;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   draggable?: boolean;
   layoutIterations?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   selectedMode?: boolean | "single" | "multiple" | "series";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   levels?: object[];
   label?: LabelOption;
   itemStyle?: ItemStyleOption;
   lineStyle?: LineStyleOption & { curveness?: number };
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   emphasis?: EmphasisOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   blur?: {
     label?: LabelOption;
     itemStyle?: ItemStyleOption;
     lineStyle?: LineStyleOption;
   };
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   select?: {
     label?: LabelOption;
     itemStyle?: ItemStyleOption;
     lineStyle?: LineStyleOption;
   };
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   focusNodeAdjacency?: boolean | "allEdges" | "outEdges" | "inEdges";
   data?: SankeyNode[];
   nodes?: SankeyNode[];
@@ -1733,11 +2122,17 @@ export interface SankeySeriesOption {
   edges?: SankeyLink[];
   silent?: boolean;
   animation?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDuration?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationEasing?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDelay?: number | ((index: number) => number);
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDurationUpdate?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationEasingUpdate?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDelayUpdate?: number | ((index: number) => number);
   color?: ThemeFamily[];
 }
@@ -1751,12 +2146,16 @@ export interface GraphNode {
   category?: number;
   symbol?: SymbolType;
   symbolSize?: number | [number, number];
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   draggable?: boolean;
   cursor?: string;
   label?: LabelOption;
   itemStyle?: ItemStyleOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   emphasis?: EmphasisOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   blur?: { label?: LabelOption; itemStyle?: ItemStyleOption };
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   select?: { label?: LabelOption; itemStyle?: ItemStyleOption };
   tooltip?: TooltipOption;
   color?: ThemeFamily;
@@ -1769,11 +2168,15 @@ export interface GraphLink {
   value?: number;
   lineStyle?: LineStyleOption;
   label?: LabelOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   emphasis?: EmphasisOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   blur?: { lineStyle?: LineStyleOption; label?: LabelOption };
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   select?: { lineStyle?: LineStyleOption; label?: LabelOption };
   symbol?: SymbolType | [SymbolType, SymbolType];
   symbolSize?: number | [number, number];
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   ignoreForceLayout?: boolean;
 }
 
@@ -1783,8 +2186,11 @@ export interface GraphCategory {
   symbolSize?: number | [number, number];
   label?: LabelOption;
   itemStyle?: ItemStyleOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   emphasis?: EmphasisOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   blur?: { label?: LabelOption; itemStyle?: ItemStyleOption };
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   select?: { label?: LabelOption; itemStyle?: ItemStyleOption };
   color?: ThemeFamily;
 }
@@ -1793,16 +2199,19 @@ export interface GraphSeriesOption {
   type: "graph";
   id?: string;
   name?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   legendHoverLink?: boolean;
   coordinateSystem?: "none" | "cartesian2d" | "polar" | "geo";
   xAxisIndex?: number;
   yAxisIndex?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   polarIndex?: number;
   geoIndex?: number;
   calendarIndex?: number;
   center?: [string | number, string | number];
   zoom?: number;
   layout?: "none" | "circular" | "force";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   circular?: { rotateLabel?: boolean };
   force?: {
     initLayout?: "circular" | "none";
@@ -1813,32 +2222,41 @@ export interface GraphSeriesOption {
     friction?: number;
   };
   roam?: boolean | "scale" | "move";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   draggable?: boolean;
   edgeSymbol?: SymbolType | [SymbolType, SymbolType];
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   edgeSymbolSize?: number | [number, number];
   cursor?: string;
   itemStyle?: ItemStyleOption;
   lineStyle?: LineStyleOption;
   label?: LabelOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   edgeLabel?: LabelOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   labelLayout?: object;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   emphasis?: EmphasisOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   blur?: {
     itemStyle?: ItemStyleOption;
     lineStyle?: LineStyleOption;
     label?: LabelOption;
     edgeLabel?: LabelOption;
   };
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   select?: {
     itemStyle?: ItemStyleOption;
     lineStyle?: LineStyleOption;
     label?: LabelOption;
     edgeLabel?: LabelOption;
   };
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   selectedMode?: boolean | "single" | "multiple" | "series";
   symbol?: SymbolType;
   symbolSize?: number | [number, number];
   categories?: GraphCategory[];
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   autoCurveness?: boolean | number | number[];
   data?: GraphNode[];
   nodes?: GraphNode[];
@@ -1851,11 +2269,17 @@ export interface GraphSeriesOption {
   zlevel?: number;
   silent?: boolean;
   animation?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDuration?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationEasing?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDelay?: number | ((index: number) => number);
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDurationUpdate?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationEasingUpdate?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDelayUpdate?: number | ((index: number) => number);
   color?: ThemeFamily[];
 }
@@ -1878,8 +2302,10 @@ export interface CustomRenderParams {
     startAngle?: number;
     endAngle?: number;
   };
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   dataIndexInside: number;
   dataIndex: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   actionType?: string;
 }
 
@@ -1915,8 +2341,10 @@ export interface CustomElement {
   extra?: Record<string, any>;
   invisible?: boolean;
   ignore?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   textConfig?: object;
   textContent?: CustomElement;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   during?: (params: {
     setShape: (key: string, value: any) => void;
     setStyle: (key: string, value: any) => void;
@@ -1936,14 +2364,17 @@ export interface CustomSeriesOption {
   coordinateSystem?: "cartesian2d" | "polar" | "geo" | "none";
   xAxisIndex?: number;
   yAxisIndex?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   polarIndex?: number;
   geoIndex?: number;
   renderItem: (
     params: CustomRenderParams,
     api: CustomSeriesAPI,
   ) => CustomElement;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   dimensions?: string[];
   encode?: EncodeOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   seriesLayoutBy?: "column" | "row";
   datasetIndex?: number;
   data?: any[];
@@ -1951,9 +2382,18 @@ export interface CustomSeriesOption {
   zlevel?: number;
   silent?: boolean;
   animation?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDuration?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationEasing?: string;
   color?: ThemeFamily;
+  /**
+   * Only `emphasis.itemStyle` is read, by `api.styleEmphasis()` inside your
+   * own `renderItem` — there is no automatic per-datum hover detection for a
+   * custom series (unlike line/bar/scatter/pie), so nothing calls it for you.
+   * @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md
+   */
+  emphasis?: EmphasisOption;
 }
 
 // ─── Calendar ─────────────────────────────────────────────────────────────────
@@ -1994,6 +2434,7 @@ export interface ParallelOption {
 
 export interface ParallelAxisOption {
   dim: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   parallelIndex?: number;
   name?: string;
   type?: "value" | "category" | "time" | "log";
@@ -2010,6 +2451,7 @@ export interface ParallelSeriesOption {
   type: "parallel";
   id?: string;
   name?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   parallelIndex?: number;
   data?: number[][];
   lineStyle?: LineStyleOption;
@@ -2042,7 +2484,7 @@ export interface ThemeRiverSeriesOption {
 // ─── Geo / Map ────────────────────────────────────────────────────────────────
 export interface GeoRegion {
   name: string;
-  itemStyle?: ItemStyleOption;
+  itemStyle?: GeoItemStyleOption;
   label?: LabelOption;
   selected?: boolean;
   silent?: boolean;
@@ -2051,7 +2493,10 @@ export interface GeoRegion {
 export interface GeoOption {
   id?: string;
   map: string;
+  /** Pan/zoom with drag + wheel. `"scale"` = wheel only, `"move"` = drag only. */
   roam?: boolean | "scale" | "move";
+  /** Roam zoom bounds. Unbounded when omitted, as in ECharts. */
+  scaleLimit?: { min?: number; max?: number };
   center?: [number, number];
   zoom?: number;
   left?: string | number;
@@ -2060,7 +2505,7 @@ export interface GeoOption {
   bottom?: string | number;
   regions?: GeoRegion[];
   silent?: boolean;
-  itemStyle?: ItemStyleOption;
+  itemStyle?: GeoItemStyleOption;
   label?: LabelOption;
 }
 
@@ -2068,7 +2513,7 @@ export interface MapDataItem {
   name: string;
   value?: number;
   selected?: boolean;
-  itemStyle?: ItemStyleOption;
+  itemStyle?: GeoItemStyleOption;
   label?: LabelOption;
 }
 
@@ -2079,10 +2524,19 @@ export interface MapSeriesOption {
   map: string;
   data?: MapDataItem[];
   geoIndex?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   nameProperty?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   selectedMode?: boolean | "single" | "multiple";
+  /** Pan/zoom the map with drag + wheel. `"scale"` = wheel only, `"move"` = drag only. */
+  roam?: boolean | "scale" | "move";
+  /** Roam zoom bounds. Unbounded when omitted, as in ECharts. */
+  scaleLimit?: { min?: number; max?: number };
+  center?: [number, number];
+  zoom?: number;
   label?: LabelOption;
-  itemStyle?: ItemStyleOption;
+  itemStyle?: GeoItemStyleOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   emphasis?: EmphasisOption;
   color?: ThemeFamily[];
   left?: string | number;
@@ -2097,8 +2551,11 @@ export interface MapSeriesOption {
 // ─── 3D ──────────────────────────────────────────────────────────────────────
 export interface Grid3DOption {
   id?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   boxWidth?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   boxHeight?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   boxDepth?: number;
   viewControl?: {
     projection?: "perspective" | "orthographic";
@@ -2138,6 +2595,9 @@ export interface Scatter3DSeriesOption {
   )[];
   symbolSize?: number;
   color?: ThemeFamily;
+  itemStyle?: ItemStyleOption;
+  label?: LabelOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   grid3DIndex?: number;
   z?: number;
   zlevel?: number;
@@ -2154,6 +2614,14 @@ export interface Bar3DSeriesOption {
   )[];
   barSize?: number;
   color?: ThemeFamily;
+  itemStyle?: ItemStyleOption;
+  label?: LabelOption;
+  /**
+   * `"color"` (default) paints every face the flat series color; `"lambert"`
+   * shades each face by its angle to a fixed light, as ECharts-GL does.
+   */
+  shading?: "color" | "lambert";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   grid3DIndex?: number;
   z?: number;
   zlevel?: number;
@@ -2167,6 +2635,8 @@ export interface Line3DSeriesOption {
   data?: ([number, number, number] | { value: [number, number, number] })[];
   lineWidth?: number;
   color?: ThemeFamily;
+  lineStyle?: LineStyleOption;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   grid3DIndex?: number;
   z?: number;
   zlevel?: number;
@@ -2185,7 +2655,11 @@ export interface Surface3DSeriesOption {
   shapeH?: number;
   // Color mapped by z-value. Uses visualMap if present, otherwise theme gradient.
   color?: ThemeFamily;
+  itemStyle?: ItemStyleOption;
+  /** `"lambert"` shades each quad by its normal; `"color"` (default) is flat. */
+  shading?: "color" | "lambert";
   wireframe?: { show?: boolean; lineStyle?: LineStyleOption };
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   grid3DIndex?: number;
   z?: number;
   zlevel?: number;
@@ -2242,8 +2716,11 @@ export interface EffectScatterSeriesOption {
     scale?: number;
     brushType?: "fill" | "stroke";
   };
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   showEffectOn?: "render" | "emphasis";
   color?: ThemeFamily;
+  itemStyle?: ItemStyleOption;
+  label?: LabelOption;
   z?: number;
   zlevel?: number;
   silent?: boolean;
@@ -2266,9 +2743,15 @@ export interface PictorialBarSeriesOption {
   symbolOffset?: [string | number, string | number];
   symbolRotate?: number;
   symbolClip?: boolean;
+  /** Gap between repeated symbols: px, or a percentage of the symbol size. */
+  symbolMargin?: number | string;
   barWidth?: number | string;
+  barMaxWidth?: number | string;
+  barMinWidth?: number | string;
   barGap?: string;
   barCategoryGap?: string;
+  /** `"series"` (default) colors every item by series; `"data"` walks the palette per item. */
+  colorBy?: "series" | "data";
   color?: ThemeFamily;
   label?: LabelOption;
   itemStyle?: ItemStyleOption;
@@ -2311,7 +2794,9 @@ export interface ChartOption {
   xAxis?: AxisOption | AxisOption[];
   yAxis?: AxisOption | AxisOption[];
   polar?: PolarOption | PolarOption[];
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   radiusAxis?: RadiusAxisOption | RadiusAxisOption[];
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   angleAxis?: AngleAxisOption | AngleAxisOption[];
   radar?: RadarOption | RadarOption[];
   dataset?: DatasetOption | DatasetOption[];
@@ -2330,17 +2815,28 @@ export interface ChartOption {
   visualMap?: VisualMapOption | VisualMapOption[];
   brush?: BrushOption;
   animation?: boolean;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationThreshold?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDuration?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationEasing?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDelay?: number | ((index: number, type: string) => number);
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDurationUpdate?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationEasingUpdate?: string;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   animationDelayUpdate?: number | ((index: number, type: string) => number);
   progressive?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   progressiveThreshold?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   blendMode?: "source-over" | "lighter";
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   hoverLayerThreshold?: number;
+  /** @deprecated Not implemented by @domphy/chart — ignored. See docs/chart/vs-echarts.md */
   useUTC?: boolean;
 }
 

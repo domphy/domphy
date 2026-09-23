@@ -1,5 +1,6 @@
 import { ElementNode, merge, type PartialElement, toState } from "@domphy/core";
 import { themeColor, themeSpacing } from "@domphy/theme";
+import { horizontalArrowStep } from "../utils/direction.js";
 import { focusRing } from "../utils/focusRing.js";
 
 /**
@@ -107,14 +108,21 @@ function splitterPanel(): PartialElement {
  * appropriate resize cursor, and updates the context `size` state (clamped to `min`/`max`)
  * via mouse drag or keyboard: Arrow keys move by 1%, Home/End jump to min/max, hold Shift
  * for 10× step. Sets `role="separator"`, `tabindex="0"`, and `aria-value*` attributes.
- * Warns if used outside a `splitter`. Takes no props.
+ * Warns if used outside a `splitter`. Drag works with mouse, pen and touch
+ * (Pointer Events).
  *
+ * @param props.label - Accessible name for the separator (WCAG 4.1.2 — a
+ *   focusable `role="separator"` with `aria-value*` is a widget and needs a
+ *   name). Defaults to `"Resize"`. A native `ariaLabel`/`ariaLabelledby` on
+ *   the host element wins.
  * @example { div: null, $: [splitterHandle()] }
  */
-function splitterHandle(): PartialElement {
+function splitterHandle(props: { label?: string } = {}): PartialElement {
+  const { label = "Resize" } = props;
   return {
     role: "separator",
     tabindex: 0,
+    ariaLabel: label,
     _onMount: (node) => {
       const ctx = node.getContext("splitter");
       if (!ctx) {
@@ -141,10 +149,16 @@ function splitterHandle(): PartialElement {
         const step = e.shiftKey ? 10 : 1;
         let next: number | null = null;
         if (isHorizontal) {
-          if (e.key === "ArrowRight")
-            next = Math.min(ctx.size.get() + step, ctx.max);
-          else if (e.key === "ArrowLeft")
-            next = Math.max(ctx.size.get() - step, ctx.min);
+          // Move the divider toward the physically-pressed arrow: the
+          // first panel's share grows when that moves the divider right in
+          // LTR, or left in RTL (both panels are laid out with `flexDirection:
+          // row`, which itself flips source order under RTL).
+          const dir = horizontalArrowStep(e.key, handle);
+          if (dir !== 0)
+            next = Math.min(
+              Math.max(ctx.size.get() + dir * step, ctx.min),
+              ctx.max,
+            );
         } else {
           if (e.key === "ArrowDown")
             next = Math.min(ctx.size.get() + step, ctx.max);
@@ -161,41 +175,55 @@ function splitterHandle(): PartialElement {
 
       let cancelDrag: (() => void) | null = null;
 
-      const onMousedown = (e: MouseEvent) => {
+      // Pointer Events, not mouse events: a touch drag never fires
+      // mousemove/mouseup, so the handle was mouse-and-pen only — every peer
+      // resizable splitter (react-resizable-panels, MUI, Mantine) drags on
+      // touch. `touch-action: none` (set in the style block) is required or
+      // the browser claims the gesture for scrolling and fires pointercancel.
+      const onPointerdown = (e: PointerEvent) => {
         e.preventDefault();
         const container = handle.parentElement!;
+        handle.setPointerCapture?.(e.pointerId);
 
-        const onMousemove = (e: MouseEvent) => {
+        const onPointermove = (move: PointerEvent) => {
+          if (move.pointerId !== e.pointerId) return;
           const rect = container.getBoundingClientRect();
           const raw = isHorizontal
-            ? ((e.clientX - rect.left) / rect.width) * 100
-            : ((e.clientY - rect.top) / rect.height) * 100;
+            ? ((move.clientX - rect.left) / rect.width) * 100
+            : ((move.clientY - rect.top) / rect.height) * 100;
           ctx.size.set(Math.min(Math.max(raw, ctx.min), ctx.max));
         };
 
-        const onMouseup = () => {
-          document.removeEventListener("mousemove", onMousemove);
-          document.removeEventListener("mouseup", onMouseup);
-          cancelDrag = null;
-        };
-
         cancelDrag = () => {
-          document.removeEventListener("mousemove", onMousemove);
-          document.removeEventListener("mouseup", onMouseup);
+          document.removeEventListener("pointermove", onPointermove);
+          document.removeEventListener("pointerup", onPointerup);
+          document.removeEventListener("pointercancel", onPointerup);
           cancelDrag = null;
+          // releasePointerCapture throws NotFoundError once the pointer is no
+          // longer active — which is exactly the pointercancel path. Ask
+          // first, and only after the listeners are already detached so a
+          // throw could not leak them or strand `cancelDrag`.
+          if (handle.hasPointerCapture?.(e.pointerId))
+            handle.releasePointerCapture(e.pointerId);
         };
 
-        document.addEventListener("mousemove", onMousemove);
-        document.addEventListener("mouseup", onMouseup);
+        function onPointerup(up: PointerEvent) {
+          if (up.pointerId !== e.pointerId) return;
+          cancelDrag?.();
+        }
+
+        document.addEventListener("pointermove", onPointermove);
+        document.addEventListener("pointerup", onPointerup);
+        document.addEventListener("pointercancel", onPointerup);
       };
 
       handle.addEventListener("keydown", onKeydown);
-      handle.addEventListener("mousedown", onMousedown);
+      handle.addEventListener("pointerdown", onPointerdown);
       node.addHook("Remove", () => {
         cancelDrag?.();
         releaseAriaValue();
         handle.removeEventListener("keydown", onKeydown);
-        handle.removeEventListener("mousedown", onMousedown);
+        handle.removeEventListener("pointerdown", onPointerdown);
       });
     },
     // Soft divider surface — shift via dataTone, paint with inherit.
@@ -205,6 +233,9 @@ function splitterHandle(): PartialElement {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
+      // Hand the drag gesture to the pointer handler instead of the browser's
+      // scroller — without this a touch drag is swallowed by panning.
+      touchAction: "none",
       backgroundColor: (listener) => themeColor(listener, "inherit"),
       color: (listener) => themeColor(listener, "text"),
       "&:hover": {

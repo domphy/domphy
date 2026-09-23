@@ -130,6 +130,18 @@ describe("buildHref", () => {
     );
   });
 
+  // RFC 3986 2.1: '%' must introduce two hex digits. An undecodable segment
+  // cannot equal any literal, so it must miss every route rather than throw a
+  // URIError out of the matcher (which crashed renderToStream).
+  it("misses every route on an invalid percent-escape (RFC 3986 2.1)", () => {
+    const compiled = compileRoutes([
+      { path: "/", children: [{ path: "[slug]", page: () => ({ div: "" }) }] },
+    ] as Route[]);
+    expect(matchRoute(compiled, "/ok")).not.toBeNull();
+    expect(matchRoute(compiled, "/%")).toBeNull();
+    expect(matchRoute(compiled, "/%E0%A4%A")).toBeNull();
+  });
+
   it("throws on missing params", () => {
     expect(() => buildHref("/blog/[slug]", {})).toThrow();
   });

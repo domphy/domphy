@@ -15,7 +15,13 @@ import type { ChartOption, TooltipParams } from "@domphy/chart";
 import { chart } from "@domphy/chart";
 import type { DomphyElement, ElementNode, Listener } from "@domphy/core";
 import { behavior, toState } from "@domphy/core";
-import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import {
+  type ThemeColor,
+  themeColor,
+  themeSize,
+  themeSpacing,
+  themeWeight,
+} from "@domphy/theme";
 import { card, heading, paragraph, small } from "@domphy/ui";
 import {
   chartLineSeriesColor,
@@ -226,18 +232,20 @@ function chartLineInteractive(
           },
         } as DomphyElement<"small">,
         // Upstream: bold `text-lg` scaling to `sm:text-3xl` with `leading-none`
-        // and no margin — a prominent stat number, not a heading. Rendered as a
-        // plain bold span (function-form typography per the doctor's
-        // inline-typography rule) so it carries neither heading()'s smaller
-        // increase-1 size nor its margin-bottom.
+        // and no margin — a prominent stat number, not a heading. A plain
+        // <span> so it carries neither heading()'s own size step nor its
+        // margin-bottom; both sizes come off the theme's 8-step scale, which
+        // lands within 2px of upstream: text-lg 1.125rem -> increase-1
+        // (1.25rem), sm:text-3xl 1.875rem -> increase-3 (1.9375rem).
         {
           span: totals[key].toLocaleString("en-US"),
           style: {
-            fontWeight: () => "700",
-            lineHeight: () => "1",
-            fontSize: () => "1.125rem",
+            fontWeight: themeWeight("bold"),
+            lineHeight: 1,
+            fontSize: (listener: Listener) => themeSize(listener, "increase-1"),
             "@media (min-width: 640px)": {
-              fontSize: () => "1.875rem",
+              fontSize: (listener: Listener) =>
+                themeSize(listener, "increase-3"),
             },
           },
         } as DomphyElement<"span">,

@@ -18,8 +18,11 @@ import type {
   StyleObject,
 } from "@domphy/core";
 import { behavior, hashString, toState } from "@domphy/core";
-import { themeColor } from "@domphy/theme";
-import { fixed } from "../../shared/typography.js";
+import { themeColor, themeLetterSpacing } from "@domphy/theme";
+import {
+  prefersReducedMotion,
+  REDUCED_MOTION_PAUSE,
+} from "../reducedMotion.js";
 
 export type TypingCursorStyle = "line" | "block" | "underscore";
 export type TypingAnimationTag =
@@ -158,6 +161,17 @@ function attachTypingAnimation(
   };
 
   const begin = () => {
+    // WCAG 2.2.2: the typewriter reveal starts on its own and, with `loop`
+    // (or several phrases), types/deletes forever. Under reduce the first
+    // phrase is presented already complete and no timer is ever scheduled —
+    // the text is the content, so it has to be readable, just not typed out.
+    if (prefersReducedMotion()) {
+      displayed = props.phraseGraphemes[0].join("");
+      charIndex = props.phraseGraphemes[0].length;
+      revealedText.set(displayed);
+      cursorVisible.set(false);
+      return;
+    }
     scheduleTick();
   };
 
@@ -278,6 +292,14 @@ function cursorGlyph(
       animation: blink
         ? `${CURSOR_ANIMATION_NAME} 1.2s step-end infinite`
         : undefined,
+      // Needed even though `begin()`'s reduce branch hides the caret: with
+      // the default `startOnView`, `begin()` does not run until the block
+      // scrolls into view, so until then the caret blinks on forever. The CSS
+      // pause covers exactly that window and is a no-op afterwards (the glyph
+      // is `display: none` once `begin()` has set `cursorVisible` false).
+      // Measured: without it, an off-screen typingAnimation reports one
+      // running CSS animation under `prefers-reduced-motion: reduce`.
+      ...(blink ? REDUCED_MOTION_PAUSE : {}),
       [`@keyframes ${CURSOR_ANIMATION_NAME}`]: blink
         ? CURSOR_KEYFRAMES
         : undefined,
@@ -292,11 +314,16 @@ function cursorGlyph(
  * working demo.
  */
 function typingAnimation(props: TypingAnimationProps = {}): DomphyElement {
-  const phrases = props.text
+  const requestedPhrases = props.text
     ? Array.isArray(props.text)
       ? props.text
       : [props.text]
     : ["Build with Domphy.", "No JSX. No virtual DOM.", "Just plain objects."];
+  // `text: []` would leave `phraseGraphemes[0]` undefined, which the typing
+  // engine dereferences unconditionally (`graphemes.length` in `step`, and the
+  // reduced-motion branch of `begin`). One empty phrase types nothing and
+  // leaves the cursor blinking instead of throwing.
+  const phrases = requestedPhrases.length > 0 ? requestedPhrases : [""];
   const typingSpeed = props.typingSpeed ?? 100;
   const deletingSpeed =
     props.deletingSpeed ?? Math.max(1, Math.round(typingSpeed / 2));
@@ -342,11 +369,20 @@ function typingAnimation(props: TypingAnimationProps = {}): DomphyElement {
   const outer = {
     [wrapperTag]: outerChildren,
     style: {
-      // Upstream always applies `leading-20` (line-height 5rem) and
-      // `tracking-[-0.02em]`, plus `inline-block` only when `as === "span"`
-      // (block/inline tags keep their native display). Passthrough style wins.
-      lineHeight: fixed("5rem"),
-      letterSpacing: fixed("-0.02em"),
+      // Upstream pairs `leading-20` (5rem = 80px) with `text-4xl` (2.25rem =
+      // 36px) on the SAME element — a ratio of 2.22. This port never sets a
+      // font-size, so a literal 5rem leading was left unanchored: at the
+      // ambient 1rem it produced an 80px line box around 16px text (5x, a
+      // visible band of dead space, screenshotted before this change). The
+      // unitless multiplier reproduces upstream's ratio at every size —
+      // 2.2 x 2.25rem = 79.2px, within 1% of upstream's 80px where upstream's
+      // own size is used — and stays sane when the caller sizes it otherwise.
+      lineHeight: 2.2,
+      // Upstream's arbitrary `tracking-[-0.02em]` rounded onto the theme's
+      // nearest step, `tight` (-0.025em): 0.005em/character, i.e. 0.18px at
+      // upstream's own 2.25rem reference size — below the 1px the effect can
+      // paint, and worth it to keep the tracking themeable.
+      letterSpacing: themeLetterSpacing("tight"),
       ...(wrapperTag === "span" ? { display: "inline-block" } : {}),
       ...(props.style ?? {}),
     } as StyleObject,

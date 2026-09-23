@@ -52,11 +52,12 @@ export const DashboardRoute = createRoute({
 Preload a route's chunk before the user clicks — reduces perceived latency:
 
 ```ts
+import { linkProps } from "@domphy/router"
+
 const NavLink = (to: string, label: string) => ({
   a: label,
-  href: router.buildLocation({ to }).href,
-  onMouseenter: () => router.preloadRoute({ to }),   // fires on hover
-  onClick: (e: MouseEvent) => { e.preventDefault(); router.navigate({ to }) },
+  ...linkProps(router, { to }),
+  onMouseEnter: () => router.preloadRoute({ to }),   // fires on hover
 })
 ```
 
@@ -138,9 +139,9 @@ const LazyRoute = createRoute({
 })
 ```
 
-## Preload intent
+## Preload timing
 
-Use `router.preloadRoute()` with `intent: "hover"` | `"render"` to control when routes start loading:
+`router.preloadRoute(options)` takes navigate options only — *when* to call it is up to you. Hover is the common trigger (above); idle time is the other:
 
 ```ts
 // Preload on idle after initial render — good for "next likely page"
@@ -148,6 +149,8 @@ requestIdleCallback(() => {
   router.preloadRoute({ to: "/dashboard" })
 })
 ```
+
+Preload results land in the same match cache as a real navigation, aged by `defaultPreloadStaleTime` / `defaultPreloadGcTime` instead of `defaultStaleTime` / `defaultGcTime`.
 
 ## Critical path vs async chunks
 

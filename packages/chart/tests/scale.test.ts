@@ -69,7 +69,18 @@ describe("createLogScale", () => {
     expect(scale.base).toBe(2);
     expect(scale.map(1)).toBeCloseTo(0);
     expect(scale.map(8)).toBeCloseTo(300);
-    expect(scale.format(4)).toBe("2^2");
+  });
+
+  // ECharts labels a log axis with the tick's value (its log axis demo shows
+  // 1 / 10 / 100 / 1000), not with exponent notation.
+  it("ECharts semantics: labels a log tick with its value, including the intermediate 2/3/5 ticks", () => {
+    const scale = createLogScale([1, 10], [0, 300]);
+    expect(scale.format(1)).toBe("1");
+    expect(scale.format(10)).toBe("10");
+    // These used to round onto a neighbouring power and print "10^0"/"10^1".
+    expect(scale.format(2)).toBe("2");
+    expect(scale.format(5)).toBe("5");
+    expect(createLogScale([1, 8], [0, 300], 2).format(4)).toBe("4");
   });
 
   it("bandwidth is always zero (continuous scale)", () => {

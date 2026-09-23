@@ -248,6 +248,39 @@ export async function locate(page: Page, name: string) {
   return page.locator(`[data-block="${name}"]`);
 }
 
+/**
+ * Width of `locator` once its CSS transition has actually stopped.
+ *
+ * Every sidebar collapses with `transition: width …`, so a fixed
+ * `waitForTimeout(300)` after the toggle only leaves ~100ms of slack. On a
+ * loaded machine the read lands MID-ANIMATION and the check fails on a real,
+ * working sidebar (observed: sidebar02 reported 186.67px between its 256px
+ * expanded and 48px collapsed states, then passed on a quiet re-run). Poll
+ * until two consecutive samples report the same width instead of guessing a
+ * duration.
+ *
+ * The polling loop lives HERE, not inside `evaluate`: tsx/esbuild rewrites a
+ * named or assigned function in the evaluated body to call its `__name`
+ * helper, which does not exist in the page ("ReferenceError: __name is not
+ * defined"). Only inline arrow arguments survive the transform.
+ */
+const SETTLE_POLL_MS = 50;
+/** 3s cap — 15x the 0.2s width transition every sidebar uses. */
+const SETTLE_MAX_POLLS = 60;
+
+export async function settledWidth(locator: Locator): Promise<number> {
+  let previous = Number.NaN;
+  for (let attempt = 0; attempt < SETTLE_MAX_POLLS; attempt++) {
+    const width = await locator.evaluate(
+      (element) => element.getBoundingClientRect().width,
+    );
+    if (width === previous) return width;
+    previous = width;
+    await locator.page().waitForTimeout(SETTLE_POLL_MS);
+  }
+  return previous;
+}
+
 /** Screenshots exactly `locator`'s bounding box and returns the raw PNG bytes.
  * Used to prove a WebGL canvas (e.g. `globe`) actually re-rendered different
  * pixels after a drag/wheel interaction — NOT `canvas.toDataURL()` (unreliable

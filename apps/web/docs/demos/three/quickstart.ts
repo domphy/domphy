@@ -1,4 +1,5 @@
 import type { DomphyElement } from "@domphy/core";
+import { themeSpacing } from "@domphy/theme";
 import { three } from "@domphy/three";
 
 const App: DomphyElement<"div"> = {
@@ -6,7 +7,7 @@ const App: DomphyElement<"div"> = {
   style: {
     width: "100%",
     height: "420px",
-    borderRadius: "12px",
+    borderRadius: themeSpacing(3),
     overflow: "hidden",
   },
   $: [
@@ -16,7 +17,7 @@ const App: DomphyElement<"div"> = {
         {
           mesh: [
             { boxGeometry: null },
-            { meshStandardMaterial: { color: "orange" } },
+            { meshStandardMaterial: null, color: "orange" },
           ],
           // onFrame is the useFrame() analog: called every rendered frame
           // with (root, delta, self) — self is this node's THREE instance.

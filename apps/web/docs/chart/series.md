@@ -140,6 +140,8 @@ All bar options (stack, grouped, itemStyle, label) work the same way.
 { type: "pie", radius: ["35%", "60%"], data: [...] }
 ```
 
+Only positive finite values are summed (ECharts semantics): a `NaN`, `null`, zero or negative datum contributes nothing to the total and draws no slice, so the remaining slices still fill the circle.
+
 ---
 
 ## Radar
@@ -167,6 +169,8 @@ radar: {
   startAngle?: number,
 }
 ```
+
+`indicator[].max` is optional — when it is omitted the axis maximum is derived from that axis's values across the series data. A missing or `NaN` value sits at the indicator's minimum instead of erasing the polygon.
 
 ---
 
@@ -445,7 +449,7 @@ registerMap("world", worldGeoJSON)
 {
   geo: {
     map: "world",
-    roam: true,   // enable pan/zoom (not yet interactive — reserved for future)
+    roam: true,   // drag to pan, wheel to zoom
     zoom: 1.2,
     center: [0, 20],
   },
@@ -609,6 +613,20 @@ Scatter chart where each point has a ripple pulse animation. Good for highlighti
 }
 ```
 
+`itemStyle` (`color`/`opacity`/`borderColor`/`borderWidth`) and `label`
+(`show`/`formatter` with `{a}`/`{b}`/`{c}`, `position`, `fontSize`, `color`)
+are honored, so a geo point chart can name its points:
+
+```ts
+{
+  type: "effectScatter",
+  coordinateSystem: "geo",
+  itemStyle: { color: "attention" },
+  label: { show: true, formatter: "{b}", position: "right", fontSize: 11 },
+  data: [{ name: "Beijing", value: [116.4, 39.9, 20] }],
+}
+```
+
 ---
 
 ## PictorialBar
@@ -641,3 +659,75 @@ Bar chart where each bar is replaced by a repeating or scaled SVG symbol.
   data: [3, 5, 2, 4],
 }
 ```
+
+**Sizing, color and labels:**
+```ts
+{
+  type: "pictorialBar",
+  symbolRepeat: true,
+  symbolMargin: "20%",      // gap between repeated symbols: px or % of the symbol
+  barCategoryGap: "20%",    // symbol width = bandwidth * (1 - 20%) unless symbolSize wins
+  barMaxWidth: 40,          // clamp (barMinWidth / barWidth also honored)
+  colorBy: "data",          // one palette color per data item ("series" is the default)
+  itemStyle: { opacity: 0.9, borderColor: "border", borderWidth: 1 },
+  label: { show: true, position: "right", formatter: "{b}: {c}" },
+  data: [3, 5, 2, { value: 4, itemStyle: { color: "error" } }],
+}
+```
+
+## Custom series (`renderItem`)
+
+Draws whatever graphic your `renderItem(params, api)` callback returns, once
+per data item — the same escape hatch ECharts' `custom` series is, for a
+Gantt chart, a candlestick variant, or anything else no built-in series
+shape covers. Only `coordinateSystem: "cartesian2d"` (the default) and
+`"none"` are supported; `"polar"`/`"geo"` custom series are typed but not
+rendered (they warn instead).
+
+```ts
+{
+  xAxis: { type: "value" },
+  yAxis: { type: "category", data: ["Design", "Build", "Ship"] },
+  series: [{
+    type: "custom",
+    data: [
+      [0, 2, 10],  // [start, row, duration]
+      [10, 1, 15],
+      [25, 0, 8],
+    ],
+    renderItem: (params, api) => {
+      const start = api.value(0);
+      const row = api.value(1);
+      const duration = api.value(2);
+      const [x, y] = api.coord([start, row]);
+      const [width] = api.size([duration, 0], [start, row]);
+      return {
+        type: "rect",
+        shape: { x: 0, y: -8, width, height: 16 },
+        style: api.style(),      // itemStyle.color (data item > series > palette)
+      };
+    },
+    itemStyle: { color: "primary" },
+  }],
+}
+```
+
+`api` covers the common subset of ECharts' `CustomSeriesAPI`:
+
+| Method | Behavior |
+|---|---|
+| `value(dim, dataIndexInside?)` | The numeric value at a dimension (array data `[x, y, …]` or `{ value: […] }`) — always coerced to `number`. |
+| `ordinalRawValue(dim, dataIndexInside?)` | Same, but returns the category label (string) when that dimension's axis is a category axis. |
+| `coord([x, y])` | Maps a data-space point through the SAME x/y scales bar/line/scatter use. |
+| `size([dx, dy], dataItem?)` | The pixel-space delta for a data-space extent — `coord(base + [dx,dy]) - coord(base)`, correct for a category axis' bandwidth too. |
+| `style(extra?, dataIndexInside?)` / `styleEmphasis(extra?, …)` | `{ fill, stroke, lineWidth, opacity }` resolved from `itemStyle` (data item > series > palette); `styleEmphasis` additionally layers `series.emphasis.itemStyle` — nothing calls it automatically, there is no per-datum hover detection for a custom series. |
+| `visual("color" \| "opacity", dataIndexInside?)` | The resolved value for that one visual channel. |
+| `currentSeriesIndices()`, `font(opt)`, `getWidth()`, `getHeight()`, `getDevicePixelRatio()` | As documented by ECharts. `getZr()` returns an empty stub — there is no real zrender instance backing it. |
+
+The returned graphic element(s) support `type: "group" \| "rect" \| "circle"
+\| "polygon" \| "polyline" \| "line" \| "text"`, each with `shape`/`style`,
+plus `x`/`y`/`scaleX`/`scaleY`/`rotation`/`originX`/`originY` for
+positioning, `children` (for a group) and `textContent` (an attached label).
+`sector`/`arc`/`bezierCurve`/`image`/`path` shapes and the `during()`
+animation callback are typed but not rendered — see the inert-keys table in
+[vs ECharts](/docs/chart/vs-echarts).

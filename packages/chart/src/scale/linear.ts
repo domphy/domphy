@@ -34,7 +34,7 @@ function niceStep(roughStep: number): number {
   return 10 * magnitude;
 }
 
-function formatTick(value: number): string {
+export function formatTick(value: number): string {
   if (Math.abs(value) >= 1e6) return `${(value / 1e6).toPrecision(3)}M`;
   if (Math.abs(value) >= 1e3) return `${(value / 1e3).toPrecision(3)}K`;
   // Show enough decimals to distinguish neighboring ticks

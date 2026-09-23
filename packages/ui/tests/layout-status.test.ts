@@ -613,13 +613,29 @@ describe("rating", () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
-  it("sets role=group on the host", () => {
+  // WAI-ARIA APG Radio Group: a rating is a set of mutually exclusive
+  // choices, so the host is a radiogroup and each star a radio carrying
+  // aria-checked (role=group exposed no selected state at all).
+  it("sets role=radiogroup on the host with radio stars", () => {
     const { host } = render({
-      div: [{ div: null, $: [rating()] }],
+      div: [{ div: null, $: [rating({ value: 3 })] }],
     } as DomphyElement);
-    const ratingEl = host.querySelector("[role=group]");
+    const ratingEl = host.querySelector("[role=radiogroup]");
     expect(ratingEl).not.toBeNull();
     expect(ratingEl!.getAttribute("aria-label")).toBe("Rating");
+    const radios = Array.from(host.querySelectorAll("[role=radio]"));
+    expect(radios).toHaveLength(5);
+    expect(radios.map((el) => el.getAttribute("aria-checked"))).toEqual([
+      "false",
+      "false",
+      "true",
+      "false",
+      "false",
+    ]);
+    // Roving tabindex: exactly one star is in the tab order.
+    expect(
+      radios.filter((el) => el.getAttribute("tabindex") === "0"),
+    ).toHaveLength(1);
   });
 });
 
@@ -793,7 +809,7 @@ describe("formGroup", () => {
     render({
       div: [
         {
-          fieldset: [{ legend: "Profile" }, { label: "Name" }, { input: "" }],
+          fieldset: [{ legend: "Profile" }, { label: "Name" }, { input: null }],
           $: [formGroup()],
         },
       ],
@@ -806,7 +822,11 @@ describe("formGroup", () => {
     const { host } = render({
       div: [
         {
-          fieldset: [{ legend: "Profile" }, { label: "Email" }, { input: "" }],
+          fieldset: [
+            { legend: "Profile" },
+            { label: "Email" },
+            { input: null },
+          ],
           $: [formGroup()],
         },
       ],
@@ -820,7 +840,7 @@ describe("formGroup", () => {
       render({
         div: [
           {
-            fieldset: [{ legend: "G" }, { label: "L" }, { input: "" }],
+            fieldset: [{ legend: "G" }, { label: "L" }, { input: null }],
             $: [formGroup({ layout: "vertical" })],
           },
         ],

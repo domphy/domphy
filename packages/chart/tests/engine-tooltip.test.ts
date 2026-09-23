@@ -35,15 +35,15 @@ describe("ChartEngine tooltip listener lifecycle", () => {
 
     // Each rebind must remove its predecessor's listeners before adding new ones —
     // otherwise mousemove/mouseleave listener counts grow unboundedly.
-    expect(addSpy.get("mousemove")).toBe(5);
-    expect(removeSpy.get("mousemove")).toBe(4);
-    expect(addSpy.get("mouseleave")).toBe(5);
-    expect(removeSpy.get("mouseleave")).toBe(4);
+    expect(addSpy.get("pointermove")).toBe(5);
+    expect(removeSpy.get("pointermove")).toBe(4);
+    expect(addSpy.get("pointerleave")).toBe(5);
+    expect(removeSpy.get("pointerleave")).toBe(4);
 
     engine.destroy();
 
-    expect(removeSpy.get("mousemove")).toBe(5);
-    expect(removeSpy.get("mouseleave")).toBe(5);
+    expect(removeSpy.get("pointermove")).toBe(5);
+    expect(removeSpy.get("pointerleave")).toBe(5);
   });
 });
 

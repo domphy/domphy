@@ -604,13 +604,24 @@ describe("alert", () => {
 // ---------------------------------------------------------------------------
 
 describe("tooltip", () => {
-  it("adds aria-describedby to the trigger element", () => {
+  it("adds aria-describedby to the trigger element only while the tooltip is shown (Radix parity: no dangling reference to a closed panel)", () => {
+    vi.useFakeTimers();
     const { host } = render({
       div: [{ button: "Hover me", $: [tooltip({ content: "Help" })] }],
     } as DomphyElement);
-    const btn = host.querySelector("button");
+    const btn = host.querySelector("button")!;
+    expect(btn.getAttribute("aria-describedby")).toBeNull();
+
+    btn.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true }));
+    vi.advanceTimersByTime(150);
+    flushSync();
     // Deterministic id derived from the anchor's nodeId (no Math.random).
-    expect(btn?.getAttribute("aria-describedby")).toMatch(/^domphy-tooltip-/);
+    expect(btn.getAttribute("aria-describedby")).toMatch(/^domphy-tooltip-/);
+
+    btn.dispatchEvent(new MouseEvent("mouseleave", { bubbles: true }));
+    vi.advanceTimersByTime(150);
+    flushSync();
+    expect(btn.getAttribute("aria-describedby")).toBeNull();
   });
 
   it("does not throw when no content prop is given", () => {
@@ -628,7 +639,7 @@ describe("tooltip", () => {
     btn.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true }));
     vi.advanceTimersByTime(150);
     flushSync();
-    const floating = document.getElementById("domphy-floating");
+    const floating = document.querySelector("[data-domphy-floating]");
     expect(floating?.textContent).toContain("Tip text");
   });
 
@@ -654,7 +665,7 @@ describe("tooltip", () => {
     btn.dispatchEvent(new MouseEvent("mouseenter", { bubbles: true }));
     vi.advanceTimersByTime(150);
     flushSync();
-    const floating = document.getElementById("domphy-floating");
+    const floating = document.querySelector("[data-domphy-floating]");
     expect(floating?.querySelector("[role='tooltip']")).not.toBeNull();
   });
 });

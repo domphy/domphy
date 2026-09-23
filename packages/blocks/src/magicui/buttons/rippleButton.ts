@@ -87,16 +87,12 @@ function rippleButton(props: RippleButtonProps = {}): DomphyElement<"button"> {
   let rippleIdCounter = 0;
   let pendingTimers: ReturnType<typeof setTimeout>[] = [];
 
-  // `_doctorDisable` isn't part of core's strict `PartialElement` type — build through
-  // an untyped literal, then assert, so the excess-property check doesn't fire (mirrors
-  // `overlayCanvas` in confetti.ts).
   const rippleCircle = (ripple: RippleInstance): DomphyElement<"span"> =>
     ({
       span: null,
       _key: ripple.id,
       ariaHidden: "true",
       // Decorative wave with no text of its own — exempt from the missing-color contract.
-      _doctorDisable: "missing-color",
       style: {
         position: "absolute",
         left: `${ripple.x}px`,

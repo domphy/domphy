@@ -6,7 +6,6 @@
 
 import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { type ElementTone, themeColor } from "@domphy/theme";
-import { fixed } from "../../shared/typography.js";
 import { DEFAULT_DEVICE_SCREEN_SRC } from "./defaultScreen.js";
 
 export interface IphoneProps {
@@ -91,6 +90,8 @@ function frameGlyph(
       position: "absolute",
       zIndex: 1,
       color: (listener: Listener) => themeColor(listener, tone),
+      // Decorative device-chrome glyph, not a control.
+      pointerEvents: "none",
       ...position,
     } as StyleObject,
   };
@@ -234,8 +235,17 @@ function iphone(props: IphoneProps = {}): DomphyElement<"div"> {
       position: "relative",
       display: "inline-block",
       verticalAlign: "middle",
-      lineHeight: fixed(1),
-      width: "100%",
+      lineHeight: 1,
+      // The side buttons below sit at `-1%`, i.e. fully OUTSIDE this box, so
+      // the device's real occupied width is 102% of the frame. Upstream draws
+      // its buttons inside the 433-wide viewBox, so the device never paints
+      // past the width its container gave it; reserving that 1% per side as
+      // margin reproduces that without restructuring the frame, and keeps
+      // every inner percentage resolving against the same box as before.
+      // Measured: at a 375px container this removed 4px of horizontal page
+      // scroll (Chromium, `document.documentElement.scrollWidth` 379 -> 375).
+      width: "98%",
+      marginInline: "1%",
       aspectRatio: "433 / 882",
       borderRadius: "16.86% / 8.28%",
       backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),

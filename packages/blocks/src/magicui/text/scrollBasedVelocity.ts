@@ -261,6 +261,9 @@ function scrollBasedVelocity(
       let prefersReducedMotion = reducedMotionQuery?.matches ?? false;
       const handleReducedMotionChange = () => {
         prefersReducedMotion = reducedMotionQuery?.matches ?? false;
+        // Turning the preference back off re-arms the loop the reduce branch
+        // in `tick` stopped, so the marquee resumes without a remount.
+        if (!prefersReducedMotion) scheduleTick();
       };
       reducedMotionQuery?.addEventListener?.(
         "change",
@@ -330,11 +333,17 @@ function scrollBasedVelocity(
           MAX_VELOCITY_FACTOR,
           Math.abs(velocityFactor),
         );
-        // Bounded multiplicative speed-up (1x at rest → up to 6x). Reduced
-        // motion keeps the base marquee running but drops the acceleration.
-        const speedMultiplier = prefersReducedMotion
-          ? 1
-          : 1 + absVelocityFactor;
+        // Under `prefers-reduced-motion: reduce` the track is halted outright
+        // (WCAG 2.2.2 — the base marquee is auto-starting, infinite motion
+        // presented alongside other content) and the loop stops rather than
+        // integrating a scroll spring whose result is multiplied by zero
+        // every frame. The media-query listener above re-arms it.
+        if (prefersReducedMotion) {
+          animationFrameId = null;
+          return;
+        }
+        // Bounded multiplicative speed-up (1x at rest → up to 6x).
+        const speedMultiplier = 1 + absVelocityFactor;
 
         if (isTabVisible && isInViewport) {
           for (const runtime of runtimes) {
@@ -362,7 +371,14 @@ function scrollBasedVelocity(
 
         animationFrameId = window.requestAnimationFrame(tick);
       };
-      animationFrameId = window.requestAnimationFrame(tick);
+      const scheduleTick = () => {
+        if (animationFrameId !== null) return;
+        // Discard the timestamp from before the pause so the first resumed
+        // frame integrates a zero delta instead of the whole paused span.
+        lastTimestamp = null;
+        animationFrameId = window.requestAnimationFrame(tick);
+      };
+      scheduleTick();
 
       node.addHook("Remove", () => {
         if (animationFrameId !== null)

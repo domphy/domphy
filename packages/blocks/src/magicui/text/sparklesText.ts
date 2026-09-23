@@ -17,7 +17,7 @@
 import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
 import { hashString, toState } from "@domphy/core";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
-import { fixed } from "../../shared/typography.js";
+import { prefersReducedMotion } from "../reducedMotion.js";
 
 export interface SparklesTextProps {
   /** Text content. Defaults to a short demo phrase. */
@@ -140,15 +140,31 @@ function sparklesText(props: SparklesTextProps = {}): DomphyElement<"div"> {
     ],
     // Upstream root carries `text-6xl font-bold`. The size scales down with
     // the viewport (9vw) so the demo phrase never overflows a 375px screen.
+    // The fluid `fontSize` below has no theme equivalent — see its comment.
+    _doctorDisable: "inline-typography",
     style: {
-      fontSize: fixed("clamp(2.25rem, 9vw, 3.75rem)"),
-      lineHeight: fixed("1"),
-      fontWeight: fixed(700),
+      // Fluid display size, outside what the theme can express: the type
+      // scale is 8 FIXED steps topping out at 3.0625rem (49px), with no
+      // viewport-relative tier, while this clamp has to run 2.25rem -> 9vw ->
+      // 3.75rem (60px) so the demo phrase neither overflows 375px nor shrinks
+      // on a desktop. Both the 9vw middle term and the 3.75rem ceiling are
+      // unreachable through themeSize().
+      fontSize: "clamp(2.25rem, 9vw, 3.75rem)",
+      lineHeight: 1,
+      // `bold` is the exact same face as 700 (measured identical advance
+      // width in Chromium), and unlike the numeric literal it is a cascade
+      // keyword the theme/UA can still reason about.
+      fontWeight: "bold",
       [`@keyframes ${animationName}`]: keyframes,
       ...(props.style ?? {}),
     } as StyleObject,
     _onMount: (node: ElementNode) => {
       if (typeof window === "undefined") return;
+      // WCAG 2.2.2: the sparkle population respawns forever. Pausing the
+      // individual twinkle animations would only freeze each sparkle mid-
+      // scale while the spawn timer kept adding more, so the whole overlay is
+      // suppressed instead — the text itself is unaffected.
+      if (prefersReducedMotion()) return;
       let insertCount = 0;
       const spawnIntervalMs = Math.max(cycleDuration / sparkleCount, 50);
       const pendingRetireTimeouts = new Set<ReturnType<typeof setTimeout>>();

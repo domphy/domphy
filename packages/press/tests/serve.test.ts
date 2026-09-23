@@ -119,6 +119,25 @@ describe("startServer", () => {
   });
 });
 
+describe("startServer base", () => {
+  // Truth source: buildSite emits every asset/link href prefixed with the
+  // site `base` (`${base}assets/...`, withBase() on nav and content links),
+  // so a preview of a base:"/docs/" build is only usable if the server
+  // answers at that prefix — the same contract `vitepress preview` honours.
+  it("serves a base-prefixed build under its base and nowhere else", async () => {
+    server = startServer(root, 0, "/docs/");
+    const origin = await listen(server);
+    expect((await fetch(`${origin}/docs/`)).status).toBe(200);
+    expect(await (await fetch(`${origin}/docs/guide/`)).text()).toContain(
+      "guide",
+    );
+    // Outside the base the site does not exist — serving it there would make
+    // links that 404 in production look fine locally.
+    expect((await fetch(`${origin}/guide/`)).status).toBe(404);
+    expect((await fetch(`${origin}/`)).status).toBe(404);
+  });
+});
+
 describe("startDevServer", () => {
   it("injects the live-reload script into html and survives malformed URLs", async () => {
     const dev = startDevServer(root, 0);

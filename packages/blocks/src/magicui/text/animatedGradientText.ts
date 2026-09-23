@@ -32,6 +32,7 @@
 import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import { REDUCED_MOTION_PAUSE } from "../reducedMotion.js";
 
 export interface AnimatedGradientTextProps {
   /** Text content. Defaults to `"Animated Gradient Text"`. */
@@ -133,6 +134,7 @@ function animatedGradientText(
       WebkitBackgroundClip: "text",
       color: "transparent",
       animation: `${textAnimationName} 8s linear infinite`,
+      ...REDUCED_MOTION_PAUSE,
       [`@keyframes ${textAnimationName}`]: textKeyframes,
     } as StyleObject,
   };
@@ -153,7 +155,6 @@ function animatedGradientText(
   const divider = {
     div: null,
     ariaHidden: "true",
-    _doctorDisable: "missing-color",
     style: {
       height: themeSpacing(4),
       marginInline: themeSpacing(2),
@@ -197,6 +198,7 @@ function animatedGradientText(
         `inset 0 -8px 10px color-mix(in srgb, ${themeColor(listener, "shift-0", "neutral")} 12%, transparent)`,
       transition: "box-shadow 500ms ease-out",
       animation: `${pillAnimationName} 8s linear infinite`,
+      ...REDUCED_MOTION_PAUSE,
       [`@keyframes ${pillAnimationName}`]: pillKeyframes,
       "&:hover": {
         boxShadow: (listener: Listener) =>

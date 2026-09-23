@@ -6,7 +6,7 @@ import Strong from "../../demos/patches/Strong.ts?raw"
 
 # Strong
 
-Styles strongly emphasized (bold) text: inherited font size, `font-weight: 700`, and a themed foreground color.
+Styles strongly emphasized (bold) text: inherited font size, the theme's `bold` weight, and a themed foreground color.
 
 ## Props
 

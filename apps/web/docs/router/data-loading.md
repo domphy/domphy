@@ -25,14 +25,31 @@ The loader context provides everything a fetch needs:
 | `cause` | `"enter"`, `"stay"`, or `"preload"` |
 | `route` | The route instance |
 
-In the UI, read the result from the match — and drive pending UI from `match.status`:
+In the UI, read the result from the match:
 
 ```ts
 const match = matches.get(l).find((m) => m.routeId === postRoute.id)
-if (!match || match.status === "pending") return [{ p: "Loading..." }]
+if (!match) return [{ p: "Nothing here" }]
 if (match.status === "error") return [{ p: `Failed: ${match.error}` }]
 return [{ h1: match.loaderData.title }]
 ```
+
+While a loader runs, the matches array still holds the *previous* route — the router only publishes the new matches once they settle. Drive pending UI from the router's own status instead (see [Bridging Router State](./navigation#bridging-router-state)):
+
+```ts
+import { subscribeToRouterState } from "@domphy/router"
+
+const state = toState(router.state)
+subscribeToRouterState(router, (next) => state.set(next))
+// ...
+if (state.get(l).isLoading) return [{ p: "Loading..." }]
+```
+
+`isLoading` flips for *every* load, including one served from the cache in under a millisecond — rendering the spinner on it directly makes a cached revisit flash. Wait out `router.options.defaultPendingMs` (1000 by default) before flipping your own spinner state, which is what upstream's `pendingMs` does for a `pendingComponent`.
+
+::: tip Per-route pending
+A match carries `status: "pending"` only while the route (or the router) has a `pendingComponent` configured — that option is what arms core's pending boundary, and after `pendingMs` it publishes the loading match into `router.state.matches`. Domphy has no component layer, so `isLoading` is the idiomatic read; set `pendingComponent` only when you want one specific route's match to report its own pending state.
+:::
 
 ## `loaderDeps`
 
@@ -79,13 +96,11 @@ const postRoute = createRoute({
 Preload a route before the user commits — the classic hover pattern:
 
 ```ts
+import { linkProps } from "@domphy/router"
+
 const link = (to: string, label: string): DomphyElement<"a"> => ({
     a: label,
-    href: router.buildLocation({ to }).href,
-    onClick: (e) => {
-        e.preventDefault()
-        router.navigate({ to })
-    },
+    ...linkProps(router, { to }),
     onMouseEnter: () => router.preloadRoute({ to }),
 })
 ```

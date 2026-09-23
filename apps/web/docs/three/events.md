@@ -28,7 +28,7 @@ Attach any of these like any other scene prop:
 
 ```ts
 {
-  mesh: [{ boxGeometry: null }, { meshStandardMaterial: { color: "orange" } }],
+  mesh: [{ boxGeometry: null }, { meshStandardMaterial: null, color: "orange" }],
   onClick: (event) => console.log("hit at", event.point),
   onPointerOver: (event) => event.eventObject.scale.setScalar(1.2),
   onPointerOut: (event) => event.eventObject.scale.setScalar(1),

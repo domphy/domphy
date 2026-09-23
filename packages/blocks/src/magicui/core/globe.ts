@@ -18,6 +18,7 @@ import type { DomphyElement, ElementNode } from "@domphy/core";
 import { behavior } from "@domphy/core";
 import { type ThemeColor, themeColorToken, themeSpacing } from "@domphy/theme";
 import createGlobe, { type COBEOptions, type Globe, type Marker } from "cobe";
+import { prefersReducedMotion } from "../reducedMotion.js";
 
 export interface GlobeMarker {
   latitude: number;
@@ -173,6 +174,17 @@ function attachGlobe(node: ElementNode, initialProps: GlobeBehaviorProps) {
   let dragTarget = 0;
   let dragSpring = 0;
   let dragSpringVelocity = 0;
+  // Sub-pixel rest threshold for the drag spring, in radians of globe
+  // rotation. cobe's widest sensible render is a ~1000 CSS px sphere, whose
+  // equator spans pi * 1000 px per half turn, so one pixel of arc is
+  // pi / 1000 ~= 3.1e-3 rad; 1e-4 rad is under a thirtieth of that pixel at
+  // that size, i.e. invisible at any size this block is used at. Only used
+  // to decide when the reduced-motion idle-out below may stop the loop —
+  // never to alter the spring itself.
+  const SPRING_REST_RADIANS = 1e-4;
+  const dragSpringAtRest = () =>
+    Math.abs(dragSpring - dragTarget) < SPRING_REST_RADIANS &&
+    Math.abs(dragSpringVelocity) < SPRING_REST_RADIANS;
   // Null when not dragging; otherwise the pointer's clientX at the moment
   // the drag began (kept fixed for the whole drag, matching upstream).
   let pointerStartX: number | null = null;
@@ -249,9 +261,12 @@ function attachGlobe(node: ElementNode, initialProps: GlobeBehaviorProps) {
   // upstream freezes it during a drag), eases the drag spring toward its
   // target (semi-implicit Euler; dt is clamped so a backgrounded tab
   // can't destabilize it), and uploads the final rotation.
+  // WCAG 2.2.2: the auto-rotation runs forever and starts on its own, so it
+  // is suppressed under reduce. Drag-to-orbit is user-initiated and stays.
+  const reduceMotion = prefersReducedMotion();
   const tick = () => {
     if (!canvas.isConnected) return;
-    if (pointerStartX === null) phi += props.rotationSpeed;
+    if (pointerStartX === null && !reduceMotion) phi += props.rotationSpeed;
 
     const now =
       typeof performance !== "undefined" ? performance.now() : Date.now();
@@ -267,11 +282,27 @@ function attachGlobe(node: ElementNode, initialProps: GlobeBehaviorProps) {
     // Final rotation = auto-rotate accumulator + spring-eased drag
     // offset (upstream: `state.phi = phiRef.current + rs.get()`).
     globeInstance?.update({ phi: phi + dragSpring });
+    // Under reduce, once the user is not dragging and the drag spring has
+    // settled, every further frame would upload the identical rotation — so
+    // the loop idles out instead of holding a WebGL draw at 60fps forever.
+    // `startDrag`/`applyMovement` re-arm it, which is the only input left
+    // that can change the rotation.
+    if (reduceMotion && pointerStartX === null && dragSpringAtRest()) {
+      animationFrameId = null;
+      return;
+    }
     animationFrameId = requestAnimationFrame(tick);
   };
-  if (globeInstance && typeof requestAnimationFrame === "function") {
-    animationFrameId = requestAnimationFrame(tick);
-  }
+  const scheduleTick = () => {
+    if (
+      animationFrameId === null &&
+      globeInstance &&
+      typeof requestAnimationFrame === "function"
+    ) {
+      animationFrameId = requestAnimationFrame(tick);
+    }
+  };
+  scheduleTick();
 
   // Upstream divides the pointer delta by MOVEMENT_DAMPING (1400) before
   // adding it to the spring target `r`.
@@ -280,6 +311,7 @@ function attachGlobe(node: ElementNode, initialProps: GlobeBehaviorProps) {
   const startDrag = (clientX: number) => {
     pointerStartX = clientX;
     canvas.style.cursor = "grabbing";
+    scheduleTick();
   };
   // Upstream releases the drag on BOTH pointerup and pointerout: the
   // pointer leaving the canvas cancels the drag. There is no pointer
@@ -295,6 +327,7 @@ function attachGlobe(node: ElementNode, initialProps: GlobeBehaviorProps) {
     // `pointerInteracting.current` at the down position for the whole drag).
     const delta = clientX - pointerStartX;
     dragTarget += delta / MOVEMENT_DAMPING;
+    scheduleTick();
   };
 
   const handlePointerDown = (event: PointerEvent) => startDrag(event.clientX);

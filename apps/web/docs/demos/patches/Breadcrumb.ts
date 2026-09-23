@@ -1,12 +1,14 @@
 import type { DomphyElement } from "@domphy/core";
 import { themeSpacing } from "@domphy/theme";
-import { breadcrumb, breadcrumbEllipsis, link } from "@domphy/ui";
+import { breadcrumb, breadcrumbEllipsis, link, strong } from "@domphy/ui";
 
+// breadcrumb() does not paint color on any crumb — wrap the current item in
+// strong() for the usual "reads stronger" emphasis (own bold weight + color).
 const basic: DomphyElement<"nav"> = {
   nav: [
     { a: "Home", href: "#", $: [link()] },
     { a: "Products", href: "#", $: [link()] },
-    { span: "Wireless Headphones", ariaCurrent: "page" },
+    { strong: "Wireless Headphones", ariaCurrent: "page", $: [strong()] },
   ],
   $: [breadcrumb()],
 };
@@ -15,7 +17,7 @@ const chevron: DomphyElement<"nav"> = {
   nav: [
     { a: "Dashboard", href: "#", $: [link()] },
     { a: "Settings", href: "#", $: [link()] },
-    { span: "Profile", ariaCurrent: "page" },
+    { strong: "Profile", ariaCurrent: "page", $: [strong()] },
   ],
   $: [breadcrumb({ separator: "›" })],
 };
@@ -25,7 +27,7 @@ const ellipsis: DomphyElement<"nav"> = {
     { a: "Home", href: "#", $: [link()] },
     { button: "…", $: [breadcrumbEllipsis()] },
     { a: "Category", href: "#", $: [link()] },
-    { span: "Current Page", ariaCurrent: "page" },
+    { strong: "Current Page", ariaCurrent: "page", $: [strong()] },
   ],
   $: [breadcrumb()],
 };

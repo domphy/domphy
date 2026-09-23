@@ -18,13 +18,17 @@ const App: DomphyElement<"div"> = {
         items.get(l).map((item) => ({
           li: item.label,
           _key: item.id,
+          // A raised card is its own tone context: declare the floor with
+          // dataTone and paint "inherit", so "text" keeps the full
+          // CONTRAST_SPAN against this fill (an absolute shift-9 left only 7).
+          dataTone: "shift-2",
           style: {
             padding: themeSpacing(3),
             marginBlock: themeSpacing(1),
             borderRadius: themeSpacing(2),
-            backgroundColor: (cl) => themeColor(cl, "shift-2"),
-            color: (cl) => themeColor(cl, "shift-9"),
-            outline: (cl) => `1px solid ${themeColor(cl, "shift-4")}`,
+            backgroundColor: (cl) => themeColor(cl, "inherit"),
+            color: (cl) => themeColor(cl, "text"),
+            outline: (cl) => `1px solid ${themeColor(cl, "border-strong")}`,
             cursor: "grab",
             userSelect: "none",
           },

@@ -1,4 +1,4 @@
-import type { ChartOption } from "@domphy/chart";
+import type { ChartOption, LinesDataItem } from "@domphy/chart";
 import { chart, registerMap } from "@domphy/chart";
 import type { DomphyElement } from "@domphy/core";
 import worldGeoJSON from "geo/world.json";
@@ -24,7 +24,7 @@ const routes: [string, string][] = [
   ["Singapore", "Sydney"],
 ];
 
-const linesData = routes.map(([from, to]) => ({
+const linesData: LinesDataItem[] = routes.map(([from, to]) => ({
   coords: [cities[from], cities[to]],
 }));
 
@@ -34,7 +34,7 @@ const option: ChartOption = {
     map: "world",
     roam: true,
     silent: true,
-    itemStyle: { areaColor: "#1a2035", borderColor: "#3a4a6b" },
+    itemStyle: { areaColor: "neutral", borderColor: "info" },
   },
   series: [
     {

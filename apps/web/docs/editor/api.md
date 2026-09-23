@@ -31,10 +31,30 @@ const editor = createEditor({
 | `onFocus` / `onBlur` | `({ editor, event }) => void` | |
 | `onDestroy` | `() => void` | |
 | `onPaste` | `(event: ClipboardEvent, editor) => boolean` | Return `true` to mark it handled and skip the editor's own paste. |
-| `onDrop` | `(event: DragEvent, editor) => boolean` | Same contract. Drop is `preventDefault`-ed by default, so the browser cannot rewrite the DOM behind the model. |
+| `onDrop` | `(event: DragEvent, editor) => boolean` | Same contract, and it runs first. Otherwise the editor handles the drop itself — see [Dropping](#dropping). |
 | `onKeyDown` | `(event: KeyboardEvent, editor) => boolean` | Runs **before** the keymap, so returning `true` overrides an extension shortcut. |
 
 Options can be changed after construction with `editor.setOptions(partial)`.
+
+### Pasting
+
+The built-in paste handler prefers `text/html` and falls back to `text/plain`.
+
+- **`text/html`** is parsed through the schema, so it is a whitelist, not a sanitizer pass: only nodes and marks some extension declares a `parseHTML` rule for survive, and only the attributes those extensions declare are kept. Everything else — `<script>`, `<style>`, `<object>`, `<title>`, inline `on*` handlers, unknown tags — is dropped, and the subtrees of `script`/`style`/`object`/`title`/`head`/`noscript` are skipped entirely rather than harvested for their text (the same `ignoreTags` set prosemirror-model uses). `javascript:` and other unsafe `href` protocols are rejected by `Link.isAllowedUri`.
+- **`text/plain`** is inserted as literal text — never re-parsed as HTML — with one block per line. Pasting `<b>x</b>` as plain text types those nine characters; pasting two lines makes two paragraphs. Inside a `code` textblock the newlines stay in the block.
+
+Return `true` from the `onPaste` option to take over completely.
+
+### Dropping
+
+The `onDrop` option runs first: return `true` and the editor does nothing else, which is how a file drop (an image upload, say) is wired — a drop carrying no `text/html` or `text/plain` is otherwise ignored.
+
+Otherwise the editor handles the drop the way `prosemirror-view` does. The browser is never allowed to edit the contenteditable itself, since that would rewrite the DOM behind the model; instead the drop position is read from the pointer and the content is inserted there.
+
+- A drag that started **inside this editor, on the current selection, moves it**: the source range is deleted and re-inserted at the drop point, in one transaction and therefore one undo step. Holding the platform copy modifier (<kbd>Alt</kbd> on macOS, <kbd>Ctrl</kbd> elsewhere) copies instead. Dropping a moved range back inside itself does nothing.
+- A drop from anywhere else inserts its `text/html` (parsed through the schema, same whitelist as paste) or, failing that, its `text/plain` (literal text, one block per line).
+
+Content spanning several blocks lands as whole blocks, not merged into the block under the pointer — the same shape an HTML paste of that selection produces, since this engine has no open-slice model.
 
 `transaction` on `onUpdate` is what makes a loop guard possible: tag your own programmatic writes and ignore them on the way back out, so syncing to a server does not re-trigger itself.
 
@@ -231,10 +251,15 @@ A floating menu anchored to the current text selection. Apply it to the same hos
 | --- | --- | --- |
 | `children` | `DomphyElement` | required — the menu content |
 | `shouldShow` | `(editor) => boolean` | editable, with a non-empty selection |
+| `label` | `string` | `"Formatting"` — accessible name for the `role="toolbar"` panel |
 
 Positioning uses `@domphy/floating` against a *virtual element* wrapping the live selection rectangle: `getBoundingClientRect()` re-reads `getSelection().getRangeAt(0)` on every call, so scrolling and resizing reposition against the real current rect rather than a snapshot taken when the menu opened. The middleware chain is `inline()` (picks the right rect when a selection wraps across lines), `offset(8)`, `flip()` and `shift()`.
 
 Show/hide is wired to the editor's `selectionUpdate`, `update`, `focus` and `blur` events from inside the behavior — not from a lifecycle hook — so it survives host re-renders. Destroying the editor also tears the panel down. The panel is portaled into a document/root overlay (never a child of the contenteditable host, which `EditorView.render()` wipes), escaping the editor's overflow and stacking context, and it swallows `mousedown` so pressing a button never blurs the editor and collapses the selection you are formatting.
+
+**Keyboard.** The panel is reachable: <kbd>Tab</kbd> out of the editable area lands on the first menu button, because a blur whose `relatedTarget` is inside the panel is treated as focus *arriving* rather than a dismissal (tiptap's `BubbleMenuPlugin.blurHandler` does the same — hiding there would make the browser land on nothing and drop focus to `<body>`). <kbd>Escape</kbd> dismisses the panel; pressed from inside it, focus goes back to the text. A dismissal survives that refocus and is cleared by the next selection change or edit, and the keypress is not propagated further, so a dialog wrapping the editor does not close with it. Moving focus out of the panel to anything that is neither the panel nor the editor hides it.
+
+The panel is a `role="toolbar"` and follows the WAI-ARIA APG toolbar pattern: it is a **single tab stop**, so <kbd>Tab</kbd> enters it once and <kbd>Tab</kbd> again leaves the editor entirely. <kbd>&larr;</kbd>/<kbd>&rarr;</kbd> move between the controls and wrap, <kbd>Home</kbd>/<kbd>End</kbd> jump to the first/last, and the roving `tabindex` is re-applied whenever the panel opens, so reactive children cannot silently add a second tab stop. Name it with `label` (default `"Formatting"`), or give the host its own `aria-label`.
 
 ### `editorState(editor)`
 
@@ -271,7 +296,7 @@ Names and semantics match Tiptap, but the engine underneath is not ProseMirror, 
 | `Link` | `autolink` ships (default `true`): typing `https://…` or `www.…` followed by a space or <kbd>Enter</kbd> links the word, trims trailing punctuation, and still passes `isAllowedUri`. Bare domains without a scheme are not matched, and `linkOnPaste` is dropped (no paste rules) — a pasted URL needs `setLink({ href })`. The options are `openOnClick`, `autolink`, `protocols`, `isAllowedUri` and `HTMLAttributes`. |
 | Lists | `itemTypeName`, `keepMarks` and `keepAttributes` are dropped; every list extension takes only `HTMLAttributes`. `OrderedList` has a `start` attribute but no `type`, so `<ol type="a">` does not round-trip. |
 | Node views | Ported, but identity is positional: an instance is reused when a node of the same type sits at the same child-index path as the previous render, so inserting a sibling *before* a view hands that instance to its neighbour. Return `false` from `update()` to force a rebuild. See [Node views](#node-views). |
-| `Table` | A working subset, not `prosemirror-tables`. `colspan`/`rowspan` are parsed, stored and rendered, but the row and column commands assume a uniform grid and ignore spans — merged cells need a real table map. There is no cell selection and no column resizing. |
+| `Table` | A subset of `prosemirror-tables`. The table map is ported, so `colspan`/`rowspan` are honoured by the row and column commands; what is missing is cell selection (a command acts on the cell holding the caret), merge/split commands and column resizing. |
 | `UndoRedo` | Registers no commands of its own — `undo()` and `redo()` are generic engine commands that exist regardless. The extension carries only `depth`, `newGroupDelay` and the keymap, so disabling it removes the shortcuts, not the commands. |
 | `getJSON()` | Omits `attrs` when every attribute is at its default, and omits empty `content` arrays — see [Document JSON](#document-json). Tiptap emits the same shape, but code that reads `node.attrs.level` without a fallback will break on a defaulted node. |
 

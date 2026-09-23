@@ -36,7 +36,7 @@
 // upstream shadcn/ui source was viewed or copied. Sample data, copy, and
 // numbers are original inventions for this port.
 
-import type { DomphyElement, Listener, State } from "@domphy/core";
+import type { DomphyElement, ElementNode, Listener, State } from "@domphy/core";
 import { behavior, rawHtml, toState } from "@domphy/core";
 import type { Column, Row } from "@domphy/table";
 import {
@@ -373,7 +373,6 @@ function metricCard(
     // `color` is already declared by the card() patch above — the doctor
     // tool inspects only this element's own inline `style`, not patch
     // contributions, so it can't see that and flags a false positive here.
-    _doctorDisable: "missing-color",
     style: {
       minWidth: 0,
       overflow: "hidden",
@@ -724,6 +723,16 @@ function categoryBadge(sectionType: string): DomphyElement<"span"> {
  * reorder, inline-editable numeric cells, reviewer dropdown, actions menu),
  * a pagination footer, and the row-editing drawer. */
 function tableRegion(initialRows: DashboardTableRow[]): DomphyElement<"div"> {
+  // Per-mount token for the literal DOM ids below (select-all / row-select /
+  // numeric-field checkboxes and inputs). Set once via `_onSchedule` on the
+  // region's own root — the one point in a node's lifecycle that runs BEFORE
+  // its children are walked, so it lands before the reactive `table:` cell
+  // renderers below ever read it — so two mounted dashboard-01 instances
+  // never share one id. Same nodeId-based approach as
+  // ../../shared/instanceScope.ts, inlined here because the id-bearing
+  // content sits behind an opaque reactive function (not eager children),
+  // so `instanceScoped()`'s eager+scoped duality has nothing to preserve.
+  let instanceToken = "";
   const rows: DashboardTableRow[] = initialRows.map((row) => ({ ...row }));
   const renderTick = toState(0);
   const draggingId = toState<number | null>(null);
@@ -874,7 +883,7 @@ function tableRegion(initialRows: DashboardTableRow[]): DomphyElement<"div"> {
     column: Column<DashboardTableRow, unknown>,
   ): DomphyElement<"th"> {
     if (column.id === "select") {
-      const selectAllId = "dashboard01-select-all";
+      const selectAllId = `dashboard01-select-all-${instanceToken}`;
       return {
         th: [
           {
@@ -911,27 +920,25 @@ function tableRegion(initialRows: DashboardTableRow[]): DomphyElement<"div"> {
                   !domphyTable.table.getIsAllPageRowsSelected(),
               },
             ),
-            _doctorDisable: "missing-color",
             $: [inputCheckbox({ accentColor: "neutral" })],
           } as unknown as DomphyElement,
         ],
         _key: "select",
       } as unknown as DomphyElement<"th">;
     }
-    if (column.id === "drag") {
+    // The two icon-only display columns render an empty `header: ""`. A `<th>`
+    // with no discernible text is an axe `empty-table-header` violation (it
+    // leaves the column unnamed for every cell a screen reader announces), so
+    // each carries a screen-reader-only name instead.
+    const SILENT_COLUMN_NAMES: Record<string, string> = {
+      drag: "Reorder",
+      actions: "Row actions",
+    };
+    const silentName = SILENT_COLUMN_NAMES[column.id];
+    if (silentName) {
       return {
-        th: [
-          {
-            span: "Reorder",
-            style: {
-              position: "absolute",
-              width: "1px",
-              height: "1px",
-              overflow: "hidden",
-            },
-          },
-        ],
-        _key: "drag",
+        th: [{ span: silentName, style: SR_ONLY_STYLE }],
+        _key: column.id,
       } as unknown as DomphyElement<"th">;
     }
     return {
@@ -947,7 +954,7 @@ function tableRegion(initialRows: DashboardTableRow[]): DomphyElement<"div"> {
     const original = row.original;
     switch (column.id) {
       case "select": {
-        const rowSelectId = `dashboard01-select-${original.id}`;
+        const rowSelectId = `dashboard01-select-${original.id}-${instanceToken}`;
         const rowSelectLabel = `Select ${original.header}`;
         return {
           td: [
@@ -963,7 +970,6 @@ function tableRegion(initialRows: DashboardTableRow[]): DomphyElement<"div"> {
               ariaLabel: rowSelectLabel,
               checked: row.getIsSelected(),
               onChange: () => row.toggleSelected(),
-              _doctorDisable: "missing-color",
               $: [inputCheckbox({ accentColor: "neutral" })],
             } as unknown as DomphyElement,
           ],
@@ -1026,7 +1032,7 @@ function tableRegion(initialRows: DashboardTableRow[]): DomphyElement<"div"> {
 
       case "target":
       case "limit": {
-        const numericFieldId = `dashboard01-${column.id}-${original.id}`;
+        const numericFieldId = `dashboard01-${column.id}-${original.id}-${instanceToken}`;
         const numericFieldLabel = `${column.id === "target" ? "Target" : "Limit"} for ${original.header}`;
         return {
           td: [
@@ -1253,7 +1259,6 @@ function tableRegion(initialRows: DashboardTableRow[]): DomphyElement<"div"> {
               type: "checkbox",
               checked: column.getIsVisible(),
               onChange: () => column.toggleVisibility(),
-              _doctorDisable: "missing-color",
               $: [inputCheckbox({ color: "neutral" })],
             } as unknown as DomphyElement,
             {
@@ -1685,6 +1690,9 @@ function tableRegion(initialRows: DashboardTableRow[]): DomphyElement<"div"> {
 
   return {
     div: [toolbar, tableScroll, paginationFooter, rowDrawer],
+    _onSchedule: (node: ElementNode) => {
+      instanceToken = node.nodeId;
+    },
     style: {
       display: "flex",
       flexDirection: "column",

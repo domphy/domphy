@@ -17,7 +17,7 @@ import {
   paragraph,
   small,
 } from "@domphy/ui";
-import { fixed } from "../../shared/typography.js";
+import { instanceScoped } from "../../shared/instanceScope.js";
 
 // Generic monochrome letter-badge glyphs — original, brand-neutral placeholders.
 // Swap for official brand SVGs in production.
@@ -41,8 +41,8 @@ function letterBadgeIcon(letter: string): string {
 function authFieldInput(): PartialElement {
   return {
     style: {
-      fontFamily: fixed("inherit"),
-      lineHeight: fixed("inherit"),
+      fontFamily: "inherit",
+      lineHeight: "inherit",
       width: "100%",
       boxSizing: "border-box",
       paddingInline: (listener: Listener) =>
@@ -87,21 +87,28 @@ interface FieldConfig {
 
 function field(config: FieldConfig): DomphyElement<"div"> {
   const { id, labelText, type = "text", placeholder, caption } = config;
+  const buildRow = (inputId: string): (DomphyElement | null)[] => [
+    { label: labelText, for: inputId, $: [label()] },
+    {
+      input: null,
+      id: inputId,
+      name: id,
+      type,
+      placeholder,
+      required: true,
+      ...(type === "password" ? { minlength: 8 } : {}),
+      $: [authFieldInput()],
+    },
+    caption ? { small: caption, $: [small({ color: "neutral" })] } : null,
+  ];
+
   return {
-    div: [
-      { label: labelText, for: id, $: [label()] },
-      {
-        input: null,
-        id,
-        name: id,
-        type,
-        placeholder,
-        required: true,
-        ...(type === "password" ? { minlength: 8 } : {}),
-        $: [authFieldInput()],
-      },
-      caption ? { small: caption, $: [small({ color: "neutral" })] } : null,
-    ],
+    // `id` stays the form-payload `name` and the readable prefix; the real
+    // DOM id is scoped to this row's nodeId so two mounted instances never
+    // share one id (see ../../shared/instanceScope.ts). The eager children
+    // keep the subtree visible to @domphy/doctor.
+    div: buildRow(id),
+    ...instanceScoped((instanceId) => buildRow(`${id}-${instanceId}`)),
     style: {
       display: "flex",
       flexDirection: "column",
@@ -120,14 +127,14 @@ function legalLine(
       {
         a: "Terms of Service",
         href: termsHref,
-        style: { textDecoration: fixed("underline") },
+        style: { textDecoration: "underline" },
         $: [link({ color: "primary" })],
       },
       " and ",
       {
         a: "Privacy Policy",
         href: privacyHref,
-        style: { textDecoration: fixed("underline") },
+        style: { textDecoration: "underline" },
         $: [link({ color: "primary" })],
       },
       ".",
@@ -313,7 +320,7 @@ function signup04(props: Signup04Props = {}): DomphyElement<"div"> {
       {
         a: signInLinkText,
         href: signInHref,
-        style: { textDecoration: fixed("underline") },
+        style: { textDecoration: "underline" },
         $: [link({ color: "primary" })],
       },
     ],

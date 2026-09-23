@@ -69,14 +69,15 @@ export function createApiHandler(
 
   return async (request: Request): Promise<Response> => {
     const url = new URL(request.url);
-    let match: ReturnType<typeof matchRoute>;
+    // A malformed percent-encoded path (e.g. `/api/%`) is a syntactically
+    // invalid request target (RFC 9110 §15.5.1), answered 400 rather than
+    // letting it fall through to the matcher's 404.
     try {
-      match = matchRoute(compiled, url.pathname);
+      decodeURIComponent(url.pathname);
     } catch {
-      // A malformed percent-encoded path (e.g. `/api/%`) makes decodeURIComponent
-      // throw inside the matcher; answer 400 instead of an unhandled rejection.
       return json({ error: "Bad Request" }, { status: 400 });
     }
+    const match = matchRoute(compiled, url.pathname);
     if (!match) {
       return json({ error: "Not Found" }, { status: 404 });
     }
@@ -117,6 +118,9 @@ export function createApiHandler(
       if (error instanceof RedirectSignal) {
         return new Response(null, {
           status: error.permanent ? 308 : 307,
+          // `RedirectSignal` already made the target an ASCII URI-reference, so
+          // a handler that redirects to unvalidated input can neither smuggle a
+          // second header nor throw `new Headers` out of this catch block.
           headers: { location: error.to },
         });
       }

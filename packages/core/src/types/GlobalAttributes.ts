@@ -1,8 +1,20 @@
+// Global HTML attributes, in the spelling a descriptor uses.
+//
+// camelCase is canonical here — it is what the rest of this list uses
+// (`accessKey`, `inputMode`, `enterKeyHint`, every `aria*`), what AGENTS.md
+// writes, and what the runtime's rename table is keyed on
+// (constants/HtmlAttributeNames.ts maps `tabIndex` -> `tabindex`). The four
+// all-lowercase spellings below it (`tabindex`, `autofocus`, `contenteditable`,
+// `spellcheck`) are the real HTML attribute names, which the runtime also
+// accepts verbatim because camelToKebab() leaves them unchanged, so both are
+// typed rather than making working code an error.
 const GlobalAttributes = [
   "accessKey",
   "autoCapitalize",
+  "autoFocus",
   "autofocus",
   "class",
+  "contentEditable",
   "contenteditable",
   "dir",
   "draggable",
@@ -21,7 +33,9 @@ const GlobalAttributes = [
   "nonce",
   "popover",
   "slot",
+  "spellCheck",
   "spellcheck",
+  "tabIndex",
   "tabindex",
   "title",
   "translate",

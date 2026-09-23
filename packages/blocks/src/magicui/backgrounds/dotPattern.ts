@@ -34,6 +34,7 @@ import type {
 import { hashString } from "@domphy/core";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
 import { heading, paragraph } from "@domphy/ui";
+import { prefersReducedMotion } from "../reducedMotion.js";
 
 export interface DotPatternProps {
   /** Horizontal spacing between dots, in px. Defaults to `16`. */
@@ -111,7 +112,6 @@ function dotPattern(props: DotPatternProps = {}): DomphyElement<"div"> {
               stop: null,
               offset: "0%",
               // Decorative gradient stop, no text of its own.
-              _doctorDisable: "missing-color",
               // Core uses the svg's own `currentColor` (the base dot shade),
               // matching upstream where BOTH stops are stopColor="currentColor"
               // — the glow core is the same color as the static dots, not a
@@ -124,7 +124,6 @@ function dotPattern(props: DotPatternProps = {}): DomphyElement<"div"> {
             {
               stop: null,
               offset: "100%",
-              _doctorDisable: "missing-color",
               style: {
                 stopColor: "currentColor",
                 stopOpacity: "0",
@@ -150,6 +149,7 @@ function dotPattern(props: DotPatternProps = {}): DomphyElement<"div"> {
       const svgElement = groupElement?.ownerSVGElement ?? null;
       if (!groupElement || !svgElement || typeof window === "undefined") return;
       const svgNamespace = "http://www.w3.org/2000/svg";
+      const reduceMotion = prefersReducedMotion();
 
       let dotCircles: SVGCircleElement[] = [];
 
@@ -160,6 +160,16 @@ function dotPattern(props: DotPatternProps = {}): DomphyElement<"div"> {
         circle.setAttribute("r", String(dotRadius));
         if (glow) {
           circle.setAttribute("fill", `url(#${glowGradientId})`);
+          // WCAG 2.2.2: the twinkle loops forever. The `animation` shorthand
+          // is set as an INLINE style, so a `@media (prefers-reduced-motion)`
+          // rule in the host's stylesheet cannot override its implied
+          // `animation-play-state: running` — the gate has to be here, at the
+          // point the shorthand is written. The dot keeps the gradient fill,
+          // so it renders at the first keyframe's look (scale 1, opacity 0.4).
+          if (reduceMotion) {
+            circle.style.opacity = "0.4";
+            return circle;
+          }
           const durationSeconds = 2 + Math.random() * 3;
           const delaySeconds = Math.random() * 5;
           circle.style.transformBox = "fill-box";
@@ -235,6 +245,14 @@ function dotPattern(props: DotPatternProps = {}): DomphyElement<"div"> {
       // currentColor (dots + glow stops) inherits this softened shade.
       color: (listener: Listener) =>
         `color-mix(in srgb, ${themeColor(listener, "shift-6", color)} 80%, transparent)`,
+      // The per-dot `animation` shorthand is written imperatively onto each
+      // <circle> in `buildDot`, but the rule it names has to exist in a real
+      // stylesheet or the browser silently treats the shorthand as naming an
+      // unknown animation and the dots never move. Emitting it here, on the
+      // <svg> host, is this package's standard placement for keyframes.
+      ...(glow
+        ? { [`@keyframes ${glowAnimationName}`]: GLOW_PULSE_KEYFRAMES }
+        : {}),
     } as StyleObject,
   } as DomphyElement;
 

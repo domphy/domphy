@@ -187,6 +187,29 @@ So the concrete role mapping is:
 
 This is the practical reason tone selection stays anchored near the edges: the derived roles remain ordered, predictable, and do not collapse back into the wrong side of the ramp.
 
+### Text follows the fill it sits on
+
+`text = tone + K` is a relationship, not a constant. The moment a control paints its *own* background — a hover fill at `+2`, a pressed fill at `+2`/`+3`, a selected row at `+3` — the surface under its label has moved, and a label pinned to the absolute `"text"` alias has not. The gap drops from `9` to `7` or `6`, and with it the contrast: on the default neutral ramp (light), `shift-9` reads `4.95:1` on `shift-0` but only `3.58:1` on a `shift-2` hover fill.
+
+Every state block that sets `backgroundColor` therefore sets `color` too, `K` steps away from that fill. `textToneOn(n)` writes the arithmetic for you:
+
+```ts
+import { themeColor, textToneOn } from "@domphy/theme"
+
+"&:hover": {
+  backgroundColor: (l) => themeColor(l, "hover", color),  // shift-2
+  color: (l) => themeColor(l, textToneOn(2), color),      // shift-11
+},
+"&:active": {
+  backgroundColor: (l) => themeColor(l, "increase-2", color),
+  color: (l) => themeColor(l, textToneOn(2), color),
+},
+```
+
+Both sides are `shift-N`, so both resolve against the same `dataTone` context — the pairing holds on a `shift-0` surface and on a `shift-17` one alike, and it keeps working when the whole control is dropped into a darker panel.
+
+Pass the listener/node as `textToneOn(n, l)` when you have one — on a theme with an edge `darkBias` (the built-in "dark" theme) the plain relative form above can fall short by up to `darkBias` steps; see [`textToneOn`](./api#texttoneonsurfaceshift-object) for the exact-gap form.
+
 ## Shift System
 
 Valid tone keys:
@@ -229,7 +252,7 @@ Raw `shift-N` indices work, but they force every caller to remember the numeric 
 | `muted` | `shift-8` | secondary/disabled text — **de-emphasis only, see below** |
 | `text` | `shift-9` | default/primary text (the `K` text role) |
 
-> **Contrast contract.** `text` (`shift-9`) sits exactly at the `K = 9` contrast span, so it clears WCAG AA `4.5:1` on any edge-anchored surface in every built-in role (measured `4.53:1`–`5.14:1`, light and dark). `muted` (`shift-8`) is deliberately one step *below* that guarantee — it measures about `4.1:1`–`4.2:1` on an edge surface. That is intentional: muted is the de-emphasis tone for **supplementary** content (timestamps, captions, placeholders, secondary metadata) where the information is decorative or available elsewhere. Never use `muted` for essential text (labels, instructions, error text, button names, nav items) — use `text`. Automated checkers such as axe `color-contrast` apply the `4.5:1` normal-text rule indiscriminately, so a `muted` element that carries essential content will be flagged; the fix is always to promote that element to `text`, not to raise the muted tone (which would collapse it into `text` and destroy the semantic distinction).
+> **Contrast contract.** `text` (`shift-9`) sits exactly at the `K = 9` contrast span, so it clears WCAG AA `4.5:1` on any edge-anchored surface in every built-in role (measured `4.53:1`–`5.14:1`, light and dark). `muted` (`shift-8`) is deliberately one step *below* that guarantee — measured on the neutral ramp it is `4.06:1` on the light edge surface (below the AA floor) and `4.93:1` on dark, where the theme's edge `darkBias` moves the pair off the ramp's black end. The absolute ratio is theme-dependent; what the contract guarantees is that `muted` always reads one step weaker than `text`. That is intentional: muted is the de-emphasis tone for **supplementary** content (timestamps, captions, placeholders, secondary metadata) where the information is decorative or available elsewhere. Never use `muted` for essential text (labels, instructions, error text, button names, nav items) — use `text`. Automated checkers such as axe `color-contrast` apply the `4.5:1` normal-text rule indiscriminately, so a `muted` element that carries essential content will be flagged; the fix is always to promote that element to `text`, not to raise the muted tone (which would collapse it into `text` and destroy the semantic distinction).
 
 ```ts
 backgroundColor: (l) => themeColor(l, "inherit", "primary")

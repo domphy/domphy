@@ -1,6 +1,7 @@
 import type { PartialElement } from "@domphy/core";
 import {
   type ThemeColor,
+  textToneOn,
   themeColor,
   themeDensity,
   themeSize,
@@ -76,13 +77,20 @@ function selectItem(
       outline: "none",
       color: (listener) => themeColor(listener, "text", color),
       backgroundColor: (listener) => themeColor(listener, "inherit", color),
+      // Label tracks the hover fill (+2): a fixed "text" label measured
+      // 3.58:1 against it (light) / 4.37:1 (dark), below WCAG AA.
       "&:hover:not([disabled]):not([aria-selected=true])": {
         backgroundColor: (listener) => themeColor(listener, "hover", color),
+        color: (listener) => themeColor(listener, textToneOn(2), color),
       },
+      // Selected row uses the same fill/text pairing as button({variant:"solid"}):
+      // deep brand fill + light-end neutral text. The old shift-6 / shift-11
+      // pairing measured ~2.6:1 in Chromium (axe `color-contrast`), below the
+      // WCAG AA 4.5:1 floor for the label of the CHOSEN option.
       "&[aria-selected=true]": {
         backgroundColor: (listener) =>
-          themeColor(listener, "shift-6", accentColor),
-        color: (listener) => themeColor(listener, "shift-11"),
+          themeColor(listener, "shift-13", accentColor),
+        color: (listener) => themeColor(listener, "shift-0", "neutral"),
       },
       transition: "background-color 140ms ease, box-shadow 140ms ease",
       "&:focus-visible": {

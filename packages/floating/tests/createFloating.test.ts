@@ -330,4 +330,63 @@ describe("createFloating", () => {
     reference.remove();
     floating.remove();
   });
+
+  // Truth source: the vendored upstream `computePosition` (src/dom/index.ts,
+  // @floating-ui/dom 1.8.0) merges `{...platform, ...options.platform}` — a
+  // caller-supplied platform extends the defaults instead of replacing them.
+  // createFloating has to resolve its platform the same way.
+  it("extends the default platform with a partial override, like computePosition does", async () => {
+    const reference = document.createElement("div");
+    const floating = document.createElement("div");
+    document.body.append(reference, floating);
+
+    let rtlAsked = 0;
+    const handle = createFloating({
+      placement: "bottom",
+      // Only one method — every other platform method must still come from
+      // the default DOM platform, or computePosition rejects.
+      platform: {
+        isRTL: () => {
+          rtlAsked++;
+          return true;
+        },
+      } as Partial<Platform> as Platform,
+    });
+    const errors: Array<unknown> = [];
+    handle.onError((error) => {
+      errors.push(error);
+    });
+
+    handle.connect(reference, floating);
+    await flush();
+
+    expect(errors).toEqual([]);
+    expect(handle.position).not.toBeNull();
+    expect(rtlAsked).toBeGreaterThan(0);
+
+    handle.disconnect();
+    reference.remove();
+    floating.remove();
+  });
+
+  // Truth source: upstream `autoUpdate` (src/dom/autoUpdate.ts, 1.8.0) calls
+  // `update()` itself before returning its cleanup function, so connect() must
+  // not run its own additional positioning pass.
+  it("runs exactly one positioning pass per connect()", async () => {
+    const reference = document.createElement("div");
+    const floating = document.createElement("div");
+    document.body.append(reference, floating);
+
+    const { calls, platform: controllable } = createControllablePlatform();
+    const handle = createFloating({ platform: controllable });
+
+    handle.connect(reference, floating);
+    await flush();
+
+    expect(calls.length).toBe(1);
+
+    handle.disconnect();
+    reference.remove();
+    floating.remove();
+  });
 });

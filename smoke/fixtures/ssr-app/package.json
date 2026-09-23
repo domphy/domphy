@@ -13,5 +13,26 @@
     "@domphy/press": "file:../../.tarballs/domphy-press.tgz",
     "@domphy/theme": "file:../../.tarballs/domphy-theme.tgz",
     "@domphy/ui": "file:../../.tarballs/domphy-ui.tgz"
+  },
+  "overrides": {
+    "@domphy/app": "file:../../.tarballs/domphy-app.tgz",
+    "@domphy/blocks": "file:../../.tarballs/domphy-blocks.tgz",
+    "@domphy/chart": "file:../../.tarballs/domphy-chart.tgz",
+    "@domphy/core": "file:../../.tarballs/domphy-core.tgz",
+    "@domphy/dnd": "file:../../.tarballs/domphy-dnd.tgz",
+    "@domphy/doctor": "file:../../.tarballs/domphy-doctor.tgz",
+    "@domphy/editor": "file:../../.tarballs/domphy-editor.tgz",
+    "@domphy/floating": "file:../../.tarballs/domphy-floating.tgz",
+    "@domphy/form": "file:../../.tarballs/domphy-form.tgz",
+    "@domphy/i18n": "file:../../.tarballs/domphy-i18n.tgz",
+    "@domphy/mcp": "file:../../.tarballs/domphy-mcp.tgz",
+    "@domphy/press": "file:../../.tarballs/domphy-press.tgz",
+    "@domphy/query": "file:../../.tarballs/domphy-query.tgz",
+    "@domphy/router": "file:../../.tarballs/domphy-router.tgz",
+    "@domphy/table": "file:../../.tarballs/domphy-table.tgz",
+    "@domphy/theme": "file:../../.tarballs/domphy-theme.tgz",
+    "@domphy/three": "file:../../.tarballs/domphy-three.tgz",
+    "@domphy/ui": "file:../../.tarballs/domphy-ui.tgz",
+    "@domphy/virtual": "file:../../.tarballs/domphy-virtual.tgz"
   }
 }

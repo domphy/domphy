@@ -12,6 +12,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { VALUE_TONE } from "../utils/fieldText.js";
 import { focusRing } from "../utils/focusRing.js";
 
 // Tabler Icons (MIT) — eye and eye-off outlines.
@@ -170,9 +171,21 @@ function inputPassword(
           margin: 0,
           cursor: "pointer",
           color: "inherit",
+          // A <button> gets the UA default 13.333px font unless told otherwise,
+          // which shrank both the 1em glyph and the em-based 6U min box (20px
+          // measured instead of 24px in Chromium).
+          fontSize: (l) => themeSize(l, "inherit"),
           display: "flex",
           alignItems: "center",
+          justifyContent: "center",
           flexShrink: 0,
+          // WCAG 2.2 SC 2.5.8 Target Size (Minimum): the 1em eye glyph gave a
+          // 13x13 hit area. Negative inline margin keeps the field's visual
+          // padding while the button itself reaches 24x24.
+          minWidth: themeSpacing(6),
+          minHeight: themeSpacing(6),
+          marginInlineEnd: (l) =>
+            `calc(${themeSpacing(themeDensity(l) * 1)} * -1)`,
           opacity: 0.6,
         },
       };
@@ -191,7 +204,10 @@ function inputPassword(
       outlineOffset: "-1px",
       outline: (l) =>
         `1px solid ${themeColor(l, "border-strong", colorState.get(l))}`,
-      color: (l) => themeColor(l, "text", colorState.get(l)),
+      // Same tone as every other field's typed value; the inner <input>
+      // inherits it. No `::placeholder` rule: this patch builds its own input
+      // and never gives it a placeholder attribute, so there is nothing to paint.
+      color: (l) => themeColor(l, VALUE_TONE, colorState.get(l)),
       backgroundColor: (l) => themeColor(l, "inherit", colorState.get(l)),
       fontSize: (l) => themeSize(l, "inherit"),
       transition: "outline-color 140ms ease, box-shadow 140ms ease",

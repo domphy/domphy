@@ -35,10 +35,11 @@ import {
   type ThemeColor,
   themeColor,
   themeDensity,
+  themeFont,
   themeSpacing,
+  themeWeight,
 } from "@domphy/theme";
 import { card, heading, motion, paragraph, small } from "@domphy/ui";
-import { fixed } from "../../shared/typography.js";
 import { type ChartLegendEntry, chartLegendRow } from "./chart-area-shared.js";
 
 // ─── Data shapes ────────────────────────────────────────────────────────────
@@ -386,7 +387,7 @@ export function renderRadarAngleLabels(
       x: point.x,
       y: point.y,
       fill: (l: Listener) => themeColor(l, "shift-7"),
-      fontSize: fixed("10"),
+      fontSize: "10",
       textAnchor: textAnchorForAngle(angle),
       dominantBaseline: dominantBaselineForAngle(angle),
       _key: `axis-label-${label}`,
@@ -448,8 +449,8 @@ export function renderRadarCustomLabels(
       x: anchor.x,
       y: anchor.y,
       fill: (l: Listener) => themeColor(l, "shift-11"),
-      fontSize: fixed("11"),
-      fontWeight: fixed("500"),
+      fontSize: "11",
+      fontWeight: "500",
       textAnchor,
       dominantBaseline: "middle",
       _key: `custom-label-value-${point.category}`,
@@ -459,7 +460,7 @@ export function renderRadarCustomLabels(
       x: anchor.x,
       y: anchor.y + 12,
       fill: (l: Listener) => themeColor(l, "shift-6"),
-      fontSize: fixed("9"),
+      fontSize: "9",
       textAnchor,
       dominantBaseline: "middle",
       _key: `custom-label-name-${point.category}`,
@@ -639,11 +640,9 @@ export interface RadarTooltipLayerOptions {
 // Decorative color chip — carries no text of its own, but `color` is still set
 // (far enough from `backgroundColor` to read as legible) so a themed
 // `backgroundColor` never ships without a themed `color` alongside it.
-// `_doctorDisable` is a doctor-only annotation not present in core's strict
-// `PartialElement` type — build through an untyped literal, then assert.
-// Exempt from tone-background-inherit: this chip must show the series' own
-// fixed accent color (the whole point of a legend/tooltip swatch), not the
-// ambient surface tone it would get from "inherit".
+// The chip must show the series' own fixed accent color (the whole point of a
+// legend/tooltip swatch), not the ambient surface tone "inherit" would give it.
+// tone-background-inherit exempts it as a null-content decorative host.
 function radarIndicatorMark(
   color: ThemeColor,
   style: "swatch" | "line",
@@ -651,7 +650,6 @@ function radarIndicatorMark(
 ): DomphyElement<"span"> {
   const element = {
     span: null,
-    _doctorDisable: "tone-background-inherit",
     style:
       style === "line"
         ? {
@@ -696,7 +694,7 @@ export function radarTooltipLayer(
       $: [small({ color: "neutral" })],
       style: {
         color: (l: Listener) => themeColor(l, "shift-9"),
-        fontWeight: fixed("500"),
+        fontWeight: themeWeight("medium"),
       },
     } as DomphyElement<"small">);
   }
@@ -725,8 +723,8 @@ export function radarTooltipLayer(
       style: {
         marginInlineStart: "auto",
         color: (l: Listener) => themeColor(l, "shift-9"),
-        fontFamily: fixed("ui-monospace, monospace"),
-        fontWeight: fixed("500"),
+        fontFamily: themeFont("monospace"),
+        fontWeight: themeWeight("medium"),
         fontVariantNumeric: "tabular-nums",
       },
     } as DomphyElement<"small">);

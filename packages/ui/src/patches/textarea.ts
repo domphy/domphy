@@ -12,6 +12,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { fieldTextStyle } from "../utils/fieldText.js";
 import { focusRing } from "../utils/focusRing.js";
 
 /**
@@ -121,7 +122,6 @@ function textarea(
         ?.resize();
     },
     style: {
-      fontFamily: "inherit",
       lineHeight: "inherit",
       resize: "vertical",
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 2),
@@ -129,16 +129,13 @@ function textarea(
       border: "none",
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
       fontSize: (listener) => themeSize(listener, "inherit"),
-      color: (listener) => themeColor(listener, "text", color.get(listener)),
+      ...fieldTextStyle(color),
       outlineOffset: "-1px",
       outline: (listener) =>
         `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
       transition: "outline-color 140ms ease, box-shadow 140ms ease",
-      "&::placeholder": {
-        color: (listener) => themeColor(listener, "shift-7"),
-      },
       "&:hover:not([disabled]):not([aria-busy=true])": {
         outline: (listener) =>
           `1px solid ${themeColor(listener, "shift-5", accentColor.get(listener))}`,
@@ -146,9 +143,22 @@ function textarea(
       "&:focus-visible": {
         boxShadow: (listener) => focusRing(listener, accentColor.get(listener)),
       },
-      "&:invalid": {
+      // Same gate as inputText: a bare `:invalid` painted a pristine untouched
+      // `required` textarea red on first paint. `[placeholder]` +
+      // `:not(:placeholder-shown)` means "the user left content behind that is
+      // invalid"; a textarea with no placeholder uses `data-status` instead.
+      "&[placeholder]:invalid:not(:placeholder-shown)": {
         outline: (listener) =>
           `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-5", "error")}`,
+      },
+      // Explicit validation state, mirroring inputText's contract.
+      "&[data-status=error]": {
+        outline: (listener) =>
+          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", "error")}`,
+      },
+      "&[data-status=warning]": {
+        outline: (listener) =>
+          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", "warning")}`,
       },
       "&[disabled]": {
         opacity: 0.7,

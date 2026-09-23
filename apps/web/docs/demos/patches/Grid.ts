@@ -15,6 +15,7 @@ const frame = {
   outline: (listener: Listener) =>
     `1px solid ${themeColor(listener, "shift-3")}`,
   borderRadius: themeSpacing(2),
+  color: (listener: Listener) => themeColor(listener, "text"),
 };
 
 const App: DomphyElement<"div"> = {

@@ -16,6 +16,7 @@
 import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
 import { type ThemeColor, themeColor } from "@domphy/theme";
+import { REDUCED_MOTION_PAUSE } from "../reducedMotion.js";
 
 export interface DottedMapMarker {
   latitude: number;
@@ -268,12 +269,12 @@ function pulseRings(
       cy: y,
       r: radius,
       ariaHidden: "true",
-      _doctorDisable: "missing-color",
       style: {
         fill: "none",
         stroke: (listener: Listener) => themeColor(listener, "shift-9", color),
         strokeWidth,
         animation: `${name} ${PULSE_DURATION} linear ${delay} infinite`,
+        ...REDUCED_MOTION_PAUSE,
         [`@keyframes ${name}`]: keyframes,
       } as StyleObject,
     }) as DomphyElement;
@@ -319,7 +320,6 @@ function markerElement(
     cy: y,
     r: radius,
     ariaHidden: "true",
-    _doctorDisable: "missing-color",
     style: {
       fill: (listener: Listener) => themeColor(listener, "shift-9", color),
     } as StyleObject,

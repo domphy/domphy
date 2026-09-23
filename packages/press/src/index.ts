@@ -18,11 +18,7 @@ export type {
   RemarkPlugin,
   WalkHelper,
 } from "./markdown/index.js";
-// Markdown API (folded in from the former @domphy/markdown package). Main
-// entry only — the browser entrypoint stays free of the remark pipeline.
-// `TocEntry` is shared with ./types.js and re-exported from there.
 export {
-  createMarkdown,
   createUniqueSlugger,
   defaultSlugify,
   markdownToDomphy,
@@ -31,6 +27,11 @@ export {
   transformOutsideCodeBlocks,
   walkMdast,
 } from "./markdown/index.js";
+// Markdown API (folded in from the former @domphy/markdown package). The same
+// surface ships from "@domphy/press/browser"; only `createMarkdown` differs —
+// this Node build resolves the optional `remark-math` peer for `math: true`.
+// `TocEntry` is shared with ./types.js and re-exported from there.
+export { createMarkdown } from "./markdown-node.js";
 export { renderDoc } from "./pipeline.js";
 export {
   discoverPages,

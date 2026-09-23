@@ -8,6 +8,8 @@ import Tag from "../../demos/patches/Tag.ts?raw"
 
 Apply the tag patch to a `<span>` to style it as a pill-shaped inline chip with a colored border and background. Set `color` to choose the theme tone and `removable: true` to insert an ×&nbsp;button that removes the chip from the DOM on click or Enter/Space.
 
+The chip is `width: fit-content` so it hugs its label — `display: inline-flex` alone is blockified by a flex or grid parent, which stretched the pill across the whole column inside a `stack()`. shadcn/ui's badge carries the same `w-fit` for this reason.
+
 ## Props
 
 | Prop | Type | Default | Description |

@@ -161,7 +161,9 @@ describe.skipIf(!RUN_E2E)(
 
         const projectDir = mkdtempSync(join(tmpdir(), "create-domphy-e2e-"));
         let server: ChildProcess | undefined;
-        let browser: { close(): Promise<void> } | undefined;
+        let browser:
+          | { close(): Promise<void>; newPage(): Promise<any> }
+          | undefined;
 
         try {
           // 1. Run the real CLI into the temp directory.
@@ -221,7 +223,11 @@ describe.skipIf(!RUN_E2E)(
           );
           const { chromium } = requireFromBlocks("playwright");
           browser = await chromium.launch({ headless: true });
-          const page = await browser.newPage();
+          // TS keeps the declared `T | undefined` annotation (it never
+          // narrows to `any`) when the assigned value's type is `any`, as it
+          // is here (playwright is loaded untyped via createRequire) — the
+          // assignment above is unconditional, so this is always defined.
+          const page = await browser!.newPage();
           await page.goto(url, { waitUntil: "domcontentloaded" });
           await page.waitForSelector("#app button", { timeout: 30_000 });
 

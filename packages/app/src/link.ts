@@ -1,5 +1,27 @@
-import { behavior, type PartialElement } from "@domphy/core";
+import { behavior, type ElementNode, type PartialElement } from "@domphy/core";
 import { type AppRouter, getRouter } from "./router.js";
+
+// Dedupes prefetch across ALL three triggers (hover, focus, visible) AND
+// across a reused node's reactive re-renders. Keyed by the real DOM element
+// (stable for the node's whole lifetime — see AGENTS.md "Reused-node
+// lifecycle") rather than a closure-local flag, which resets every
+// generation and re-prefetches the same href on every parent re-render.
+const prefetchedHrefByElement = new WeakMap<Element, string>();
+
+function prefetchOnce(
+  node: ElementNode,
+  targetHref: string,
+  run: () => void,
+): void {
+  const element = node.domElement;
+  if (!element) {
+    run();
+    return;
+  }
+  if (prefetchedHrefByElement.get(element) === targetHref) return;
+  prefetchedHrefByElement.set(element, targetHref);
+  run();
+}
 
 export interface NavLinkProps {
   href: string;
@@ -71,13 +93,6 @@ export function navLink(props: NavLinkProps): PartialElement<"a"> {
     return pathname === target || pathname.startsWith(`${target}/`);
   };
 
-  let prefetched = false;
-  const prefetchOnce = () => {
-    if (prefetched) return;
-    prefetched = true;
-    void router().prefetch(href);
-  };
-
   return {
     href,
     ariaCurrent: (listener) =>
@@ -110,11 +125,13 @@ export function navLink(props: NavLinkProps): PartialElement<"a"> {
       mouseEvent.preventDefault();
       void router().navigate(href, { replace, scroll });
     },
-    onMouseEnter: () => {
-      if (prefetch === "hover") prefetchOnce();
+    onMouseEnter: (_event, node) => {
+      if (prefetch === "hover")
+        prefetchOnce(node, href, () => router().prefetch(href));
     },
-    onFocus: () => {
-      if (prefetch === "hover") prefetchOnce();
+    onFocus: (_event, node) => {
+      if (prefetch === "hover")
+        prefetchOnce(node, href, () => router().prefetch(href));
     },
     // IntersectionObserver must live in behavior() so a reused node whose
     // href changes (reactive parent) prefetches the new target — _onMount
@@ -124,7 +141,6 @@ export function navLink(props: NavLinkProps): PartialElement<"a"> {
       (node, initial) => {
         let props = initial;
         let observer: IntersectionObserver | undefined;
-        let prefetchedHref: string | undefined;
 
         const syncObserver = () => {
           if (props.prefetch !== "visible") {
@@ -132,18 +148,19 @@ export function navLink(props: NavLinkProps): PartialElement<"a"> {
             observer = undefined;
             return;
           }
-          if (prefetchedHref === props.href) return;
+          if (
+            prefetchedHrefByElement.get(node.domElement as Element) ===
+            props.href
+          )
+            return;
           if (typeof IntersectionObserver === "undefined") {
-            prefetchedHref = props.href;
-            props.run(props.href);
+            prefetchOnce(node, props.href, () => props.run(props.href));
             return;
           }
           observer?.disconnect();
           observer = new IntersectionObserver((entries) => {
             if (entries.some((entry) => entry.isIntersecting)) {
-              if (prefetchedHref === props.href) return;
-              prefetchedHref = props.href;
-              props.run(props.href);
+              prefetchOnce(node, props.href, () => props.run(props.href));
               observer?.disconnect();
             }
           });

@@ -17,22 +17,30 @@ Complete list of exports from `@domphy/router`.
 | `RouterCore`, `BaseRoute`, `BaseRootRoute`, `BaseRouteApi` | The underlying classes (advanced — the `create*` functions wrap them) |
 | `getStoreFactory` | Low-level store factory used by the router internals |
 
+## Links
+
+| Export | Purpose |
+|---|---|
+| `linkProps(router, options)` | Build `{ href, onClick, target? }` for an anchor that navigates through the router. Takes the full `NavigateOptions` set plus `target` and `disabled`. Leaves modifier-clicks, non-primary buttons, already-prevented events, and non-`_self` targets to the browser. Shows `maskedLocation.publicHref` when the destination is masked; an absolute-URL `to` renders as a native external link (no click interception); omits `href` for URLs whose protocol is outside `router.protocolAllowlist` and for `disabled: true` (which returns `role="link"` + `ariaDisabled`). Type: `LinkProps` |
+
 ## Router Instance
 
 The main members of the router returned by `createRouter`:
 
-- `state` — `RouterState`: `matches`, `location`, `resolvedLocation`, `status` (`"pending" | "idle"`), `isLoading`, `statusCode`, `redirect`
+- `state` — `RouterState`: `matches`, `location`, `resolvedLocation`, `status` (`"pending" | "idle"`), `isLoading`
 - `navigate(options)` — navigate; resolves when loaders settle
 - `buildLocation(options)` — resolve navigate options to a `ParsedLocation` without navigating
 - `load()` — match and load the current location (call once at startup, and on the server)
 - `subscribe(event, fn)` — lifecycle events: `onBeforeNavigate`, `onBeforeLoad`, `onLoad`, `onResolved`, `onBeforeRouteMount`, `onRendered`
+- `subscribeToRouterState(router, fn)` — a free function, not a method: subscribes to every write to `router.state` and returns an unsubscribe. The only way to observe `status` flipping to `"pending"` (no lifecycle event fires at that moment), so this is what pending/spinner UI bridges from
 - `invalidate(options?)` — mark cached loader data stale and re-run active loaders
 - `preloadRoute(options)` — run matching + loaders for a destination ahead of navigation
 - `matchRoute(location, options?)` — test a location against the tree (`{ fuzzy, includeSearch }`)
-- `getMatch(matchId)` / `clearCache(options?)` — cache access (advanced)
+- `clearCache(options?)` — drop cached loader data (`{ filter }` selects which matches; advanced)
+- `_serverResult` — after a server-side `load()` (router created with `isServer: true`), the outcome of that load: `{ type: "redirect", redirect }` or `{ type: "render", status, matches }`. This is how SSR reads the redirect and the HTTP status; see [SSR](./ssr)
 - `history` — the underlying `RouterHistory` (`back`, `forward`, `go`, `block`)
 - `update(options)` — update router options after creation; replacing `history` re-targets the client's history subscription automatically
-- `destroy()` — release the client transitioner's history/store subscriptions (call when discarding a router instance, e.g. HMR or locale-switch patterns)
+- `destroy()` — release the client transitioner's history subscription and the scroll-restoration listeners (call when discarding a router instance, e.g. HMR or locale-switch patterns). A destroyed router emits no further lifecycle events, even if `load()` is called on it
 
 ## History
 

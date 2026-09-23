@@ -219,6 +219,20 @@ describe("CSS breakout guards", () => {
     );
   });
 
+  // A theme name is interpolated raw into a quoted attribute selector
+  // (`[data-theme="${name}"]`) rather than through escapeKey(), so a bare `"`
+  // — with NEITHER `;` nor `}` nor `</style` — is enough to break out of the
+  // quotes and start a fresh selector; the theme block's own trailing "}"
+  // then closes the attacker's injected rule. assertCssSafe()'s ";"/"}"
+  // check alone does not catch this (see the sibling test above, whose PoC
+  // relies on "}"): setTheme() additionally rejects any theme name
+  // containing `"`, before the name ever enters the registry.
+  it('rejects a theme name containing only a `"` (no ";"/"}"/"</style") that would still break out of the attribute selector', () => {
+    expect(() => setTheme('x"],*{color:red', { darkBias: 1 })).toThrow(
+      /double-quote/,
+    );
+  });
+
   it("rejects a color role key that would inject extra CSS declarations", () => {
     expect(() =>
       setTheme("light", {
@@ -227,18 +241,29 @@ describe("CSS breakout guards", () => {
     ).toThrow(/unsafe CSS characters/);
   });
 
-  it("escapes theme names and color role keys in generated CSS", () => {
+  it('rejects a theme name containing " rather than silently escaping it into the selector', () => {
+    // Prior behavior sanitized a `"`-bearing name into the selector (mangled
+    // but "safe"); assertThemeNameSafe() now rejects it outright, consistent
+    // with every other CSS-breakout guard in this file (fail loud, matching
+    // the codebase's validate-don't-sanitize convention).
     const name = `vitest-x"][data-injected="yes-${Math.random().toString(36).slice(2)}`;
+    expect(() =>
+      setTheme(name, {
+        colors: { "brand/primary": ramp18("#123456") },
+        baseTones: { "brand/primary": 0 },
+      }),
+    ).toThrow(/double-quote/);
+  });
+
+  it("escapes an illegal color role key in generated CSS", () => {
+    const name = `vitest-role-${Math.random().toString(36).slice(2)}`;
     setTheme(name, {
       colors: { "brand/primary": ramp18("#123456") },
       baseTones: { "brand/primary": 0 },
     });
     const css = themeCSS();
-    const escapedName = name.replace(/[^a-zA-Z0-9_-]/g, "_");
-    expect(css).toContain(`[data-theme="${escapedName}"]`);
-    expect(css).not.toContain(`data-theme="${name}"`);
-    expect(css).not.toContain("[data-injected");
-    expect(css).toContain("--brand_primary-0:");
+    expect(css).toContain(`[data-theme="${name}"]`);
+    expect(css).toContain("--brand_2f_primary-0:");
     expect(css).not.toContain("--brand/primary-0");
   });
 });
@@ -265,8 +290,12 @@ describe("resolveThemeColor (explicit non-reactive token API)", () => {
 
   it("resolves against an explicitly named theme", () => {
     const dark = getTheme("dark");
+    // Step 1, not 0: "dark" lightens, so its edge surface carries the theme's
+    // darkBias — the same offset themeColor() applies to a mounted node, and
+    // the color real Chromium computes for `dataTheme: "dark"` with no
+    // dataTone (browser-verified, see the resolveToneStep suite).
     expect(resolveThemeColor({ theme: "dark", tone: "inherit" })).toBe(
-      dark.colors.neutral[0],
+      dark.colors.neutral[1],
     );
     expect(resolveThemeColor({ theme: "dark", tone: "base" })).toBe(
       dark.colors.neutral[dark.baseTones.neutral],

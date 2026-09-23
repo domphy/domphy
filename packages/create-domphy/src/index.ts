@@ -1,6 +1,6 @@
 import { existsSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
-import { stdin, stdout } from "node:process";
+import { stderr, stdin, stdout } from "node:process";
 import { createInterface } from "node:readline/promises";
 import { templateFiles } from "./templates.js";
 import {
@@ -53,6 +53,16 @@ function parseArguments(argv: string[]): ParsedArguments {
   }
 
   return result;
+}
+
+// The package manager that invoked the scaffolder, from the `npm_config_user_
+// agent` string every manager sets ("pnpm/10.24.0 npm/? node/v22.17.1 …").
+// `pnpm create domphy` printing "npm install" would leave a package-lock.json
+// beside the user's pnpm workspace — create-vite reads the same variable.
+function detectPackageManager(): string {
+  const agent = process.env.npm_config_user_agent ?? "";
+  const name = agent.split(" ")[0]?.split("/")[0];
+  return name === "pnpm" || name === "yarn" || name === "bun" ? name : "npm";
 }
 
 function printHelp(): void {
@@ -118,7 +128,7 @@ async function main(): Promise<void> {
   }
 
   if (!KNOWN_TEMPLATES.includes(parsed.template)) {
-    stdout.write(
+    stderr.write(
       `Unknown template "${parsed.template}". Available: ${KNOWN_TEMPLATES.join(", ")}\n`,
     );
     process.exitCode = 1;
@@ -129,7 +139,7 @@ async function main(): Promise<void> {
   const targetDir = resolve(process.cwd(), targetArgument);
 
   if (!isDirectoryUsable(targetDir)) {
-    stdout.write(
+    stderr.write(
       `Target directory "${targetArgument}" exists and is not empty. Aborting.\n`,
     );
     process.exitCode = 1;
@@ -157,12 +167,21 @@ async function main(): Promise<void> {
   if (relativeTarget !== ".") {
     lines.push(`  cd ${relativeTarget}`);
   }
-  lines.push("  npm install", "  npm run dev", "");
+  const packageManager = detectPackageManager();
+  lines.push(
+    `  ${packageManager} install`,
+    // yarn/bun run the script directly; npm/pnpm need the `run` prefix for a
+    // script that is not one of their built-in commands.
+    packageManager === "yarn" || packageManager === "bun"
+      ? `  ${packageManager} dev`
+      : `  ${packageManager} run dev`,
+    "",
+  );
   stdout.write(lines.join("\n"));
 }
 
 main().catch((error) => {
-  stdout.write(
+  stderr.write(
     `create-domphy failed: ${error instanceof Error ? error.message : String(error)}\n`,
   );
   process.exitCode = 1;

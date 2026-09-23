@@ -1,10 +1,12 @@
 import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
 import {
   type ThemeColor,
+  textToneOn,
   themeColor,
   themeDensity,
   themeSize,
   themeSpacing,
+  themeWeight,
 } from "@domphy/theme";
 import { focusRing } from "../utils/focusRing.js";
 
@@ -36,8 +38,6 @@ function details(
         console.warn(`"details" primitive patch must use details tag`);
       }
     },
-    // Summary weight is design-system chrome for disclosure headers.
-    _doctorDisable: "inline-typography",
     style: {
       fontSize: (listener) => themeSize(listener, "inherit"),
       color: (listener) => themeColor(listener, "text", color.get(listener)),
@@ -48,8 +48,11 @@ function details(
       "& > summary": {
         backgroundColor: (listener) =>
           themeColor(listener, "shift-2", color.get(listener)),
+        // shift-11 on a shift-2 header band = the design system's 9-step
+        // contrast span. shift-10 was a gap of 8 and measured 4.33:1
+        // (#636363 on #dbdbdb) — an axe `color-contrast` WCAG AA failure.
         color: (listener) =>
-          themeColor(listener, "shift-10", color.get(listener)),
+          themeColor(listener, "shift-11", color.get(listener)),
         fontSize: (listener) => themeSize(listener, "inherit"),
         listStyle: "none",
         display: "flex",
@@ -58,7 +61,7 @@ function details(
         gap: themeSpacing(2),
         cursor: "pointer",
         userSelect: "none",
-        fontWeight: 500,
+        fontWeight: themeWeight("medium"),
         paddingInline: (listener) => themeSpacing(themeDensity(listener) * 4),
         height: themeSpacing(10),
       },
@@ -87,6 +90,10 @@ function details(
       "& > summary:hover": {
         backgroundColor: (listener) =>
           themeColor(listener, "shift-3", color.get(listener)),
+        // Summary text tracks the +3 hover fill: inherited shift-9 body text
+        // measured 3.02:1 on it (light) / 3.63:1 (dark), below WCAG AA.
+        color: (listener) =>
+          themeColor(listener, textToneOn(3), color.get(listener)),
       },
       "& > summary:focus-visible": {
         borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),

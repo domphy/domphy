@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    // e2e.test.ts's page.evaluate() callbacks run inside a real headless
+    // Chromium page (serialized and injected by playwright), so they
+    // reference browser globals — DOM is test-only, shipped src stays ES2021.
+    "lib": ["ES2021", "DOM", "DOM.Iterable"]
+  },
+  "include": ["src/**/*", "tests/**/*"]
+}

@@ -8,6 +8,8 @@ import TransitionGroup from "../../demos/patches/TransitionGroup.ts?raw"
 
 Use `transitionGroup` on any list container. It animates child reordering using the FLIP technique: it records each child's position before an update and smoothly transitions it from its old position to its new one. Children are tracked by `_key` when set, falling back to index position.
 
+Honours `prefers-reduced-motion: reduce` — under that setting the reorder is applied instantly with no FLIP transform, matching the `motion` patch.
+
 ## Props
 
 | Prop | Type | Default | Description |

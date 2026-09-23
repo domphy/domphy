@@ -77,12 +77,16 @@ export async function loadConfig(
       `Config not found: ${configPath}\nCreate a press.config.ts (see https://domphy.com/docs/press/) or pass --config <path>.`,
     );
   }
-  const { build } = (await import("esbuild")) as typeof EsbuildType;
   const bundledPath = join(
     dirname(configPath),
     `.press.config.${process.pid}.${Math.random().toString(36).slice(2)}.mjs`,
   );
   try {
+    // Inside the try: a failure to load esbuild itself (a half-installed
+    // node_modules, a sandbox that cannot spawn its binary) is still a
+    // "could not load your config" failure to the person running the CLI,
+    // and the raw ERR_MODULE_NOT_FOUND stack says nothing about that.
+    const { build } = (await import("esbuild")) as typeof EsbuildType;
     await build({
       entryPoints: [configPath],
       outfile: bundledPath,

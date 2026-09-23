@@ -2,11 +2,15 @@ import type {
   Axis3DOption,
   Bar3DSeriesOption,
   Grid3DOption,
+  ItemStyleOption,
+  LabelOption,
   Line3DSeriesOption,
+  LineStyleOption,
   Scatter3DSeriesOption,
   Surface3DSeriesOption,
 } from "../types.js";
-import { cssColor } from "./color.js";
+import type { ColorResolver } from "./color.js";
+import { cssColor, hexToRgba } from "./color.js";
 
 function svgEl(
   tag: string,
@@ -15,6 +19,206 @@ function svgEl(
   const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
   for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, String(v));
   return el;
+}
+
+// Opacity defaults — INHERITED: the literals this renderer painted before
+// itemStyle/lineStyle were readable (Renderer3D.ts, circle/bar/surface 0.85 and
+// line3D 0.9). Kept so a chart that sets no style renders exactly as before.
+const DEFAULT_MARK_OPACITY = 0.85;
+const DEFAULT_LINE_OPACITY = 0.9;
+
+// INHERITED from ECharts' documented label defaults: `label.distance` = 5,
+// `label.fontSize` = 12.
+const DEFAULT_LABEL_DISTANCE = 5;
+const DEFAULT_LABEL_FONT_SIZE = 12;
+
+// Lambert shading — INHERITED from ECharts-GL's documented light defaults:
+// `grid3D.light.main.intensity` = 1, `.alpha` = 40, `.beta` = 40, and
+// `grid3D.light.ambient.intensity` = 0.2.
+const LIGHT_ALPHA_DEGREES = 40;
+const LIGHT_BETA_DEGREES = 40;
+const AMBIENT_INTENSITY = 0.2;
+
+// DERIVED from those two angles, in box space (x right, y up, z away from the
+// viewer — see project3D, where a larger z is farther):
+//   L = (-sin(beta) * cos(alpha), sin(alpha), -cos(beta) * cos(alpha))
+// which is upper-front-left, and unit length by construction.
+const LIGHT_DIRECTION: [number, number, number] = [
+  -Math.sin((LIGHT_BETA_DEGREES * Math.PI) / 180) *
+    Math.cos((LIGHT_ALPHA_DEGREES * Math.PI) / 180),
+  Math.sin((LIGHT_ALPHA_DEGREES * Math.PI) / 180),
+  -Math.cos((LIGHT_BETA_DEGREES * Math.PI) / 180) *
+    Math.cos((LIGHT_ALPHA_DEGREES * Math.PI) / 180),
+];
+
+// DERIVED: shade = ambient + (1 - ambient) * max(0, dot(normal, light)), so the
+// factor spans [AMBIENT_INTENSITY, 1] — an unlit face is dimmed, never black.
+function lambertShade(normal: [number, number, number]): number {
+  const length = Math.hypot(normal[0], normal[1], normal[2]);
+  if (length === 0) return 1;
+  const diffuse = Math.max(
+    0,
+    (normal[0] * LIGHT_DIRECTION[0] +
+      normal[1] * LIGHT_DIRECTION[1] +
+      normal[2] * LIGHT_DIRECTION[2]) /
+      length,
+  );
+  return AMBIENT_INTENSITY + (1 - AMBIENT_INTENSITY) * diffuse;
+}
+
+// Multiplies an "rgb(…)" / "#hex" color by a scalar. Returns null for a color
+// that carries no channels here (a var(--…) theme reference only resolves at
+// paint time) — callers fall back to a CSS brightness filter for those.
+function shadeCssColor(color: string, factor: number): string | null {
+  let channels: number[] | null = null;
+  if (color.startsWith("#")) {
+    channels = hexToRgba(color)
+      .slice(0, 3)
+      .map((channel) => channel * 255);
+  } else if (color.startsWith("rgb")) {
+    const inner = color.slice(color.indexOf("(") + 1, color.lastIndexOf(")"));
+    const parts = inner.split(",").map((part) => Number(part.trim()));
+    if (parts.length >= 3) channels = parts.slice(0, 3);
+  }
+  if (!channels || channels.some((channel) => Number.isNaN(channel))) {
+    return null;
+  }
+  const scaled = channels.map((channel) =>
+    Math.round(Math.min(255, Math.max(0, channel * factor))),
+  );
+  return `rgb(${scaled[0]},${scaled[1]},${scaled[2]})`;
+}
+
+interface ShadedPaint {
+  color: string;
+  filter?: string;
+}
+
+// `color` is the CSS paint string (var(--…) ref, hex, or rgb()) already
+// resolved for SVG fill/stroke — `shadeCssColor` multiplies it directly when
+// it carries literal channels. A var(--…) reference has none, so `resolver`
+// (built per render pass from the chart's computed style, see engine.ts)
+// looks up the SAME underlying color as concrete floats and multiplies those
+// instead — a real shaded color, not a CSS filter approximation.
+function shadedPaint(
+  color: string,
+  factor: number,
+  resolver?: ColorResolver,
+  colorSrc?: unknown,
+  fallbackIndex?: number,
+): ShadedPaint {
+  const shaded = shadeCssColor(color, factor);
+  if (shaded) return { color: shaded };
+  if (resolver && fallbackIndex !== undefined) {
+    const [r, g, b] = resolver.rgba(colorSrc, fallbackIndex);
+    const scale = (channel: number) =>
+      Math.round(Math.min(255, Math.max(0, channel * 255 * factor)));
+    return { color: `rgb(${scale(r)},${scale(g)},${scale(b)})` };
+  }
+  // No resolver available (e.g. a detached/SSR render) — fall back to a CSS
+  // brightness filter so the shading still shows up visually.
+  return { color, filter: `brightness(${factor.toFixed(3)})` };
+}
+
+interface LabelContext {
+  name: string;
+  value: number[];
+  dataIndex: number;
+  seriesIndex: number;
+  seriesName: string;
+}
+
+// ECharts template semantics: `{b}` is the data item name, `{c}` its value —
+// here the [x, y, z] triple. A function formatter receives the full params.
+function formatLabel(label: LabelOption, context: LabelContext): string {
+  const formatter = label.formatter;
+  if (typeof formatter === "function") {
+    return String(
+      formatter({
+        name: context.name,
+        value: context.value,
+        dataIndex: context.dataIndex,
+        seriesIndex: context.seriesIndex,
+        seriesName: context.seriesName,
+      }),
+    );
+  }
+  const valueText = context.value.join(", ");
+  if (typeof formatter === "string") {
+    return formatter
+      .replace(/\{b\}/g, context.name)
+      .replace(/\{c\}/g, valueText);
+  }
+  return valueText;
+}
+
+function appendLabel(
+  group: SVGElement,
+  label: LabelOption,
+  context: LabelContext,
+  px: number,
+  py: number,
+): void {
+  const distance = label.distance ?? DEFAULT_LABEL_DISTANCE;
+  const position = label.position ?? "top";
+  let x = px;
+  let y = py;
+  let anchor = "middle";
+  let baseline = "auto";
+  if (position === "right") {
+    x = px + distance;
+    anchor = "start";
+    baseline = "middle";
+  } else if (position === "inside") {
+    baseline = "middle";
+  } else {
+    y = py - distance;
+  }
+
+  const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+  text.textContent = formatLabel(label, context);
+  text.setAttribute("x", String(x));
+  text.setAttribute("y", String(y));
+  text.setAttribute(
+    "font-size",
+    String(label.fontSize ?? DEFAULT_LABEL_FONT_SIZE),
+  );
+  text.setAttribute(
+    "fill",
+    cssColor(label.color ?? "neutral", context.seriesIndex),
+  );
+  text.setAttribute("text-anchor", anchor);
+  text.setAttribute("dominant-baseline", baseline);
+  text.setAttribute("pointer-events", "none");
+  group.appendChild(text);
+}
+
+// SVG dash pattern for a LineStyleOption.type. DERIVED from the stroke width so
+// the pattern scales with the line: dashed = 4 widths drawn / 2 skipped,
+// dotted = 1 width drawn / 2 skipped. An explicit array passes through.
+function dashArray(
+  type: LineStyleOption["type"],
+  width: number,
+): string | null {
+  if (Array.isArray(type)) return type.join(",");
+  if (type === "dashed") return `${4 * width},${2 * width}`;
+  if (type === "dotted") return `${width},${2 * width}`;
+  return null;
+}
+
+// ECharts precedence: itemStyle/lineStyle.color > series.color > palette.
+function resolveSeriesColor(
+  styleColor: unknown,
+  seriesColor: unknown,
+  fallbackIndex: number,
+): string {
+  return cssColor(styleColor ?? seriesColor, fallbackIndex);
+}
+
+// Data item name for `{b}` — ECharts falls back to the item index.
+function itemName(item: unknown, index: number): string {
+  const name = (item as { name?: unknown } | null)?.name;
+  return typeof name === "string" ? name : String(index);
 }
 
 // Perspective projection: 3D → 2D
@@ -132,6 +336,7 @@ export function renderGrid3D(
   surface3D: Surface3DSeriesOption[],
   width: number,
   height: number,
+  colorResolver: ColorResolver,
 ): void {
   const old = svg.querySelector(".dc-3d");
   if (old) old.remove();
@@ -344,27 +549,67 @@ export function renderGrid3D(
   // Draw scatter3D
   for (let si = 0; si < scatter3D.length; si++) {
     const s = scatter3D[si];
-    const color = cssColor(s.color, si);
+    const itemStyle: ItemStyleOption = s.itemStyle ?? {};
+    const color = resolveSeriesColor(itemStyle.color, s.color, si);
+    const opacity = itemStyle.opacity ?? DEFAULT_MARK_OPACITY;
+    // ECharts' itemStyle.borderWidth defaults to 0 — a border shows only when a
+    // width is given; its color falls back to the item color.
+    const borderWidth = itemStyle.borderWidth ?? 0;
+    const borderColor = resolveSeriesColor(itemStyle.borderColor, s.color, si);
     const r = (s.symbolSize ?? 8) / 2;
+    const data = s.data ?? [];
 
-    for (const item of s.data ?? []) {
+    for (let index = 0; index < data.length; index++) {
+      const item = data[index];
       const v = Array.isArray(item) ? item : (item as any).value;
       if (!Array.isArray(v) || v.length < 3) continue;
       const nx = normalize(Number(v[0]), xRange);
       const ny = normalize(Number(v[1]), yRange);
       const nz = normalize(Number(v[2]), zRange);
       const [px, py] = toPixel(nx, ny, nz);
-      group.appendChild(
-        svgEl("circle", { cx: px, cy: py, r, fill: color, opacity: 0.85 }),
-      );
+      const attrs: Record<string, string | number> = {
+        cx: px,
+        cy: py,
+        r,
+        fill: color,
+        opacity,
+      };
+      if (borderWidth > 0) {
+        attrs.stroke = borderColor;
+        attrs["stroke-width"] = borderWidth;
+      }
+      group.appendChild(svgEl("circle", attrs));
+
+      if (s.label?.show) {
+        appendLabel(
+          group,
+          s.label,
+          {
+            name: itemName(item, index),
+            value: [Number(v[0]), Number(v[1]), Number(v[2])],
+            dataIndex: index,
+            seriesIndex: si,
+            seriesName: s.name ?? "",
+          },
+          px,
+          py - r,
+        );
+      }
     }
   }
 
   // Draw line3D
   for (let si = 0; si < line3D.length; si++) {
     const s = line3D[si];
-    const color = cssColor(s.color, scatter3D.length + si);
-    const lineW = s.lineWidth ?? 2;
+    const lineStyle: LineStyleOption = s.lineStyle ?? {};
+    const color = resolveSeriesColor(
+      lineStyle.color,
+      s.color,
+      scatter3D.length + si,
+    );
+    const lineW = lineStyle.width ?? s.lineWidth ?? 2;
+    const opacity = lineStyle.opacity ?? DEFAULT_LINE_OPACITY;
+    const dash = dashArray(lineStyle.type, lineW);
     const data = s.data ?? [];
     const projected: string[] = [];
 
@@ -387,7 +632,8 @@ export function renderGrid3D(
       polyline.setAttribute("fill", "none");
       polyline.setAttribute("stroke", color);
       polyline.setAttribute("stroke-width", String(lineW));
-      polyline.setAttribute("opacity", "0.9");
+      polyline.setAttribute("opacity", String(opacity));
+      if (dash) polyline.setAttribute("stroke-dasharray", dash);
       group.appendChild(polyline);
     }
   }
@@ -395,10 +641,47 @@ export function renderGrid3D(
   // Draw bar3D as projected thin rectangles
   for (let si = 0; si < bar3D.length; si++) {
     const s = bar3D[si];
-    const color = cssColor(s.color, scatter3D.length + line3D.length + si);
+    const fallbackIndex = scatter3D.length + line3D.length + si;
+    const itemStyle: ItemStyleOption = s.itemStyle ?? {};
+    let color = resolveSeriesColor(itemStyle.color, s.color, fallbackIndex);
+    let colorFilter: string | undefined;
+    const opacity = itemStyle.opacity ?? DEFAULT_MARK_OPACITY;
+    const borderWidth = itemStyle.borderWidth ?? 0;
+    const borderColor = resolveSeriesColor(
+      itemStyle.borderColor,
+      s.color,
+      fallbackIndex,
+    );
     const barSize = s.barSize ?? 0.05;
+    const barWidth = Math.max(2, barSize * scale * 0.3);
 
-    for (const item of s.data ?? []) {
+    if (s.shading === "lambert") {
+      // The stroke stands for the bar's camera-facing vertical side face, so
+      // its normal is horizontal and points at the viewer. DERIVED from the
+      // projection: depth grows with z1 = -x·cos(a)·sin(b) - y·sin(a) +
+      // z·cos(a)·cos(b), so toward-viewer = -grad(z1), with the vertical
+      // component dropped because the face is vertical.
+      const alphaRadians = (alpha * Math.PI) / 180;
+      const betaRadians = (beta * Math.PI) / 180;
+      const shade = lambertShade([
+        Math.cos(alphaRadians) * Math.sin(betaRadians),
+        0,
+        -Math.cos(alphaRadians) * Math.cos(betaRadians),
+      ]);
+      const paint = shadedPaint(
+        color,
+        shade,
+        colorResolver,
+        itemStyle.color ?? s.color,
+        fallbackIndex,
+      );
+      color = paint.color;
+      colorFilter = paint.filter;
+    }
+
+    const data = s.data ?? [];
+    for (let index = 0; index < data.length; index++) {
+      const item = data[index];
       const v = Array.isArray(item) ? item : (item as any).value;
       if (!Array.isArray(v) || v.length < 3) continue;
       const nx = normalize(Number(v[0]), xRange);
@@ -409,17 +692,51 @@ export function renderGrid3D(
       const [topX, topY] = toPixel(nx, ny, nz);
       const [botX, botY] = toPixel(nx, -0.5, nz);
 
+      if (borderWidth > 0) {
+        // A stroked bar has no fill/stroke pair, so the border is a wider line
+        // painted underneath: the fill width plus one border width per side.
+        group.appendChild(
+          svgEl("line", {
+            x1: botX,
+            y1: botY,
+            x2: topX,
+            y2: topY,
+            stroke: borderColor,
+            "stroke-width": barWidth + 2 * borderWidth,
+            "stroke-linecap": "round",
+            opacity,
+          }),
+        );
+      }
+
       const line = svgEl("line", {
         x1: botX,
         y1: botY,
         x2: topX,
         y2: topY,
         stroke: color,
-        "stroke-width": Math.max(2, barSize * scale * 0.3),
+        "stroke-width": barWidth,
         "stroke-linecap": "round",
-        opacity: 0.85,
+        opacity,
       });
+      if (colorFilter) line.setAttribute("style", `filter: ${colorFilter}`);
       group.appendChild(line);
+
+      if (s.label?.show) {
+        appendLabel(
+          group,
+          s.label,
+          {
+            name: itemName(item, index),
+            value: [Number(v[0]), Number(v[1]), Number(v[2])],
+            dataIndex: index,
+            seriesIndex: si,
+            seriesName: s.name ?? "",
+          },
+          topX,
+          topY - barWidth / 2,
+        );
+      }
     }
   }
 
@@ -443,9 +760,21 @@ export function renderGrid3D(
     const zMax = Math.max(...zValues, zMin + 1);
 
     const showWireframe = s.wireframe?.show !== false;
+    const itemStyle: ItemStyleOption = s.itemStyle ?? {};
+    const fillOpacity = itemStyle.opacity ?? DEFAULT_MARK_OPACITY;
+    // A flat itemStyle.color replaces the z-gradient entirely; without one the
+    // gradient stays (so `undefined` must NOT fall through to the palette).
+    const fallbackIndex = scatter3D.length + line3D.length + bar3D.length + si;
+    const flatFill =
+      itemStyle.color == null ? null : cssColor(itemStyle.color, fallbackIndex);
 
     // Draw quads back-to-front (painter's algorithm — approximate, good enough for SVG)
-    const quads: { avgZ: number; path: string; fill: string }[] = [];
+    const quads: {
+      avgZ: number;
+      path: string;
+      fill: string;
+      filter?: string;
+    }[] = [];
 
     for (let row = 0; row < shapeH - 1; row++) {
       for (let col = 0; col < shapeW - 1; col++) {
@@ -490,10 +819,52 @@ export function renderGrid3D(
 
         const avgZ = (p00[2] + p10[2] + p11[2] + p01[2]) / 4;
         const t = (avgZ - zMin) / (zMax - zMin);
-        const fill = zToColor(t);
+        let fill = flatFill ?? zToColor(t);
+        let filter: string | undefined;
+
+        if (s.shading === "lambert") {
+          // Geometric normal of the quad, in the same normalized box space the
+          // projection consumes (x → box x, data z → box y = up, data y → box
+          // z). Normalized, not raw data units, because a raw-unit normal is
+          // dominated by whichever axis happens to have the widest range.
+          const boxPoint = (
+            p: [number, number, number],
+          ): [number, number, number] => [
+            normalize(p[0], xRange),
+            normalize(p[2], zRange),
+            normalize(p[1], yRange),
+          ];
+          const origin = boxPoint(p00);
+          const edgeA = boxPoint(p10);
+          const edgeB = boxPoint(p01);
+          const ax = edgeA[0] - origin[0];
+          const ay = edgeA[1] - origin[1];
+          const az = edgeA[2] - origin[2];
+          const bx = edgeB[0] - origin[0];
+          const by = edgeB[1] - origin[1];
+          const bz = edgeB[2] - origin[2];
+          let normal: [number, number, number] = [
+            ay * bz - az * by,
+            az * bx - ax * bz,
+            ax * by - ay * bx,
+          ];
+          // The surface is a height field, so the outward normal is the one
+          // with a non-negative up component; the cross-product sign otherwise
+          // just follows the row/column order of the data.
+          if (normal[1] < 0) normal = [-normal[0], -normal[1], -normal[2]];
+          const paint = shadedPaint(
+            fill,
+            lambertShade(normal),
+            colorResolver,
+            itemStyle.color,
+            fallbackIndex,
+          );
+          fill = paint.color;
+          filter = paint.filter;
+        }
 
         const path = `M${x00.toFixed(1)},${y00.toFixed(1)} L${x10.toFixed(1)},${y10.toFixed(1)} L${x11.toFixed(1)},${y11.toFixed(1)} L${x01.toFixed(1)},${y01.toFixed(1)} Z`;
-        quads.push({ avgZ, path, fill });
+        quads.push({ avgZ, path, fill, filter });
       }
     }
 
@@ -511,7 +882,8 @@ export function renderGrid3D(
       );
       pathEl.setAttribute("d", q.path);
       pathEl.setAttribute("fill", q.fill);
-      pathEl.setAttribute("fill-opacity", "0.85");
+      pathEl.setAttribute("fill-opacity", String(fillOpacity));
+      if (q.filter) pathEl.setAttribute("style", `filter: ${q.filter}`);
       if (showWireframe) {
         pathEl.setAttribute("stroke", "rgba(0,0,0,0.15)");
         pathEl.setAttribute("stroke-width", "0.5");

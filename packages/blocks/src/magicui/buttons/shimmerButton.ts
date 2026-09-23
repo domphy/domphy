@@ -30,6 +30,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { REDUCED_MOTION_PAUSE } from "../reducedMotion.js";
 
 export interface ShimmerButtonProps {
   /** Button label content. Defaults to `"Shimmer Button"`. */
@@ -92,14 +93,9 @@ function shimmerButton(
   // Rotating highlight patch: a mostly-transparent conic gradient with one bright
   // wedge near the seam, sized well beyond the button's own box (200%) so every
   // corner stays covered through a full rotation about its own center.
-  //
-  // `_doctorDisable` isn't part of core's strict `PartialElement` type — build each
-  // decorative layer through an untyped literal, then assert, so the excess-property
-  // check doesn't fire (mirrors `overlayCanvas` in confetti.ts).
   const rotatingSliver = {
     span: null,
     ariaHidden: "true",
-    _doctorDisable: "missing-color",
     style: {
       position: "absolute",
       top: "50%",
@@ -109,6 +105,7 @@ function shimmerButton(
       backgroundImage: (listener: Listener) =>
         `conic-gradient(from 0deg, transparent 0turn, ${themeColor(listener, "shift-1", shimmerColor)} 0.25turn, transparent 0.25turn)`,
       animation: `${spinAnimationName} ${shimmerDuration}s linear infinite`,
+      ...REDUCED_MOTION_PAUSE,
       [`@keyframes ${spinAnimationName}`]: spinKeyframes,
     } as StyleObject,
   } as DomphyElement<"span">;
@@ -118,7 +115,6 @@ function shimmerButton(
   const ringMask = {
     span: null,
     ariaHidden: "true",
-    _doctorDisable: "missing-color",
     style: {
       position: "absolute",
       inset: shimmerSize,
@@ -137,7 +133,6 @@ function shimmerButton(
     span: null,
     ariaHidden: "true",
     dataSlot: "shimmer-highlight",
-    _doctorDisable: "missing-color",
     style: {
       position: "absolute",
       inset: 0,
@@ -162,6 +157,9 @@ function shimmerButton(
     // per the doctor's dataTone-surface-contract idiom) rather than a raw literal
     // color — `backgroundColor`/`color` below both read this same context.
     dataTone: "shift-15",
+    // `borderRadius` below is the caller-supplied `borderRadius` number prop
+    // (matches upstream's own contract), not a design-system constant.
+    _doctorDisable: "raw-spacing-value",
     style: {
       position: "relative",
       overflow: "hidden",

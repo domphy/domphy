@@ -37,6 +37,7 @@ import type {
 import { hashString } from "@domphy/core";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
 import { heading, paragraph } from "@domphy/ui";
+import { REDUCED_MOTION_PAUSE } from "../reducedMotion.js";
 
 export interface AnimatedGridPatternProps {
   /** Grid cell width, in px. Defaults to `40`. */
@@ -132,7 +133,6 @@ function animatedGridPattern(
         d: `M ${width} 0 L 0 0 0 ${height}`,
         fill: "none",
         // Decorative line path, no text of its own.
-        _doctorDisable: "missing-color",
         style: {
           stroke: (listener: Listener) =>
             themeColor(listener, "shift-4", color),
@@ -164,10 +164,10 @@ function animatedGridPattern(
         height: height - 1,
         ariaHidden: "true",
         // Decorative fill-only rect, no text of its own.
-        _doctorDisable: "missing-color",
         style: {
           fill: (listener: Listener) => themeColor(listener, "shift-6", color),
           animation: `${animationName} ${totalCycleSeconds}s ease-in-out ${staggerDelaySeconds}s infinite`,
+          ...REDUCED_MOTION_PAUSE,
           [`@keyframes ${animationName}`]: keyframes,
         } as StyleObject,
         _onMount: (node: ElementNode) => {

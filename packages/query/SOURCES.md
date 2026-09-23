@@ -4,12 +4,25 @@
 
 ## Upstream version
 
-**Pinned: `@tanstack/query-core@5.101.4`** (npm). Synced from 5.90.20 on 2026-08-04 (wave-3 deferral; see `.stable-audit/29-deferral-wave3-query-form-resync.md`).
+**Pinned: `@tanstack/query-core@5.103.2`** (npm). Synced 5.90.20 → 5.101.4 on 2026-08-04 (wave-3 deferral; see `.stable-audit/29-deferral-wave3-query-form-resync.md`), then 5.101.4 → 5.103.2 on 2026-09-23.
 
 Evidence (direct, not inferred):
 
-1. **Full-tree diff.** Every file under `src/` that has an upstream counterpart (`environmentManager.ts`, `focusManager.ts`, `hydration.ts`, `index.ts`, `infiniteQueryBehavior.ts`, `infiniteQueryObserver.ts`, `mutation.ts`, `mutationCache.ts`, `mutationObserver.ts`, `notifyManager.ts`, `onlineManager.ts`, `queriesObserver.ts`, `query.ts`, `queryCache.ts`, `queryClient.ts`, `queryObserver.ts`, `removable.ts`, `retryer.ts`, `streamedQuery.ts`, `subscribable.ts`, `thenable.ts`, `timeoutManager.ts`, `types.ts`, `utils.ts`) is byte-identical to the `5.101.4` npm tarball (`https://registry.npmjs.org/@tanstack/query-core/-/query-core-5.101.4.tgz`). Verified 2026-08-04 by diffing all 24 files: **0 differing files**. The only non-upstream file under `src/` is `global.ts` (tsup global build shim).
-2. **Dependency signature.** Upstream query-core has zero runtime dependencies at both 5.90.20 and 5.101.4; `@domphy/query` likewise has zero runtime dependencies.
+1. **Full-tree diff.** Every file under `src/` that has an upstream counterpart (`environmentManager.ts`, `focusManager.ts`, `hydration.ts`, `index.ts`, `infiniteQueryBehavior.ts`, `infiniteQueryObserver.ts`, `mutation.ts`, `mutationCache.ts`, `mutationObserver.ts`, `notifyManager.ts`, `onlineManager.ts`, `queriesObserver.ts`, `query.ts`, `queryCache.ts`, `queryClient.ts`, `queryObserver.ts`, `removable.ts`, `retryer.ts`, `streamedQuery.ts`, `subscribable.ts`, `timeoutManager.ts`, `types.ts`, `utils.ts`) is byte-identical to the `5.103.2` npm tarball (`https://registry.npmjs.org/@tanstack/query-core/-/query-core-5.103.2.tgz`). Verified 2026-09-23 by `diff -q` on all 23 files: **0 differing files**. The only non-upstream file under `src/` is `global.ts` (tsup global build shim). Reproduce with `npm pack @tanstack/query-core@5.103.2`.
+2. **Dependency signature.** Upstream query-core has zero runtime dependencies at 5.90.20, 5.101.4 and 5.103.2; `@domphy/query` likewise has zero runtime dependencies.
+
+### What the 5.101.4 → 5.103.2 resync brought in
+
+The raw diff is ~2,800 lines across 21 files, but with block/line comments stripped the real code delta is ~646 lines across 16 files — most of the churn is upstream adding JSDoc to the public option/result types. Substantive changes:
+
+- **`src/thenable.ts` deleted.** Upstream dropped the custom pending-thenable machinery. `retryer.ts` now uses a plain `Promise` plus an external `status` variable (`'pending' | 'resolved' | 'rejected'`); `hydration.ts` carries its own local `tryResolveSync`. `thenable.ts` was never re-exported from `src/index.ts`, so this is not a public-API removal for `@domphy/query`.
+- **`experimental_prefetchInRender` and `QueryObserverResult.promise` removed** (upstream). Neither is referenced by `src/domphy/`, the tests or `apps/web/docs/query` — grep is empty — so nothing in this repo depended on them.
+- `QueryObserver.fetchOptimistic` races the fetch against a query-cache subscription, so an external cache write resolves it early instead of waiting for the in-flight fetch.
+- `resolveQueryBoolean` + `resolveStaleTime` collapsed into one generic `resolveQueryValue`; `refetchInterval` resolution goes through it too. All three are internal to `src/utils.ts` (not re-exported from `index.ts`).
+- `#shouldScheduleTimer` centralises the server / `enabled: false` / invalid-timeout guard shared by the stale timeout and the refetch interval.
+- `shouldAssignObserverCurrentProperties` replaced by a direct `shallowEqualObjects(this.getCurrentResult(), result)` check.
+- `environmentManager` is a plain object exporting a module-level `isServer()`; `QueriesObserver` de-duplicates `trackProp` fan-out per notify, skips `combine` when no `combine` is supplied, and no longer allocates through `replaceAt`.
+- Additive `index.ts` exports: `dehydrateQuery`, and the types `FocusManager`, `OnlineManager`, `TimeoutManager`, `MutationCacheConfig`, `QueryCacheConfig`.
 
 What the 5.90.20 → 5.101.4 sync brought in (classified in `.stable-audit/29-deferral-wave3-query-form-resync.md`; no breaking changes for this port or its adapter):
 
@@ -32,9 +45,9 @@ What the 5.90.20 → 5.101.4 sync brought in (classified in `.stable-audit/29-de
 
 ## Intentional deviations from upstream
 
-**None.** All 24 vendored core files are byte-identical to the 5.101.4 tarball. Deviations, if ever needed, must be recorded here in a table like `packages/form/SOURCES.md`'s and re-applied on every re-sync.
+**None.** All 23 vendored core files are byte-identical to the 5.103.2 tarball. Deviations, if ever needed, must be recorded here in a table like `packages/form/SOURCES.md`'s and re-applied on every re-sync.
 
 ## Verification
 
-- `pnpm --filter @domphy/query test` — 51 tests across 4 files.
+- `pnpm --filter @domphy/query test` — 57 tests across 4 files.
 - `pnpm --filter @domphy/query build` — tsup.

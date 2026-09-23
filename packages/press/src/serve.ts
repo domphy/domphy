@@ -89,13 +89,32 @@ function isInsideRoot(rootReal: string, candidate: string): boolean {
   return rel !== ".." && !rel.startsWith(`..${sep}`) && !rel.startsWith("../");
 }
 
-function resolveFile(root: string, urlPath: string): string | null {
+/**
+ * Strips the site `base` from a request path. The build emits every asset and
+ * link href prefixed with it, so a server rooted at outDir must undo the
+ * prefix or a `base: "/docs/"` site 404s on every request locally (VitePress
+ * `preview` serves at the base for the same reason). Returns null when the
+ * request is outside the base, so that path 404s instead of silently
+ * resolving as if the base were not configured.
+ */
+function stripBase(urlPath: string, basePrefix: string): string | null {
+  if (!basePrefix) return urlPath;
+  if (urlPath === basePrefix) return "/";
+  if (urlPath.startsWith(`${basePrefix}/`))
+    return urlPath.slice(basePrefix.length);
+  return null;
+}
+
+function resolveFile(
+  root: string,
+  urlPath: string,
+  basePrefix = "",
+): string | null {
+  const withinBase = stripBase(urlPath.split("?")[0] ?? "/", basePrefix);
+  if (withinBase === null) return null;
   // Strip a leading slash so join/resolve cannot treat the URL as an
   // absolute filesystem path (posix resolve(root, "/etc/passwd") === "/etc/passwd").
-  const relativeUrl = decodeURIComponent(urlPath.split("?")[0]).replace(
-    /^[/\\]+/,
-    "",
-  );
+  const relativeUrl = decodeURIComponent(withinBase).replace(/^[/\\]+/, "");
   const safe = normalize(relativeUrl);
   if (safe.split(/[/\\]/).includes("..")) return null;
 
@@ -118,10 +137,18 @@ function resolveFile(root: string, urlPath: string): string | null {
   return null;
 }
 
-export function startServer(root: string, port: number): Server {
+/** Normalizes a site `base` ("/", "/docs", "/docs/") to a URL prefix with no
+ *  trailing slash ("" for a root deployment). */
+function basePrefixOf(base = "/"): string {
+  const trimmed = base.replace(/\/+$/, "");
+  return trimmed === "" || trimmed === "/" ? "" : trimmed;
+}
+
+export function startServer(root: string, port: number, base = "/"): Server {
+  const basePrefix = basePrefixOf(base);
   const server = createServer((request, response) => {
     guard(response, () => {
-      const file = resolveFile(root, request.url ?? "/");
+      const file = resolveFile(root, request.url ?? "/", basePrefix);
       if (!file) {
         const notFound = join(root, "404.html");
         response.statusCode = 404;
@@ -140,7 +167,7 @@ export function startServer(root: string, port: number): Server {
   });
   reportListenErrors(server, port);
   server.listen(port, () =>
-    console.log(`DomphyPress preview: http://localhost:${port}/`),
+    console.log(`DomphyPress preview: http://localhost:${port}${basePrefix}/`),
   );
   return server;
 }
@@ -148,8 +175,10 @@ export function startServer(root: string, port: number): Server {
 export function startDevServer(
   root: string,
   port: number,
+  base = "/",
 ): { server: Server; notify: () => void } {
   const clients = new Set<ServerResponse>();
+  const basePrefix = basePrefixOf(base);
 
   const server = createServer((request, response) => {
     guard(response, () => {
@@ -165,7 +194,7 @@ export function startDevServer(
         request.on("close", () => clients.delete(response));
         return;
       }
-      const file = resolveFile(root, url);
+      const file = resolveFile(root, url, basePrefix);
       if (!file) {
         response.statusCode = 404;
         response.setHeader("content-type", "text/html; charset=utf-8");
@@ -188,7 +217,7 @@ export function startDevServer(
   reportListenErrors(server, port);
   server.listen(port, () =>
     console.log(
-      `DomphyPress dev: http://localhost:${port}/  (live reload active)`,
+      `DomphyPress dev: http://localhost:${port}${basePrefix}/  (live reload active)`,
     ),
   );
   return {

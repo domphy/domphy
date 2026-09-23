@@ -88,10 +88,13 @@ t("nav.missing")  // ✗ TypeScript error
 | `setLocale` | `(locale) → Promise<void>` | Switch locale, trigger re-renders |
 | `getLocale` | `() → TLocale` | Current locale (non-reactive) |
 | `detectLocale` | `(opts?) → TLocale` | Detect locale from URL/localStorage |
+| `addLocale` | `(locale, messages) → Promise<void>` | Register a locale after `createI18n` (on-demand `await import()` loading) |
 
 Module export `runWithI18n(fn)` — fresh request-locale scope (SSR). No-op on the client.
 
-`createI18n` also accepts an optional `interpolation: { escapeValue?: boolean }` — defaults to `true` (i18next's own safe default, HTML-escapes interpolated values); pass `false` to disable escaping globally.
+`createI18n`'s `locales` is snapshotted at init, so a locale the app did not ship up front goes in through `addLocale` (an `addResourceBundle` wrapper: deep-merges, overwrites repeated keys, initializes i18next first if needed). It re-renders mounted `t(listener, key)` readers even when the locale code does not change — booting at a locale whose data has not arrived leaves i18next already on that code serving the fallback, so `setLocale` alone short-circuits. Added locales live on the shared `globalKey` store, so sibling instances from a chunk-split bundle see them too. Declare the full `TLocale` union up front — only the data is deferred.
+
+`createI18n` also accepts an optional `interpolation: { escapeValue?: boolean }` — it defaults to **`false`**, unlike bare i18next. Domphy is the escaping boundary: a string child is always rendered as TEXT, so `ElementNode.generateHTML()` turns `O'Brien & Tom <3` into `O&#39;Brien &amp; Tom &lt;3` on its own. Leaving i18next's escaping on would escape every interpolated value twice and the reader would see the entity source (`1&#x2F;2&#x2F;2026`, `O&#39;Brien`) instead of the characters — the same reason react-i18next ships `escapeValue: false`. Pass `true` only when a translated string is handed to something that parses HTML and does not sanitize.
 
 On the server, `initI18n` / `setLocale` do not mutate the shared `globalThis` store's language. The request locale is stored in `AsyncLocalStorage`, so two concurrent `initI18n("en")` and `initI18n("vi")` calls do not clobber each other. The client still dedups via `globalThis[globalKey]`. Node HTTP already isolates requests; wrap other SSR entry points with `runWithI18n()`.
 

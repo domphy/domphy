@@ -86,7 +86,6 @@ function button(
       gap: (listener) => themeSpacing(themeDensity(listener) * 1),
       userSelect: "none",
       cursor: "pointer",
-      fontFamily: "inherit",
       lineHeight: "inherit",
       border: "none",
       outlineOffset: "-1px",

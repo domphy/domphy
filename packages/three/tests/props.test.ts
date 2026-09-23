@@ -1,6 +1,7 @@
 import { flushSync, State, toState } from "@domphy/core";
 import * as THREE from "three";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { FrameClock } from "../src/clock.js";
 import {
   applyProps,
   applyStaticProp,
@@ -41,7 +42,7 @@ function createTestRoot(): RootState {
     canvas: document.createElement("canvas"),
     raycaster: new THREE.Raycaster(),
     pointer: new THREE.Vector2(),
-    clock: new THREE.Clock(),
+    clock: new FrameClock(),
     frameloop: "always",
     size,
     invalidate: vi.fn(),

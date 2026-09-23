@@ -1,5 +1,7 @@
 import type { DomphyElement } from "@domphy/core";
 import { RecordState } from "@domphy/core";
+import { themeSpacing } from "@domphy/theme";
+import type { SceneProps } from "@domphy/three";
 import { three } from "@domphy/three";
 import { Color } from "three";
 
@@ -35,7 +37,7 @@ for (let row = 0; row < GRID_SIZE; row++) {
 }
 const cells = new RecordState<CellRecord>(initialCells);
 
-const gridCells: Record<string, any>[] = [];
+const gridCells: SceneProps[] = [];
 for (let row = 0; row < GRID_SIZE; row++) {
   for (let column = 0; column < GRID_SIZE; column++) {
     const key = `${row}-${column}`;
@@ -117,7 +119,7 @@ const App: DomphyElement<"div"> = {
   style: {
     width: "100%",
     height: "460px",
-    borderRadius: "12px",
+    borderRadius: themeSpacing(3),
     overflow: "hidden",
   },
   $: [

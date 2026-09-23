@@ -141,6 +141,11 @@ export interface RenderDocOptions {
   docsDir: string;
   repoRoot: string;
   highlight: (code: string, lang: string) => string;
+  /** Site base path. Root-relative link/image destinations written in the
+   *  Markdown are prefixed with it, the same way the layout prefixes nav and
+   *  sidebar hrefs — without this every in-content link 404s on a sub-path
+   *  deployment. Default "/" (no prefixing). */
+  base?: string;
 }
 
 export interface SearchDocument {

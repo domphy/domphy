@@ -1,6 +1,6 @@
 import { State } from "@domphy/core";
-import * as THREE from "three";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { FrameClock } from "../src/clock.js";
 import {
   addAfterEffect,
   addEffect,
@@ -26,7 +26,7 @@ function createTestRoot(
   active = true,
 ): TestRoot {
   const gl = createStubRenderer();
-  const clock = new THREE.Clock();
+  const clock = new FrameClock();
   clock.start();
 
   const root: TestRoot = {

@@ -94,4 +94,40 @@ describe("createApiHandler", () => {
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({ error: "Bad Request" });
   });
+
+  it("strips CR/LF from the redirect location (RFC 9110 field values admit no CRLF)", async () => {
+    const injecting = createApiHandler([
+      {
+        path: "/api/go",
+        GET: (request) =>
+          redirect(new URL(request.url).searchParams.get("to") as string),
+      },
+    ]);
+    const response = await injecting(
+      new Request(
+        `http://localhost/api/go?to=${encodeURIComponent("/safe\r\nSet-Cookie: admin=1")}`,
+      ),
+    );
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe("/safeSet-Cookie: admin=1");
+    expect(response.headers.get("set-cookie")).toBeNull();
+  });
+
+  // RFC 9110 10.2.2: Location carries a URI-reference, which is ASCII. The
+  // fetch spec types a header value as a ByteString, so undici throws a
+  // TypeError for a character above U+00FF — out of the catch block that builds
+  // this response, rejecting the handler's promise instead of answering.
+  it("percent-encodes a non-ASCII redirect location (RFC 9110 10.2.2)", async () => {
+    const localized = createApiHandler([
+      {
+        path: "/api/go",
+        GET: () => redirect("/日本語?q=ä"),
+      },
+    ]);
+    const response = await localized(new Request("http://localhost/api/go"));
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(
+      "/%E6%97%A5%E6%9C%AC%E8%AA%9E?q=%C3%A4",
+    );
+  });
 });

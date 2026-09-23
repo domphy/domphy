@@ -109,7 +109,7 @@ if (command === "build") {
   }
 
   await rebuild();
-  const { notify } = startDevServer(outDir, port);
+  const { notify } = startDevServer(outDir, port, config.base);
   notifyClients = notify;
 
   // Debounced file watcher
@@ -138,23 +138,21 @@ if (command === "build") {
     fail((error as Error).message);
   }
   const configFile = flags["--config"] ?? "press.config.ts";
+  // The config is read even when --out is given: the built site references
+  // every asset under `base`, so the preview server has to serve at that
+  // prefix or nothing resolves.
+  const config = existsSync(resolve(process.cwd(), configFile))
+    ? await loadConfig(configFile)
+    : null;
   let outDir = flags["--out"];
-  if (!outDir) {
-    const config = existsSync(resolve(process.cwd(), configFile))
-      ? await loadConfig(configFile)
-      : null;
-    outDir = resolve(
-      process.cwd(),
-      (config?.outDir as string | undefined) ?? "dist",
-    );
-  } else {
-    outDir = resolve(process.cwd(), outDir);
-  }
+  outDir = outDir
+    ? resolve(process.cwd(), outDir)
+    : resolve(process.cwd(), (config?.outDir as string | undefined) ?? "dist");
   if (!existsSync(outDir)) {
     fail(`No build at ${outDir}. Run "domphy-press build" first.`);
   }
   const { startServer } = await import("./serve.js");
-  startServer(outDir, port);
+  startServer(outDir, port, (config?.base as string | undefined) ?? "/");
 } else {
   console.error(`Unknown command: ${command ?? "(none)"}`);
   console.error("Usage: domphy-press build | dev | preview");

@@ -11,6 +11,7 @@ import {
 } from "@domphy/core";
 import {
   type ThemeColor,
+  textToneOn,
   themeColor,
   themeDensity,
   themeSize,
@@ -72,6 +73,25 @@ function menu(
     selectable: boolean;
     color: ThemeColor;
     accentColor: ThemeColor;
+    // Roving-tabindex cursor (WAI-ARIA APG menu pattern): exactly one item is
+    // in the page tab order at a time; Arrow/Home/End move it. Kept on the
+    // shared `inner` record (not a factory-scope variable) so every generation
+    // of a reused node reads the same cursor.
+    focusedKey: State<number | string | null>;
+  };
+
+  // The item that owns tabindex="0": the roving cursor if one has been set,
+  // otherwise the selected item, otherwise the first item.
+  const tabbableKey = (
+    inner: MenuInner,
+    listener: Listener,
+  ): number | string | null => {
+    const focused = inner.focusedKey.get(listener);
+    if (focused !== null) return focused;
+    const active = inner.selectable ? inner.activeKey.get(listener) : null;
+    if (active !== null) return active;
+    const first = inner.items[0];
+    return first ? (first.key ?? 0) : null;
   };
 
   const buildItems = (
@@ -90,6 +110,8 @@ function menu(
         type: "button",
         id: `menuitem${id}${key}`,
         role: "menuitem",
+        tabIndex: (l: Listener) => (tabbableKey(inner, l) === key ? 0 : -1),
+        onFocus: () => inner.focusedKey.set(key),
         ...(inner.selectable
           ? {
               ariaCurrent: (l: Listener) =>
@@ -117,9 +139,13 @@ function menu(
             next = (idx - 1 + keys.length) % keys.length;
           else if (k === "Home") next = 0;
           else if (k === "End") next = keys.length - 1;
-          (
-            document.getElementById(`menuitem${id}${keys[next]}`) as HTMLElement
-          )?.focus();
+          // Resolved through the event target's own [role=menu] — shadow-root
+          // safe, unlike a document.getElementById lookup (a menu rendered
+          // inside a shadow root is invisible to the document-level id map,
+          // so arrow keys silently did nothing there). Same resolution the
+          // tabs patch already uses for its tablist.
+          const list = (e.target as HTMLElement).closest("[role=menu]");
+          list?.querySelectorAll<HTMLElement>("[role=menuitem]")[next]?.focus();
         },
         style: {
           cursor: "pointer",
@@ -139,9 +165,12 @@ function menu(
             themeColor(l, "inherit", inner.color),
           transition:
             "background-color 140ms ease, box-shadow 140ms ease, color 140ms ease",
+          // Label tracks the hover fill (+2) — a fixed "text" label measured
+          // 3.58:1 against it (light) / 4.37:1 (dark), below WCAG AA.
           "&:hover:not([disabled]):not([aria-current=true])": {
             backgroundColor: (l: Listener) =>
               themeColor(l, "hover", inner.color),
+            color: (l: Listener) => themeColor(l, textToneOn(2), inner.color),
           },
           "&[aria-current=true]": {
             backgroundColor: (l: Listener) =>
@@ -161,6 +190,14 @@ function menu(
     _node: ElementNode,
     initial: MenuInner,
   ): BehaviorInstance<MenuInner> => {
+    // WAI-ARIA APG: when a menu opens, focus starts on the first item, not
+    // wherever a PREVIOUS open left the roving cursor. attach() runs exactly
+    // once per real DOM node — a genuine reopen (the menu's floating
+    // container, e.g. popover, unmounts and remounts the panel on every
+    // close/open) gets a fresh node and refires attach here, while an
+    // in-place re-render (same node, e.g. mid-navigation Arrow presses)
+    // never does — so this only resets on a real reopen, never mid-session.
+    initial.focusedKey.set(null);
     let current = initial;
     return {
       update(next) {
@@ -169,6 +206,12 @@ function menu(
           !next.activeKeyIsCallerOwned
         ) {
           next.activeKey.set(current.activeKey.get());
+        }
+        // Carry the roving cursor across generations too — a fresh factory
+        // closure brings a fresh `toState(null)`, which would drop
+        // tabindex="0" back onto the first item mid-keyboard-navigation.
+        if (next.focusedKey !== current.focusedKey) {
+          next.focusedKey.set(current.focusedKey.get());
         }
         current = next;
         // Empty items = the caller renders its own rows; leave children alone.
@@ -185,6 +228,7 @@ function menu(
     selectable,
     color,
     accentColor,
+    focusedKey: toState<number | string | null>(null),
   };
 
   return {

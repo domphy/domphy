@@ -22,7 +22,8 @@
 
 import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
 import { behavior } from "@domphy/core";
-import { fixed } from "../../shared/typography.js";
+import { themeFont } from "@domphy/theme";
+import { prefersReducedMotion } from "../reducedMotion.js";
 
 export interface HyperTextProps {
   /** Text content to animate. Defaults to a short demo phrase. */
@@ -110,14 +111,22 @@ function hyperText(props: HyperTextProps = {}): DomphyElement {
     // font-size) — this container's own font-size is pinned to a fixed
     // 2.25rem two lines below, so an em-based padding would resolve against
     // that (18px) instead of upstream's constant 8px, breaking pixel fidelity.
-    _doctorDisable: "raw-spacing-value",
+    // `inline-typography`: the 2.25rem below is the fixed base the literal
+    // padding above is measured against, and it sits above the theme scale's
+    // top step (--fontSize-7 = 3.0625rem is a ceiling themeSize() clamps to,
+    // not a 2.25rem step), so there is no token that reproduces it.
+    _doctorDisable: ["raw-spacing-value", "inline-typography"],
     style: {
       overflow: "hidden",
       paddingTop: "0.5rem",
       paddingBottom: "0.5rem",
-      fontFamily: fixed("monospace"),
-      fontSize: fixed("2.25rem"),
-      fontWeight: fixed("700"),
+      // Monospace is load-bearing here, not decoration — the scramble swaps a
+      // random glyph into every cell each frame, and only equal advance widths
+      // keep those swaps from reflowing their neighbours mid-animation.
+      fontFamily: themeFont("monospace"),
+      fontSize: "2.25rem",
+      // Same face as "700", measured; kept as the cascade keyword.
+      fontWeight: "bold",
       ...(props.style ?? {}),
     } as StyleObject,
     ...behavior(
@@ -143,6 +152,12 @@ function hyperText(props: HyperTextProps = {}): DomphyElement {
         const runScramble = () => {
           stopAnimationFrame();
           if (characters.length === 0) return;
+          // WCAG 2.3.3: the scramble is a decorative transition into text that
+          // is already rendered resolved (each `<span>` is seeded with its real
+          // character). Under reduce there is nothing to do — no rAF starts, so
+          // the auto-play and the hover re-trigger both leave the text legible
+          // instead of churning random glyphs through it.
+          if (prefersReducedMotion()) return;
           isAnimating = true;
           const maxIterations = characters.length;
           const startTime = performance.now();

@@ -7,7 +7,7 @@ import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
  *
  * @hostTag hr
  * @param props.color - Theme color tone (`ValueOrState<ThemeColor>`) for the rule. Defaults to "neutral".
- * @example { hr: "", $: [horizontalRule()] }
+ * @example { hr: null, $: [horizontalRule()] }
  */
 function horizontalRule(
   props: { color?: ValueOrState<ThemeColor> } = {},

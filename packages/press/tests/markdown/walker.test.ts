@@ -15,7 +15,9 @@ describe("aligned GFM tables (remark-gfm)", () => {
   it("sets style.textAlign on aligned columns", () => {
     const md = "| L | C | R |\n|:--|:-:|--:|\n| 1 | 2 | 3 |";
     const body = markdownToDomphy(md);
-    const table = asRecord(body[0]);
+    // The walker wraps the table in its keyboard-reachable scroll region.
+    const region = asRecord(body[0]);
+    const table = asRecord((region.div as unknown[])[0]);
     const tableChildren = table.table as Record<string, unknown>[];
     const thead = asRecord(tableChildren.find((c) => "thead" in c));
     const headerRow = asRecord((thead.thead as unknown[])[0]);
@@ -30,7 +32,9 @@ describe("aligned GFM tables (remark-gfm)", () => {
   it("leaves cells without explicit alignment unstyled", () => {
     const md = "| A | B |\n| - | - |\n| 1 | 2 |";
     const body = markdownToDomphy(md);
-    const table = asRecord(body[0]);
+    // The walker wraps the table in its keyboard-reachable scroll region.
+    const region = asRecord(body[0]);
+    const table = asRecord((region.div as unknown[])[0]);
     const tableChildren = table.table as Record<string, unknown>[];
     const thead = asRecord(tableChildren.find((c) => "thead" in c));
     const headerRow = asRecord((thead.thead as unknown[])[0]);

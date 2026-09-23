@@ -38,7 +38,6 @@
 import type { DomphyElement, ElementNode, StyleObject } from "@domphy/core";
 import { toState } from "@domphy/core";
 import { type ThemeColor, themeColorToken } from "@domphy/theme";
-import { fixed } from "../../shared/typography.js";
 
 export interface DiaTextRevealProps {
   /** Text to display, or a list of strings to cycle through (one sweep per item). Defaults to a demo phrase. */
@@ -185,7 +184,11 @@ function diaTextReveal(props: DiaTextRevealProps = {}): DomphyElement<"span"> {
     style: {
       position: "relative",
       verticalAlign: "bottom",
-      lineHeight: fixed("100%"),
+      // Unitless 1 — identical computed value to upstream's `100%` on this
+      // leaf span (both resolve to 1x the element's own font-size; the
+      // inherit-the-number vs inherit-the-px difference cannot show here,
+      // since the span has text content and no element children).
+      lineHeight: 1,
       transform: "translateY(-2px)",
       color: "transparent",
       backgroundClip: "text",

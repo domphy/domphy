@@ -5,7 +5,7 @@ description: "ECharts-grade charting for Domphy — WebGL line/bar/scatter/pie/r
 
 # @domphy/chart
 
-ECharts-grade charting for Domphy. WebGL-accelerated series for performance-critical data, SVG series for complex layouts. The **option types** follow ECharts; polar coordinates, brush, and toolbox are typed only (not rendered). See [vs ECharts](/docs/chart/vs-echarts) for the honest matrix. No React dependency.
+ECharts-grade charting for Domphy. WebGL-accelerated series for performance-critical data, SVG series for complex layouts. The **option types** follow ECharts; polar coordinates and brush are typed only (not rendered). See [vs ECharts](/docs/chart/vs-echarts) for the honest matrix. No React dependency.
 
 ## Install
 

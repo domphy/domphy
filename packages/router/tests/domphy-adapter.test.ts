@@ -5,6 +5,7 @@ import {
   createRoute,
   createRouter,
   getStoreFactory,
+  subscribeToRouterState,
 } from "../src/index";
 import { setupTransitioner } from "../src/domphy/transitioner";
 import type { AnyRouter } from "../src/router";
@@ -27,38 +28,23 @@ function createTestSetup() {
   return { router, postRoute };
 }
 
-// Wraps a store's `subscribe` so that the unsubscribe handle the transitioner
-// receives is spied. The store atoms return `{ unsubscribe }`. Only calls made
-// after wrapping are captured (the router's own auto-transitioner subscribed
-// earlier through the unwrapped method).
-function spyStoreUnsub(store: { subscribe: (cb: () => void) => unknown }) {
-  const spies: Array<ReturnType<typeof vi.fn>> = [];
-  const original = store.subscribe.bind(store);
-  store.subscribe = (cb: () => void) => {
-    const handle = original(cb) as { unsubscribe: () => void };
-    const spy = vi.fn(() => handle.unsubscribe());
-    spies.push(spy);
-    return { unsubscribe: spy };
-  };
-  return spies;
-}
-
 describe("setupTransitioner cleanup", () => {
-  it("unsubscribes the isLoading, hasPending and history subscriptions on cleanup", async () => {
+  it("unsubscribes the history subscription on cleanup", async () => {
     const { router } = createTestSetup();
     await router.load();
 
-    const isLoadingUnsubs = spyStoreUnsub(router.stores.isLoading as never);
-    const hasPendingUnsubs = spyStoreUnsub(router.stores.hasPending as never);
-
     // The history Set dedupes by reference and both transitioners subscribe
-    // the same `router.load`, so the subscriber-count is not observable. Spy
+    // the same `router.load`, so the subscriber count is not observable. Spy
     // on the unsubscribe handle the transitioner is handed instead.
     const historyUnsub = vi.fn();
     const originalHistorySubscribe = router.history.subscribe.bind(
       router.history,
     );
-    (router.history as unknown as { subscribe: (cb: () => void) => () => void }).subscribe = (cb: () => void) => {
+    (
+      router.history as unknown as {
+        subscribe: (cb: () => void) => () => void;
+      }
+    ).subscribe = (cb: () => void) => {
       const realUnsub = originalHistorySubscribe(cb);
       return () => {
         historyUnsub();
@@ -67,52 +53,30 @@ describe("setupTransitioner cleanup", () => {
     };
 
     const { cleanup } = setupTransitioner(router as unknown as AnyRouter);
-
-    // Exactly one subscription per store and one for history were created.
-    expect(isLoadingUnsubs.length).toBe(1);
-    expect(hasPendingUnsubs.length).toBe(1);
     expect(historyUnsub).not.toHaveBeenCalled();
 
     cleanup();
+    expect(historyUnsub).toHaveBeenCalledTimes(1);
 
-    expect(isLoadingUnsubs[0]).toHaveBeenCalledTimes(1);
-    expect(hasPendingUnsubs[0]).toHaveBeenCalledTimes(1);
+    // Calling cleanup twice must be safe and must not unsubscribe twice.
+    expect(() => cleanup()).not.toThrow();
     expect(historyUnsub).toHaveBeenCalledTimes(1);
   });
 
-  it("stops driving the transitioner update after cleanup (store notifications detached)", async () => {
+  it("leaves startTransition inert after cleanup (no commit, reports not-rendered)", async () => {
     const { router } = createTestSetup();
     await router.load();
 
-    // Capture the `update` callback the transitioner registers on isLoading,
-    // and a spy unsubscribe that flips a flag when invoked.
-    let registeredUpdate: (() => void) | null = null;
-    let unsubscribed = false;
-    const originalSubscribe = (
-      router.stores.isLoading as unknown as { subscribe: (cb: () => void) => unknown }
-    ).subscribe.bind(router.stores.isLoading);
-    (router.stores.isLoading as never as {
-      subscribe: (cb: () => void) => unknown;
-    }).subscribe = (cb: () => void) => {
-      registeredUpdate = cb;
-      const handle = originalSubscribe(cb) as { unsubscribe: () => void };
-      return {
-        unsubscribe: () => {
-          unsubscribed = true;
-          handle.unsubscribe();
-        },
-      };
-    };
-
     const { cleanup } = setupTransitioner(router as unknown as AnyRouter);
-    expect(typeof registeredUpdate).toBe("function");
-    expect(unsubscribed).toBe(false);
-
     cleanup();
-    expect(unsubscribed).toBe(true);
 
-    // Calling cleanup twice must be safe.
-    expect(() => cleanup()).not.toThrow();
+    // Core calls startTransition(commit, matches) and only emits onRendered
+    // when it resolves true. A torn-down transitioner must neither run the
+    // commit nor claim the UI rendered.
+    const commit = vi.fn();
+    const rendered = await router.startTransition(commit, []);
+    expect(commit).not.toHaveBeenCalled();
+    expect(rendered).toBe(false);
   });
 
   it("rebindHistory re-targets the history subscription to the current router.history", async () => {
@@ -187,6 +151,98 @@ describe("Router.destroy()", () => {
         (routeMatch) => routeMatch.routeId === postRoute.id,
       ),
     ).toBeUndefined();
+  });
+
+  // `startTransition` is a router field the transitioner installs, so it
+  // survives cleanup(); without a guard an explicit `load()` on a destroyed
+  // router still emitted the lifecycle events and scheduled an onRendered
+  // timer that cleanup() could no longer cancel.
+  it("emits no lifecycle events when load() is called on a destroyed router", async () => {
+    const { router } = createTestSetup();
+    await router.load();
+
+    const emitted: Array<string> = [];
+    for (const event of ["onLoad", "onResolved", "onRendered"] as const) {
+      router.subscribe(event, () => emitted.push(event));
+    }
+
+    (router as unknown as { destroy: () => void }).destroy();
+
+    router.history.push("/posts/1");
+    await router.load();
+    await new Promise((resolve) => setTimeout(resolve, 40));
+
+    expect(emitted).toEqual([]);
+  });
+});
+
+describe("subscribeToRouterState", () => {
+  function createSlowSetup() {
+    const rootRoute = createRootRoute();
+    const indexRoute = createRoute({
+      getParentRoute: () => rootRoute,
+      path: "/",
+    });
+    const slowRoute = createRoute({
+      getParentRoute: () => rootRoute,
+      path: "/slow",
+      loader: async () => {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        return { title: "Slow" };
+      },
+    });
+    const router = createRouter({
+      routeTree: rootRoute.addChildren([indexRoute, slowRoute]),
+      history: createMemoryHistory({ initialEntries: ["/"] }),
+    });
+    return { router, slowRoute };
+  }
+
+  // Truth source: @tanstack/react-router 1.170.38 `useRouterState` subscribes
+  // to `router.stores.__store` (via `useSelector`) and router-core's
+  // `RouterState.isLoading` is `status === 'pending'`. A React app renders a
+  // spinner from exactly that read, so the headless adapter must publish the
+  // same transition.
+  it("publishes isLoading true while a loader runs, then false (upstream useRouterState read)", async () => {
+    const { router } = createSlowSetup();
+    await router.load();
+
+    const seen: Array<boolean> = [];
+    const unsubscribe = subscribeToRouterState(router, (state) => {
+      seen.push(state.isLoading);
+    });
+
+    expect(router.state.isLoading).toBe(false);
+
+    const navigation = router.navigate({ to: "/slow" });
+    // Mid-load: the subscription has already reported the pending flip, which
+    // no lifecycle event does (onBeforeLoad fires while status is still
+    // 'idle', onLoad only after the loaders settle).
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    expect(seen).toContain(true);
+    expect(router.state.isLoading).toBe(true);
+
+    await navigation;
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(router.state.isLoading).toBe(false);
+    expect(seen[seen.length - 1]).toBe(false);
+
+    unsubscribe();
+  });
+
+  it("stops reporting after unsubscribe", async () => {
+    const { router } = createSlowSetup();
+    await router.load();
+
+    let calls = 0;
+    const unsubscribe = subscribeToRouterState(router, () => {
+      calls++;
+    });
+    unsubscribe();
+
+    await router.navigate({ to: "/slow" });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(calls).toBe(0);
   });
 });
 

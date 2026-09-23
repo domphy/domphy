@@ -156,6 +156,25 @@ function installSystemThemeDom(opts: {
   };
 }
 
+// Truth source: CSS Cascade Level 4 §6.4 (order of appearance) + Selectors 4
+// §16 specificity. `:root` (a pseudo-class, 0-1-0) and `[data-theme="dark"]`
+// (an attribute selector, 0-1-0) have IDENTICAL specificity, so on <html
+// data-theme="dark"> — which matches both — the winner is decided purely by
+// which rule comes last in the stylesheet. Verified in real Chromium: with the
+// light block first, html[data-theme="dark"] resolves --neutral-9 to the dark
+// ramp (rgb(126,126,126)); with no :root selector at all, a page that sets no
+// data-theme resolves it to nothing (computed color falls back to rgb(0,0,0),
+// background transparent, color-scheme "normal").
+describe("themeCSS default-theme cascade", () => {
+  it("puts the light block on :root and emits it before [data-theme] overrides", () => {
+    const css = themeCSS();
+    const lightIndex = css.indexOf(`:root,\n[data-theme="light"]`);
+    const darkIndex = css.indexOf(`[data-theme="dark"]`);
+    expect(lightIndex).toBeGreaterThanOrEqual(0);
+    expect(darkIndex).toBeGreaterThan(lightIndex);
+  });
+});
+
 describe("themeApply DOM injection", () => {
   afterEach(() => {
     delete (globalThis as any).document;

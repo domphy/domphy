@@ -50,11 +50,20 @@ export interface CreateI18nOptions<TLocale extends string> {
   globalKey: string;
   /** i18next resource namespace. */
   namespace: string;
-  /** Translation objects keyed by locale code. */
-  locales: Record<TLocale, Record<string, unknown>>;
+  /**
+   * Translation objects keyed by locale code. A locale can be omitted here and
+   * registered later via `addLocale` — see its doc comment for the on-demand
+   * loading use case.
+   */
+  locales: Partial<Record<TLocale, Record<string, unknown>>>;
   /** Locale used before initI18n / detectLocale is called. */
   defaultLocale: TLocale;
-  /** i18next interpolation options. `escapeValue` defaults to `true` (i18next's own safe default); pass `false` to opt out globally. */
+  /**
+   * i18next interpolation options. `escapeValue` defaults to `false` because
+   * Domphy already escapes at the render boundary — see `startInit`. Pass
+   * `true` only when a translated string is handed to something that parses
+   * HTML and does not sanitize.
+   */
   interpolation?: { escapeValue?: boolean };
 }
 
@@ -73,11 +82,33 @@ export interface I18nInstance<TKey extends string, TLocale extends string> {
   setLocale(locale: TLocale): Promise<void>;
   getLocale(): TLocale;
   detectLocale(options?: DetectOptions): TLocale;
+  /**
+   * Registers a locale's messages after `createI18n`, so an app can ship one
+   * locale in the initial bundle and `await import()` the rest on demand.
+   * `createI18n`'s `locales` is snapshotted at init — without this, assigning
+   * onto that object later registers nothing and `setLocale` has nothing to
+   * switch to. Merges into any messages the locale already has (later keys
+   * win). Resolves once the locale is usable by `t`/`setLocale`/`exists`, and
+   * re-renders mounted `t(listener, key)` readers even when the locale code
+   * itself does not change.
+   */
+  addLocale(locale: TLocale, messages: Record<string, unknown>): Promise<void>;
 }
 
 interface Store<TLocale extends string> {
   instance: i18n;
   localeState: ReturnType<typeof toState<TLocale>>;
+  // Bumped whenever the resource store changes under a locale that is already
+  // current (addLocale). `localeState` cannot carry that signal: State.set()
+  // dedups with Object.is, so re-setting the same code notifies nobody, and
+  // the locale genuinely does not change when a bundle is filled in. Read by
+  // the reactive t() overload so mounted readers re-render on the new strings.
+  bundleVersion: ReturnType<typeof toState<number>>;
+  // Locale codes registered after createI18n() via addLocale. Lives on the
+  // SHARED store, not in the createI18n closure: the whole point of globalKey
+  // is that Vite may instantiate this module once per chunk, and a locale one
+  // instance added must be known to the locale-validating paths of all of them.
+  addedLocales: Set<string>;
   initialized: boolean;
   // Fingerprint of the createI18n() options that created this store
   // (namespace + sorted locale codes + defaultLocale + escapeValue). A second
@@ -177,6 +208,8 @@ function getOrCreateStore<TLocale extends string>(
     store = {
       instance: createInstance(),
       localeState: toState<TLocale>(defaultLocale),
+      bundleVersion: toState<number>(0),
+      addedLocales: new Set<string>(),
       initialized: false,
       fingerprint,
     };
@@ -206,6 +239,12 @@ export function createI18n<
     options;
   const localeKeys = new Set(Object.keys(locales));
 
+  // A locale this instance knows: shipped in `locales`, or registered later
+  // through addLocale on ANY instance sharing this globalKey.
+  function knowsLocale(code: string): boolean {
+    return localeKeys.has(code) || getStore().addedLocales.has(code);
+  }
+
   const resources = Object.fromEntries(
     Object.entries(locales).map(([locale, messages]) => [
       locale,
@@ -215,14 +254,14 @@ export function createI18n<
 
   // Stable fingerprint of the options that own the store — compared when a
   // second createI18n() reuses the same globalKey (see getOrCreateStore).
-  // escapeValue is included: a reuse with the opposite XSS-escaping posture
-  // must not pass silently. (Message CONTENT is not fingerprinted — too
-  // expensive; the mismatch warning covers the structural options only.)
+  // escapeValue is included: a reuse with the opposite escaping posture must
+  // not pass silently. (Message CONTENT is not fingerprinted — too expensive;
+  // the mismatch warning covers the structural options only.)
   const fingerprint = JSON.stringify([
     namespace,
     [...localeKeys].sort(),
     defaultLocale,
-    interpolation?.escapeValue ?? true,
+    interpolation?.escapeValue ?? false,
   ]);
 
   function getStore() {
@@ -240,7 +279,17 @@ export function createI18n<
         fallbackLng: defaultLocale,
         defaultNS: namespace,
         ns: [namespace],
-        interpolation: { escapeValue: true, ...interpolation },
+        // escapeValue:false — Domphy is the escaping boundary, i18next is not.
+        // A string child is always rendered as TEXT: the client sets it through
+        // the DOM and SSR escapes it (`ElementNode.generateHTML()` turns
+        // `O'Brien & Tom <3` into `O&#39;Brien &amp; Tom &lt;3`), and attribute
+        // values are escaped the same way. Leaving i18next's own escaping on
+        // double-escapes every interpolated value, so a date renders as
+        // `1&#x2F;2&#x2F;2026` and a name as `O&#39;Brien` — visible entity
+        // source, not the characters. Same reasoning react-i18next uses for
+        // React. Rendering a translation as markup is the explicit
+        // `rawHtml()` opt-in, which sanitizes on its own.
+        interpolation: { escapeValue: false, ...interpolation },
         resources,
         // initAsync:false keeps init() synchronous with inline resources —
         // renamed from initImmediate in i18next v24, removed in v26.
@@ -312,13 +361,35 @@ export function createI18n<
     store.localeState.set(locale);
   }
 
+  async function addLocale(
+    locale: TLocale,
+    messages: Record<string, unknown>,
+  ): Promise<void> {
+    // The resource store only exists after init(), so a bundle added before
+    // then would be dropped on the floor.
+    const store = await ensureInitialized();
+    // deep = true merges into an existing bundle, overwrite = true lets a
+    // later load replace a key the placeholder bundle already had.
+    store.instance.addResourceBundle(locale, namespace, messages, true, true);
+    // Teach every locale-validating path (getLocale, detectLocale, the
+    // request-locale overlay) about the new code — on the shared store, so
+    // sibling instances on this globalKey learn it too.
+    store.addedLocales.add(locale);
+    // Re-render mounted readers. setLocale() cannot do this on its own: after
+    // `initI18n("fr")` with fr unbundled, i18next is ALREADY on "fr" (serving
+    // the fallback), so setLocale("fr") returns early and localeState never
+    // changes — the UI would stay in the fallback language forever. Same for
+    // filling in a partial bundle for the locale already on screen.
+    store.bundleVersion.set(store.bundleVersion.get() + 1);
+  }
+
   function getLocale(): TLocale {
     const request = getRequestLocale();
-    if (request !== undefined && localeKeys.has(request)) {
+    if (request !== undefined && knowsLocale(request)) {
       return request as TLocale;
     }
     const lang = getStore().instance.language;
-    return (localeKeys.has(lang) ? lang : defaultLocale) as TLocale;
+    return (knowsLocale(lang) ? lang : defaultLocale) as TLocale;
   }
 
   function detectLocale(opts: DetectOptions = {}): TLocale {
@@ -326,7 +397,7 @@ export function createI18n<
     if (pathSegment) {
       try {
         const seg = location.pathname.split("/")[1];
-        if (seg && localeKeys.has(seg)) return seg as TLocale;
+        if (seg && knowsLocale(seg)) return seg as TLocale;
       } catch {
         /* SSR */
       }
@@ -334,7 +405,7 @@ export function createI18n<
     if (storageKey) {
       try {
         const stored = localStorage.getItem(storageKey);
-        if (stored && localeKeys.has(stored)) return stored as TLocale;
+        if (stored && knowsLocale(stored)) return stored as TLocale;
       } catch {
         /* SSR / private mode */
       }
@@ -357,11 +428,14 @@ export function createI18n<
     }
     const request = getRequestLocale();
     const lngOpts =
-      request !== undefined && localeKeys.has(request)
+      request !== undefined && knowsLocale(request)
         ? { lng: request }
         : undefined;
     if (typeof a === "function") {
       store.localeState.get(a as Listener);
+      // Also subscribe to bundle changes — addLocale can change what this key
+      // resolves to without the locale code itself changing.
+      store.bundleVersion.get(a as Listener);
       return store.instance.t(b as string, { ...c, ...lngOpts }) as string;
     }
     return store.instance.t(a as string, {
@@ -372,7 +446,7 @@ export function createI18n<
 
   function currentLocale(listener: Listener): TLocale {
     const request = getRequestLocale();
-    if (request !== undefined && localeKeys.has(request)) {
+    if (request !== undefined && knowsLocale(request)) {
       return request as TLocale;
     }
     return getStore().localeState.get(listener) as TLocale;
@@ -381,7 +455,7 @@ export function createI18n<
   function exists(key: string): boolean {
     const request = getRequestLocale();
     const locale =
-      request !== undefined && localeKeys.has(request)
+      request !== undefined && knowsLocale(request)
         ? request
         : getStore().localeState.get();
     return getStore().instance.exists(key, {
@@ -399,7 +473,7 @@ export function createI18n<
       const view = Object.create(inner) as typeof inner;
       view.get = ((listener?: Listener) => {
         const request = requestAls.getStore()?.locale;
-        if (request !== undefined && localeKeys.has(request)) {
+        if (request !== undefined && knowsLocale(request)) {
           return request as TLocale;
         }
         return inner.get(listener);
@@ -415,6 +489,7 @@ export function createI18n<
     setLocale,
     getLocale,
     detectLocale,
+    addLocale,
   } as I18nInstance<Extract<FlattenKeys<TMessages>, string>, TLocale>;
 }
 

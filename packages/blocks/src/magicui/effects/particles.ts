@@ -40,6 +40,7 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { heading, paragraph } from "@domphy/ui";
+import { prefersReducedMotion } from "../reducedMotion.js";
 
 export interface ParticlesProps {
   /** Number of particles. Defaults to `100`. */
@@ -204,6 +205,8 @@ function attachParticles(
     Object.assign(particle, respawned);
   }
 
+  const reduceMotion = prefersReducedMotion();
+
   function tick(): void {
     // Belt-and-suspenders: bail without rescheduling once the canvas is
     // no longer in the document, so this loop can't outlive the
@@ -227,8 +230,10 @@ function attachParticles(
         particle.alpha = particle.targetAlpha * closestEdgeAlpha;
       }
 
-      particle.x += particle.driftX;
-      particle.y += particle.driftY;
+      if (!reduceMotion) {
+        particle.x += particle.driftX;
+        particle.y += particle.driftY;
+      }
 
       particle.translateX +=
         (mouseX * (particle.magnetism / props.staticity) -
@@ -260,7 +265,24 @@ function attachParticles(
       }
     }
 
+    // WCAG 2.2.2 / 2.3.3: nothing moves under reduce, so the single frame
+    // already drawn above is the final one — don't reschedule.
+    if (reduceMotion) {
+      animationFrameId = null;
+      return;
+    }
     animationFrameId = window.requestAnimationFrame(tick);
+  }
+
+  // Under reduce `tick` paints one frame and stops, so every input that
+  // invalidates what is on the canvas has to re-arm that single frame:
+  // `resizeCanvas()` assigns `canvas.width`, which clears the backing store,
+  // and `generateParticles()` replaces the field outright. Without this the
+  // canvas is left permanently blank after the first resize or refresh.
+  // No-op while the normal-motion loop is running.
+  function scheduleTick(): void {
+    if (animationFrameId === null)
+      animationFrameId = window.requestAnimationFrame(tick);
   }
 
   function handlePointerMove(event: PointerEvent): void {
@@ -271,7 +293,7 @@ function attachParticles(
 
   resizeCanvas();
   generateParticles();
-  animationFrameId = window.requestAnimationFrame(tick);
+  scheduleTick();
 
   containerElement.addEventListener("pointermove", handlePointerMove);
 
@@ -279,6 +301,7 @@ function attachParticles(
     resizeObserver = new ResizeObserver(() => {
       resizeCanvas();
       generateParticles();
+      scheduleTick();
     });
     resizeObserver.observe(containerElement);
   }
@@ -286,6 +309,7 @@ function attachParticles(
   let releaseRefreshListener = props.refreshState.addListener(() => {
     resizeCanvas();
     generateParticles();
+    scheduleTick();
   });
 
   return {
@@ -295,11 +319,15 @@ function attachParticles(
         releaseRefreshListener = next.refreshState.addListener(() => {
           resizeCanvas();
           generateParticles();
+          scheduleTick();
         });
       }
       const quantityChanged = next.quantity !== props.quantity;
       props = next;
-      if (quantityChanged) generateParticles();
+      if (quantityChanged) {
+        generateParticles();
+        scheduleTick();
+      }
     },
     destroy() {
       if (animationFrameId !== null)
@@ -338,17 +366,12 @@ function particles(props: ParticlesProps = {}): DomphyElement<"div"> {
         } as DomphyElement,
       ];
 
-  // `_doctorDisable` is a doctor-only annotation not present in core's strict
-  // `PartialElement` type — build through an untyped literal, then assert, so
-  // the excess-property check doesn't fire (mirrors fadeOverlay() in the
-  // marquee block).
   const canvasElement = {
     canvas: null,
     ariaHidden: "true",
     // Decorative canvas with no text of its own — exempt from the
     // missing-color contract (there is no reactive themeColor on this element
     // at all; fill color is imperative canvas state, resolved below).
-    _doctorDisable: "missing-color",
     style: {
       position: "absolute",
       inset: 0,

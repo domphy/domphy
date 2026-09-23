@@ -1,10 +1,12 @@
 import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
 import {
   type ThemeColor,
+  textToneOn,
   themeColor,
   themeDensity,
   themeSize,
   themeSpacing,
+  themeWeight,
 } from "@domphy/theme";
 
 /**
@@ -26,8 +28,6 @@ function table(
         console.warn(`"table" primitive patch must use table tag`);
       }
     },
-    // Header/footer weights are design-system table chrome.
-    _doctorDisable: "inline-typography",
     style: {
       fontSize: (listener) => themeSize(listener, "inherit"),
       color: (listener) => themeColor(listener, "text", color.get(listener)),
@@ -37,8 +37,8 @@ function table(
         captionSide: "bottom",
       },
       "& th, & thead td": {
-        textAlign: "left",
-        fontWeight: 500,
+        textAlign: "start",
+        fontWeight: themeWeight("medium"),
         paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
         paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
         color: (listener) =>
@@ -46,7 +46,7 @@ function table(
         backgroundColor: (listener) => themeColor(listener, "inherit"),
       },
       "& td": {
-        textAlign: "left",
+        textAlign: "start",
         paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
         paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
         color: (listener) => themeColor(listener, "text", color.get(listener)),
@@ -55,8 +55,8 @@ function table(
         fontSize: (listener) => themeSize(listener, "inherit"),
       },
       "& tfoot th, & tfoot td": {
-        textAlign: "left",
-        fontWeight: 500,
+        textAlign: "start",
+        fontWeight: themeWeight("medium"),
         paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
         paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
         color: (l) => themeColor(l, "shift-10", color.get(l)),
@@ -72,6 +72,15 @@ function table(
       // elements) already out-specifies any row's own auto-scope class rule.
       "& tbody tr:hover": {
         backgroundColor: (listener) => themeColor(listener, "hover"),
+        color: (listener) => themeColor(listener, textToneOn(2)),
+      },
+      // Cell text tracks the hover fill (+2) — measured in Chromium (axe
+      // color-contrast) at 3.57:1 light / 4.37:1 dark while the cells kept the
+      // resting "text" tone. It has to be set on the CELLS: `& td` declares its
+      // own `color`, and a direct declaration beats anything inherited from the
+      // row however specific that row's selector is.
+      "& tbody tr:hover td, & tbody tr:hover th": {
+        color: (listener) => themeColor(listener, textToneOn(2)),
       },
     },
   };

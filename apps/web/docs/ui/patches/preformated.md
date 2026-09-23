@@ -6,7 +6,7 @@ import Preformated from "../../demos/patches/Preformated.ts?raw"
 
 # Preformated
 
-Styles a preformatted text block: inherited font size, themed foreground/background, no border, density-scaled padding and rounded corners.
+Styles a preformatted text block: inherited font size, the theme's monospace stack, themed foreground/background, no border, density-scaled padding and rounded corners.
 
 ## Props
 

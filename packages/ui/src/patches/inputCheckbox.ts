@@ -111,12 +111,39 @@ function inputCheckbox(
       },
       "&[disabled]": {
         cursor: "not-allowed",
+        opacity: 0.7,
       },
-      "&[disabled]::before, &[disabled]::after": {
-        outline: "none",
-        backgroundColor: (listener) =>
-          themeColor(listener, "shift-4", "neutral"),
+      // Disabled keeps the control's SHAPE and only drops the colour family to
+      // neutral (Radix / MUI do the same). The previous rule painted ::before
+      // with a flat grey fill and removed its outline, so in Chromium a
+      // disabled UNCHECKED box read as filled — more "on" than the enabled
+      // unchecked box, and indistinguishable from the disabled checked one.
+      "&[disabled]::before": {
         pointerEvents: "none",
+        outline: (listener) =>
+          `1px solid ${themeColor(listener, "border-strong", "neutral")}`,
+        backgroundColor: (listener) =>
+          themeColor(listener, "inherit", "neutral"),
+      },
+      "&[disabled]:checked::before": {
+        backgroundColor: (listener) =>
+          themeColor(listener, "shift-8", "neutral"),
+      },
+      "&[disabled]:indeterminate::before": {
+        backgroundColor: (listener) =>
+          themeColor(listener, "shift-3", "neutral"),
+      },
+      "&[disabled]:checked::after": {
+        pointerEvents: "none",
+        // Light end of the neutral ramp on the shift-8 fill, mirroring the
+        // enabled check: `inherit` resolved to a mid grey that all but
+        // disappeared against it.
+        borderColor: (listener) => themeColor(listener, "shift-0", "neutral"),
+      },
+      "&[disabled]:indeterminate::after": {
+        pointerEvents: "none",
+        backgroundColor: (listener) =>
+          themeColor(listener, "shift-8", "neutral"),
       },
     },
   };

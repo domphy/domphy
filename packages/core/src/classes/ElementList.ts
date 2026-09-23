@@ -424,15 +424,17 @@ export class ElementList {
           const styleParent = root instanceof ShadowRoot ? root : document.head;
           const domStyle = ensureDomStyle(styleParent);
           item.styles.render(domStyle as HTMLStyleElement);
-          item._hooks.Mount && item._hooks.Mount(item);
-          item.children.items.forEach((child) => {
+          // Children first, then this node's Mount — same bottom-up order as
+          // ElementNode.render()/mount(); see the note there.
+          for (const child of item.children.items.slice()) {
             if (child instanceof ElementNode && child._portal) {
               const dom = child._portal!(child.getRoot());
               dom && child.render(dom);
             } else {
               child.render(domNode);
             }
-          });
+          }
+          item._hooks.Mount && item._hooks.Mount(item);
         }
       }
     } else {

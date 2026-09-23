@@ -1,6 +1,6 @@
 {
   "name": "@domphy/three",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "description": "Declarative three.js renderer for Domphy — a react-three-fiber-grade scene graph on Domphy reactivity.",
   "type": "module",
   "sideEffects": false,
@@ -24,7 +24,8 @@
     "pack": "tsup && npm pack",
     "prepublishOnly": "node ../../scripts/guard-pnpm-publish.mjs && npm run build",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "keywords": [
     "domphy",
@@ -44,7 +45,13 @@
   },
   "peerDependencies": {
     "@domphy/core": "workspace:^",
-    "three": ">=0.156.0"
+    "three": ">=0.156.0",
+    "typescript": ">=4.4"
+  },
+  "peerDependenciesMeta": {
+    "typescript": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@domphy/core": "workspace:*",

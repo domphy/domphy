@@ -9,6 +9,7 @@ import {
   locate,
   mountedPage,
   report,
+  settledWidth,
   summarize,
   teardown,
 } from "../interaction-harness.js";
@@ -57,7 +58,10 @@ async function main() {
   const restWidth = boxes[0].width;
 
   await page.mouse.move(firstCenter.x, firstCenter.y, { steps: 10 });
-  await page.waitForTimeout(280);
+  // The icon animates toward its magnified width; poll until the width stops
+  // changing instead of guessing a duration (same reason as the sidebars —
+  // see settledWidth's doc comment).
+  await settledWidth(icons.nth(0));
   const firstWhenHovered = await sizeOf(0);
   const lastWhileFar = await sizeOf(lastIndex);
   report(
@@ -68,7 +72,7 @@ async function main() {
   );
 
   await page.mouse.move(lastCenter.x, lastCenter.y, { steps: 10 });
-  await page.waitForTimeout(280);
+  await settledWidth(icons.nth(lastIndex));
   const lastWhenHovered = await sizeOf(lastIndex);
   const firstWhileFar = await sizeOf(0);
   report(
@@ -80,7 +84,7 @@ async function main() {
 
   // Cursor leaves the dock: inline width/height clear (pointerX === null).
   await page.mouse.move(20, 20, { steps: 5 });
-  await page.waitForTimeout(280);
+  await settledWidth(icons.nth(lastIndex));
   const restInline = await page.evaluate(() => {
     const nodes = Array.from(
       document.querySelectorAll('[data-block="dock"] nav > a'),

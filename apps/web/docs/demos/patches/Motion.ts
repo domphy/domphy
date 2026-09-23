@@ -38,14 +38,21 @@ const App: DomphyElement<"div"> = {
                     transition: { duration: 400 },
                   }),
                 ],
+                // Solid brand fill, the same pair button({ variant: "solid" })
+                // paints: shift-13 fill + shift-0 text measures 13.65:1 light /
+                // 10.30:1 dark. The previous shift-6/shift-11 pair was 2.96:1.
+                // A fixed-tone fill is the point of this box (it has to stay
+                // visible while it moves), so the surface rules are disabled
+                // here the way button() disables them.
+                _doctorDisable: "tone-background-inherit",
                 style: {
                   display: "grid",
                   placeItems: "center",
                   width: themeSpacing(24),
                   height: themeSpacing(16),
                   borderRadius: themeSpacing(2),
-                  backgroundColor: (l) => themeColor(l, "shift-6", "primary"),
-                  color: (l) => themeColor(l, "shift-11", "primary"),
+                  backgroundColor: (l) => themeColor(l, "shift-13", "primary"),
+                  color: (l) => themeColor(l, "shift-0", "primary"),
                 },
                 _key: "box",
               },

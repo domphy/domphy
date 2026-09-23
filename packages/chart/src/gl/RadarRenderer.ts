@@ -1,12 +1,121 @@
 import { themeColor } from "@domphy/theme";
 import type { Buffer, Device, RenderPass } from "@luma.gl/core";
 import { Model } from "@luma.gl/engine";
+import {
+  applyItemState,
+  type ItemStateResolver,
+  NO_ITEM_STATES,
+} from "../itemStates.js";
 import type { RadarOption, RadarSeriesOption } from "../types.js";
 import type { ColorResolver } from "./color.js";
 import { AREA_FS, AREA_VS } from "./shaders/line.glsl.js";
 
 function setUniforms(model: Model, uniforms: Record<string, unknown>): void {
   (model as any).props.uniforms = uniforms;
+}
+
+export interface RadarPolygonLayout {
+  seriesIndex: number;
+  dataIndex: number;
+  polygon: [number, number][];
+  cx: number;
+  cy: number;
+}
+
+// Geometry only — one polygon per radar shape (ECharts: series-radar.data[i]
+// is a full shape, addressed by dataIndex). render() below draws from this;
+// hitTestRadarItem() in engine.ts point-in-polygon tests against the SAME
+// output, so a hover/click can never land on a vertex set the renderer did
+// not actually paint.
+export function computeRadarPolygons(
+  radarSeries: RadarSeriesOption[],
+  radars: RadarOption[],
+  width: number,
+  height: number,
+): RadarPolygonLayout[] {
+  const result: RadarPolygonLayout[] = [];
+  for (let si = 0; si < radarSeries.length; si++) {
+    const s = radarSeries[si];
+    const radar = radars[s.radarIndex ?? 0];
+    if (!radar) continue;
+
+    const minSize = Math.min(width, height);
+    const cx = radar.center
+      ? typeof radar.center[0] === "number"
+        ? radar.center[0]
+        : (parseFloat(radar.center[0]) / 100) * width
+      : width / 2;
+    const cy = radar.center
+      ? typeof radar.center[1] === "number"
+        ? radar.center[1]
+        : (parseFloat(radar.center[1]) / 100) * height
+      : height / 2;
+    const radius = radar.radius
+      ? typeof radar.radius === "number"
+        ? radar.radius
+        : (parseFloat(radar.radius as string) / 100) * minSize
+      : minSize * 0.35;
+    const startAngle = ((radar.startAngle ?? 90) * Math.PI) / 180;
+    const indicators = radar.indicator;
+    const count = indicators.length;
+    const sharingRadar = radarSeries.filter(
+      (other) => (other.radarIndex ?? 0) === (s.radarIndex ?? 0),
+    );
+    const axisMax = indicators.map((ind, axisIndex) => {
+      const min = ind.min ?? 0;
+      if (Number.isFinite(ind.max) && (ind.max as number) > min)
+        return ind.max as number;
+      let derived = -Infinity;
+      for (const sibling of sharingRadar) {
+        for (const item of sibling.data ?? []) {
+          const candidate = (item.value ?? [])[axisIndex];
+          if (Number.isFinite(candidate))
+            derived = Math.max(derived, candidate as number);
+        }
+      }
+      return derived > min ? derived : min + 1;
+    });
+
+    for (let di = 0; di < (s.data ?? []).length; di++) {
+      const dataItem = (s.data ?? [])[di];
+      const values = dataItem.value ?? [];
+      const polygon: [number, number][] = [];
+      for (let i = 0; i < count; i++) {
+        const ind = indicators[i];
+        const min = ind.min ?? 0;
+        const raw = values[i];
+        const value = Number.isFinite(raw) ? (raw as number) : min;
+        const fraction = Math.max(
+          0,
+          Math.min(1, (value - min) / (axisMax[i] - min)),
+        );
+        const angle = startAngle - (2 * Math.PI * i) / count;
+        polygon.push([
+          cx + radius * fraction * Math.cos(angle),
+          cy - radius * fraction * Math.sin(angle),
+        ]);
+      }
+      result.push({ seriesIndex: si, dataIndex: di, polygon, cx, cy });
+    }
+  }
+  return result;
+}
+
+/** Even-odd point-in-polygon test (ray casting), for radar hit-testing. */
+export function pointInPolygon(
+  px: number,
+  py: number,
+  polygon: readonly (readonly [number, number])[],
+): boolean {
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const [xi, yi] = polygon[i];
+    const [xj, yj] = polygon[j];
+    const intersects =
+      yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi;
+    if (intersects) inside = !inside;
+  }
+  return inside;
 }
 
 export class RadarRenderer {
@@ -165,6 +274,7 @@ export class RadarRenderer {
     height: number,
     seriesOffset: number,
     color: ColorResolver,
+    states: ItemStateResolver = NO_ITEM_STATES,
   ): void {
     if (radarSeries.length === 0) return;
     const model = this.ensureModel();
@@ -172,120 +282,94 @@ export class RadarRenderer {
     for (const b of this.buffers) b.destroy();
     this.buffers = [];
 
-    for (let si = 0; si < radarSeries.length; si++) {
+    // Geometry (center/radius/axis-max derivation, one polygon per shape)
+    // lives in one place — computeRadarPolygons() above — shared with
+    // engine.ts's hitTestRadarItem(), so a hover/click can never land on a
+    // different polygon than what is actually drawn here.
+    const layouts = computeRadarPolygons(radarSeries, radars, width, height);
+    for (const { seriesIndex: si, dataIndex: di, polygon, cx, cy } of layouts) {
       const s = radarSeries[si];
-      const radar = radars[s.radarIndex ?? 0];
-      if (!radar) continue;
+      const dataItem = (s.data ?? [])[di];
+      const paletteIndex = seriesOffset + si + di;
+      const baseColor = color.rgba(
+        (dataItem as any).lineStyle?.color ?? s.color,
+        paletteIndex,
+      );
+      // Radar's `data` array holds one polygon per shape (ECharts:
+      // series-radar.data[dataIndex] is one full shape) — `di` is that
+      // shape's dataIndex, the same unit emphasis/blur/select address.
+      const polygonColor = applyItemState(
+        baseColor,
+        states(s, di),
+        color,
+        paletteIndex,
+      );
 
-      const minSize = Math.min(width, height);
-      const cx = radar.center
-        ? typeof radar.center[0] === "number"
-          ? radar.center[0]
-          : (parseFloat(radar.center[0]) / 100) * width
-        : width / 2;
-      const cy = radar.center
-        ? typeof radar.center[1] === "number"
-          ? radar.center[1]
-          : (parseFloat(radar.center[1]) / 100) * height
-        : height / 2;
-      const radius = radar.radius
-        ? typeof radar.radius === "number"
-          ? radar.radius
-          : (parseFloat(radar.radius as string) / 100) * minSize
-        : minSize * 0.35;
-      const startAngle = ((radar.startAngle ?? 90) * Math.PI) / 180;
-      const indicators = radar.indicator;
-      const count = indicators.length;
-      for (let di = 0; di < (s.data ?? []).length; di++) {
-        const dataItem = (s.data ?? [])[di];
-        const polygonColor = color.rgba(
-          (dataItem as any).lineStyle?.color ?? s.color,
-          seriesOffset + si + di,
+      const count = polygon.length;
+      const fillVerts: number[] = [];
+      for (let i = 0; i < count; i++) {
+        const next = (i + 1) % count;
+        fillVerts.push(
+          cx,
+          cy,
+          polygon[i][0],
+          polygon[i][1],
+          polygon[next][0],
+          polygon[next][1],
         );
-        const values = dataItem.value ?? [];
-        const polygon: [number, number][] = [];
-
-        for (let i = 0; i < count; i++) {
-          const ind = indicators[i];
-          const fraction = Math.max(
-            0,
-            Math.min(
-              1,
-              ((values[i] ?? 0) - (ind.min ?? 0)) / (ind.max - (ind.min ?? 0)),
-            ),
-          );
-          const angle = startAngle - (2 * Math.PI * i) / count;
-          polygon.push([
-            cx + radius * fraction * Math.cos(angle),
-            cy - radius * fraction * Math.sin(angle),
-          ]);
-        }
-
-        const fillVerts: number[] = [];
-        for (let i = 0; i < count; i++) {
-          const next = (i + 1) % count;
-          fillVerts.push(
-            cx,
-            cy,
-            polygon[i][0],
-            polygon[i][1],
-            polygon[next][0],
-            polygon[next][1],
-          );
-        }
-        const areaColor = [
-          polygonColor[0],
-          polygonColor[1],
-          polygonColor[2],
-          polygonColor[3] * ((s.areaStyle?.opacity as number) ?? 0.35),
-        ];
-        const fillBuffer = this.device.createBuffer({
-          data: new Float32Array(fillVerts),
-          id: "radar-fill",
-        });
-        this.buffers.push(fillBuffer);
-        model.setAttributes({ aPosition: fillBuffer });
-        model.setVertexCount(fillVerts.length / 2);
-        setUniforms(model, { uResolution: [width, height], uColor: areaColor });
-        model.draw(renderPass);
-
-        const lineVerts: number[] = [];
-        for (let i = 0; i < count; i++) {
-          const next = (i + 1) % count;
-          const [x0, y0] = polygon[i];
-          const [x1, y1] = polygon[next];
-          const len = Math.hypot(x1 - x0, y1 - y0) || 1;
-          const nx = -(y1 - y0) / len;
-          const ny = (x1 - x0) / len;
-          const hw = 1;
-          lineVerts.push(
-            x0 + nx * hw,
-            y0 + ny * hw,
-            x1 + nx * hw,
-            y1 + ny * hw,
-            x0 - nx * hw,
-            y0 - ny * hw,
-            x1 + nx * hw,
-            y1 + ny * hw,
-            x1 - nx * hw,
-            y1 - ny * hw,
-            x0 - nx * hw,
-            y0 - ny * hw,
-          );
-        }
-        const lineBuffer = this.device.createBuffer({
-          data: new Float32Array(lineVerts),
-          id: "radar-line",
-        });
-        this.buffers.push(lineBuffer);
-        model.setAttributes({ aPosition: lineBuffer });
-        model.setVertexCount(lineVerts.length / 2);
-        setUniforms(model, {
-          uResolution: [width, height],
-          uColor: polygonColor,
-        });
-        model.draw(renderPass);
       }
+      const areaColor = [
+        polygonColor[0],
+        polygonColor[1],
+        polygonColor[2],
+        polygonColor[3] * ((s.areaStyle?.opacity as number) ?? 0.35),
+      ];
+      const fillBuffer = this.device.createBuffer({
+        data: new Float32Array(fillVerts),
+        id: "radar-fill",
+      });
+      this.buffers.push(fillBuffer);
+      model.setAttributes({ aPosition: fillBuffer });
+      model.setVertexCount(fillVerts.length / 2);
+      setUniforms(model, { uResolution: [width, height], uColor: areaColor });
+      model.draw(renderPass);
+
+      const lineVerts: number[] = [];
+      for (let i = 0; i < count; i++) {
+        const next = (i + 1) % count;
+        const [x0, y0] = polygon[i];
+        const [x1, y1] = polygon[next];
+        const len = Math.hypot(x1 - x0, y1 - y0) || 1;
+        const nx = -(y1 - y0) / len;
+        const ny = (x1 - x0) / len;
+        const hw = 1;
+        lineVerts.push(
+          x0 + nx * hw,
+          y0 + ny * hw,
+          x1 + nx * hw,
+          y1 + ny * hw,
+          x0 - nx * hw,
+          y0 - ny * hw,
+          x1 + nx * hw,
+          y1 + ny * hw,
+          x1 - nx * hw,
+          y1 - ny * hw,
+          x0 - nx * hw,
+          y0 - ny * hw,
+        );
+      }
+      const lineBuffer = this.device.createBuffer({
+        data: new Float32Array(lineVerts),
+        id: "radar-line",
+      });
+      this.buffers.push(lineBuffer);
+      model.setAttributes({ aPosition: lineBuffer });
+      model.setVertexCount(lineVerts.length / 2);
+      setUniforms(model, {
+        uResolution: [width, height],
+        uColor: polygonColor,
+      });
+      model.draw(renderPass);
     }
   }
 

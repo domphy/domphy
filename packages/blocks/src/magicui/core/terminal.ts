@@ -16,11 +16,13 @@ import { hashString, toState } from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
+  themeFont,
+  themeLetterSpacing,
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
 import { type MotionKeyframe, motion } from "@domphy/ui";
-import { fixed } from "../../shared/typography.js";
+import { REDUCED_MOTION_PAUSE } from "../reducedMotion.js";
 
 export interface TerminalTypingLine {
   type: "typing";
@@ -138,6 +140,7 @@ function blinkingCursor(): DomphyElement<"span"> {
       marginInlineStart: themeSpacing(1),
       color: (listener: Listener) => themeColor(listener, "shift-9"),
       animation: `${CURSOR_ANIMATION_NAME} 1s steps(1) infinite`,
+      ...REDUCED_MOTION_PAUSE,
       [`@keyframes ${CURSOR_ANIMATION_NAME}`]: CURSOR_KEYFRAMES,
     },
   };
@@ -322,9 +325,13 @@ function terminal(props: TerminalProps = {}): DomphyElement<"div"> {
           gap: themeSpacing(1),
           padding: themeSpacing(4),
           overflow: "auto",
-          fontFamily: fixed("monospace"),
+          // A terminal transcript IS monospace — columns only line up when
+          // every glyph shares an advance width — so this is the documented
+          // opt-out from the themed root's sans stack.
+          fontFamily: themeFont("monospace"),
           fontSize: (listener: Listener) => themeSize(listener, "decrease-1"),
-          letterSpacing: fixed("-0.025em"),
+          // Upstream's `tracking-tight`, exactly the theme's `tight` step.
+          letterSpacing: themeLetterSpacing("tight"),
           color: (listener: Listener) => themeColor(listener, "shift-9"),
         },
       },

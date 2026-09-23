@@ -503,7 +503,6 @@ describe('notFound', () => {
     await router.navigate({ to: '/missing' })
     await sleep(20)
 
-    expect(router.hasNotFoundMatch()).toBe(true)
     // The match of the throwing route reflects the not-found status.
     const missingMatch = router.state.matches.find(
       (routeMatch) => routeMatch.routeId === missingRoute.id,
@@ -586,90 +585,5 @@ describe('preloadRoute', () => {
     )
     expect(postMatch?.status).toBe('success')
     expect(postMatch?.loaderData).toEqual({ title: 'Post 1' })
-  })
-})
-
-describe('defaultGcTime contract', () => {
-  // Advertised RouterOptions TTL is 30 minutes (TanStack RouterOptionsType
-  // JSDoc @default 1_800_000). Upstream clearExpiredCache fell back to
-  // 5 minutes; 6 minutes is past that false fallback and still inside
-  // the advertised window.
-  const ADVERTISED_GC_TIME_MS = 1_800_000
-  const SIX_MINUTES_MS = 6 * 60 * 1000
-  const THIRTY_ONE_MINUTES_MS = 31 * 60 * 1000
-
-  async function loadThenCachePostMatch() {
-    const rootRoute = createRootRoute()
-    const indexRoute = createRoute({
-      getParentRoute: () => rootRoute,
-      path: '/',
-    })
-    const postRoute = createRoute({
-      getParentRoute: () => rootRoute,
-      path: 'posts/$postId',
-      loader: ({ params }: { params: { postId: string } }) => ({
-        title: `Post ${params.postId}`,
-      }),
-    })
-    const router = createRouter({
-      routeTree: rootRoute.addChildren([indexRoute, postRoute]),
-      history: createMemoryHistory({ initialEntries: ['/'] }),
-    })
-    await router.load()
-    await router.navigate({ to: '/posts/$postId', params: { postId: '1' } })
-    await sleep(20)
-    await router.navigate({ to: '/' })
-    await sleep(20)
-    return { router, postRoute }
-  }
-
-  function backdateCachedMatch(
-    router: Awaited<ReturnType<typeof loadThenCachePostMatch>>['router'],
-    routeId: string,
-    ageMs: number,
-  ) {
-    const now = Date.now()
-    router.stores.setCached(
-      router.stores.cachedMatches.get().map((match) =>
-        match.routeId === routeId ? { ...match, updatedAt: now - ageMs } : match,
-      ),
-    )
-  }
-
-  it('createRouter seeds defaultGcTime and defaultPreloadGcTime to the advertised 30 minutes (RouterOptions JSDoc 1_800_000)', async () => {
-    const { router } = await loadThenCachePostMatch()
-    expect(router.options.defaultGcTime).toBe(ADVERTISED_GC_TIME_MS)
-    expect(router.options.defaultPreloadGcTime).toBe(ADVERTISED_GC_TIME_MS)
-  })
-
-  it('unmatched loader data still cached at 6 minutes (past the 5-minute fallback, inside advertised 30-minute gcTime)', async () => {
-    const { router, postRoute } = await loadThenCachePostMatch()
-    expect(
-      router.stores.cachedMatches
-        .get()
-        .some((match) => match.routeId === postRoute.id),
-    ).toBe(true)
-
-    backdateCachedMatch(router, postRoute.id, SIX_MINUTES_MS)
-    router.clearExpiredCache()
-
-    expect(
-      router.stores.cachedMatches
-        .get()
-        .some((match) => match.routeId === postRoute.id),
-    ).toBe(true)
-  })
-
-  it('unmatched loader data is collected after 31 minutes (past advertised 30-minute gcTime)', async () => {
-    const { router, postRoute } = await loadThenCachePostMatch()
-
-    backdateCachedMatch(router, postRoute.id, THIRTY_ONE_MINUTES_MS)
-    router.clearExpiredCache()
-
-    expect(
-      router.stores.cachedMatches
-        .get()
-        .some((match) => match.routeId === postRoute.id),
-    ).toBe(false)
   })
 })

@@ -545,6 +545,143 @@ describe("three() — events", () => {
     expect(capturedRoot!.internal.lastEvent).toBeNull();
   });
 
+  it("defaults dpr to [1, 2] — the reference default (r3f renderer.tsx `dpr = [1, 2]`), not 1", () => {
+    // A hard dpr of 1 renders every scene at CSS resolution: visibly soft on
+    // any HiDPI display. Upstream caps devicePixelRatio at 2 instead.
+    const original = window.devicePixelRatio;
+    Object.defineProperty(window, "devicePixelRatio", {
+      value: 3,
+      configurable: true,
+    });
+    try {
+      const stub = createStubRenderer();
+      let capturedRoot: RootState | undefined;
+      mount({
+        div: null,
+        $: [
+          three({
+            scene: null,
+            createRenderer: () => stub,
+            onCreated: (root) => {
+              capturedRoot = root;
+            },
+          }),
+        ],
+      } as DomphyElement);
+
+      expect(capturedRoot!.size.get().dpr).toBe(2);
+      expect(stub.calls.setPixelRatio.at(-1)).toEqual([2]);
+    } finally {
+      Object.defineProperty(window, "devicePixelRatio", {
+        value: original,
+        configurable: true,
+      });
+    }
+  });
+
+  it("keeps the renderer pixel ratio tracking window.devicePixelRatio — browser zoom / moving to a different-density screen fires no resize event", () => {
+    const original = window.devicePixelRatio;
+    const listeners: Array<() => void> = [];
+    (window as any).matchMedia = (query: string) => {
+      return {
+        matches: true,
+        media: query,
+        addEventListener: (_name: string, listener: () => void) =>
+          listeners.push(listener),
+        removeEventListener: (_name: string, listener: () => void) => {
+          const index = listeners.indexOf(listener);
+          if (index !== -1) listeners.splice(index, 1);
+        },
+      } as unknown as MediaQueryList;
+    };
+    Object.defineProperty(window, "devicePixelRatio", {
+      value: 1,
+      configurable: true,
+    });
+
+    try {
+      const stub = createStubRenderer();
+      let capturedRoot: RootState | undefined;
+      mount({
+        div: null,
+        $: [
+          three({
+            scene: null,
+            dpr: [1, 2],
+            createRenderer: () => stub,
+            onCreated: (root) => {
+              capturedRoot = root;
+            },
+          }),
+        ],
+      } as DomphyElement);
+
+      expect(capturedRoot!.size.get().dpr).toBe(1);
+
+      const changeDevicePixelRatio = (value: number): void => {
+        Object.defineProperty(window, "devicePixelRatio", {
+          value,
+          configurable: true,
+        });
+        for (const listener of listeners.slice()) listener();
+      };
+
+      changeDevicePixelRatio(2);
+      expect(capturedRoot!.size.get().dpr).toBe(2);
+      expect(stub.calls.setPixelRatio.at(-1)).toEqual([2]);
+
+      // A `resolution` query matches exactly one ratio, so the watcher has to
+      // re-arm on the new one or it goes deaf after the first change — and it
+      // must release the old subscription rather than stack a second.
+      changeDevicePixelRatio(1);
+      expect(capturedRoot!.size.get().dpr).toBe(1);
+      expect(stub.calls.setPixelRatio.at(-1)).toEqual([1]);
+      expect(listeners.length).toBe(1);
+    } finally {
+      Object.defineProperty(window, "devicePixelRatio", {
+        value: original,
+        configurable: true,
+      });
+      (window as any).matchMedia = undefined;
+    }
+  });
+
+  it("puts `fallback` inside the <canvas> as its accessible name (HTML spec: canvas fallback content is what AT reads)", () => {
+    const { host } = mount({
+      div: null,
+      $: [
+        three({
+          scene: null,
+          fallback: "A rotating product model",
+          createRenderer: () => createStubRenderer(),
+        }),
+      ],
+    } as DomphyElement);
+
+    expect(host.querySelector("canvas")!.textContent).toBe(
+      "A rotating product model",
+    );
+  });
+
+  it("mounts without three's r183 THREE.Clock deprecation warning", () => {
+    // three/src/core/Clock.js logs this on EVERY construction since r183, so
+    // a root that still used THREE.Clock would warn once per mount.
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      mount({
+        div: null,
+        $: [three({ scene: null, createRenderer: () => createStubRenderer() })],
+      } as DomphyElement);
+
+      const clockWarnings = warn.mock.calls.filter((call) =>
+        String(call[0]).includes("Clock"),
+      );
+      expect(clockWarnings).toEqual([]);
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
   it("connects canvas pointer listeners by default", () => {
     let capturedRoot: RootState | undefined;
     const { host } = mount({

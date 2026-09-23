@@ -98,17 +98,12 @@ function scrollProgress(props: ScrollProgressProps = {}): DomphyElement<"div"> {
     props.colors && props.colors.length > 0 ? props.colors : DEFAULT_COLORS;
   const zIndex = props.zIndex ?? 50;
 
-  // Built through an untyped literal, then asserted, so `_doctorDisable` (a
-  // doctor-only annotation not present in core's strict `PartialElement`
-  // type) doesn't trip the excess-property check the function's declared
-  // return type would otherwise apply to an inline return object.
   const barElement = {
     div: null,
     // A pure fill indicator with no text of its own — exempt from the
     // missing-color contract (same idiom as other decorative-only elements
     // in this package, e.g. marquee's fade overlay). Upstream's `motion.div`
     // carries no ARIA, so none is added here either.
-    _doctorDisable: "missing-color",
     _onMount: (node: ElementNode) => {
       if (typeof window === "undefined") return;
       const element = node.domElement as HTMLElement | null;

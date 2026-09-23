@@ -39,7 +39,8 @@ import {
   toolbar,
   toolbarSpacer,
 } from "@domphy/ui";
-import { fixed } from "../../shared/typography.js";
+import { instanceScoped } from "../../shared/instanceScope.js";
+import { interactiveFill } from "../../shared/interactiveFill.js";
 import { sidebarHotkey } from "./sidebarHotkey.js";
 
 // ---------------------------------------------------------------------------
@@ -267,10 +268,12 @@ export function navGroupLabel(
   return {
     small: text,
     $: [small()],
+    // Upstream SidebarGroupLabel is `text-xs font-medium
+    // text-sidebar-foreground/70` with NO uppercase. Weight 500 has no theme
+    // token (strong() is 700) — declared.
+    _doctorDisable: "inline-typography",
     style: {
-      // Upstream SidebarGroupLabel is `text-xs font-medium text-sidebar-foreground/70`
-      // with NO uppercase.
-      fontWeight: fixed(500),
+      fontWeight: 500,
       // shift-6 ("muted section heading," matching the theme's own "muted
       // text" convention) measured a real WCAG contrast failure here —
       // bumped to shift-9 (~70% foreground).
@@ -616,9 +619,10 @@ function headerTwoLine(
     div: [
       {
         span: title,
+        // Upstream span is `font-medium`; weight 500 has no theme token.
+        _doctorDisable: "inline-typography",
         style: {
-          // Upstream span is `font-medium`.
-          fontWeight: fixed(500),
+          fontWeight: 500,
           fontSize: (listener: Listener) => themeSize(listener, "inherit"),
           color: (listener: Listener) => themeColor(listener, "shift-10"),
         },
@@ -630,7 +634,7 @@ function headerTwoLine(
       flexDirection: "column",
       // Upstream: `gap-0.5 leading-none`.
       gap: themeSpacing(0.5),
-      lineHeight: fixed(1),
+      lineHeight: 1,
       overflow: "hidden",
       opacity: (listener: Listener) => (collapsed.get(listener) ? 0 : 1),
       maxWidth: (listener: Listener) =>
@@ -683,10 +687,7 @@ export function sidebarHeaderVersionSwitcher(
         border: "none",
         background: "none",
         color: (listener: Listener) => themeColor(listener, "shift-9"),
-        "&:hover": {
-          backgroundColor: (listener: Listener) =>
-            themeColor(listener, "shift-2"),
-        },
+        "&:hover": interactiveFill(2),
       },
     })) as DomphyElement[],
     role: "menu",
@@ -766,61 +767,79 @@ export function sidebarHeaderStatic(
   };
 }
 
+function buildSearchRow(inputId: string): (DomphyElement | null)[] {
+  return [
+    {
+      span: [navIcon("search")],
+      style: {
+        position: "absolute",
+        insetInlineStart: themeSpacing(2),
+        top: "50%",
+        transform: "translateY(-50%)",
+        width: themeSpacing(4),
+        height: themeSpacing(4),
+        pointerEvents: "none",
+        opacity: 0.5,
+        display: "inline-flex",
+      },
+    } as unknown as DomphyElement,
+    // Upstream renders no visible label for this field (icon + placeholder
+    // only) — a visually-hidden label still gives htmlhint's
+    // input-requires-label a real `<label for>` to match, without adding
+    // on-screen chrome upstream doesn't have.
+    {
+      label: "Search",
+      htmlFor: inputId,
+      style: SR_ONLY_STYLE,
+    } as unknown as DomphyElement,
+    {
+      input: null,
+      id: inputId,
+      type: "search",
+      ariaLabel: "Search",
+      placeholder: "Search the docs...",
+      // The leading magnifier sits at inset 12px + 16px wide, so the
+      // text must start past 28px. `paddingInlineStart` alone loses to
+      // inputSearch()'s `paddingInline` SHORTHAND in the cascade
+      // (measured: computed padding-inline-start 18px, text overlapping
+      // the glyph), so declare the shorthand at the same level here.
+      style: {
+        width: "100%",
+        paddingInline: (listener: Listener) =>
+          `${themeSpacing(8)} ${themeSpacing(themeDensity(listener) * 3)}`,
+      },
+      $: [inputSearch({ color: "neutral", accentColor: "neutral" })],
+    } as unknown as DomphyElement,
+  ];
+}
+
 /**
  * Docs-style search field shown in the sidebar header (sidebar01/02 mirror
  * upstream's `SearchForm`: a labeled search input with a leading icon). Hidden
  * in icon-rail mode, where a full-width text field has nowhere to render.
  *
- * `instanceId` distinguishes the id/label pair between the docked aside and
- * the mobile drawer's duplicate copy of this same field — both can be present
- * in the DOM at once (the drawer is off-canvas, not removed), so a shared id
- * would collide.
+ * `role` distinguishes the id/label pair between the docked aside and the
+ * mobile drawer's duplicate copy of this same field — both can be present in
+ * the DOM at once (the drawer is off-canvas, not removed), so a shared id
+ * would collide. `role` alone still collides across two SEPARATE mounts of
+ * the same block on one page (a catalog rendering sidebar01 twice), so the
+ * real id is further scoped per mounted node via `instanceScoped` — same
+ * fix as sidebar05's search field.
  */
 export function sidebarSearchForm(
   collapsed: State<boolean>,
-  instanceId: string,
+  role: string,
 ): DomphyElement<"form"> {
-  const inputId = `sidebar-search-${instanceId}`;
+  const wrap = (children: (DomphyElement | null)[]): DomphyElement =>
+    ({
+      div: children,
+      style: { position: "relative", display: "flex", alignItems: "center" },
+    }) as unknown as DomphyElement;
   return {
-    form: [
-      {
-        div: [
-          {
-            span: [navIcon("search")],
-            style: {
-              position: "absolute",
-              insetInlineStart: themeSpacing(2),
-              top: "50%",
-              transform: "translateY(-50%)",
-              width: themeSpacing(4),
-              height: themeSpacing(4),
-              pointerEvents: "none",
-              opacity: 0.5,
-              display: "inline-flex",
-            },
-          },
-          // Upstream renders no visible label for this field (icon + placeholder
-          // only) — a visually-hidden label still gives htmlhint's
-          // input-requires-label a real `<label for>` to match, without adding
-          // on-screen chrome upstream doesn't have.
-          {
-            label: "Search",
-            htmlFor: inputId,
-            style: SR_ONLY_STYLE,
-          } as DomphyElement<"label">,
-          {
-            input: null,
-            id: inputId,
-            type: "search",
-            ariaLabel: "Search",
-            placeholder: "Search the docs...",
-            style: { width: "100%", paddingInlineStart: themeSpacing(8) },
-            $: [inputSearch({ color: "neutral", accentColor: "neutral" })],
-          } as DomphyElement<"input">,
-        ],
-        style: { position: "relative", display: "flex", alignItems: "center" },
-      },
-    ],
+    form: [wrap(buildSearchRow(`sidebar-search-${role}`))],
+    ...instanceScoped((instanceId) => [
+      wrap(buildSearchRow(`sidebar-search-${role}-${instanceId}`)),
+    ]),
     style: {
       display: (listener: Listener) =>
         collapsed.get(listener) ? "none" : "block",
@@ -829,7 +848,7 @@ export function sidebarSearchForm(
       paddingBlockEnd: (listener: Listener) =>
         themeSpacing(themeDensity(listener) * 2),
     },
-  };
+  } as unknown as DomphyElement<"form">;
 }
 
 export function sidebarFooterUser(
@@ -969,6 +988,7 @@ export function sidebarRail(
         width: "2px",
         transition: "background-color 150ms linear",
       },
+      // Fill only — `::after` is an empty hairline with no label to move.
       "&:hover::after": {
         backgroundColor: (listener: Listener) =>
           themeColor(listener, "shift-5"),

@@ -18,12 +18,17 @@
 // single `filter` — no extra DOM elements needed, matching the spec's
 // "single container, no per-letter spans" DOM sketch.
 //
-// `fontSize`/`fontWeight` are only ever set through a `(l) => value`
-// function form — the doctor's `inline-typography` rule only flags a
-// *literal* value on these props, and a bold, heavy comic display face is
-// the entire premise of this component (same escape hatch already used by
-// `wordRotate`/`numberTicker`/`textReveal` elsewhere in this package, where
-// no `heading()`/`strong()` patch can express a one-off arbitrary weight).
+// The type here is declared non-token on purpose, with
+// `_doctorDisable: "inline-typography"` on the element rather than hidden
+// behind a `(l) => value` wrapper: the doctor INVOKES reactive style
+// functions and flags whatever literal they return, so the function form
+// never suppressed anything — it only hid the literal from grep. A blocky
+// comic display face IS this component (see the props doc for `fontSize`),
+// and neither the size nor the family is reachable through the theme: the
+// type scale tops out at --fontSize-7 = 3.0625rem (49px) against a 5rem
+// (80px) default, and the theme's one sans stack is by definition not a
+// novelty display face. The weight DOES land on a token (`black` = 900) and
+// uses it.
 //
 // The one-shot bouncy entrance uses `motion()` with a two-keyframe
 // `el.animate()` and an "ease-out-back" cubic-bezier — a bezier whose Y
@@ -34,9 +39,8 @@
 // as a constant, while only `scale`/`rotate` actually animate.
 
 import type { DomphyElement, StyleObject } from "@domphy/core";
-import { type ThemeColor, themeColor } from "@domphy/theme";
+import { type ThemeColor, themeColor, themeWeight } from "@domphy/theme";
 import { motion } from "@domphy/ui";
-import { fixed } from "../../shared/typography.js";
 
 export interface ComicTextProps {
   /** Text content. Forced to uppercase regardless of casing. Defaults to `"BOOM!"`. */
@@ -80,15 +84,15 @@ function comicText(props: ComicTextProps = {}): DomphyElement<"div"> {
       textTransform: "uppercase",
       whiteSpace: "pre-wrap",
       userSelect: "none",
-      // Function-form escape hatch — see file header comment. A comic
-      // display face genuinely needs an arbitrary heavy weight and a
-      // caller-scaled size, neither of which a typography patch expresses.
-      fontSize: () => `${fontSize}rem`,
-      fontWeight: () => "900",
+      // Caller-scaled display size — see the file header for why it is not
+      // reachable through the theme.
+      fontSize: `${fontSize}rem`,
+      // Upstream `font-black` (weight 900).
+      fontWeight: themeWeight("black"),
       // A blocky comic display face is the entire premise of this component;
       // browsers fall through 'Bangers' (if loaded) to the system 'Impact'/
       // 'Comic Sans MS' display fonts before the generic sans-serif.
-      fontFamily: fixed("'Bangers', 'Comic Sans MS', 'Impact', sans-serif"),
+      fontFamily: "'Bangers', 'Comic Sans MS', 'Impact', sans-serif",
       // Halftone fill: base paper tone + tiled dot pattern, both clipped to
       // the glyphs. `_doctorDisable`d below for `tone-background-inherit`
       // (this fixed-shift backgroundColor is the glyphs' own ink fill, not
@@ -135,7 +139,7 @@ function comicText(props: ComicTextProps = {}): DomphyElement<"div"> {
         },
       }),
     ],
-    _doctorDisable: "tone-background-inherit",
+    _doctorDisable: ["tone-background-inherit", "inline-typography"],
   } as DomphyElement<"div">;
 
   if (props.className) (element as { class?: string }).class = props.className;

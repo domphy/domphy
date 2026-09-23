@@ -53,9 +53,13 @@ function editorSurface(code: State<string>): DomphyElement<"div"> {
       minHeight: "0",
       minWidth: "0",
       overflow: "hidden",
-      // Editor is a dark surface so code always has high contrast.
+      // Deliberately NOT a theme token: this backs CodeMirror's oneDark
+      // syntax palette, which is a fixed dark palette in both site themes.
+      // Editor.ts contrast-checks every token color against this exact hex,
+      // so it must not drift with the theme.
       backgroundColor: "#0d1117",
     },
+    _doctorDisable: ["raw-theme-value"],
   };
 }
 
@@ -111,7 +115,7 @@ function splitHandle(horizontal: boolean): DomphyElement<"div"> {
     ariaLabel: horizontal
       ? "Drag to resize code and preview columns"
       : "Drag to resize code and preview rows",
-    _doctorDisable: ["missing-color", "tone-background-inherit"],
+    _doctorDisable: ["tone-background-inherit"],
     style: {
       display: "flex",
       alignItems: "center",
@@ -371,6 +375,12 @@ export function Container(
       ];
     },
     class: "dp-playground",
+    // The shell is a raised surface, declared as a tone CONTEXT rather than a
+    // bare "surface" fill. Painting shift-1 without a context left every
+    // descendant's "text" resolving against the page floor — an 8-step gap,
+    // one short of the contrast contract, and the trap that put the pane tabs
+    // at 3.66:1. As a context the same fill reopens the full 9 steps.
+    dataTone: "shift-1",
     _onMount: (node) => {
       // Follow the site theme live: when the user flips light/dark in the
       // page chrome, the preview re-renders in the same theme instead of
@@ -405,7 +415,7 @@ export function Container(
           ? "none"
           : "0 8px 30px rgba(0, 0, 0, 0.10), 0 2px 8px rgba(0, 0, 0, 0.06)",
       zIndex: (l: Listener) => (isFull.get(l) ? 300 : 10),
-      backgroundColor: (l: Listener) => themeColor(l, "surface"),
+      backgroundColor: (l: Listener) => themeColor(l, "inherit"),
       color: (l: Listener) => themeColor(l, "text"),
     },
   };

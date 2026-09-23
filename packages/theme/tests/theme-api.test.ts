@@ -15,6 +15,7 @@ import {
 import {
   ElementTones,
   resolveThemeColor,
+  resolveToneStep,
   themeColor,
   themeColorToken,
 } from "../src/tone.ts";
@@ -126,7 +127,7 @@ describe("theme core APIs", () => {
 
     const css = themeCSS();
     expect(css).toContain(`[data-theme="${customThemeName}"]`);
-    expect(css).toContain("--custom-radius_sm: 2px;");
+    expect(css).toContain("--custom-radius_2f_sm: 2px;");
 
     expect(() => setTheme(customThemeName, { badKey: "x" } as any)).toThrow(
       /Invalid key/,
@@ -259,9 +260,26 @@ describe("theme CSS generation hygiene", () => {
     const name = `vitest-esc-${Math.random().toString(36).slice(2)}`;
     setTheme(name, { custom: { "radius/sm/lg": "3px", "gap x": "1px" } });
     const css = themeCSS();
-    expect(css).toContain("--custom-radius_sm_lg: 3px;");
-    expect(css).toContain("--custom-gap_x: 1px;");
+    expect(css).toContain("--custom-radius_2f_sm_2f_lg: 3px;");
+    expect(css).toContain("--custom-gap_20_x: 1px;");
     expect(css).not.toMatch(/--custom-radius_sm\/lg/);
+  });
+
+  // Distinct keys can no longer collapse onto the same CSS custom property.
+  // Truth source: escapeKey()'s own injectivity — a raw "_" never appears in
+  // its output except as an escape delimiter (a literal "_" is itself
+  // escaped to "_5f_", and "-" passes through unescaped so it can never
+  // imitate a delimiter), so the mapping is provably one-to-one (see
+  // theme.ts comment).
+  it("distinct custom keys never collide on the same custom property (was: both -> _)", () => {
+    const name = `vitest-collision-${Math.random().toString(36).slice(2)}`;
+    setTheme(name, {
+      custom: { "radius/sm": "2px", "radius sm": "4px", radius_2f_sm: "6px" },
+    });
+    const css = themeCSS();
+    expect(css).toContain("--custom-radius_2f_sm: 2px;");
+    expect(css).toContain("--custom-radius_20_sm: 4px;");
+    expect(css).toContain("--custom-radius_5f_2f_5f_sm: 6px;");
   });
 
   it("themeVars exposes only colors/fontSizes/custom (no phantom metadata sections)", () => {
@@ -413,5 +431,74 @@ describe("themeColor custom-role baseline error", () => {
     expect(() => resolveThemeColor({ tone: "base", color: "brand" })).toThrow(
       /baseTones\.brand is not defined on theme "light"/,
     );
+  });
+});
+
+describe("resolveToneStep (context-aware off-DOM resolution)", () => {
+  // Truth source: real Chromium. `scratchpad/tone-browser` mounts, for each
+  // theme x dataTone surface x tone x color role, a node painted by
+  // themeColor() and reads getComputedStyle().backgroundColor back, mapping it
+  // to a ramp index through the theme tokens. All 504 combinations of
+  // themes ["light","dark"] x surfaces ["inherit","shift-0","shift-1",
+  // "shift-3","shift-14","shift-17"] x the tones below x roles
+  // ["neutral","primary","error"] matched resolveToneStep(); the spot values
+  // below are readings from that run.
+  it("matches the index real Chromium paints on a shifted surface", () => {
+    expect(resolveToneStep({ surface: "shift-17", tone: "shift-9" })).toBe(7);
+    expect(resolveToneStep({ surface: "shift-17", tone: "increase-2" })).toBe(
+      17,
+    );
+    expect(resolveToneStep({ surface: "shift-14", tone: "text" })).toBe(5);
+  });
+
+  it("carries the theme's edge darkBias, as the browser does on a dark page", () => {
+    // A dark page with no dataTone paints neutral-1, not neutral-0.
+    expect(resolveToneStep({ theme: "dark", tone: "inherit" })).toBe(1);
+    expect(resolveToneStep({ theme: "dark", tone: "text" })).toBe(10);
+    expect(resolveToneStep({ theme: "light", tone: "inherit" })).toBe(0);
+  });
+
+  it("returns the same index themeColor() resolves for a node on that surface", () => {
+    // The single-source contract: an analyzer resolving off-DOM and the
+    // runtime painting on-DOM must never disagree. This is the pairing the
+    // Chromium run above verified end to end.
+    const tones = [
+      "inherit",
+      "surface",
+      "hover",
+      "border",
+      "muted",
+      "text",
+      "shift-0",
+      "shift-9",
+      "shift-17",
+      "increase-2",
+      "increase-9",
+      "decrease-2",
+      "decrease-9",
+      "base",
+    ];
+    for (const theme of ["light", "dark"]) {
+      for (const surface of [
+        "inherit",
+        "shift-0",
+        "shift-1",
+        "shift-3",
+        "shift-14",
+        "shift-17",
+      ]) {
+        const themeRoot = createNode({ dataTheme: theme });
+        const surfaceRoot = createNode({ dataTone: surface }, themeRoot);
+        const node = createNode({}, surfaceRoot);
+        for (const tone of tones) {
+          for (const color of ["neutral", "primary", "error"]) {
+            const painted = themeColor(node as any, tone, color);
+            expect(painted, `${theme} | ${surface} | ${tone} | ${color}`).toBe(
+              `var(--${color}-${resolveToneStep({ theme, surface, tone, color })})`,
+            );
+          }
+        }
+      }
+    }
   });
 });

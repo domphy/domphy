@@ -17,7 +17,7 @@
 // damped spring, not a literal one. The proximity falloff is piecewise-linear,
 // matching motion's `useTransform` 3-point range [-distance, 0, distance].
 
-import type { BehaviorInstance, DomphyElement, Listener } from "@domphy/core";
+import type { DomphyElement, Listener } from "@domphy/core";
 import { behavior, type ElementNode } from "@domphy/core";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import { tooltip } from "@domphy/ui";
@@ -126,16 +126,12 @@ function dockGlyph(name: DockIconName): DomphyElement<"svg"> {
 
 /** Hairline vertical divider between logical icon groups. */
 function dockSeparator(index: number): DomphyElement<"div"> {
-  // `_doctorDisable` is a doctor-only annotation not present in core's strict
-  // `PartialElement` type — build through an untyped literal, then assert, so
-  // the excess-property check doesn't fire (mirrors the shadcn sidebar
-  // family's `verticalDivider()`). Decorative separator with no text of its
-  // own, drawn as a border (not a backgroundColor fill).
+  // Decorative separator with no text of its own, drawn as a border (not a
+  // backgroundColor fill).
   const element = {
     div: null,
     ariaHidden: "true",
     _key: `separator-${index}`,
-    _doctorDisable: "missing-color",
     style: {
       alignSelf: "stretch",
       borderInlineStart: (listener: Listener) =>
@@ -146,74 +142,63 @@ function dockSeparator(index: number): DomphyElement<"div"> {
 }
 
 const DOCK_BEHAVIOR_KEY = "magicui-dock";
-const DOCK_ICON_BEHAVIOR_KEY = "magicui-dock-icon";
-
-interface DockIconRef {
-  element: HTMLElement;
-  /** Natural rest width (px), captured on the first magnify frame while the
-   * inline width is still empty; the base for the pixel width/height interp. */
-  baseSize: number;
-}
 
 interface DockBehaviorProps {
-  iconRefs: DockIconRef[];
   magnification: number;
   proximityMultiplier: number;
   disableMagnification: boolean;
 }
 
-interface DockBehavior extends BehaviorInstance<DockBehaviorProps> {
-  iconRefs: DockIconRef[];
-}
-
-function attachDockIcon(node: ElementNode, props: { iconRefs: DockIconRef[] }) {
-  const element = node.domElement as HTMLElement | null;
-  if (!element) return { update() {}, destroy() {} };
-  const parent = node.parent;
-  const dock = parent?.getBehavior<DockBehavior>(DOCK_BEHAVIOR_KEY);
-  const refs = dock?.iconRefs ?? props.iconRefs;
-  const ref: DockIconRef = { element, baseSize: 0 };
-  refs.push(ref);
-  return {
-    update() {},
-    destroy() {
-      const index = refs.findIndex((item) => item.element === element);
-      if (index >= 0) refs.splice(index, 1);
-    },
-  };
-}
-
 function attachDock(node: ElementNode, initialProps: DockBehaviorProps) {
   let props = initialProps;
-  const iconRefs = initialProps.iconRefs;
   const container = node.domElement as HTMLElement | null;
   if (!container) {
-    return { iconRefs, update() {}, destroy() {} };
+    return { update() {}, destroy() {} };
   }
 
   let animationFrame: number | null = null;
   let pointerX: number | null = null;
+  // Natural rest width (px) per icon, captured on the first magnify frame
+  // while the inline width is still empty; the base for the pixel width/height
+  // interpolation. Dropped again when the cursor leaves, so the next hover
+  // re-measures against whatever the current viewport/density resolves to
+  // (the icons shrink under `@media (max-width: 480px)`).
+  const baseSizes = new WeakMap<HTMLElement, number>();
+
+  // Queried per frame rather than kept in a registry each icon pushes into.
+  // A registry has to reach the icons through their own behavior props, and
+  // `cloneDescriptor()` in @domphy/core deep-clones `_behaviors` per
+  // descriptor, so every icon registered into its own private copy of the
+  // array and this behavior's copy stayed empty — magnification was dead
+  // (measured: all 7 icons held 40px with the cursor centred on the first).
+  // A handful of direct children is nothing to re-query each frame, and the
+  // selector cannot go stale the way a registry can.
+  const icons = () => container.querySelectorAll<HTMLElement>(":scope > a");
 
   const applyMagnification = () => {
     animationFrame = null;
-    for (const ref of iconRefs) {
+    for (const element of icons()) {
       if (pointerX === null || props.disableMagnification) {
-        ref.element.style.width = "";
-        ref.element.style.height = "";
+        element.style.width = "";
+        element.style.height = "";
+        baseSizes.delete(element);
         continue;
       }
-      const rect = ref.element.getBoundingClientRect();
+      const rect = element.getBoundingClientRect();
       if (rect.width === 0) continue;
-      if (!ref.element.style.width) ref.baseSize = rect.width;
-      const baseSize = ref.baseSize || rect.width;
+      let baseSize = baseSizes.get(element);
+      if (baseSize === undefined) {
+        baseSize = rect.width;
+        baseSizes.set(element, baseSize);
+      }
       const center = rect.left + rect.width / 2;
       const distance = Math.abs(pointerX - center);
       const threshold = baseSize * props.proximityMultiplier;
       const falloff =
         threshold > 0 ? 1 - Math.min(distance, threshold) / threshold : 0;
       const size = baseSize + baseSize * (props.magnification - 1) * falloff;
-      ref.element.style.width = `${size.toFixed(2)}px`;
-      ref.element.style.height = `${size.toFixed(2)}px`;
+      element.style.width = `${size.toFixed(2)}px`;
+      element.style.height = `${size.toFixed(2)}px`;
     }
   };
 
@@ -235,9 +220,8 @@ function attachDock(node: ElementNode, initialProps: DockBehaviorProps) {
   container.addEventListener("pointerleave", handlePointerLeave);
 
   return {
-    iconRefs,
     update(next: DockBehaviorProps) {
-      props = { ...next, iconRefs };
+      props = next;
     },
     destroy() {
       container.removeEventListener("pointermove", handlePointerMove);
@@ -253,7 +237,6 @@ function dockIconButton(
   iconSizeUnits: number,
   anchor: DockAnchor,
   disableMagnification: boolean,
-  iconRefs: DockIconRef[],
 ): DomphyElement<"a"> {
   const tooltipPlacement = anchor === "top" ? "bottom" : "top";
 
@@ -294,7 +277,6 @@ function dockIconButton(
         : {}),
     },
     $: [tooltip({ content: item.label, placement: tooltipPlacement })],
-    ...behavior(DOCK_ICON_BEHAVIOR_KEY, attachDockIcon, { iconRefs }),
   };
   // Only attach the event handler prop when a click handler was actually
   // provided — Domphy's event validation rejects an explicit `onClick:
@@ -316,8 +298,6 @@ function dock(props: DockProps = {}): DomphyElement<"nav"> {
   const anchor = props.anchor ?? "middle";
   const disableMagnification = props.disableMagnification ?? false;
 
-  const iconRefs: DockIconRef[] = [];
-
   const children: DomphyElement[] = entries.map((entry, index) =>
     "separator" in entry
       ? dockSeparator(index)
@@ -327,7 +307,6 @@ function dock(props: DockProps = {}): DomphyElement<"nav"> {
           iconSizeUnits,
           anchor,
           disableMagnification,
-          iconRefs,
         ),
   );
 
@@ -384,7 +363,6 @@ function dock(props: DockProps = {}): DomphyElement<"nav"> {
       backdropFilter: (_listener: Listener) => `blur(${themeSpacing(4)})`,
     },
     ...behavior<DockBehaviorProps>(DOCK_BEHAVIOR_KEY, attachDock, {
-      iconRefs,
       magnification,
       proximityMultiplier,
       disableMagnification,

@@ -14,6 +14,7 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { elevation } from "../utils/elevation.js";
+import { hasOpenFloatingPanel } from "../utils/floating.js";
 import { asOpenState, dismissOpen, subscribeOpen } from "../utils/openState.js";
 import { lockScroll, unlockScroll } from "../utils/scrollLock.js";
 
@@ -92,7 +93,13 @@ function attachDialog(
     const focusables = Array.from(
       dlg.querySelectorAll<HTMLElement>(FOCUSABLE),
     ).filter(
-      (el) => !el.closest("[aria-hidden='true']") && el.offsetParent !== null,
+      // getClientRects() is empty only when the element (or an ancestor) has
+      // `display: none` or the element itself has no layout box — unlike
+      // `offsetParent`, which is ALSO null for a `position: fixed`
+      // descendant even though it is fully visible, so the trap silently
+      // skipped fixed-position focusables inside the dialog.
+      (el) =>
+        !el.closest("[aria-hidden='true']") && el.getClientRects().length > 0,
     );
     if (!focusables.length) {
       e.preventDefault();
@@ -115,6 +122,9 @@ function attachDialog(
 
   const onCancel = (e: Event) => {
     e.preventDefault();
+    // Top-layer-only dismissal: an open popover/select/datePicker inside this
+    // dialog owns the Escape (see hasOpenFloatingPanel).
+    if (hasOpenFloatingPanel(dlg)) return;
     dismissOpen(state, onDismiss);
   };
   dlg.addEventListener("cancel", onCancel);
@@ -149,7 +159,14 @@ function attachDialog(
       dlg.addEventListener("keydown", trapFocus);
       requestAnimationFrame(() => {
         dlg.style.opacity = "1";
-        const focusable = dlg.querySelector<HTMLElement>(FOCUSABLE);
+        // `[autofocus]` wins over "first focusable" — that is what the HTML
+        // dialog focusing steps do, and what Radix Dialog / MUI Dialog /
+        // Mantine Modal all honour. Without it the initial focus landed on
+        // whatever happened to come first in the DOM (typically a close or
+        // cancel button) and there was no way for a consumer to redirect it.
+        const focusable =
+          dlg.querySelector<HTMLElement>("[autofocus]:not([disabled])") ??
+          dlg.querySelector<HTMLElement>(FOCUSABLE);
         focusable?.focus();
       });
     } else {

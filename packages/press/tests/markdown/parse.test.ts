@@ -211,7 +211,15 @@ describe("@domphy/press markdown parseMarkdown", () => {
   it("renders GFM tables into a table tree", () => {
     const md = "| A | B |\n| - | - |\n| 1 | 2 |";
     const body = markdownToDomphy(md);
-    const table = asRecord(body[0]);
+    // Truth source: WAI-ARIA / WCAG G202 — the horizontally scrollable box
+    // must be focusable and named, and it must NOT be the <table> itself
+    // (display:block on a table drops its table semantics). The walker emits
+    // the region wrapper around an otherwise untouched table tree.
+    const region = asRecord(body[0]);
+    expect(region.role).toBe("region");
+    expect(region.tabIndex).toBe(0);
+    expect(region.ariaLabel).toBe("Table 1");
+    const table = asRecord((region.div as unknown[])[0]);
     expect(table.table).toBeDefined();
 
     const tableChildren = table.table as Record<string, unknown>[];

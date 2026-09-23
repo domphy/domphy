@@ -1,6 +1,8 @@
 import { themeColor } from "@domphy/theme";
+import { barSizingOptions, resolveBarLayout } from "../coord/barLayout.js";
 import { cssColor } from "../gl/color.js";
 import { computePieSlices } from "../gl/PieRenderer.js";
+import type { ItemStateResolver } from "../itemStates.js";
 import type { AnyScale } from "../scale/index.js";
 import type {
   BarSeriesOption,
@@ -48,7 +50,6 @@ function renderBarLabels(
 ): void {
   const labelColor = themeColor(null, "shift-10", "neutral");
   const labelColorInside = "#fff";
-  const gap = 2;
 
   // Build group layout info (mirrors BarRenderer grouping)
   const grouped = series.filter((s) => !s.stack);
@@ -63,12 +64,12 @@ function renderBarLabels(
     if (!xScale || !yScale) continue;
 
     const position = s.label?.position ?? "top";
-    const bandwidth = xScale.bandwidth();
-    const groupBarWidth =
-      groupCount > 1
-        ? (bandwidth * 0.85 - (groupCount - 1) * gap) / groupCount
-        : bandwidth * 0.65;
-    const totalGroupWidth = groupCount * groupBarWidth + (groupCount - 1) * gap;
+    // Same layout call BarRenderer makes, so a label always lands on its bar.
+    const layout = resolveBarLayout({
+      bandwidth: xScale.bandwidth(),
+      seriesCount: groupCount,
+      ...barSizingOptions(series),
+    });
     const groupIndex = grouped.indexOf(s);
     const data = s.data ?? [];
     const baselineY = yScale.map(0);
@@ -97,10 +98,7 @@ function renderBarLabels(
       // For grouped bars, label above the specific bar; stacked bars use category center
       const lx =
         groupIndex >= 0
-          ? xCenter -
-            totalGroupWidth / 2 +
-            groupIndex * (groupBarWidth + gap) +
-            groupBarWidth / 2
+          ? xCenter + layout.offsetFor(groupIndex) + layout.barSize / 2
           : xCenter;
 
       const barHeight = Math.abs(baselineY - yTop);
@@ -362,6 +360,12 @@ export interface SeriesLabelOptions {
   width: number;
   height: number;
   hiddenSeries: Set<string>;
+  /**
+   * Per-item emphasis/blur/select lookup (see itemStates.ts). Symbols follow
+   * the state's scale and opacity, and a state's `label` is merged over the
+   * series' own for the label pass.
+   */
+  states?: ItemStateResolver;
 }
 
 export function renderSeriesSymbols(
@@ -397,6 +401,7 @@ export function renderSeriesSymbols(
 
     const color = cssColor(s.color, seriesOffset + lines.indexOf(s));
     const r = typeof s.symbolSize === "number" ? s.symbolSize / 2 : 4;
+    const states = opts.states;
 
     (s.data ?? []).forEach((item, index) => {
       let xVal: any;
@@ -426,12 +431,17 @@ export function renderSeriesSymbols(
         "http://www.w3.org/2000/svg",
         "circle",
       );
+      // ECharts' hover affordance for a line/scatter point is the symbol
+      // growing (emphasis.scale); a blurred series' symbols fade with it.
+      const state = states?.(s, index);
       circle.setAttribute("cx", String(px));
       circle.setAttribute("cy", String(py));
-      circle.setAttribute("r", String(r));
+      circle.setAttribute("r", String(r * (state?.scale ?? 1)));
       circle.setAttribute("fill", "#fff");
       circle.setAttribute("stroke", color);
       circle.setAttribute("stroke-width", "2");
+      if (state && state.opacity !== 1)
+        circle.setAttribute("opacity", String(state.opacity));
       circle.setAttribute("pointer-events", "none");
       group.appendChild(circle);
     });
@@ -447,22 +457,33 @@ export function renderSeriesLabels(
   const old = svg.querySelector(".dc-labels");
   if (old) old.remove();
 
-  const hasLabels = opts.series.some((s) => (s as any).label?.show);
+  // A state's own `label` (emphasis.label / blur.label / select.label) is
+  // merged over the series' label before anything is measured. The label
+  // renderers here read `series.label` only — no series supports a per-datum
+  // label — so a state label applies when the WHOLE series is in that state
+  // (emphasis.focus: "series", a legend highlight, or a blur), which is the
+  // granularity this overlay can honour. See docs/chart/vs-echarts.md.
+  const series = opts.states
+    ? opts.series.map((entry) => {
+        const stateLabel = opts.states?.(entry, -1).label;
+        if (!stateLabel) return entry;
+        return {
+          ...entry,
+          label: { ...(entry as { label?: object }).label, ...stateLabel },
+        } as SeriesOption;
+      })
+    : opts.series;
+
+  const hasLabels = series.some((s) => (s as any).label?.show);
   if (!hasLabels) return;
 
   const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
   group.setAttribute("class", "dc-labels");
 
-  const bars = opts.series.filter(
-    (s): s is BarSeriesOption => s.type === "bar",
-  );
-  const lines = opts.series.filter(
-    (s): s is LineSeriesOption => s.type === "line",
-  );
-  const pies = opts.series.filter(
-    (s): s is PieSeriesOption => s.type === "pie",
-  );
-  const scatters = opts.series.filter(
+  const bars = series.filter((s): s is BarSeriesOption => s.type === "bar");
+  const lines = series.filter((s): s is LineSeriesOption => s.type === "line");
+  const pies = series.filter((s): s is PieSeriesOption => s.type === "pie");
+  const scatters = series.filter(
     (s): s is ScatterSeriesOption => s.type === "scatter",
   );
 

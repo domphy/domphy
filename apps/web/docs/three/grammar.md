@@ -35,6 +35,37 @@ There is no pre-populated class catalog — a tag resolves by reflection: your `
 
 Every other key is either a duck-typed value prop (`position`, `intensity`, `color`, ...) or a function dispatched through the [function-prop rules](#function-prop-rules) below.
 
+## TypeScript
+
+Scene objects are typed by `SceneProps`, and callbacks written inline in a scene are **contextually typed** — no parameter annotations anywhere:
+
+```ts
+three({
+  scene: [{
+    mesh: [
+      { boxGeometry: null, args: [1, 1, 1] },
+      { meshStandardMaterial: null, color: (l) => tint.get(l) },  // l: Listener
+    ],
+    onClick: (event) => event.point.x,        // event: ThreeEvent<MouseEvent>
+    onWheel: (event) => event.deltaY,         // event: ThreeEvent<WheelEvent>
+    onFrame: (root, delta, self) => { … },    // root: RootState, delta: number
+    onChange: (event, root, self) => { … },   // rule 5: addEventListener shape
+  }],
+})
+```
+
+Build a scene array outside the `three()` call and annotate it `SceneProps[]` to keep the same typing:
+
+```ts
+import type { SceneProps } from "@domphy/three"
+
+const cells: SceneProps[] = []
+```
+
+Exported types: `SceneProps` (one scene object), `SceneChild`/`SceneChildren` (a tag's value), `SceneFunction`, `SceneValue`, `ReactiveProp<T>` (a rule-7 value function), `InstanceEventHandler` (rules 5/6), plus `ThreeEvent`/`IntersectionEvent`/`Intersection` from [Events](./events) and `RootState`/`CreatedRootState`/`ThreeOptions`.
+
+The grammar is open by design — any registered tag, any three.js prop, any pierced path — so `SceneProps` never rejects a key. Its job is contextual typing, not validation; use [`diagnose()`](./index#scene-doctor) for the checks a type cannot make.
+
 ## Duck-typed props
 
 A static (non-function) prop value is applied against the resolved target using three's own value interface, in this order:

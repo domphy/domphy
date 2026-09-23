@@ -20,7 +20,7 @@ const HeadingShift: Record<string, ElementSize> = {
  * Styles a heading, scaling its font size by level (h1 largest … h6 smallest)
  * relative to the theme base size. Apply to a heading element `<h1>`–`<h6>`.
  *
- * @hostTag h1
+ * @hostTag h1-h6
  * @param props.color - Theme color tone (`ValueOrState<ThemeColor>`) for the heading text. Defaults to "neutral".
  * @param props.size - Optional `ElementSize` (`"inherit"` | `"increase-N"` | `"decrease-N"`, N ≤ 7). When set, font size is `themeSize(listener, size)` including `"inherit"` (no tag bump). When omitted, follows the host tag (`h1` increase-4 … `h6` decrease-1).
  * @example { h2: "Section title", $: [heading()] }

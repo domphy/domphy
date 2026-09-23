@@ -41,6 +41,8 @@ For category axes, `boundaryGap` (default `true`) adds half-category padding on 
 xAxis: { type: "category", data: [...], boundaryGap: false }
 ```
 
+`false` puts category 0 on the axis line and the last category on the far edge. Series that size their elements from the category band (`bar`, `candlestick`, `boxplot`, `heatmap`) still get a band — `width / (categories - 1)` instead of `width / categories`, matching ECharts' `getBandWidth()` — so they straddle the ticks and clip at the two ends rather than disappearing.
+
 **Time axis:**
 
 Pass timestamps as data and configure `axisLabel.formatter` to control how ticks display:
@@ -169,6 +171,8 @@ visualMap: {
 }
 ```
 
+A continuous visualMap drives the colour of the `heatmap` cells it targets (`seriesIndex`, or every series when it is omitted): `min`/`max` set the range the ramp spans — without them the cells fall back to their own data extent — and `inRange.color` sets the ramp itself, so the cells and the legend bar always show the same colours. A value outside `[min, max]` is not drawn unless `outOfRange.color` is given; ECharts' default out-of-range colour is `rgba(0,0,0,0)`.
+
 **Piecewise** — discrete color steps:
 ```ts
 visualMap: {
@@ -231,42 +235,105 @@ title: {
 
 ## Toolbox
 
-> **Not implemented yet.** The `toolbox` option is typed for ECharts interop, but
-> no toolbar is rendered — setting it logs a runtime warning and has no effect.
-> The shape below is accepted so ECharts options migrate without type errors;
+Renders a keyboard-operable `role="toolbar"` of real `<button>` elements inside
+the chart container. Every button carries an `aria-label` (the feature's
+`title`, or the ECharts default) and a visible focus ring.
 
 ```ts
 toolbox: {
   show: true,
+  orient: "horizontal",   // or "vertical"
+  itemSize: 15,
+  itemGap: 8,
   right: 20,       // distance from right edge
   top: 10,
   feature: {
     saveAsImage: { title: "Save" },              // download PNG
-    dataZoom: { yAxisIndex: "none" },            // range select on x axis
-    restore:  { title: "Reset" },               // reset zoom/pan
+    dataZoom: { yAxisIndex: "none" },            // drag-select range on the x axis only
+    restore:  { title: "Reset" },                // back to the option you passed
     dataView: { readOnly: false, title: "Data" }, // tabular data view/edit
-    brush: { type: ["rect", "lineX", "keep", "clear"] }, // enable brush tool
+    magicType: { type: ["line", "bar", "stack"] }, // switch series type
   },
 }
 ```
 
+**Feature notes.**
+
+- `saveAsImage`: `type: "png"`/`"jpg"` (default) composites the WebGL canvas
+  and both SVG layers into one raster image, resolving `var(--…)` theme
+  references and painting the theme surface behind them first (a transparent
+  export of a dark-theme chart is unreadable). `type: "svg"` produces a real
+  SVG document — the axes/legend/labels this package already draws as SVG
+  stay vector, and the WebGL-rasterized series (bar/line/scatter/…, which have
+  no vector form to re-derive) are embedded as one raster `<image>` (both
+  `href` and `xlink:href`, so older and newer SVG consumers alike resolve it)
+  instead of silently falling back to a PNG.
+- `dataZoom` toggles a rectangle-select mode over the plot; Escape cancels.
+  Both axes zoom by default — dragging changes the x window, the y window, or
+  both, matching whichever edges the rectangle actually spans. Set
+  `xAxisIndex: "none"` (or `false`) to zoom the y axis only, or `yAxisIndex:
+  "none"` for the x axis only (as above); setting both disables the feature
+  and warns instead of rendering a dead button. Zooming a series-specific
+  axis by index (rather than every axis of that kind) and `filterMode` have
+  no effect.
+- `dataView` opens a panel inside the chart; `readOnly: false` gives a textarea
+  whose Refresh applies edited numbers back to the series. Escape closes it and
+  returns focus to the button.
+- `magicType` rewrites every cartesian series' `type`/`stack` and never mutates
+  the option you passed.
+- `feature.brush` renders real `rect`/`lineX`/`lineY`/`keep`/`clear` buttons
+  (see **Brush** below); a `polygon` tool in its `type` list warns instead of
+  rendering.
+
 ## Brush
 
-> **Not implemented yet.** The `brush` option is typed for ECharts interop, but
-> area selection is not rendered — setting it logs a runtime warning and has no
-> effect. The shape below is accepted so ECharts options migrate without type
-> errors;
+Drag-select a `rect`, `lineX` or `lineY` area over the plot. Hit-tested series:
+scatter, line (including a **stacked** line, tested against its cumulative
+position), bar (any grouped/stacked/horizontal/vertical layout) and
+candlestick (body + wick bounding box) — boxplot/heatmap/pie are not. This is
+parity with upstream ECharts, not a gap: ECharts' own `BarSeriesModel`/
+`CandlestickSeriesModel`/etc. implement a `brushSelector(dataIndex, data,
+selectors)` method that its brush component calls, but `PieSeriesModel`,
+`HeatmapSeriesModel` and `BoxplotSeriesModel` implement no such method
+upstream either (verified against `apache/echarts` source, `master` branch)
+— their rendered position depends on renderer-specific layout math neither
+implementation duplicates for brush. A `brushSelected` event reports which data indices fall inside,
+and `inBrush`/`outOfBrush` dim the un-brushed points on every hit-tested
+series (including a line's own point symbols). Works standalone
+(`option.brush` alone, no toolbox needed — its default `brushType: "rect"` is
+drag-active immediately) or driven by `toolbox.feature.brush`'s buttons.
 
 ```ts
 brush: {
-  toolbox: ["rect", "lineX", "keep", "clear"],   // tools available without toolbox component
-  brushLink: "all",                              // sync brush across all series
-  brushType: "rect",                             // default tool: "rect" | "polygon" | "lineX" | "lineY"
-  brushMode: "single",                           // "single" | "multiple" selections
-  inBrush: { opacity: 1 },
-  outOfBrush: { opacity: 0.2 },                  // dim unselected points
+  brushType: "rect",     // default tool, active with no toolbox: "rect" | "lineX" | "lineY" ("polygon" warns, not rendered)
+  brushMode: "single",   // "single" replaces the area on each drag; "multiple" accumulates (selection = their union)
+  brushStyle: { color: "primary", borderColor: "primary", borderWidth: 1, opacity: 0.15 },
+  inBrush: { opacity: 1 },        // default — brushed-in data is unchanged
+  outOfBrush: { opacity: 0.3 },   // default — everything else in a brushable series fades
 }
 ```
+
+```ts
+toolbox: {
+  feature: {
+    brush: { type: ["rect", "lineX", "lineY", "keep", "clear"] },
+  },
+}
+```
+
+```ts
+chart(option, {
+  brushSelected: (params) => {
+    // params.batch[0].selected: [{ seriesIndex, dataIndex: [...] }, ...]
+  },
+})
+```
+
+**Not implemented:** `polygon` brush type (freehand area — typed, warns
+instead of rendering), `brushLink`, `transformable`,
+`throttleType`/`throttleDelay`, `removeOnClick`. `seriesIndex`/`xAxisIndex`/
+`yAxisIndex` scoping is not honoured — every eligible series is always
+hit-tested, regardless of these fields.
 
 ## Animation
 

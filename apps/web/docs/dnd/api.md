@@ -90,13 +90,13 @@ interface ParentConfig<T> {
 
   // Long press (touch devices)
   longPress?: boolean              // enable long-press-to-drag (default: false)
-  longPressDuration?: number       // ms before drag starts (default: 200)
+  longPressDuration?: number       // ms before drag starts (default: 1000)
 
   // Custom drag image
   dragImage?: (data: NodeDragEventData<T>, draggedNodes: NodeRecord<T>[]) => void
 
   // Thresholds
-  threshold?: { horizontal: number; vertical: number }   // fraction 0–1 (default 0.5)
+  threshold?: { horizontal: number; vertical: number }   // fraction 0–1 (default { horizontal: 0, vertical: 0 })
 
   // Plugins
   plugins?: DNDPlugin[]
@@ -203,6 +203,81 @@ const Board = {
     { ul: (l) => done.get(l).map(...), $: [dropDone] },
   ],
 }
+```
+
+---
+
+## Keyboard reorder
+
+### `keyboardSort(state, options?)`
+
+Returns `(index) => PartialElement` — apply the result to each item via `$`.
+Gives the list a keyboard path to everything the pointer drag does, which
+[WCAG 2.2 SC 2.5.7 (Dragging Movements)](https://www.w3.org/WAI/WCAG22/Understanding/dragging-movements.html)
+requires, since the FormKit engine is pointer-only.
+
+```ts
+import { dragDrop, keyboardSort } from "@domphy/dnd"
+
+const sortItem = keyboardSort(items)
+
+const List = {
+  ul: (l) =>
+    items.get(l).map((item, index) => ({
+      li: item.label,
+      _key: item.id,
+      $: [sortItem(index)],
+    })),
+  $: [dragDrop(items)],
+}
+```
+
+| Key | Action |
+| --- | --- |
+| <kbd>Tab</kbd> | move focus to an item |
+| <kbd>Space</kbd> / <kbd>Enter</kbd> | pick the item up, then drop it |
+| <kbd>↑</kbd> <kbd>↓</kbd> | move the held item one position |
+| <kbd>←</kbd> <kbd>→</kbd> | move one position (single list) / move to the previous or next list (group) |
+| <kbd>Home</kbd> / <kbd>End</kbd> | move the held item to the first or last position |
+| <kbd>Esc</kbd> | cancel and restore the original order |
+
+It writes the same `State<T[]>` the pointer engine writes, so pointer and
+keyboard reorders stay in sync with no extra wiring.
+
+```ts
+interface KeyboardSortOptions<T> {
+  label?: (item: T, index: number) => string      // announcement name; default: the item's text content
+  listLabel?: (listIndex: number) => string       // used in cross-list announcements; default: "list N"
+}
+```
+
+Applied to each item: `tabindex="0"`, `aria-roledescription="sortable item"`,
+`aria-describedby` pointing at a shared instructions node, and
+`data-grabbed="true"` while the item is held — style the held state from that
+attribute. An item's own `tabIndex` overrides the patch's, but an own
+`onKeyDown` does **not** replace the sorter's — Domphy chains event handlers,
+so both run (the patch's first). To own the keys entirely, do not apply the
+sorter to that item. While an item is held the sorter calls `preventDefault()`
+and `stopPropagation()` on the keys it consumes, so Escape cancels the move
+instead of closing an enclosing dialog.
+
+Each step is announced through a visually-hidden `aria-live="assertive"`
+region appended to `<body>` on first use (DOM-guarded, so SSR renders stay
+DOM-free).
+
+Every arrow press is a committed move — the state is written and announced at
+each step — so focus leaving the held item (<kbd>Tab</kbd>, a click elsewhere)
+releases it where it stands rather than reverting. <kbd>Esc</kbd> is the undo.
+
+### `keyboardSortGroup(states, options?)`
+
+The keyboard counterpart of `multiListGroup` — returns one sorter per list,
+sharing one held-item session, so <kbd>←</kbd>/<kbd>→</kbd> move the held item
+between lists and <kbd>Esc</kbd> unwinds a cross-list move too.
+
+```ts
+const [dropTodo, dropDone] = multiListGroup("kanban", [todo, done])
+const [sortTodo, sortDone] = keyboardSortGroup([todo, done])
 ```
 
 ---
@@ -334,4 +409,4 @@ See [FormKit drag-and-drop docs](https://drag-and-drop.formkit.com) for the full
 
 ## Accessibility
 
-The engine is pointer-based — keyboard drag-and-drop is **not** implemented upstream (`handleNodeKeydown` is an empty stub; the only built-in key handling is `Escape` clearing a multi-drag selection), and no `aria-grabbed`/`aria-dropeffect`/`tabindex` attributes are applied automatically. Build keyboard-operable reorder yourself: make items focusable, reorder the bound state from a key handler, and announce the result via an ARIA live region — see [Accessibility](./accessibility).
+The engine is pointer-based — keyboard drag-and-drop is **not** implemented upstream (`handleNodeKeydown` is an empty stub; the only built-in key handling is `Escape` clearing a multi-drag selection), and no `aria-grabbed`/`aria-dropeffect`/`tabindex` attributes are applied automatically. `keyboardSort()` / `keyboardSortGroup()` (above) supply the keyboard path — see [Accessibility](./accessibility).

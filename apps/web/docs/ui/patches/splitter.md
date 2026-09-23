@@ -9,7 +9,7 @@ import Splitter from "../../demos/patches/Splitter.ts?raw"
 Resizable split layout. Apply `splitter` on the container, `splitterPanel` on each panel, `splitterHandle` on the divider.
 
 - `splitterPanel` — binds width (horizontal) or height (vertical) from splitter context. Two panels either side of one handle: the first takes the size percentage, the second takes the complement (always 100%).
-- `splitterHandle` — mouse drag and keyboard (Arrow, Home, End) resize; `role="separator"` with `aria-valuenow/min/max`. No props.
+- `splitterHandle` — pointer drag (mouse, pen and touch) and keyboard (Arrow, Home, End) resize; `role="separator"` with `aria-valuenow/min/max` and an accessible name. Takes one optional prop, `label` (default `"Resize"`), used as `aria-label`.
 
 ## Props
 
@@ -19,6 +19,7 @@ Resizable split layout. Apply `splitter` on the container, `splitterPanel` on ea
 | `defaultSize` | `number` | `50` | Initial first-panel size (percentage). |
 | `min` | `number` | `10` | Minimum panel size (percentage). |
 | `max` | `number` | `90` | Maximum panel size (percentage). |
+| `label` | `string` | `"Resize"` | (`splitterHandle`) Accessible name for the separator, used as `aria-label`. |
 
 <CodeEditor :code="Splitter" />
 

@@ -64,6 +64,20 @@ describe("createI18nMiddleware", () => {
     expect(() => mwPrefix(makeContext("/"))).toThrow("Redirect to /en");
   });
 
+  // Next.js keeps the query string and fragment when its locale middleware
+  // redirects a bare path to the prefixed one; dropping them loses the request.
+  it("keeps the query string and hash on the prefixDefault redirect (Next.js locale redirect)", () => {
+    const mwPrefix = createI18nMiddleware({ ...opts, prefixDefault: true });
+    const context = {
+      url: new URL("http://localhost/search?q=domphy&page=2#results"),
+      pathname: "/search",
+      searchParams: new URLSearchParams("q=domphy&page=2"),
+    };
+    expect(() => mwPrefix(context)).toThrow(
+      "Redirect to /en/search?q=domphy&page=2#results",
+    );
+  });
+
   it("still rewrites /vi/about when prefixDefault is true", () => {
     const mwPrefix = createI18nMiddleware({ ...opts, prefixDefault: true });
     const result = mwPrefix(makeContext("/vi/about"));

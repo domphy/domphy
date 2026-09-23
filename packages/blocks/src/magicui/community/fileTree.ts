@@ -43,6 +43,7 @@ import type {
 import { toState } from "@domphy/core";
 import {
   type ThemeColor,
+  textToneOn,
   themeColor,
   themeDensity,
   themeSize,
@@ -213,10 +214,13 @@ function rowBaseStyle(color: ThemeColor): StyleObject {
     fontSize: (listener: Listener) => themeSize(listener, "inherit"),
     color: (listener: Listener) => themeColor(listener, "shift-9", color),
     backgroundColor: "transparent",
-    transition: "background-color 150ms ease",
+    transition: "background-color 150ms ease, color 150ms ease",
     "&:hover": {
       backgroundColor: (listener: Listener) =>
         themeColor(listener, "shift-2", color),
+      // The hover fill moves the row's surface by +2, so the label moves with
+      // it — an absolute shift-9 on a shift-2 fill collapses the gap to 7.
+      color: (listener: Listener) => themeColor(listener, textToneOn(2), color),
     },
   } as StyleObject;
 }
@@ -534,10 +538,13 @@ function collapseToggleButton(
       color: (listener: Listener) =>
         themeColor(listener, "shift-9", context.color),
       backgroundColor: "transparent",
-      transition: "background-color 150ms ease",
+      transition: "background-color 150ms ease, color 150ms ease",
       "&:hover": {
         backgroundColor: (listener: Listener) =>
           themeColor(listener, "shift-2", context.color),
+        // Glyph tone travels with the +2 hover fill — see `rowStyle`.
+        color: (listener: Listener) =>
+          themeColor(listener, textToneOn(2), context.color),
       },
     } as StyleObject,
   } as DomphyElement;

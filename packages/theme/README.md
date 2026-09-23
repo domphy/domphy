@@ -8,8 +8,12 @@ It provides:
 
 - `themeColor()` for colors
 - `themeSize()` for font size
+- `themeFont()` / `themeWeight()` / `themeLetterSpacing()` for the rest of typography
 - `themeDensity()` for the current density factor
 - `themeSpacing()` for final spacing values
+
+`themeApply()` also puts the theme's sans stack on the themed root, so a page
+that calls it inherits a real UI font instead of the UA's serif default.
 
 ## Install
 
@@ -90,6 +94,22 @@ setTheme("brand", {
 ```
 
 Custom color ramps should follow the current 18-step model.
+
+## Brand Theme In One Call
+
+`generateTheme()` builds every 18-step ramp from one hex per role, so you never hand-pick the intermediate steps:
+
+```ts
+import { generateTheme, setTheme, themeApply } from "@domphy/theme"
+
+setTheme("light", generateTheme({ primary: "#ff6600", neutral: "#8d8d8d" }))
+themeApply()
+```
+
+- Each ramp is sampled at the WCAG luminance ladder, so **every pair 9 steps apart clears AA 4.5:1 for any hue** — `themeColor(l, "text")` over a `shift-0` surface is a guarantee, not a statistic. ([how](https://domphy.com/docs/palette/generator))
+- `setTheme("light", …)` re-derives the built-in `dark` theme, so the brand reaches dark mode too. Explicit `setTheme("dark", …)` overrides survive the rebuild.
+- `themeCSS()` emits `color-scheme` per theme, so native scrollbars and form controls follow along.
+- The `light` theme is emitted on `:root` as well as `[data-theme="light"]`, so a page that forgets the attribute renders the light theme instead of unstyled. `[data-theme="dark"]` still wins on `<html>`.
 
 ## Docs
 

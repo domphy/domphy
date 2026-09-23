@@ -383,7 +383,7 @@ describe("M27 default type=button", () => {
     ["button", () => ({ button: "Save", $: [button()] })],
     ["buttonGhost", () => ({ button: "×", $: [buttonGhost()] })],
     ["fab", () => ({ button: "+", $: [fab()] })],
-    ["buttonSwitch", () => ({ button: { span: null }, $: [buttonSwitch()] })],
+    ["buttonSwitch", () => ({ button: [{ span: null }], $: [buttonSwitch()] })],
   ] as const)("%s defaults to type=button", (_name, factory) => {
     const { host } = render(factory() as DomphyElement);
     expect((host.querySelector("button") as HTMLButtonElement).type).toBe(

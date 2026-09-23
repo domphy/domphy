@@ -19,6 +19,7 @@
 import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
 import { themeColor, themeSpacing } from "@domphy/theme";
+import { REDUCED_MOTION_PAUSE } from "../reducedMotion.js";
 
 export interface OrbitingCircleItem {
   /** Content rendered inside this orbiting slot — an icon glyph or arbitrary node. */
@@ -137,8 +138,10 @@ function orbitItemElement(
   // holds only the icon — no background, border, or shadow — so the icons read
   // as free-floating on the ring rather than as boxed chips. `color` stays so
   // our placeholder `currentColor` glyphs have a stroke color (upstream's real
-  // brand icons carry their own color). No reduced-motion pause — upstream
-  // orbits continuously.
+  // brand icons carry their own color). Upstream orbits unconditionally; the
+  // orbit is paused (not cancelled) under `prefers-reduced-motion: reduce`, so
+  // each item keeps the angular offset its negative `animation-delay` gives it
+  // and the ring stays evenly spread rather than collapsing onto one point.
   return {
     div: [item.content],
     _key: `orbit-item-${index}`,
@@ -162,6 +165,7 @@ function orbitItemElement(
       animationIterationCount: "infinite",
       animationDirection: reverse ? "reverse" : "normal",
       animationDelay: `${-delaySeconds}s`,
+      ...REDUCED_MOTION_PAUSE,
       [`@keyframes ${keyframeName}`]: keyframeRules,
     } as StyleObject,
   };
@@ -173,7 +177,6 @@ function orbitPathElement(radius: number): DomphyElement<"div"> {
     div: null,
     _key: "orbit-path",
     ariaHidden: "true",
-    _doctorDisable: "missing-color",
     style: {
       position: "absolute",
       insetBlockStart: "50%",
@@ -223,9 +226,9 @@ function centerElement(
  * A decorative "hub and spoke" layout: icon chips continuously orbiting a
  * fixed center point at constant angular velocity, with an upright-glyph
  * counter-rotation trick and evenly staggered start delays. Purely visual —
- * runs automatically and continuously on mount (matching upstream, which has
- * no reduced-motion pause). Call with no arguments for a working demo — a hub
- * glyph with 6 icons orbiting it.
+ * runs automatically and continuously on mount, and freezes in place under
+ * `prefers-reduced-motion: reduce`. Call with no arguments for a working demo
+ * — a hub glyph with 6 icons orbiting it.
  */
 function orbitingCircles(
   props: OrbitingCirclesProps = {},

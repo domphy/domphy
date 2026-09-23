@@ -58,3 +58,5 @@ handle.disconnect()
 See [docs/floating/auto-update](https://domphy.com/docs/floating/auto-update) for the full `createFloating` API.
 
 See [floating-ui.com](https://floating-ui.com) for the full middleware and platform API — it is identical.
+
+`pnpm test:e2e` drives `createFloating()` in real Chromium (Playwright) — a real `getBoundingClientRect`/layout pass, `flip()` actually flipping near a viewport edge, and `autoUpdate` repositioning on scroll, none of which jsdom (`pnpm test`) can exercise. Not part of `pnpm test` / `pnpm -r test`.

@@ -14,6 +14,7 @@ import {
   themeDensity,
   themeSize,
   themeSpacing,
+  themeWeight,
 } from "@domphy/theme";
 import { focusRing } from "../utils/focusRing.js";
 
@@ -67,7 +68,7 @@ function persistTotal(node: ElementNode, total: number): State<number> {
  * @param props.value - Current page, accepts a value or `State`. Defaults to `1`.
  * @param props.color - Base color tone for the page buttons. Defaults to `"neutral"`.
  * @param props.accentColor - Accent color tone for the active page. Defaults to `"primary"`.
- * @example { div: "", $: [pagination({ total: 10, value: 1 })] }
+ * @example { div: null, $: [pagination({ total: 10, value: 1 })] }
  */
 function pagination(props: {
   value?: ValueOrState<number>;
@@ -77,7 +78,7 @@ function pagination(props: {
 }): PartialElement {
   const { total, color = "neutral", accentColor = "primary" } = props;
 
-  const btnBase = {
+  const buttonBase = {
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
@@ -107,12 +108,12 @@ function pagination(props: {
   };
 
   const activeStyle = {
-    ...btnBase,
+    ...buttonBase,
     // Deep accent fill + light text (mid-ramp + mid text failed catalog).
     backgroundColor: (listener: any) =>
       themeColor(listener, "shift-13", accentColor),
     color: (listener: any) => themeColor(listener, "shift-0", "neutral"),
-    fontWeight: "bold",
+    fontWeight: themeWeight("bold"),
     cursor: "default",
     "&:hover:not([disabled])": {
       backgroundColor: (listener: any) =>
@@ -123,8 +124,6 @@ function pagination(props: {
   return {
     role: "navigation",
     ariaLabel: "Pagination",
-    // Active page weight is design-system chrome for the control.
-    _doctorDisable: "inline-typography",
     _onInsert: (node) => {
       if (node.tagName !== "div")
         console.warn('"pagination" patch must use div tag');
@@ -146,7 +145,7 @@ function pagination(props: {
             ariaLabel: "Previous page",
             disabled: page <= 1,
             onClick: () => page > 1 && state.set(page - 1),
-            style: btnBase,
+            style: buttonBase,
           });
 
           // Page buttons. Keyed by page number (or a running ellipsis index —
@@ -176,9 +175,14 @@ function pagination(props: {
                 type: "button",
                 ariaLabel: `Page ${p}`,
                 ariaCurrent: isActive ? "page" : undefined,
-                disabled: isActive,
+                // The current page stays enabled (shadcn PaginationLink /
+                // MUI Pagination parity). `disabled` on the just-clicked
+                // button pulls it out of the tab order the instant it becomes
+                // current, so the browser drops focus to <body> and a keyboard
+                // user is stranded outside the control after every page
+                // change. `aria-current="page"` already conveys the state.
                 onClick: () => state.set(p),
-                style: isActive ? activeStyle : btnBase,
+                style: isActive ? activeStyle : buttonBase,
               });
             }
           }
@@ -191,7 +195,7 @@ function pagination(props: {
             ariaLabel: "Next page",
             disabled: page >= pageCount,
             onClick: () => page < pageCount && state.set(page + 1),
-            style: btnBase,
+            style: buttonBase,
           });
 
           return items;

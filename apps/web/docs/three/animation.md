@@ -23,7 +23,7 @@ Every mounted `three()` root shares one global `requestAnimationFrame` loop. Two
 | Arg | Type | Notes |
 | --- | --- | --- |
 | `root` | `RootState` | the mounted root — camera, scene, size, `invalidate()`, etc. |
-| `delta` | `number` | seconds since the previous rendered frame (`THREE.Clock` delta) |
+| `delta` | `number` | seconds since the previous rendered frame, capped at 100ms so a backgrounded tab doesn't teleport animations on resume |
 | `self` | `any` | this node's own three.js instance |
 
 `onFrame` registers/unregisters through `root.frame(callback, priority)` behind the scenes: removing the prop, or disposing the node, unregisters it automatically — no manual cleanup needed.

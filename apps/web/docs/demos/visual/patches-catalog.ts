@@ -1,6 +1,6 @@
 import type { DomphyElement } from "@domphy/core";
 import { toState } from "@domphy/core";
-import { themeColor, themeSpacing } from "@domphy/theme";
+import { textToneOn, themeColor, themeSize, themeSpacing } from "@domphy/theme";
 import {
   abbreviation,
   accordion,
@@ -116,12 +116,17 @@ const selectOpts = (placeholder = "Pick one") => [
   ...fruitOptions.map((f) => ({ option: f.label, value: f.value })),
 ];
 
+// A filled slot used to make stack/row/grid gaps visible. The fill raises the
+// surface off the cell floor, so it declares that floor with dataTone and
+// paints "inherit" — then "text" measures its CONTRAST_SPAN against the fill
+// instead of against the cell (an absolute shift-9 here left only 6 steps).
 const box = (label: string): DomphyElement<"div"> => ({
   div: label,
+  dataTone: "shift-3",
   style: {
     padding: themeSpacing(2),
     borderRadius: themeSpacing(1),
-    backgroundColor: (l) => themeColor(l, "shift-3"),
+    backgroundColor: (l) => themeColor(l, "inherit"),
     color: (l) => themeColor(l, "text"),
     minWidth: themeSpacing(12),
     textAlign: "center",
@@ -331,23 +336,19 @@ const buttons = visualSection("Buttons", [
   ),
   visualCell("buttonSwitch-default", "buttonSwitch / on", {
     button: [{ span: null }],
-    _doctorDisable: "missing-color",
     $: [buttonSwitch({ checked: switchOn })],
   }),
   visualCell("buttonSwitch-state-off", "buttonSwitch / off", {
     button: [{ span: null }],
-    _doctorDisable: "missing-color",
     $: [buttonSwitch({ checked: false })],
   }),
   visualCell("buttonSwitch-color-primary", "buttonSwitch / primary", {
     button: [{ span: null }],
-    _doctorDisable: "missing-color",
     $: [buttonSwitch({ checked: true, accentColor: "primary" })],
   }),
   visualCell("buttonSwitch-state-disabled", "buttonSwitch / disabled", {
     button: [{ span: null }],
     disabled: true,
-    _doctorDisable: "missing-color",
     $: [buttonSwitch({ checked: true })],
   }),
   visualCell("linkButton-default", "linkButton / default", {
@@ -450,24 +451,32 @@ const inputs = visualSection("Inputs", [
   visualCell("inputText-default", "inputText / default", {
     input: null,
     placeholder: "Placeholder",
+    ariaLabel: "Text input",
     $: [inputText()],
   }),
   visualCell("inputText-state-disabled", "inputText / disabled", {
     input: null,
     value: "Disabled",
     disabled: true,
+    ariaLabel: "Text input, disabled",
     $: [inputText()],
   }),
   visualCell(
     "inputText-state-focus",
     "inputText / focus",
-    { input: null, value: "Focused", $: [inputText()] },
+    {
+      input: null,
+      value: "Focused",
+      ariaLabel: "Text input, focused",
+      $: [inputText()],
+    },
     { focus: true },
   ),
   visualCell("inputText-state-error", "inputText / error", {
     input: null,
     value: "Error",
     dataStatus: "error",
+    ariaLabel: "Text input, error state",
     $: [inputText()],
   }),
   visualCell("inputPassword-default", "inputPassword / default", {
@@ -481,108 +490,130 @@ const inputs = visualSection("Inputs", [
   visualCell("inputSearch-default", "inputSearch / default", {
     input: null,
     placeholder: "Search…",
+    ariaLabel: "Search",
     $: [inputSearch()],
   }),
   visualCell("inputSearch-state-disabled", "inputSearch / disabled", {
     input: null,
     disabled: true,
+    ariaLabel: "Search, disabled",
     $: [inputSearch()],
   }),
   visualCell(
     "inputSearch-state-focus",
     "inputSearch / focus",
-    { input: null, value: "query", $: [inputSearch()] },
+    {
+      input: null,
+      value: "query",
+      ariaLabel: "Search, focused",
+      $: [inputSearch()],
+    },
     { focus: true },
   ),
   visualCell("inputNumber-default", "inputNumber / default", {
     input: null,
     value: "42",
+    ariaLabel: "Number input",
     $: [inputNumber()],
   }),
   visualCell("inputNumber-state-disabled", "inputNumber / disabled", {
     input: null,
     value: "0",
     disabled: true,
+    ariaLabel: "Number input, disabled",
     $: [inputNumber()],
   }),
   visualCell(
     "inputNumber-state-focus",
     "inputNumber / focus",
-    { input: null, value: "7", $: [inputNumber()] },
+    {
+      input: null,
+      value: "7",
+      ariaLabel: "Number input, focused",
+      $: [inputNumber()],
+    },
     { focus: true },
   ),
   visualCell("inputFile-default", "inputFile / default", {
     input: null,
+    ariaLabel: "File upload",
     $: [inputFile()],
   }),
   visualCell("inputFile-state-disabled", "inputFile / disabled", {
     input: null,
     disabled: true,
+    ariaLabel: "File upload, disabled",
     $: [inputFile()],
   }),
   visualCell("inputColor-default", "inputColor / default", {
     input: null,
     value: "#4f7cff",
+    ariaLabel: "Color picker",
     $: [inputColor()],
   }),
   visualCell("inputColor-state-disabled", "inputColor / disabled", {
     input: null,
     value: "#4f7cff",
     disabled: true,
+    ariaLabel: "Color picker, disabled",
     $: [inputColor()],
   }),
   visualCell("inputDateTime-default", "inputDateTime / datetime", {
     input: null,
+    ariaLabel: "Date and time",
     $: [inputDateTime()],
   }),
   visualCell("inputDateTime-mode-date", "inputDateTime / date", {
     input: null,
+    ariaLabel: "Date",
     $: [inputDateTime({ mode: "date" })],
   }),
   visualCell("inputDateTime-mode-time", "inputDateTime / time", {
     input: null,
+    ariaLabel: "Time",
     $: [inputDateTime({ mode: "time" })],
   }),
   visualCell("inputDateTime-state-disabled", "inputDateTime / disabled", {
     input: null,
     disabled: true,
+    ariaLabel: "Date, disabled",
     $: [inputDateTime({ mode: "date" })],
   }),
   visualCell("inputRange-default", "inputRange / default", {
     input: null,
     value: "50",
-    _doctorDisable: "missing-color",
+    ariaLabel: "Range slider",
     $: [inputRange()],
   }),
   visualCell("inputRange-color-primary", "inputRange / primary", {
     input: null,
     value: "70",
-    _doctorDisable: "missing-color",
+    ariaLabel: "Range slider, primary",
     $: [inputRange({ accentColor: "primary" })],
   }),
   visualCell("inputRange-state-disabled", "inputRange / disabled", {
     input: null,
     value: "30",
     disabled: true,
-    _doctorDisable: "missing-color",
+    ariaLabel: "Range slider, disabled",
     $: [inputRange()],
   }),
   visualCell("inputCheckbox-default", "inputCheckbox / default", {
     input: null,
-    _doctorDisable: "missing-color",
+    ariaLabel: "Checkbox",
     $: [inputCheckbox()],
   }),
   visualCell("inputCheckbox-state-checked", "inputCheckbox / checked", {
     input: null,
     checked: true,
-    _doctorDisable: "missing-color",
+    ariaLabel: "Checkbox, checked",
     $: [inputCheckbox()],
   }),
   visualCell("inputCheckbox-state-disabled", "inputCheckbox / disabled", {
     input: null,
     checked: true,
     disabled: true,
-    _doctorDisable: "missing-color",
+    ariaLabel: "Checkbox, checked and disabled",
     $: [inputCheckbox()],
   }),
   visualCell(
@@ -590,7 +621,7 @@ const inputs = visualSection("Inputs", [
     "inputCheckbox / focus",
     {
       input: null,
-      _doctorDisable: "missing-color",
+      ariaLabel: "Checkbox, focused",
       $: [inputCheckbox()],
     },
     { focus: true },
@@ -598,39 +629,39 @@ const inputs = visualSection("Inputs", [
   visualCell("inputRadio-default", "inputRadio / default", {
     input: null,
     name: "vis-radio",
-    _doctorDisable: "missing-color",
+    ariaLabel: "Radio button",
     $: [inputRadio()],
   }),
   visualCell("inputRadio-state-checked", "inputRadio / checked", {
     input: null,
     name: "vis-radio-c",
     checked: true,
-    _doctorDisable: "missing-color",
+    ariaLabel: "Radio button, selected",
     $: [inputRadio()],
   }),
   visualCell("inputRadio-state-disabled", "inputRadio / disabled", {
     input: null,
     checked: true,
     disabled: true,
-    _doctorDisable: "missing-color",
+    ariaLabel: "Radio button, selected and disabled",
     $: [inputRadio()],
   }),
   visualCell("inputSwitch-default", "inputSwitch / off", {
     input: null,
-    _doctorDisable: "missing-color",
+    ariaLabel: "Switch, off",
     $: [inputSwitch()],
   }),
   visualCell("inputSwitch-state-checked", "inputSwitch / on", {
     input: null,
     checked: true,
-    _doctorDisable: "missing-color",
+    ariaLabel: "Switch, on",
     $: [inputSwitch()],
   }),
   visualCell("inputSwitch-state-disabled", "inputSwitch / disabled", {
     input: null,
     checked: true,
     disabled: true,
-    _doctorDisable: "missing-color",
+    ariaLabel: "Switch, on and disabled",
     $: [inputSwitch()],
   }),
   visualCell("inputOTP-default", "inputOTP / default", {
@@ -653,32 +684,44 @@ const inputs = visualSection("Inputs", [
   }),
   visualCell("textarea-default", "textarea / default", {
     textarea: "Enter text…",
+    ariaLabel: "Multi-line text",
     $: [textarea()],
   }),
   visualCell("textarea-state-disabled", "textarea / disabled", {
     textarea: "Disabled",
     disabled: true,
+    ariaLabel: "Multi-line text, disabled",
     $: [textarea()],
   }),
   visualCell(
     "textarea-state-focus",
     "textarea / focus",
-    { textarea: "Focused", $: [textarea()] },
+    {
+      textarea: "Focused",
+      ariaLabel: "Multi-line text, focused",
+      $: [textarea()],
+    },
     { focus: true },
   ),
   visualCell("select-default", "select / default", {
     select: selectOpts(),
+    ariaLabel: "Select a fruit",
     $: [select()],
   }),
   visualCell("select-state-disabled", "select / disabled", {
     select: selectOpts(),
     disabled: true,
+    ariaLabel: "Select a fruit, disabled",
     $: [select()],
   }),
   visualCell(
     "select-state-focus",
     "select / focus",
-    { select: selectOpts(), $: [select()] },
+    {
+      select: selectOpts(),
+      ariaLabel: "Select a fruit, focused",
+      $: [select()],
+    },
     { focus: true },
   ),
   visualCell("label-default", "label / default", {
@@ -691,8 +734,13 @@ const inputs = visualSection("Inputs", [
     {
       fieldset: [
         { legend: "Contact" },
-        { label: "Name", $: [label()] },
-        { input: null, placeholder: "Ada", $: [inputText()] },
+        { label: "Name", htmlFor: "vis-formgroup-name", $: [label()] },
+        {
+          input: null,
+          id: "vis-formgroup-name",
+          placeholder: "Ada",
+          $: [inputText()],
+        },
       ],
       $: [formGroup()],
       style: { width: "100%", color: (l) => themeColor(l, "text") },
@@ -705,8 +753,13 @@ const inputs = visualSection("Inputs", [
     {
       fieldset: [
         { legend: "Contact" },
-        { label: "Email", $: [label()] },
-        { input: null, placeholder: "a@b.c", $: [inputText()] },
+        { label: "Email", htmlFor: "vis-formgroup-email", $: [label()] },
+        {
+          input: null,
+          id: "vis-formgroup-email",
+          placeholder: "a@b.c",
+          $: [inputText()],
+        },
       ],
       $: [formGroup({ layout: "vertical" })],
       style: { width: "100%", color: (l) => themeColor(l, "text") },
@@ -753,7 +806,6 @@ const feedback = visualSection("Feedback & status", [
       progress: null,
       max: 100,
       value: 45,
-      _doctorDisable: "missing-color",
       $: [progress()],
       style: { width: "100%" },
     },
@@ -766,7 +818,6 @@ const feedback = visualSection("Feedback & status", [
       progress: null,
       max: 100,
       value: 72,
-      _doctorDisable: "missing-color",
       $: [progress({ accentColor: "success" })],
       style: { width: "100%" },
     },
@@ -779,7 +830,6 @@ const feedback = visualSection("Feedback & status", [
       progress: null,
       max: 100,
       value: 30,
-      _doctorDisable: "missing-color",
       $: [progress({ accentColor: "danger" })],
       style: { width: "100%" },
     },
@@ -787,17 +837,14 @@ const feedback = visualSection("Feedback & status", [
   ),
   visualCell("ringProgress-default", "ringProgress / default", {
     div: null,
-    _doctorDisable: "missing-color",
     $: [ringProgress({ value: ringValue, color: "primary" })],
   }),
   visualCell("ringProgress-color-success", "ringProgress / success", {
     div: null,
-    _doctorDisable: "missing-color",
     $: [ringProgress({ value: 80, color: "success", size: 16 })],
   }),
   visualCell("ringProgress-color-danger", "ringProgress / danger", {
     div: null,
-    _doctorDisable: "missing-color",
     $: [ringProgress({ value: 40, color: "danger", size: 16 })],
   }),
   visualCell("spinner-default", "spinner / default", {
@@ -940,13 +987,17 @@ const overlays = visualSection("Overlays", [
       ],
       role: "dialog",
       ariaModal: "true",
+      // A raised panel is its own tone context: declare the floor with
+      // dataTone and paint "inherit", so the heading/body/label tones inside
+      // measure their CONTRAST_SPAN against this fill and not the cell's.
+      dataTone: "surface",
       style: {
         display: "flex",
         flexDirection: "column",
         gap: themeSpacing(3),
         padding: themeSpacing(6),
         borderRadius: themeSpacing(3),
-        backgroundColor: (l) => themeColor(l, "surface"),
+        backgroundColor: (l) => themeColor(l, "inherit"),
         color: (l) => themeColor(l, "text"),
         border: (l) => `1px solid ${themeColor(l, "border-strong")}`,
         boxShadow: "0 16px 48px rgba(0,0,0,0.18)",
@@ -964,13 +1015,14 @@ const overlays = visualSection("Overlays", [
         { button: "Close", $: [button()] },
       ],
       role: "dialog",
+      dataTone: "surface",
       style: {
         display: "flex",
         flexDirection: "column",
         gap: themeSpacing(3),
         padding: themeSpacing(5),
         borderRadius: themeSpacing(2),
-        backgroundColor: (l) => themeColor(l, "surface"),
+        backgroundColor: (l) => themeColor(l, "inherit"),
         color: (l) => themeColor(l, "text"),
         border: (l) => `1px solid ${themeColor(l, "border-strong")}`,
         boxShadow: "0 8px 28px rgba(0,0,0,0.14)",
@@ -987,12 +1039,13 @@ const overlays = visualSection("Overlays", [
       div: [
         { button: "Anchor", $: [button()] },
         {
-          div: popoverContent,
+          div: [popoverContent],
+          dataTone: "surface",
           style: {
             marginTop: themeSpacing(2),
             padding: themeSpacing(3),
             borderRadius: themeSpacing(2),
-            backgroundColor: (l) => themeColor(l, "surface"),
+            backgroundColor: (l) => themeColor(l, "inherit"),
             color: (l) => themeColor(l, "text"),
             border: (l) => `1px solid ${themeColor(l, "border-strong")}`,
             boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
@@ -1010,11 +1063,12 @@ const overlays = visualSection("Overlays", [
         { button: "Arrow", $: [button({ color: "primary" })] },
         {
           div: "With arrow",
+          dataTone: "surface",
           style: {
             marginTop: themeSpacing(2),
             padding: themeSpacing(3),
             borderRadius: themeSpacing(2),
-            backgroundColor: (l) => themeColor(l, "surface"),
+            backgroundColor: (l) => themeColor(l, "inherit"),
             color: (l) => themeColor(l, "text"),
             border: (l) => `1px solid ${themeColor(l, "border-strong")}`,
             boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
@@ -1032,12 +1086,17 @@ const overlays = visualSection("Overlays", [
         { button: "Hover", $: [button()] },
         {
           div: "Tooltip text",
+          // Deliberate inverted fill: a tooltip paints the far end of the
+          // neutral ramp on purpose, which is exactly what
+          // "tone-background-inherit" flags — same suppression the real
+          // tooltip()/button({variant:"solid"}) patches carry.
+          _doctorDisable: "tone-background-inherit",
           style: {
             marginTop: themeSpacing(2),
             paddingBlock: themeSpacing(1),
             paddingInline: themeSpacing(2),
             borderRadius: themeSpacing(1.5),
-            fontSize: "0.85em",
+            fontSize: (l) => themeSize(l, "decrease-1"),
             backgroundColor: (l) => themeColor(l, "shift-14", "neutral"),
             color: (l) => themeColor(l, "shift-0", "neutral"),
           },
@@ -1051,7 +1110,6 @@ const overlays = visualSection("Overlays", [
     "menu / default",
     {
       div: null,
-      _doctorDisable: "missing-color",
       $: [
         menu({
           items: [
@@ -1070,7 +1128,6 @@ const overlays = visualSection("Overlays", [
     "menu / primary accent",
     {
       div: null,
-      _doctorDisable: "missing-color",
       $: [
         menu({
           items: [
@@ -1217,7 +1274,6 @@ const navigation = visualSection("Navigation & selection", [
     "toggleGroup / single",
     {
       div: null,
-      _doctorDisable: "missing-color",
       $: [
         toggleGroup({
           value: "bold",
@@ -1236,7 +1292,6 @@ const navigation = visualSection("Navigation & selection", [
     "toggleGroup / multiple",
     {
       div: null,
-      _doctorDisable: "missing-color",
       $: [
         toggleGroup({
           value: ["b", "i"],
@@ -1285,7 +1340,7 @@ const navigation = visualSection("Navigation & selection", [
       nav: [
         { a: "Home", href: "#", $: [link()] },
         { a: "Docs", href: "#", $: [link()] },
-        { span: "Patches", ariaCurrent: "page" },
+        { strong: "Patches", ariaCurrent: "page", $: [strong()] },
       ],
       $: [breadcrumb()],
     },
@@ -1299,7 +1354,7 @@ const navigation = visualSection("Navigation & selection", [
         { a: "Home", href: "#", $: [link()] },
         { button: "…", $: [breadcrumbEllipsis()] },
         { a: "UI", href: "#", $: [link()] },
-        { span: "Here", ariaCurrent: "page" },
+        { strong: "Here", ariaCurrent: "page", $: [strong()] },
       ],
       $: [breadcrumb()],
     },
@@ -1327,7 +1382,6 @@ const navigation = visualSection("Navigation & selection", [
         },
       ],
       $: [accordion()],
-      _doctorDisable: "missing-color",
     },
     { minWidth: "260px" },
   ),
@@ -1349,12 +1403,13 @@ const navigation = visualSection("Navigation & selection", [
     {
       ul: ["Inbox", "Sent", "Drafts"].map(
         (labelText): DomphyElement<"li"> => ({
-          li: {
-            button: labelText,
-            $: [listItemButton()],
-          } as DomphyElement,
+          li: [
+            {
+              button: labelText,
+              $: [listItemButton()],
+            },
+          ],
           $: [listItem()],
-          _doctorDisable: "missing-color",
           _key: labelText,
         }),
       ),
@@ -1527,17 +1582,13 @@ const dataDisplay = visualSection("Data display", [
   visualCell("image-default", "image / default", {
     img: null,
     src: CHART_IMG,
-    alt: "Chart",
-    _doctorDisable: "missing-color",
-    $: [image()],
+    $: [image({ alt: "Chart" })],
     style: { maxWidth: themeSpacing(48) },
   }),
   visualCell("image-color-primary", "image / primary", {
     img: null,
     src: CHART_IMG,
-    alt: "Chart primary",
-    _doctorDisable: "missing-color",
-    $: [image({ color: "primary" })],
+    $: [image({ alt: "Chart primary", color: "primary" })],
     style: { maxWidth: themeSpacing(48) },
   }),
   visualCell("icon-default", "icon / default", {
@@ -1554,15 +1605,16 @@ const dataDisplay = visualSection("Data display", [
         style: {
           padding: themeSpacing(2),
           borderBottom: (l) => `1px solid ${themeColor(l, "border")}`,
+          color: (l) => themeColor(l, "text"),
         },
       })),
       $: [scrollArea()],
-      _doctorDisable: "missing-color",
       style: {
         maxHeight: themeSpacing(32),
         width: "100%",
         outline: (l) => `1px solid ${themeColor(l, "border")}`,
         borderRadius: themeSpacing(2),
+        color: (l) => themeColor(l, "text"),
       },
     },
     { minWidth: "180px" },
@@ -1614,7 +1666,7 @@ const layout = visualSection("Layout", [
     "toolbar + spacer",
     {
       header: [
-        { span: "Logo", $: [strong()] },
+        { strong: "Logo", $: [strong()] },
         toolbarSpacer(),
         { button: "Action", $: [button({ color: "primary", size: "small" })] },
       ],
@@ -1649,6 +1701,7 @@ const layout = visualSection("Layout", [
         outline: (l) => `1px solid ${themeColor(l, "border")}`,
         borderRadius: themeSpacing(2),
         overflow: "hidden",
+        color: (l) => themeColor(l, "text"),
       },
     },
     { minWidth: "220px" },
@@ -1663,7 +1716,6 @@ const layout = visualSection("Layout", [
           div: null,
           $: [splitterHandle()],
           style: { width: themeSpacing(1) },
-          _doctorDisable: "missing-color",
         },
         { div: "Right", $: [splitterPanel()] },
       ],
@@ -1687,14 +1739,14 @@ const layout = visualSection("Layout", [
   visualCell(
     "horizontalRule-default",
     "horizontalRule / default",
-    { hr: "", $: [horizontalRule()], style: { width: "100%" } },
+    { hr: null, $: [horizontalRule()], style: { width: "100%" } },
     { minWidth: "180px" },
   ),
   visualCell(
     "horizontalRule-color-primary",
     "horizontalRule / primary",
     {
-      hr: "",
+      hr: null,
       $: [horizontalRule({ color: "primary" })],
       style: { width: "100%" },
     },
@@ -1781,6 +1833,9 @@ const typography = visualSection("Typography", [
 const motionSection = visualSection("Motion", [
   visualCell("motion-default", "motion / default", {
     div: "Motion",
+    // Deliberate brand fill so the animated box is visible against the cell —
+    // a fixed tone, which "tone-background-inherit" flags by design.
+    _doctorDisable: "tone-background-inherit",
     $: [
       motion({
         initial: { opacity: 1, scale: 1 },
@@ -1795,7 +1850,9 @@ const motionSection = visualSection("Motion", [
       height: themeSpacing(12),
       borderRadius: themeSpacing(2),
       backgroundColor: (l) => themeColor(l, "shift-6", "primary"),
-      color: (l) => themeColor(l, "shift-11", "primary"),
+      // shift-11 sat only 5 steps off this fill; textToneOn(6) restores the
+      // 9-step span by flipping the label to the light end of the ramp.
+      color: (l) => themeColor(l, textToneOn(6), "primary"),
     },
   }),
   visualCell(

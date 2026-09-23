@@ -177,7 +177,10 @@ function editorContent(
         marginInline: 0,
         borderInlineStart: (listener) =>
           `${themeSpacing(0.5)} solid ${themeColor(listener, "border-strong", color.get(listener))}`,
-        color: (listener) => themeColor(listener, "muted", color.get(listener)),
+        // The rule bar is the de-emphasis, not the text tone: a quotation is
+        // content the reader has to read, so it stays on "text". `muted`
+        // (shift-8) measures 4.06:1 here — below WCAG AA, axe color-contrast.
+        color: (listener) => themeColor(listener, "text", color.get(listener)),
       },
       "& code": {
         paddingInline: themeSpacing(1),

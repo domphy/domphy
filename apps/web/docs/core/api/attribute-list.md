@@ -27,6 +27,8 @@ node.attributes.set("tabindex", 0)
 node.attributes.set("disabled", true)
 ```
 
+A name outside the ASCII XML `Name` production (`/^[:A-Za-z_][-.:\w]*$/` — so anything containing a space, quote, `=`, `>`, `/` or a control character) is **ignored**, with a DEV-mode warning. `setAttribute()` throws on such a name in the browser, and serializing it would break out of the attribute in SSR output, so both render paths drop it instead. This matters when spreading an object of untrusted keys onto an element. Every HTML / SVG / ARIA / `data-*` attribute name passes; non-ASCII names, which the DOM does accept, are not supported.
+
 ---
 
 ### `has(name)`

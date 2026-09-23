@@ -39,6 +39,14 @@ function panelSection(
         ? {
             borderBottom: (listener) =>
               `1px solid ${themeColor(listener, "border", color.get(listener))}`,
+            // Declaring a theme token makes this a themed surface, so the text
+            // tone has to be declared with it (doctor `missing-color`): CSS
+            // inheritance carries the parent's COMPUTED color and does not
+            // re-run themeColor() when the tone context shifts, so a divided
+            // section dropped into a darker panel kept the lighter surface's
+            // text. Always the neutral body tone — `color` names the DIVIDER's
+            // role, and a primary rule should not tint the prose.
+            color: (listener) => themeColor(listener, "text"),
           }
         : {}),
     },

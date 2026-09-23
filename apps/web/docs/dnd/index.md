@@ -60,6 +60,28 @@ import { dragDrop } from "@domphy/dnd"
 
 Give two lists the same `group` to transfer items between them. Use `animated: false` to opt out of animations. Touch and synthetic-drag handling come from FormKit — see the [FormKit DnD docs](https://drag-and-drop.formkit.com) for the full config.
 
+## Keyboard
+
+The FormKit engine is pointer-only. Add `keyboardSort()` to each item for the keyboard path [WCAG 2.2 SC 2.5.7](https://www.w3.org/WAI/WCAG22/Understanding/dragging-movements.html) requires — space/enter picks an item up, arrows move it, escape cancels, and every step is announced:
+
+```ts
+import { dragDrop, keyboardSort } from "@domphy/dnd"
+
+const sortItem = keyboardSort(items)
+
+const App = {
+  ul: (l) =>
+    items.get(l).map((item, index) => ({
+      li: item.label,
+      _key: item.id,
+      $: [sortItem(index)],
+    })),
+  $: [dragDrop(items)],
+}
+```
+
+See [Accessibility](./accessibility).
+
 ## Cleanup
 
-The FormKit registration lives in a per-node `behavior()` instance; on element removal its `destroy` runs FormKit's `tearDown()` and clears the entry from FormKit's `parents` registry.
+The FormKit registration lives in a per-node `behavior()` instance; on element removal its `destroy` runs FormKit's `tearDown()`, disconnects the setup `MutationObserver` upstream leaves running, and clears the entry from FormKit's `parents` registry.

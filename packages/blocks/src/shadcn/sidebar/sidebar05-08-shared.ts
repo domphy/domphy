@@ -24,6 +24,8 @@ import {
   strong,
   tooltip,
 } from "@domphy/ui";
+import { interactiveFill } from "../../shared/interactiveFill.js";
+import { sidebarEscape } from "./sidebarHotkey.js";
 
 // ---------------------------------------------------------------------------
 // Icons — hand-authored generic line glyphs (24x24, stroke=currentColor).
@@ -396,6 +398,11 @@ function sidebarBackdrop(
     ariaHidden: "true",
     dataTone: "shift-17",
     onClick: onClose,
+    // The backdrop is rendered by every off-canvas variant, so hanging the
+    // Escape listener here gives the whole family the dialog-pattern
+    // dismissal in one place. It only fires while this backdrop is displayed
+    // — i.e. under the mobile breakpoint with the drawer open.
+    ...sidebarEscape(onClose),
     style: {
       display: "none",
       position: "fixed",
@@ -405,6 +412,11 @@ function sidebarBackdrop(
       backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
       opacity: "0.6",
+      // Core's `@media` block reliably beats this base `display: none` at
+      // equal specificity (packages/core StyleList — base rules are emitted
+      // before conditional at-rules; fixed in core commit cfb3bd1). Verified
+      // 2026-09-24: e2e/shadcn-sidebar-drawer.spec.ts, all 9 drawer blocks +
+      // 2 desktop-sidebar tests green in real Chromium.
       "@media (max-width: 768px)": {
         display: (l: Listener) => (open.get(l) ? "block" : "none"),
       },
@@ -572,10 +584,7 @@ function renderTeamSwitcher(teams: SidebarTeam[]): DomphyElement<"div"> {
           overflow: "hidden",
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": {
-            backgroundColor: (l: Listener) =>
-              themeColor(l, "shift-2", "neutral"),
-          },
+          "&:hover": interactiveFill(2),
         },
         $: [popover({ placement: "bottom", content: dropdown })],
       } as unknown as DomphyElement,
@@ -605,9 +614,7 @@ function renderPlainNavRow(
     whiteSpace: "nowrap",
     color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
     backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-    "&:hover": {
-      backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral"),
-    },
+    "&:hover": interactiveFill(2),
     "&[aria-current=page]": {
       // Upstream active nav item is monochrome (sidebar-accent), not brand blue.
       backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral"),
@@ -709,10 +716,7 @@ function renderExpandableNavRow(
                 themeColor(l, "inherit", "neutral"),
               "&::-webkit-details-marker": { display: "none" },
               "&::marker": { content: `""` },
-              "&:hover": {
-                backgroundColor: (l: Listener) =>
-                  themeColor(l, "shift-2", "neutral"),
-              },
+              "&:hover": interactiveFill(2),
             },
           } as unknown as DomphyElement,
           {
@@ -742,10 +746,7 @@ function renderExpandableNavRow(
                       themeSpacing(themeDensity(l) * 1),
                     textDecoration: () => "none",
                     color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
-                    "&:hover": {
-                      backgroundColor: (l: Listener) =>
-                        themeColor(l, "shift-2", "neutral"),
-                    },
+                    "&:hover": interactiveFill(2),
                     "&[aria-current=page]": {
                       backgroundColor: (l: Listener) =>
                         themeColor(l, "shift-2", "neutral"),
@@ -813,10 +814,7 @@ function renderExpandableNavRow(
           cursor: "pointer",
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": {
-            backgroundColor: (l: Listener) =>
-              themeColor(l, "shift-2", "neutral"),
-          },
+          "&:hover": interactiveFill(2),
           "&[aria-expanded=true]": {
             backgroundColor: (l: Listener) =>
               themeColor(l, "shift-2", "neutral"),
@@ -870,9 +868,7 @@ function dropdownRow(item: DropdownItem): DomphyElement<"button"> {
       textAlign: "left",
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
       backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-      "&:hover": {
-        backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral"),
-      },
+      "&:hover": interactiveFill(2),
     },
   } as unknown as DomphyElement<"button">;
 }
@@ -1016,10 +1012,7 @@ function renderProjectRow(
           borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": {
-            backgroundColor: (l: Listener) =>
-              themeColor(l, "shift-2", "neutral"),
-          },
+          "&:hover": interactiveFill(2),
           "&:hover [data-slot=row-more], &:focus-within [data-slot=row-more]": {
             display: "inline-flex",
           },
@@ -1041,10 +1034,7 @@ function renderProjectRow(
           textDecoration: () => "none",
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": {
-            backgroundColor: (l: Listener) =>
-              themeColor(l, "shift-2", "neutral"),
-          },
+          "&:hover": interactiveFill(2),
         },
         $: [tooltip({ content: project.title, placement: "right" })],
       } as unknown as DomphyElement,
@@ -1080,10 +1070,7 @@ function renderProjectsMoreRow(): DomphyElement<"li"> {
           textAlign: "left",
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": {
-            backgroundColor: (l: Listener) =>
-              themeColor(l, "shift-2", "neutral"),
-          },
+          "&:hover": interactiveFill(2),
         },
       } as unknown as DomphyElement,
     ],
@@ -1174,10 +1161,7 @@ function renderUserFooter(user: SidebarUser): DomphyElement<"div"> {
           overflow: "hidden",
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": {
-            backgroundColor: (l: Listener) =>
-              themeColor(l, "shift-2", "neutral"),
-          },
+          "&:hover": interactiveFill(2),
         },
         $: [popover({ placement: "top", content: dropdown })],
       } as unknown as DomphyElement,

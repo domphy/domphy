@@ -41,9 +41,32 @@ function computeGridRect(
   return {
     x: left,
     y: top,
-    width: containerWidth - left - right,
-    height: containerHeight - top - bottom,
+    // A container smaller than the axis margins (a chart in a narrow sidebar,
+    // a collapsing flex cell) otherwise yields a negative extent, which
+    // reverses every scale's pixel range and draws the whole plot outside the
+    // rect. Collapse to zero instead: degenerate but still inside the box.
+    width: Math.max(0, containerWidth - left - right),
+    height: Math.max(0, containerHeight - top - bottom),
   };
+}
+
+// A time axis carries Date objects / ISO date strings as its dimension values.
+// Reading them as `typeof value === "number"` (the only branch that existed
+// before) dropped every point, collapsing the extent to the [0, 1] fallback —
+// i.e. 1970-01-01T00:00:00.000Z … .001Z — so an auto-ranged time chart mapped
+// all of its data millions of pixels off-canvas.
+function toAxisNumber(value: unknown, acceptDates: boolean): number | null {
+  if (typeof value === "number") return Number.isNaN(value) ? null : value;
+  if (!acceptDates) return null;
+  if (value instanceof Date) {
+    const ms = value.getTime();
+    return Number.isNaN(ms) ? null : ms;
+  }
+  if (typeof value === "string") {
+    const ms = Date.parse(value);
+    return Number.isNaN(ms) ? null : ms;
+  }
+  return null;
 }
 
 function dataExtentFromSeries(
@@ -51,6 +74,11 @@ function dataExtentFromSeries(
   dim: "x" | "y" | "value",
   axisIndex: number,
   axisKey: "xAxisIndex" | "yAxisIndex",
+  acceptDates = false,
+  // Which dimension a SCALAR datum's number belongs to, per series. Vertical
+  // charts (the default) read it as y; a horizontal one — category y axis —
+  // reads it as x. The other dimension is then the item's index.
+  scalarValueDim: (s: any) => "x" | "y" = () => "y",
 ): [number, number] {
   let min = Infinity;
   let max = -Infinity;
@@ -87,8 +115,12 @@ function dataExtentFromSeries(
 
     data.forEach((item, itemIndex) => {
       if (Array.isArray(item)) {
-        if (s.type === "boxplot") {
-          // boxplot: [min, Q1, median, Q3, max] — capture full range on y dim
+        // boxplot: [min, Q1, median, Q3, max]
+        // candlestick: [open, close, lowest, highest]
+        // Both draw between their own extremes, so the value axis has to cover
+        // every number in the tuple — reading item[1] alone (close / Q1) left
+        // the wicks hanging outside the plot rect.
+        if (s.type === "boxplot" || s.type === "candlestick") {
           if (dim === "y") {
             for (const v of item) {
               if (typeof v === "number" && !Number.isNaN(v)) {
@@ -101,8 +133,8 @@ function dataExtentFromSeries(
           }
           return;
         }
-        let value = dim === "x" ? item[0] : item[1];
-        if (typeof value === "number" && !Number.isNaN(value)) {
+        let value = toAxisNumber(dim === "x" ? item[0] : item[1], acceptDates);
+        if (value !== null) {
           if (accPos && accNeg) {
             const acc = value >= 0 ? accPos : accNeg;
             value = (acc[itemIndex] ?? 0) + value;
@@ -113,15 +145,38 @@ function dataExtentFromSeries(
         }
         return;
       }
+      // A scalar datum (a plain number, or an object whose `value` is not a
+      // pair) carries only ONE dimension; the other is the item's index —
+      // exactly what LineRenderer/ScatterRenderer/dataItemXY map through the
+      // opposite scale. Reporting no extent at all for the index dimension
+      // left a `type: "value"` x axis on the [0, 1] fallback domain, so index
+      // 4 of a 5-point series mapped to 1262px on a 400px-wide chart. Index
+      // extents are positional and never take part in stack accumulation.
+      const valueDim = scalarValueDim(s);
       let value: number | null = null;
+      let isIndex = false;
       if (typeof item === "number") {
-        value = dim === "y" ? item : null;
+        if (dim === valueDim) value = toAxisNumber(item, acceptDates);
+        else {
+          value = itemIndex;
+          isIndex = true;
+        }
       } else if (item && typeof item === "object") {
         const raw = (item as any).value;
-        if (typeof raw === "number") value = raw;
-        else if (Array.isArray(raw)) value = dim === "x" ? raw[0] : raw[1];
+        if (Array.isArray(raw))
+          value = toAxisNumber(dim === "x" ? raw[0] : raw[1], acceptDates);
+        else if (dim === valueDim) value = toAxisNumber(raw, acceptDates);
+        else {
+          value = itemIndex;
+          isIndex = true;
+        }
       }
-      if (value !== null && !Number.isNaN(value)) {
+      if (isIndex) {
+        min = Math.min(min, value as number);
+        max = Math.max(max, value as number);
+        return;
+      }
+      if (value !== null) {
         if (accPos && accNeg) {
           const acc = value >= 0 ? accPos : accNeg;
           value = (acc[itemIndex] ?? 0) + value;
@@ -145,34 +200,57 @@ function applyZoomWindow(
   return [min + (zoom.start / 100) * span, min + (zoom.end / 100) * span];
 }
 
+// ECharts: `min`/`max` accept the literals "dataMin"/"dataMax" as well as a
+// number (and, on a time axis, a Date or a date string). Anything else falls
+// back to the data extent rather than poisoning the domain with NaN.
+function resolveBound(
+  bound: AxisOption["min"],
+  fallback: number,
+  acceptDates: boolean,
+): number {
+  if (bound === undefined || bound === "dataMin" || bound === "dataMax")
+    return fallback;
+  const value = toAxisNumber(bound, acceptDates);
+  return value === null ? fallback : value;
+}
+
 function buildScale(
   axis: AxisOption,
   pixelRange: [number, number],
   extent: [number, number],
   categories: string[],
   zoom?: ZoomWindow,
+  hasBarSeries = false,
 ): AnyScale {
   const type = axis.type ?? "value";
-  const [pMin, pMax] = pixelRange;
+  // ECharts axis.inverse: flip the pixel range so the domain runs the other
+  // way. Doing it here keeps every renderer and hit-test on the same scale.
+  const [pMin, pMax] = axis.inverse
+    ? [pixelRange[1], pixelRange[0]]
+    : pixelRange;
 
   if (type === "category") {
     const domain = (axis.data as string[] | undefined) ?? categories;
+    // ECharts axis.boundaryGap defaults to true on a category axis.
+    const boundaryGap = axis.boundaryGap !== false;
     // Apply zoom to category axis by slicing visible domain
     if (zoom && (zoom.start !== 0 || zoom.end !== 100)) {
       const startIdx = Math.floor((zoom.start / 100) * domain.length);
       const endIdx = Math.ceil((zoom.end / 100) * domain.length);
       const visible = domain.slice(startIdx, endIdx);
-      return createOrdinalScale(visible.length > 0 ? visible : domain, [
-        pMin,
-        pMax,
-      ]);
+      return createOrdinalScale(
+        visible.length > 0 ? visible : domain,
+        [pMin, pMax],
+        undefined,
+        boundaryGap,
+      );
     }
-    return createOrdinalScale(domain, [pMin, pMax]);
+    return createOrdinalScale(domain, [pMin, pMax], undefined, boundaryGap);
   }
   if (type === "time") {
     let [min, max] = [
-      axis.min !== undefined ? Number(axis.min) : extent[0],
-      axis.max !== undefined ? Number(axis.max) : extent[1],
+      resolveBound(axis.min, extent[0], true),
+      resolveBound(axis.max, extent[1], true),
     ];
     [min, max] = applyZoomWindow(min, max, zoom);
     return createTimeScale([new Date(min), new Date(max)], [pMin, pMax]);
@@ -190,14 +268,30 @@ function buildScale(
   }
   // Default: value (linear)
   let [rawMin, rawMax] = [
-    typeof axis.min === "number" ? axis.min : extent[0],
-    typeof axis.max === "number" ? axis.max : extent[1],
+    resolveBound(axis.min, extent[0], false),
+    resolveBound(axis.max, extent[1], false),
   ];
+  // ECharts: a value axis carrying bar-like series always spans the zero
+  // baseline, because the bars are drawn from scale.map(0). Without this the
+  // baseline lands outside the plot rect (data [70…200] gave map(0) = 500px on
+  // a 350px-tall grid) and every bar length is read against an axis it does
+  // not actually start on. An explicit min/max still wins.
+  if (hasBarSeries) {
+    if (axis.min === undefined) rawMin = Math.min(rawMin, 0);
+    if (axis.max === undefined) rawMax = Math.max(rawMax, 0);
+  }
   [rawMin, rawMax] = applyZoomWindow(rawMin, rawMax, zoom);
   // Expand by 5% for aesthetics if no explicit bounds set and range is not zero
   const span = rawMax - rawMin;
-  const padMin = axis.min !== undefined ? rawMin : rawMin - span * 0.02;
-  const padMax = axis.max !== undefined ? rawMax : rawMax + span * 0.05;
+  // Never pad past the zero baseline a bar chart is anchored to.
+  const padMin =
+    axis.min !== undefined || (hasBarSeries && rawMin === 0)
+      ? rawMin
+      : rawMin - span * 0.02;
+  const padMax =
+    axis.max !== undefined || (hasBarSeries && rawMax === 0)
+      ? rawMax
+      : rawMax + span * 0.05;
   return createLinearScale(
     [
       padMin === padMax ? padMin - 1 : padMin,
@@ -220,8 +314,35 @@ export function resolveGrid(
   const grid = grids[0] ?? {};
   const rect = computeGridRect(grid, containerWidth, containerHeight);
 
+  // A value axis that any bar-like series is attached to must span zero (see
+  // buildScale). Candlestick/boxplot are NOT bar-like here: they draw between
+  // their own high/low values, not from a zero baseline.
+  const hasBarOn = (axisKey: "xAxisIndex" | "yAxisIndex", index: number) =>
+    series.some(
+      (s) =>
+        (s?.type === "bar" || s?.type === "pictorialBar") &&
+        (s[axisKey] ?? 0) === index,
+    );
+
+  // Horizontal orientation: the renderers decide it by "the y scale has a
+  // bandwidth", i.e. the y axis is a category axis. A scalar datum's number is
+  // then the x value and its index is the y position.
+  const scalarValueDim = (s: any): "x" | "y" =>
+    yAxes[s?.yAxisIndex ?? 0]?.type === "category" &&
+    xAxes[s?.xAxisIndex ?? 0]?.type !== "category"
+      ? "x"
+      : "y";
+
   const xScales: AnyScale[] = xAxes.map((axis, index) => {
-    const [min, max] = dataExtentFromSeries(series, "x", index, "xAxisIndex");
+    const isTime = axis.type === "time";
+    const [min, max] = dataExtentFromSeries(
+      series,
+      "x",
+      index,
+      "xAxisIndex",
+      isTime,
+      scalarValueDim,
+    );
     const categories: string[] = (axis.data as string[] | undefined) ?? [];
     return buildScale(
       axis,
@@ -229,11 +350,20 @@ export function resolveGrid(
       [min, max],
       categories,
       xZoom?.get(index),
+      hasBarOn("xAxisIndex", index),
     );
   });
 
   const yScales: AnyScale[] = yAxes.map((axis, index) => {
-    const [min, max] = dataExtentFromSeries(series, "y", index, "yAxisIndex");
+    const isTime = axis.type === "time";
+    const [min, max] = dataExtentFromSeries(
+      series,
+      "y",
+      index,
+      "yAxisIndex",
+      isTime,
+      scalarValueDim,
+    );
     const categories: string[] = (axis.data as string[] | undefined) ?? [];
     // y runs bottom to top in data, but SVG/canvas is top-down, so flip
     return buildScale(
@@ -242,6 +372,7 @@ export function resolveGrid(
       [min, max],
       categories,
       yZoom?.get(index),
+      hasBarOn("yAxisIndex", index),
     );
   });
 

@@ -17,6 +17,8 @@ import {
   small,
   strong,
 } from "@domphy/ui";
+import { instanceScoped } from "../../shared/instanceScope.js";
+import { interactiveFill } from "../../shared/interactiveFill.js";
 import {
   ICON_DRAFTS,
   ICON_INBOX,
@@ -256,10 +258,7 @@ function folderRailButton(
           borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 2),
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": {
-            backgroundColor: (l: Listener) =>
-              themeColor(l, "shift-2", "neutral"),
-          },
+          "&:hover": interactiveFill(2),
           "&[aria-current=true]": {
             backgroundColor: (l: Listener) =>
               themeColor(l, "shift-2", "neutral"),
@@ -428,6 +427,58 @@ function railFooter(user: Sidebar09User): DomphyElement<"div"> {
   } as unknown as DomphyElement<"div">;
 }
 
+/**
+ * Decorative "Unreads" switch (upstream has no handler/state and does not
+ * filter the list). The literal id is scoped to this row's nodeId so two
+ * mounted sidebar09 instances never share one id.
+ */
+function unreadsToggle(): DomphyElement<"label"> {
+  const buildRow = (toggleId: string): (DomphyElement | null)[] => [
+    {
+      small: "Unreads",
+      $: [small({ color: "neutral" })],
+    } as unknown as DomphyElement,
+    {
+      input: null,
+      id: toggleId,
+      type: "checkbox",
+      $: [inputSwitch({ accentColor: "neutral" })],
+    } as unknown as DomphyElement,
+  ];
+  // No `htmlFor`: the checkbox is a direct descendant of this label, which
+  // associates them implicitly (HTML label element, "implicit label"
+  // association) — no id needed for the pairing, so no scoping gap either.
+  return {
+    label: buildRow("sidebar09-unreads-toggle"),
+    ...instanceScoped((instanceId) =>
+      buildRow(`sidebar09-unreads-toggle-${instanceId}`),
+    ),
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: themeSpacing(2),
+    },
+  } as unknown as DomphyElement<"label">;
+}
+
+/**
+ * Decorative search box (upstream <SidebarInput placeholder="Type to
+ * search..." /> is uncontrolled and does not filter the list).
+ */
+function messageSearchRow(searchId: string): (DomphyElement | null)[] {
+  return [
+    srOnlyLabel("Search", searchId),
+    {
+      input: null,
+      id: searchId,
+      type: "search",
+      placeholder: "Type to search...",
+      style: { width: "100%" },
+      $: [inputSearch({ color: "neutral", accentColor: "neutral" })],
+    } as unknown as DomphyElement,
+  ];
+}
+
 function messageListHeader(
   title: (listener: Listener) => string,
   onCloseMobile: () => void,
@@ -444,28 +495,7 @@ function messageListHeader(
           } as unknown as DomphyElement,
           {
             div: [
-              {
-                label: [
-                  {
-                    small: "Unreads",
-                    $: [small({ color: "neutral" })],
-                  } as unknown as DomphyElement,
-                  // Decorative switch (upstream <Switch className="shadow-none" />
-                  // has no handler/state and does not filter the list).
-                  {
-                    input: null,
-                    id: "sidebar09-unreads-toggle",
-                    type: "checkbox",
-                    $: [inputSwitch({ accentColor: "neutral" })],
-                  } as unknown as DomphyElement,
-                ],
-                htmlFor: "sidebar09-unreads-toggle",
-                style: {
-                  display: "flex",
-                  alignItems: "center",
-                  gap: themeSpacing(2),
-                },
-              } as unknown as DomphyElement,
+              unreadsToggle(),
               {
                 button: "×",
                 type: "button",
@@ -495,19 +525,12 @@ function messageListHeader(
         },
       } as unknown as DomphyElement,
       {
-        div: [
-          // Decorative search box (upstream <SidebarInput placeholder="Type to
-          // search..." /> is uncontrolled and does not filter the list).
-          srOnlyLabel("Search", "sidebar09-message-search"),
-          {
-            input: null,
-            id: "sidebar09-message-search",
-            type: "search",
-            placeholder: "Type to search...",
-            style: { width: "100%" },
-            $: [inputSearch({ color: "neutral", accentColor: "neutral" })],
-          } as unknown as DomphyElement,
-        ],
+        // Decorative search box (upstream <SidebarInput placeholder="Type to
+        // search..." /> is uncontrolled and does not filter the list).
+        div: messageSearchRow("sidebar09-message-search"),
+        ...instanceScoped((instanceId) =>
+          messageSearchRow(`sidebar09-message-search-${instanceId}`),
+        ),
         style: {
           paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 4),
           paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 3),
@@ -594,14 +617,8 @@ function messageRow(
             `1px solid ${themeColor(l, "shift-2", "neutral")}`,
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": {
-            backgroundColor: (l: Listener) =>
-              themeColor(l, "shift-2", "neutral"),
-          },
-          "&[aria-selected=true]": {
-            backgroundColor: (l: Listener) =>
-              themeColor(l, "shift-2", "neutral"),
-          },
+          "&:hover": interactiveFill(2),
+          "&[aria-selected=true]": interactiveFill(2),
         },
       } as unknown as DomphyElement,
     ],

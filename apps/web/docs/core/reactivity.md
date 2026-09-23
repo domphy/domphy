@@ -183,8 +183,10 @@ Signatures and examples: [Utilities](./api/utilities).
 
 Unique to this page:
 
-- `computed` notifies downstream only when the new value differs by `===` from the cached one.
-- `effect(fn)` is `fn: () => void`. A function returned from `fn` is ignored. Cleanup is the `dispose()` **returned by `effect()`**. Each run re-collects dependencies, so reads no longer reached are dropped.
+- `computed` notifies downstream only when the new value differs by `Object.is` from the cached one (the same rule `State.set()` uses).
+- `effect(fn)` may **return a cleanup function**: it runs right before the next re-run and once on dispose — the Svelte 5 `$effect` / Preact-signals contract, equivalent to Solid's `onCleanup`. The `dispose()` **returned by `effect()`** tears the whole effect down. Each run re-collects dependencies, so reads no longer reached are dropped, and any `effect`/`computed`/`effectScope` created during a run is disposed with it.
+- `watch(source, cb)` tracks only the **source**. Reads inside `cb` are untracked, so they never become watcher dependencies (Vue 3 semantics).
+- **Runaway loops are capped.** An effect that writes a dependency it also reads — directly, or in a cycle with a second effect — would re-run forever. The scheduler counts re-runs of the same reaction within one flush and, past **100** (Vue 3's `RECURSION_LIMIT`), skips it for the rest of that flush and logs `Maximum recursive updates exceeded`. The counter resets once the system settles, so a test/benchmark loop of `set()` + `flushSync()` never trips it.
 
 ## State utilities
 

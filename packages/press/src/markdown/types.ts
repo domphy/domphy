@@ -66,6 +66,11 @@ export interface CreateMarkdownOptions extends ParseOptions {
    * Enable LaTeX math support. Requires `remark-math` to be installed
    * (`pnpm add remark-math`). Raw LaTeX is preserved so a CDN-loaded KaTeX
    * auto-render extension or MathJax can process it client-side.
+   *
+   * Resolving the peer needs Node module resolution, so this option works on
+   * the `@domphy/press` main entry only — on `@domphy/press/browser` it throws.
+   * In a browser bundle, import `remark-math` yourself and pass it via
+   * `plugins`.
    * @default false
    */
   math?: boolean;

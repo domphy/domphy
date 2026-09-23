@@ -147,6 +147,7 @@ function datePickerDemo(): DomphyElement {
   const value = toState<any>(null);
   return {
     input: null,
+    ariaLabel: "Pick a date",
     $: [inputText(), datePicker({ value, locale: "en-US" })],
   };
 }

@@ -124,12 +124,28 @@ await page.screenshot({
   fullPage: false,
 });
 
+// Per-block shots: stop the lazy-mount observer, then tear every mounted root
+// down before mounting the one block being shot. A block that portals an
+// overlay into `<body>` (dialog/drawer/popover) keeps that portal alive until
+// its root is disposed, and a fixed/absolute portal from an earlier card
+// otherwise floats over every later card's clipped screenshot.
+await page.evaluate(() => window.disconnectLazyMount());
 for (const name of ["login01", "sidebar07", "dashboard01", "marquee"]) {
-  const card = page.locator(".card").filter({ hasText: new RegExp(name, "i") });
+  const card = page
+    .locator(".card")
+    .filter({ hasText: new RegExp(name, "i") })
+    .first();
   if ((await card.count()) > 0) {
-    await card.first().scrollIntoViewIfNeeded();
+    // The card's own `data-block` is the exact export name mountBlock wants —
+    // the loop's `name` is only a case-insensitive match against the heading.
+    const blockName = await card.getAttribute("data-block");
+    await page.evaluate((exportName) => {
+      window.unmountAll();
+      window.mountBlock(exportName);
+    }, blockName);
+    await card.scrollIntoViewIfNeeded();
     await page.waitForTimeout(200);
-    await card.first().screenshot({ path: join(out, `block-${name}.png`) });
+    await card.screenshot({ path: join(out, `block-${name}.png`) });
   }
 }
 

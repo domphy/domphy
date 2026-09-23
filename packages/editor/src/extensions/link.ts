@@ -361,7 +361,11 @@ export const Link = Mark.create<LinkOptions>({
       }
 
       event.preventDefault();
-      window.open(href, anchor?.getAttribute("target") ?? "_blank");
+      // `noopener` in the features string, not just `rel` on the anchor: the
+      // navigation is ours, so the anchor's rel never applies and the opened
+      // page would otherwise get a live `window.opener` back into this one
+      // (reverse tabnabbing).
+      window.open(href, anchor?.getAttribute("target") ?? "_blank", "noopener");
     };
 
     this.storage.handleClick = handleClick;

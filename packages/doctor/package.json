@@ -1,6 +1,6 @@
 {
   "name": "@domphy/doctor",
-  "version": "0.19.2",
+  "version": "0.20.0",
   "description": "Domphy Doctor - static analyzer that flags non-idiomatic Domphy element trees (AI self-correction)",
   "type": "module",
   "sideEffects": false,
@@ -27,7 +27,10 @@
     "pack": "tsup && npm pack",
     "prepublishOnly": "node ../../scripts/guard-pnpm-publish.mjs && npm run build",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json --noEmit",
+    "verify:retention": "node --expose-gc scripts/verify-surface-retention.mjs",
+    "measure:expand-patches": "node --import tsx scripts/measure-expand-patches.ts"
   },
   "keywords": [
     "domphy",
@@ -49,11 +52,15 @@
   "peerDependencies": {
     "@domphy/core": "workspace:^",
     "htmlhint": "^1.9.2",
+    "jsdom": ">=26",
     "stylelint": "^17.14.0",
     "tsx": ">=4"
   },
   "peerDependenciesMeta": {
     "htmlhint": {
+      "optional": true
+    },
+    "jsdom": {
       "optional": true
     },
     "stylelint": {

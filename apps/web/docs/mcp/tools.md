@@ -142,3 +142,11 @@ Get one app block's full source, signature, and jsdoc by name.
 | `name` | `string` | App block name, e.g. `"App"` |
 
 **Output:** JSON string with fields `{ name, kind, file, signature, jsdoc, exportKind, source }`.
+
+---
+
+## Tool annotations
+
+Every tool carries MCP [`ToolAnnotations`](https://modelcontextprotocol.io/specification/server/tools): `readOnlyHint: true`, `destructiveHint: false`, `idempotentHint: true`, plus a human-readable `title`. Nothing this server exposes writes — the doctor tools are pure functions of the element tree you pass in, and everything else reads from `domphy.com` or from your `app-manifest.json`. Clients that honour the hints (Claude Desktop, VS Code) can auto-approve the calls instead of prompting for each one.
+
+`openWorldHint` separates the two kinds: `true` for the tools that fetch from `domphy.com` (`domphy_list_patches`, `domphy_get_patch`, `domphy_list_packages`, `domphy_rules`, `domphy_tones`), `false` for the ones that only touch local input (`domphy_diagnose`, `domphy_validate`, `domphy_fix`, `domphy_list_app_blocks`, `domphy_get_app_block`).

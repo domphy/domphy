@@ -1,12 +1,12 @@
-// Regression coverage for the navigation-race class fixed in @domphy/app
-// (superseded navigation applying state before a final staleness check).
-// RouterCore keys every match write by match id and deletes superseded
-// pending matches in setPending(), so a stale navigation's late loader
-// resolution must be dead-on-arrival: no stale loaderData, no match
-// resurrection, no premature commit of the newer navigation.
+// Regression coverage for the navigation-race class: a superseded navigation
+// applying state after a newer one committed. Upstream 1.171.32 owns this
+// through per-load transactions (`router._tx`) plus an AbortController the
+// superseding load aborts, and gates every redirect-follow and store write on
+// `router._tx === tx`. These tests assert the observable contract only — a
+// stale navigation's late loader resolution is dead-on-arrival: no stale
+// loaderData, no location move, no premature commit of the newer navigation.
 import { describe, expect, it, vi } from "vitest";
 import {
-  MatchSupersededError,
   createMemoryHistory,
   createRootRoute,
   createRoute,
@@ -182,7 +182,7 @@ describe("navigation races (superseded navigation)", () => {
     ]);
   });
 
-  it("a superseded navigation's late completion does not clobber the redirect store", async () => {
+  it("a stale loader resolving after a redirect committed does not move the location", async () => {
     const rootRoute = createRootRoute();
     const indexRoute = createRoute({
       getParentRoute: () => rootRoute,
@@ -219,17 +219,14 @@ describe("navigation races (superseded navigation)", () => {
     await router.navigate({ to: "/b" });
     await sleep(20);
     expect(router.state.location.pathname).toBe("/c");
-    const redirectAfterRedirect = router.state.redirect;
-    expect(redirectAfterRedirect).toBeDefined();
 
-    // A's stale loader resolves now. Its dead load must not touch the
-    // redirect store that the newer navigation set.
+    // A's stale loader resolves now. Its dead load must not move the
+    // location the newer navigation redirected to.
     aLoader.resolve({ page: "A-stale" });
     await navA;
     await sleep(20);
 
     expect(router.state.location.pathname).toBe("/c");
-    expect(router.state.redirect).toBe(redirectAfterRedirect);
   });
 
   it("param-change navigation to the same route resolves to the newest params", async () => {
@@ -282,114 +279,7 @@ describe("navigation races (superseded navigation)", () => {
   });
 });
 
-describe("MatchSupersededError sentinel (explicit stale-load abort)", () => {
-  it("a match store disappearing mid-load aborts with MatchSupersededError, not an implicit TypeError", async () => {
-    const { router, aRoute, aLoader } = createRaceSetup();
-    await router.load();
-
-    const unhandled: unknown[] = [];
-    const onUnhandled = (reason: unknown) => unhandled.push(reason);
-    process.on("unhandledRejection", onUnhandled);
-    // preloadRoute logs non-notFound load errors instead of throwing, which
-    // makes the abort error observable.
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    try {
-      // Start the preload: every getMatch call up to the loader's first await
-      // runs synchronously inside this call and still sees the match store.
-      const preloadPromise = router.preloadRoute({ to: "/a" });
-      const aMatch = router.stores.cachedMatches
-        .get()
-        .find((match) => match.routeId === aRoute.id);
-      expect(aMatch).toBeDefined();
-
-      // Now simulate the store disappearing under the in-flight load — what
-      // a newer navigation's setPending() does to a superseded load.
-      const originalGetMatch = router.getMatch;
-      (router as any).getMatch = (matchId: string) => {
-        if (matchId === aMatch!.id) return undefined;
-        return originalGetMatch(matchId);
-      };
-      try {
-        aLoader.resolve({ page: "A" });
-        // Preload errors are swallowed (return undefined) after being logged.
-        expect(await preloadPromise).toBeUndefined();
-        await sleep(20);
-      } finally {
-        (router as any).getMatch = originalGetMatch;
-      }
-
-      const logged = errorSpy.mock.calls.map((call) => call[0]);
-      expect(
-        logged.some((err) => err instanceof MatchSupersededError),
-      ).toBe(true);
-      // No implicit TypeError control flow and no unhandled rejection.
-      expect(logged.every((err) => !(err instanceof TypeError))).toBe(true);
-      expect(unhandled).toEqual([]);
-    } finally {
-      errorSpy.mockRestore();
-      process.removeListener("unhandledRejection", onUnhandled);
-    }
-  });
-
-  it("a superseded load hits the sentinel abort path: no premature commit, no unhandled rejection", async () => {
-    const { router, rootRoute, bRoute, aLoader, bLoader } = createRaceSetup();
-    await router.load();
-
-    // Record every getMatch call that comes back empty — that is the exact
-    // condition the MatchSupersededError guard converts into an abort.
-    const originalGetMatch = router.getMatch;
-    let sawMissingMatch = false;
-    (router as any).getMatch = (matchId: string) => {
-      const match = originalGetMatch(matchId);
-      if (!match) sawMissingMatch = true;
-      return match;
-    };
-
-    const unhandled: unknown[] = [];
-    const onUnhandled = (reason: unknown) => unhandled.push(reason);
-    process.on("unhandledRejection", onUnhandled);
-    try {
-      const navA = router.navigate({ to: "/a" });
-      await sleep(10);
-
-      // B supersedes A but stays pending on its own loader.
-      const navB = router.navigate({ to: "/b" });
-      await sleep(10);
-
-      // A's stale loader resolves while B is still in flight. Its load must
-      // abort via the sentinel path...
-      aLoader.resolve({ page: "A-stale" });
-      await sleep(20);
-      expect(sawMissingMatch).toBe(true);
-
-      // ...without committing B's still-pending matches early.
-      expect(router.state.location.pathname).toBe("/b");
-      expect(
-        router.state.matches.some((match) => match.routeId === bRoute.id),
-      ).toBe(false);
-
-      bLoader.resolve({ page: "B" });
-      await navB;
-      await navA;
-      await sleep(20);
-
-      expect(router.state.matches.map((match) => match.routeId)).toEqual([
-        rootRoute.id,
-        bRoute.id,
-      ]);
-      expect(
-        router.state.matches.find((match) => match.routeId === bRoute.id)
-          ?.loaderData,
-      ).toEqual({ page: "B" });
-      expect(unhandled).toEqual([]);
-    } finally {
-      (router as any).getMatch = originalGetMatch;
-      process.removeListener("unhandledRejection", onUnhandled);
-    }
-  });
-});
-
-describe("SWR background redirect (handleLoader IIFE)", () => {
+describe("SWR background redirect", () => {
   function createSwrRedirectSetup() {
     let loadCount = 0;
     const background = deferred<never>();

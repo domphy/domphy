@@ -16,7 +16,7 @@ function makeEngine(width = 400, height = 300): ChartEngine {
 
 function hover(container: HTMLElement, x: number, y: number) {
   container.dispatchEvent(
-    new MouseEvent("mousemove", {
+    new MouseEvent("pointermove", {
       bubbles: true,
       cancelable: true,
       clientX: x,

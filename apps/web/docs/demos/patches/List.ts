@@ -19,9 +19,6 @@ const App: DomphyElement<"div"> = {
           } as any,
           ariaSelected: (l) => (selected.get(l) === label ? "true" : undefined),
           $: [listItem()],
-          // Text color is set by the button child (listItemButton()) — the
-          // li itself carries no text.
-          _doctorDisable: "missing-color",
         }),
       ),
       $: [list()],

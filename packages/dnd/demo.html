@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>@domphy/dnd Demo</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f8f9fa; font-family: system-ui, sans-serif; padding: 24px; }
+    h1 { font-size: 20px; margin: 0 0 20px; }
+    h2 { font-size: 13px; color: #666; margin: 24px 0 8px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .lists { display: flex; gap: 24px; }
+    ul { list-style: none; margin: 0; padding: 0; width: 220px; min-height: 40px; border: 1px dashed #ccc; border-radius: 6px; }
+    li { padding: 8px 12px; margin: 4px; background: #fff; border: 1px solid #ddd; border-radius: 4px; cursor: grab; }
+    li:focus-visible { outline: 2px solid #4a7ff4; outline-offset: 2px; }
+    li[data-grabbed="true"] { background: #eaf1ff; border-color: #4a7ff4; }
+    #scroll-container { width: 220px; height: 150px; overflow-y: auto; border: 1px dashed #ccc; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <h1>@domphy/dnd — Demo</h1>
+  <h2>Single list (keyboardSort)</h2>
+  <div id="single-list"></div>
+  <h2>Two lists, shared group (keyboardSortGroup)</h2>
+  <div class="lists">
+    <div id="todo-list"></div>
+    <div id="done-list"></div>
+  </div>
+  <h2>Long list in a scrollable container (autoscroll)</h2>
+  <div id="scroll-container"><div id="scroll-list"></div></div>
+  <script type="module" src="./demo-main.ts"></script>
+</body>
+</html>

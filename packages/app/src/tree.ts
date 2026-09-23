@@ -39,9 +39,28 @@ export interface BuiltTree {
   status: RouterStatus;
 }
 
+declare const process: { env: Record<string, string | undefined> } | undefined;
+
+/**
+ * Same guard as core's `__DEV__` (not exported from `@domphy/core`): a bundler
+ * folds `process.env.NODE_ENV` statically, and runtimes without `process` (the
+ * IIFE build, embedded web views) read as production.
+ */
+const DEV =
+  typeof process !== "undefined" &&
+  process.env != null &&
+  process.env.NODE_ENV !== "production";
+
 export function defaultErrorBlock(error: Error): DomphyElement {
+  // The message of an unhandled server-side failure routinely carries
+  // internals ("connect ECONNREFUSED 10.0.0.4:5432", a query, a file path).
+  // It is shown while developing and withheld from production visitors, the
+  // same split Next.js makes for its own error page.
   return {
-    div: [{ h2: "Application error" }, { p: error.message }],
+    div: [
+      { h2: "Application error" },
+      { p: DEV ? error.message : "A server-side exception has occurred." },
+    ],
   };
 }
 

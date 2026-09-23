@@ -110,22 +110,37 @@ const Timestamp = (date: Date) => ({
 
 ## Escaping
 
-Use `{{- variable}}` (with dash) to disable HTML escaping for safe HTML in translations:
+**Domphy is the escaping boundary, so `@domphy/i18n` turns i18next's escaping off.** `escapeValue` defaults to `false` here, unlike bare i18next (and for the same reason react-i18next ships `escapeValue: false`).
+
+A string child is always rendered as TEXT: the client sets it through the DOM, and SSR escapes it.
+
+```ts
+new ElementNode({ p: "O'Brien & Tom <3" }).generateHTML()
+// <p class="…">O&#39;Brien &amp; Tom &lt;3</p>
+```
+
+With i18next escaping left on, an interpolated value is escaped *twice* — the render boundary escapes the entities — and the reader sees the entity source rather than the characters: a date comes out as `1&#x2F;2&#x2F;2026`, a name as `O&#39;Brien`.
+
+```ts
+t("greeting", { name: "O'Brien & Alice" })
+// → "Hello, O'Brien & Alice!"   — escaped once, at render
+```
+
+Rendering a translation as markup is the explicit opt-in:
 
 ```json
-{
-  "linkText": "Read the <a href='{{url}}'>docs</a>",
-  "escaped": "Use &lt;div&gt; tags"
-}
+{ "linkText": "Read the <a href='{{url}}'>docs</a>" }
 ```
 
 ```ts
-t("linkText", { url: "https://domphy.com", interpolation: { escapeValue: false } })
+import { rawHtml } from "@domphy/core"
+
+{ p: rawHtml(t("linkText", { url: "https://domphy.com" })) }
 ```
 
-> Only disable escaping for translations you control — never for user-supplied content.
+> `rawHtml()` strips `<script>`, `on*` handlers and `javascript:` URLs, but it is defense in depth, not a sanitizer for untrusted input. Only pass it translations you control — never a string built from user-supplied content.
 
-Escaping is on by default globally too — `createI18n`'s `interpolation` option lets you flip the default for the whole instance (`interpolation: { escapeValue: false }`), but per-call overrides via `t(key, { interpolation: { escapeValue } })` are almost always the safer, more targeted choice.
+Pass `interpolation: { escapeValue: true }` to `createI18n` (or per call via `t(key, { interpolation: { escapeValue: true } })`) when a translated string is handed to something *other* than Domphy that parses HTML and does not sanitize.
 
 ## Context (gender / form variants)
 

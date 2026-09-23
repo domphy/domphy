@@ -21,6 +21,8 @@ import {
 import { elevation } from "../utils/elevation.js";
 import { createFloating, floatingPanelId } from "../utils/floating.js";
 import { focusRing } from "../utils/focusRing.js";
+import { subscribeOpen } from "../utils/openState.js";
+import { enabledOptionsIn } from "../utils/optionList.js";
 import { tag } from "./tag.js";
 
 // Typeahead (Radix Select character-search parity): printable characters
@@ -54,23 +56,13 @@ function resolveTypeahead(node: ElementNode): TypeaheadMeta {
 const matchesPrefix = (label: string, needle: string) =>
   label.trim().toLowerCase().startsWith(needle);
 
-function enabledPanelOptions(panel: Element | null): HTMLElement[] {
-  if (!panel) return [];
-  return Array.from(
-    panel.querySelectorAll<HTMLElement>("[role=option]"),
-  ).filter(
-    (el) =>
-      el.getAttribute("aria-disabled") !== "true" &&
-      !el.hasAttribute("disabled"),
-  );
-}
-
 /**
  * A clickable select trigger box that renders the currently selected option(s) as removable
  * tags and toggles a floating popover (the dropdown content) anchored to itself. Selected
  * labels are derived from `options` matching the bound `value`; removing a tag updates the value.
- * Keyboard: Enter/Space toggle, ArrowDown opens, Escape closes, and printable characters
- * typeahead-search options (closed: selects the match; open: focuses the matching
+ * Keyboard: Enter/Space toggle, ArrowDown/ArrowUp/Home/End open the listbox and move focus to
+ * the first/last option (and move between options while open), Escape closes, and printable
+ * characters typeahead-search options (closed: selects the match; open: focuses the matching
  * `[role=option]` in the panel; a repeated character cycles matches).
  *
  * @hostTag div
@@ -196,6 +188,46 @@ function selectBox(props: {
   const toggle = (node?: ElementNode) =>
     openState.get() ? hide(node) : show(node);
 
+  const panelOf = (node: ElementNode): Element | null => {
+    const root = node.getRoot().domElement as Element | null;
+    return (
+      root?.querySelector(`#${floatingPanelId("selectBox", node)}`) ?? null
+    );
+  };
+
+  // WAI-ARIA APG "Select-Only Combobox": Down/Up/Home/End move focus into the
+  // listbox. Measured in Chromium before this: with the panel open, every
+  // arrow key was swallowed by the typeahead branch's `key.length === 1`
+  // guard and focus never left the trigger, so the dropdown was reachable
+  // only by mouse or by guessing an option's first letter. Once focus is on
+  // an option, selectList's own listbox handler takes over.
+  const moveIntoPanel = (node: ElementNode, toLast: boolean): void => {
+    const options = enabledOptionsIn(panelOf(node));
+    if (!options.length) return;
+    const target = options[toLast ? options.length - 1 : 0]!;
+    target.focus();
+    target.scrollIntoView?.({ block: "nearest" });
+  };
+
+  // show() is debounced by 100ms and flips `openState` only AFTER mounting the
+  // panel, so waiting on that flip is exact where a fixed delay is not. The
+  // extra frame is required too: floating.ts drives the panel's `visibility`
+  // from the same state and that style write has not landed when the listener
+  // runs, so `focus()` would hit a `visibility: hidden` element and do nothing.
+  const openThenMove = (node: ElementNode, toLast: boolean): void => {
+    let release: (() => void) | undefined;
+    release = subscribeOpen(
+      openState,
+      (isOpen) => {
+        if (!isOpen) return;
+        release?.();
+        requestAnimationFrame(() => moveIntoPanel(node, toLast));
+      },
+      false,
+    );
+    show(node);
+  };
+
   const typeahead = (key: string, node: ElementNode) => {
     const meta = resolveTypeahead(node);
     if (meta.timer) clearTimeout(meta.timer);
@@ -210,10 +242,7 @@ function selectBox(props: {
     if (openState.get()) {
       // Panel is portaled under the root (see floating.ts); its id is
       // deterministic, same lookup pattern as popover's onBlur guard.
-      const root = node.getRoot().domElement as Element | null;
-      const panel =
-        root?.querySelector(`#${floatingPanelId("selectBox", node)}`) ?? null;
-      const matches = enabledPanelOptions(panel).filter((el) =>
+      const matches = enabledOptionsIn(panelOf(node)).filter((el) =>
         matchesPrefix(el.textContent ?? "", needle),
       );
       if (!matches.length) return;
@@ -256,10 +285,19 @@ function selectBox(props: {
       state,
     }),
     onClick: (_e, node) => toggle(node),
-    // Focusable trigger: click + Enter/Space/ArrowDown open (APG button+listbox).
+    // Focusable trigger: click + Enter/Space/ArrowDown open.
     // Escape dismiss composes with createFloating's hide path.
     tabindex: 0,
-    role: "button",
+    // WAI-ARIA APG "Select-Only Combobox": a non-editable div trigger that
+    // owns a listbox is role=combobox, not role=button. role=button also makes
+    // its subtree presentational, which broke the removable `tag()` buttons the
+    // multi-select trigger renders (axe `nested-interactive`).
+    role: "combobox",
+    // role=combobox takes its name from the author only — never from its
+    // content the way role=button did — so without a default every selectBox
+    // failed axe `aria-input-field-name`. A host-declared aria-label/
+    // aria-labelledby still wins (native over patch).
+    ariaLabel: "Select",
     // Reactive boolean (same pattern as popover) — do NOT pin a static
     // ariaExpanded or patch re-apply will overwrite after keyboard open.
     ariaExpanded: (listener) => openState.get(listener),
@@ -279,9 +317,17 @@ function selectBox(props: {
         toggle(node);
         return;
       }
-      if (key === "ArrowDown" && !openState.get()) {
+      if (
+        key === "ArrowDown" ||
+        key === "ArrowUp" ||
+        key === "Home" ||
+        key === "End"
+      ) {
         e.preventDefault();
-        show(node);
+        const toLast = key === "ArrowUp" || key === "End";
+        openState.get()
+          ? moveIntoPanel(node, toLast)
+          : openThenMove(node, toLast);
         return;
       }
       // Character typeahead (Radix Select parity) — modifier chords are

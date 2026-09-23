@@ -195,7 +195,7 @@ By default dragging starts on the first `pointerdown`. For lists where items are
 ```ts
 dragDrop(items, {
   longPress: true,
-  longPressDuration: 500,       // ms — how long to hold (default ~500)
+  longPressDuration: 500,       // ms — how long to hold (default 1000)
   longPressClass: "is-holding", // class applied to item during hold
 })
 ```

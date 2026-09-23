@@ -6,7 +6,7 @@ import Code from "../../demos/patches/Code.ts?raw"
 
 # Code
 
-Styles an inline code snippet with a subtle surface background, rounded corners, and shifted tone. Apply to a `<code>` element.
+Styles an inline code snippet in the theme's monospace stack, with a subtle surface background, rounded corners, and shifted tone. Apply to a `<code>` element.
 
 ## Props
 

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DataCache } from "../src/dataCache";
+import { DataCache, MAX_ENTRIES, PREFETCH_LIFETIME } from "../src/dataCache";
 import type { LoaderContext } from "../src/types";
 
 function context(pathname = "/"): LoaderContext {
@@ -223,5 +223,89 @@ describe("DataCache.prefetch concurrency", () => {
 
     expect(calls).toBe(1);
     await tick();
+  });
+});
+
+describe("DataCache retention", () => {
+  // The cache's own rule: a consumable entry (SSR seed / prefetch without
+  // `revalidate`) is only served inside PREFETCH_LIFETIME, so past that window
+  // nothing can ever read it again and holding it is pure leak — one dead entry
+  // per link on a page that prefetches a long list.
+  it("releases a prefetched entry once it is past the window it can be served in", async () => {
+    vi.useFakeTimers();
+    try {
+      const cache = new DataCache();
+      const entries = (cache as unknown as { entries: Map<string, unknown> })
+        .entries;
+      let calls = 0;
+      const loader = () => ++calls;
+
+      await cache.prefetch("page|/never-visited", loader, context(), undefined);
+      expect(entries.size).toBe(1);
+
+      vi.setSystemTime(Date.now() + PREFETCH_LIFETIME + 1);
+      // Any later write sweeps it; the loader re-runs, as it already did before.
+      await cache.prefetch("page|/other", loader, context(), undefined);
+      expect([...entries.keys()]).toEqual(["page|/other"]);
+      expect(calls).toBe(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  // The `revalidate` contract (docs/app/data-loading): a cached entry is served
+  // without re-running the loader for `revalidate` seconds. An SSR seed is such
+  // an entry for a route that declares one, so retention must not expire it at
+  // the (much shorter) prefetch window.
+  it("serves an SSR seed for the whole revalidate window of its route", async () => {
+    vi.useFakeTimers();
+    try {
+      const cache = new DataCache();
+      let calls = 0;
+      const loader = () => ++calls;
+      cache.seed({ "page|/dashboard": "from-ssr" });
+
+      // A write for an unrelated key 35s later must not evict the seed.
+      vi.setSystemTime(Date.now() + PREFETCH_LIFETIME + 5_000);
+      await cache.load("page|/other", loader, context(), 60);
+
+      vi.setSystemTime(Date.now() + 5_000);
+      expect(await cache.load("page|/dashboard", loader, context(), 300)).toBe(
+        "from-ssr",
+      );
+      expect(calls).toBe(1); // only the unrelated loader ran
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  // The LRU invariant (independent of this cache's implementation: given a
+  // sequence of touches, the entry evicted on overflow is always the one
+  // least-recently touched) is what bounds `revalidate > 0` routes and
+  // unconsumed SSR seeds visited under many distinct search strings — `isDead`
+  // cannot age either out (see its comment), so without a count cap the cache
+  // grows one entry per distinct string for the life of the page.
+  it("evicts the least-recently-touched entry once the count exceeds MAX_ENTRIES (LRU invariant)", async () => {
+    const cache = new DataCache();
+    const entries = (cache as unknown as { entries: Map<string, unknown> })
+      .entries;
+    const loader = () => "value";
+
+    for (let index = 0; index < MAX_ENTRIES; index++) {
+      await cache.load(`seg|/${index}`, loader, context(), 60);
+    }
+    expect(entries.size).toBe(MAX_ENTRIES);
+
+    // Touch every key but the first (LRU), then write one more distinct key —
+    // by the LRU invariant, key 0 is the only candidate for eviction.
+    for (let index = 1; index < MAX_ENTRIES; index++) {
+      await cache.load(`seg|/${index}`, loader, context(), 60);
+    }
+    await cache.load("seg|/overflow", loader, context(), 60);
+
+    expect(entries.size).toBe(MAX_ENTRIES);
+    expect(entries.has("seg|/0")).toBe(false);
+    expect(entries.has("seg|/1")).toBe(true);
+    expect(entries.has("seg|/overflow")).toBe(true);
   });
 });

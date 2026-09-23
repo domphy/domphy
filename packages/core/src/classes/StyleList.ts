@@ -121,6 +121,17 @@ export class StyleList {
     }
 
     let rule = this.items.find((r) => r.selectorText === parentSelector);
+    if (!rule && Object.keys(basic).length > 0) {
+      // Adding a rule changes what this node's scope class stands for, and
+      // other nodes may be wearing it — take this node private first, then
+      // build the rule under its own class.
+      const node = this.parentNode;
+      if (node?._scopeShared && node.scopeClass) {
+        node._detachStyleScope();
+        parentSelector = `.${node.scopeClass}`;
+        rule = this.items.find((r) => r.selectorText === parentSelector);
+      }
+    }
     if (!rule) {
       // Same empty guard as addCSS: with no flat properties and no existing
       // rule there is nothing to reconcile. Creating the rule anyway inserted
@@ -145,7 +156,53 @@ export class StyleList {
     // node is already mounted (addCSS's construction-time path relies on a
     // single later styles.render() call that already ran for a reused node).
     const sheet = this.domStyle?.sheet;
-    if (!rule.domRule && sheet) rule.render(sheet);
+    if (!rule.domRule && sheet) rule.render(sheet, true);
+  }
+
+  // Rewrite the scope prefix of every rule in this list and of nested lists.
+  // Selector text only — nothing touches the live stylesheet. Used at
+  // construction to swap the placeholder for the content hash class, and as
+  // the middle step of `_reliveScope` below.
+  _applyScope(from: string, to: string): void {
+    if (!this.items) return;
+    for (const rule of this.items) {
+      if (rule.selectorText.startsWith(from)) {
+        rule.selectorText = to + rule.selectorText.slice(from.length);
+      }
+      rule.styleList?._applyScope(from, to);
+    }
+  }
+
+  // Move this node's LIVE rules onto a new scope class, used when the node
+  // leaves the shared content scope.
+  //
+  // Every rule is released and re-inserted, in DECLARATION order — including
+  // at-rule wrappers, whose nested rules ride along inside render(). That
+  // order is the whole point: addCSS() deliberately emits the base block
+  // BEFORE conditional at-rules so a matching `@media` beats it at equal
+  // specificity (CSS Cascading L4, order of appearance). Re-inserting only
+  // the rules whose SELECTOR carried the class left the `@media` wrapper at
+  // its old index while the base block was appended to the end of the sheet,
+  // which INVERTED the cascade: a mobile-only `display: block` lost to the
+  // base `display: none`, so a drawer backdrop never appeared.
+  //
+  // Re-inserted with `dedupe` at the top-level sheet: the new class name is a
+  // content hash (ElementNode._detachStyleScope), so another node already
+  // wearing that same hash — because IT detached to the same real content, or
+  // because it never had to detach at all — backs this rule with the SAME
+  // CSSOM entry instead of a byte-identical duplicate. Nested containers
+  // (@media/@container/@supports/@layer) stay outside the registry, matching
+  // StyleList.render()'s own convention for them.
+  _reliveScope(from: string, to: string): void {
+    if (!this.items) return;
+    // Containers must be read before the release nulls each rule's domRule.
+    const containers = this.items.map((rule) => rule._domContainer());
+    for (const rule of this.items) rule._releaseDomRule();
+    this._applyScope(from, to);
+    this.items.forEach((rule, index) => {
+      const container = containers[index];
+      if (container) rule.render(container, container instanceof CSSStyleSheet);
+    });
   }
 
   insertRule(selector: string): StyleRule {
@@ -199,7 +256,22 @@ export class StyleList {
   render(dom: HTMLStyleElement | CSSGroupingRule) {
     if (dom instanceof HTMLStyleElement) {
       this.domStyle = dom;
-      this.items.forEach((rule) => rule.render(dom.sheet!));
+      if (!dom.sheet) {
+        // A <style> element not yet part of a CONNECTED document has no
+        // associated sheet (CSSOM "obtain a CSS style sheet" — e.g. a shadow
+        // root whose host hasn't been attached to the document yet). Without
+        // this guard every rule below threw insertRule() against `null` into
+        // its OWN try/catch in StyleRule.render(), so a node that rendered
+        // while detached lost every one of its rules behind N identical
+        // "Failed to insert rule" warnings instead of one clear cause.
+        console.warn(
+          `[Domphy] Styles for <${this.parentNode?.tagName ?? "node"}> were not inserted: its <style> element has no CSS sheet (the shadow root or document it lives in is not connected yet). Render this node after its host is attached to the document.`,
+        );
+        return;
+      }
+      // `true`: top-level sheet, so an identical rule already inserted by
+      // another node is reused instead of duplicated (see StyleRule's registry).
+      this.items.forEach((rule) => rule.render(dom.sheet!, true));
     } else if (dom instanceof CSSGroupingRule) {
       this.items.forEach((rule) => rule.render(dom));
     }

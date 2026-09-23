@@ -47,8 +47,9 @@ import {
   themeDensity,
   themeSize,
   themeSpacing,
+  themeWeight,
 } from "@domphy/theme";
-import { fixed } from "../../shared/typography.js";
+import { REDUCED_MOTION_PAUSE } from "../reducedMotion.js";
 
 export type RainbowButtonVariant = "default" | "outline";
 export type RainbowButtonSize = "sm" | "default" | "lg" | "icon";
@@ -230,20 +231,17 @@ function rainbowButton(props: RainbowButtonProps = {}): DomphyElement<"div"> {
       : { border: "2px solid transparent" }),
     color: (listener: Listener) => themeColor(listener, textTone, "neutral"),
     animation: flowAnimation,
+    ...REDUCED_MOTION_PAUSE,
     [`@keyframes ${animationName}`]: flowKeyframes,
   };
 
   // Small blurred rainbow bar centered just under the button — NOT a
   // symmetric halo around the whole shape (upstream's `before:` pseudo is a
   // 60%-wide, 20%-tall bar sitting 20% below the button's own bottom edge,
-  // blurred 0.75rem/12px). `_doctorDisable` isn't part of core's strict
-  // `PartialElement` type — build through an untyped literal, then assert,
-  // so the excess-property check doesn't fire (mirrors `overlayCanvas` in
-  // confetti.ts).
+  // blurred 0.75rem/12px).
   const glowLayer = {
     span: null,
     ariaHidden: "true",
-    _doctorDisable: "missing-color",
     style: {
       position: "absolute",
       insetBlockEnd: "-20%",
@@ -257,6 +255,7 @@ function rainbowButton(props: RainbowButtonProps = {}): DomphyElement<"div"> {
       filter: "blur(12px)",
       zIndex: -1,
       animation: flowAnimation,
+      ...REDUCED_MOTION_PAUSE,
       [`@keyframes ${animationName}`]: flowKeyframes,
     } as StyleObject,
   } as DomphyElement<"span">;
@@ -287,7 +286,7 @@ function rainbowButton(props: RainbowButtonProps = {}): DomphyElement<"div"> {
       flexShrink: 0,
       gap: (listener: Listener) => themeSpacing(themeDensity(listener) * 1),
       // Upstream `font-medium` (weight 500), not the default 400.
-      fontWeight: fixed(500),
+      fontWeight: themeWeight("medium"),
       fontSize: (listener: Listener) =>
         themeSize(listener, sizing.fontSizeTone),
       paddingBlock: (listener: Listener) =>

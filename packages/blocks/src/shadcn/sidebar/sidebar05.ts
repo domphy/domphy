@@ -15,12 +15,15 @@ import {
   small,
   strong,
 } from "@domphy/ui";
+import { instanceScoped } from "../../shared/instanceScope.js";
+import { interactiveFill } from "../../shared/interactiveFill.js";
 import {
   glyphChild,
   ICON_MARK,
   ICON_MINUS,
   ICON_PLUS,
   ICON_SEARCH,
+  makeSidebarToggle,
   type SidebarBreadcrumbItem,
   sidebarBackdrop,
   sidebarMainContent,
@@ -186,10 +189,7 @@ function renderNavGroup(
                 themeColor(l, "inherit", "neutral"),
               "&::-webkit-details-marker": { display: "none" },
               "&::marker": { content: `""` },
-              "&:hover": {
-                backgroundColor: (l: Listener) =>
-                  themeColor(l, "shift-2", "neutral"),
-              },
+              "&:hover": interactiveFill(2),
             },
           } as unknown as DomphyElement,
           {
@@ -231,6 +231,58 @@ function renderNavGroup(
 }
 
 /**
+ * Header search field: a visually-hidden label paired to a search input via
+ * `for`/`id`. The literal id is scoped to this row's nodeId so two mounted
+ * sidebar05 instances never share one id (see ../../shared/instanceScope.ts).
+ */
+function searchBox(searchPlaceholder: string): DomphyElement<"div"> {
+  const buildRow = (inputId: string): (DomphyElement | null)[] => [
+    {
+      span: rawHtml(ICON_SEARCH),
+      style: {
+        position: "absolute",
+        insetInlineStart: themeSpacing(3),
+        top: "50%",
+        transform: "translateY(-50%)",
+        pointerEvents: "none",
+        display: "inline-flex",
+        color: (l: Listener) => themeColor(l, "shift-6", "neutral"),
+      },
+    } as unknown as DomphyElement,
+    srOnlyLabel("Search", inputId),
+    {
+      input: null,
+      id: inputId,
+      type: "search",
+      ariaLabel: "Search",
+      placeholder: searchPlaceholder,
+      // The leading magnifier sits at inset 12px + 16px wide, so the
+      // text must start past 28px. `paddingInlineStart` alone loses to
+      // inputSearch()'s `paddingInline` SHORTHAND in the cascade
+      // (measured: computed padding-inline-start 18px, text overlapping
+      // the glyph), so declare the shorthand at the same level here.
+      style: {
+        width: "100%",
+        paddingInline: (l: Listener) =>
+          `${themeSpacing(9)} ${themeSpacing(themeDensity(l) * 3)}`,
+      },
+      $: [inputSearch({ color: "neutral", accentColor: "neutral" })],
+    } as unknown as DomphyElement,
+  ];
+  return {
+    div: buildRow("sidebar05-search"),
+    ...instanceScoped((instanceId) =>
+      buildRow(`sidebar05-search-${instanceId}`),
+    ),
+    style: {
+      position: "relative",
+      display: "flex",
+      alignItems: "center",
+    },
+  } as unknown as DomphyElement<"div">;
+}
+
+/**
  * shadcn/ui "sidebar-05" — inline-accordion collapsible nav with a plus/minus
  * toggle glyph, a search field in the header, and a sticky breadcrumb header
  * for the content area. Call with no arguments for a fully working demo.
@@ -248,6 +300,12 @@ function sidebar05(props: Sidebar05Props = {}): DomphyElement<"div"> {
   } = props;
 
   const sidebarOpen = toState(true);
+  // Upstream `SidebarProvider` keeps the desktop `open` state (default true)
+  // and the mobile `openMobile` state (default FALSE) apart. Sharing one
+  // state rendered the off-canvas drawer OPEN over the page on first paint
+  // at phone widths — measured at 375px, the panel covered the whole block.
+  const mobileOpen = toState(false);
+  const toggleSidebar = makeSidebarToggle(sidebarOpen, mobileOpen);
 
   const asideElement: DomphyElement<"aside"> = {
     aside: [
@@ -300,43 +358,10 @@ function sidebar05(props: Sidebar05Props = {}): DomphyElement<"div"> {
               paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 2),
               paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 2),
               textDecoration: () => "none",
-              "&:hover": {
-                backgroundColor: (l: Listener) =>
-                  themeColor(l, "shift-2", "neutral"),
-              },
+              "&:hover": interactiveFill(2),
             },
           } as unknown as DomphyElement,
-          {
-            div: [
-              {
-                span: rawHtml(ICON_SEARCH),
-                style: {
-                  position: "absolute",
-                  insetInlineStart: themeSpacing(3),
-                  top: "50%",
-                  transform: "translateY(-50%)",
-                  pointerEvents: "none",
-                  display: "inline-flex",
-                  color: (l: Listener) => themeColor(l, "shift-6", "neutral"),
-                },
-              } as unknown as DomphyElement,
-              srOnlyLabel("Search", "sidebar05-search"),
-              {
-                input: null,
-                id: "sidebar05-search",
-                type: "search",
-                ariaLabel: "Search",
-                placeholder: searchPlaceholder,
-                style: { width: "100%", paddingInlineStart: themeSpacing(9) },
-                $: [inputSearch({ color: "neutral", accentColor: "neutral" })],
-              } as unknown as DomphyElement,
-            ],
-            style: {
-              position: "relative",
-              display: "flex",
-              alignItems: "center",
-            },
-          } as unknown as DomphyElement,
+          searchBox(searchPlaceholder),
         ],
         style: {
           display: "flex",
@@ -371,7 +396,10 @@ function sidebar05(props: Sidebar05Props = {}): DomphyElement<"div"> {
       flexShrink: "0",
       width: (l: Listener) => (sidebarOpen.get(l) ? themeSpacing(64) : "0"),
       overflow: "hidden",
-      transition: "width 0.2s linear",
+      // Collapsing to width 0 clips the panel but does NOT take its ~30 links
+      // out of the tab order (measured in Chromium) — hide it outright.
+      visibility: (l: Listener) => (sidebarOpen.get(l) ? "visible" : "hidden"),
+      transition: "width 0.2s linear, visibility 0.2s linear",
       borderInlineEnd: (l: Listener) =>
         `1px solid ${themeColor(l, "shift-3", "neutral")}`,
       backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
@@ -383,8 +411,12 @@ function sidebar05(props: Sidebar05Props = {}): DomphyElement<"div"> {
         zIndex: "15",
         width: themeSpacing(72),
         transform: (l: Listener) =>
-          sidebarOpen.get(l) ? "translateX(0)" : "translateX(-100%)",
-        transition: "transform 0.2s ease",
+          mobileOpen.get(l) ? "translateX(0)" : "translateX(-100%)",
+        // `transform` alone leaves every link in the slid-out panel in the tab
+        // order (WCAG 2.4.3): measured 24-46 tabbable controls reachable in a
+        // closed drawer. `visibility` is animated so the slide-out still runs.
+        visibility: (l: Listener) => (mobileOpen.get(l) ? "visible" : "hidden"),
+        transition: "transform 0.2s ease, visibility 0.2s ease",
         boxShadow: (l: Listener) =>
           `0 0 ${themeSpacing(6)} ${themeColor(l, "shift-3", "neutral")}`,
       },
@@ -394,7 +426,7 @@ function sidebar05(props: Sidebar05Props = {}): DomphyElement<"div"> {
   const mainElement: DomphyElement<"main"> = {
     main: [
       sidebarStickyHeader({
-        onToggle: () => sidebarOpen.set(!sidebarOpen.get()),
+        onToggle: toggleSidebar,
         breadcrumbItems,
       }),
       sidebarMainContent(children),
@@ -413,7 +445,7 @@ function sidebar05(props: Sidebar05Props = {}): DomphyElement<"div"> {
     div: [
       asideElement,
       mainElement,
-      sidebarBackdrop(sidebarOpen, () => sidebarOpen.set(false)),
+      sidebarBackdrop(mobileOpen, () => mobileOpen.set(false)),
     ],
     style: {
       display: "flex",

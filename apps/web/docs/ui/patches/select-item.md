@@ -8,6 +8,8 @@ import SelectList from "../../demos/patches/SelectList.ts?raw"
 
 Use `selectItem` on a `<div>` placed inside a `selectList`. It reads the `select` context to set `aria-selected` and handle click-to-toggle. In single mode the item becomes selected; in multiple mode it toggles its value in the array.
 
+The item is `role="option"` with `tabindex="-1"` — the parent `selectList` owns the tab stop and moves focus between options (see [Select List](./select-list)). The selected row uses the same fill/text pairing as `button({ variant: "solid" })` (deep brand fill + light-end neutral text) so the chosen option's label clears WCAG AA 4.5:1.
+
 ## Props
 
 | Prop | Type | Default | Description |

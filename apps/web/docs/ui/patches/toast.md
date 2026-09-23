@@ -10,12 +10,16 @@ Portal a transient notification into a fixed-position corner stack. The toast an
 
 The toast surface uses a medium `elevation()` box-shadow so it visibly floats above page content.
 
+Auto-dismisses after `duration` (Radix/Sonner semantics), paused while the pointer is over the toast or focus is inside it (e.g. an action button), and resumed on pointer-leave/focus-out with whatever time was left. Pass `Infinity` or `0` to disable.
+
 ## Props
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `position` | `"top-left" \| "top-center" \| "top-right" \| "bottom-left" \| "bottom-center" \| "bottom-right"` | `"top-center"` | Corner of the screen for the toast stack. |
 | `color` | `ThemeColor` | `"neutral"` | Theme color for the toast surface. |
+| `duration` | `number` | `5000` | Milliseconds before the toast dismisses itself (calls `onDismiss` then removes itself). Pass `Infinity` or `0` to disable. |
+| `onDismiss` | `() => void` | — | Called once, right before the toast removes itself, when `duration` elapses without the pointer/focus inside it. |
 
 <CodeEditor :code="Toast" />
 
@@ -36,18 +40,19 @@ The toast surface uses a medium `elevation()` box-shadow so it visibly floats ab
 Insert the toast element as a child of the root node, then remove it after a delay:
 
 ```ts
+import type { DomphyElement, ElementNode } from "@domphy/core"
 import { button, toast } from "@domphy/ui"
 
-const App = {
+const App: DomphyElement<"div"> = {
   div: [{
     button: "Show Toast",
     $: [button()],
     onClick: (_e, node) => {
-      const toastEle = {
+      const toastElement = {
         div: "Saved successfully",
         $: [toast({ position: "bottom-right" })],
       }
-      const toastNode = node.getRoot().children.insert(toastEle)
+      const toastNode = node.getRoot().children.insert(toastElement) as ElementNode
       setTimeout(() => toastNode.remove(), 3000)
     },
   }],

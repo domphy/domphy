@@ -98,28 +98,33 @@ function tag(
           node.children.items.find(
             (item) => item instanceof ElementNode && item.key === "tag-remove",
           ) ?? null;
-        // attach() runs from the host Mount hook, which fires BEFORE
-        // render() walks children. Inserting with updateDom=true would
-        // create a DOM node that render() then creates a second time.
-        // First paint: list-only insert, let render() materialize it.
-        // Later update(): the walk already finished, so mutate the live DOM.
-        const sync = (next: TagRemoveProps, updateDom: boolean) => {
+        // attach() runs from the host Mount hook, which fires bottom-up: the
+        // children walk has already finished by then (both on a fresh render
+        // and on hydration), so the button always has to be materialized here.
+        // The list-only insert this used to do on first paint relied on the
+        // old top-down Mount and left the button DOM-less after hydration.
+        const sync = (next: TagRemoveProps) => {
           const existing = findButton();
           if (next.removable && !existing) {
-            node.children.insert(makeButton(), undefined, updateDom);
+            node.children.insert(makeButton());
           } else if (!next.removable && existing) {
             node.children.remove(existing);
           }
         };
-        sync(initial, false);
+        sync(initial);
         return {
-          update: (next) => sync(next, true),
+          update: sync,
         };
       },
       { removable },
     ),
     style: {
       display: "inline-flex",
+      // A chip hugs its label. Measured in Chromium: inside a `stack()` the
+      // pill stretched to the full 1232px column (shadcn's badge carries the
+      // same `w-fit` for this reason) — `inline-flex` is blockified by a
+      // flex/grid parent.
+      width: "fit-content",
       alignItems: "center",
       whiteSpace: "nowrap",
       userSelect: "none",

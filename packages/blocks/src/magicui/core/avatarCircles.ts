@@ -12,7 +12,7 @@
 
 import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
-import { small } from "@domphy/ui";
+import { focusRing, small } from "@domphy/ui";
 
 export interface AvatarCirclesItem {
   /** Avatar image URL. */
@@ -107,6 +107,15 @@ function avatarLink(
       outline: (listener: Listener) =>
         `${themeSpacing(0.5)} solid ${themeColor(listener, "inherit", ringColor)}`,
       outlineOffset: "0",
+      // WCAG 2.4.7 (Focus Visible): this control paints a STATIC `outline` as
+      // its border (this package's convention over `border`), which replaces
+      // the UA's own `:focus-visible` outline — tabbing to it in Chromium left
+      // the computed `outline`/`box-shadow` byte-identical to the resting
+      // state, i.e. no visible focus indicator at all. The shared ring layers
+      // on top of the existing outline instead of fighting it.
+      "&:focus-visible": {
+        boxShadow: (listener: Listener) => focusRing(listener, "neutral"),
+      },
     } as StyleObject,
   };
   return element as DomphyElement<"a">;
@@ -126,7 +135,7 @@ function overflowBadge(
     // `dark:bg-white dark:text-black` in dark. `shift-17` is this package's
     // established "solid dark button" anchor (same one signup01's submit uses);
     // the dark theme reverses the neutral ramp, so it flips black↔white exactly
-    // like upstream, and `color: shift-9` rides the surface to the readable side.
+    // like upstream, and the label tone rides the surface to the readable side.
     dataTone: "shift-17",
     style: {
       display: "flex",
@@ -138,15 +147,19 @@ function overflowBadge(
       borderRadius: "50%",
       marginInlineStart: count === 0 ? undefined : themeSpacing(-overlapUnits),
       backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
-      color: (listener: Listener) => themeColor(listener, "shift-9"),
+      // Matches the `small()` child that paints the "+N" (shift-10), so the
+      // measured pair is the one the browser actually renders.
+      color: (listener: Listener) => themeColor(listener, "shift-10"),
       outline: (listener: Listener) =>
         `${themeSpacing(0.5)} solid ${themeColor(listener, "inherit", ringColor)}`,
-      // Upstream `hover:bg-gray-600`: a small lighten off the shift-17 surface
+      // Upstream `hover:bg-gray-600`: a lighten off the shift-17 surface that
       // reads as the same hover cue in both themes (black disc → gray, white
-      // disc → light-gray). Mirrors animatedShinyText's nested-hover idiom.
+      // disc → light-gray). One step, the design system's hover delta — the
+      // old three-step `shift-2` jump pulled the fill to ramp step 14 against
+      // shift-10 text at step 6, a gap of 8, under the CONTRAST_SPAN of 9.
       "&:hover": {
         backgroundColor: (listener: Listener) =>
-          themeColor(listener, "shift-2"),
+          themeColor(listener, "decrease-1"),
       },
     } as StyleObject,
   };

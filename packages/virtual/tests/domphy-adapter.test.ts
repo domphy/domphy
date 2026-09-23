@@ -87,11 +87,18 @@ describe("createVirtualizer reactivity", () => {
   });
 });
 
-describe("createVirtualizer anchorTo: 'end' pure-append fast path", () => {
-  it("skips anchor-key resolution for a plain append but still resolves it on a real edge-key change", () => {
+describe("createVirtualizer anchorTo: 'end'", () => {
+  // Truth source: virtual-core's `anchorTo` contract (upstream
+  // @tanstack/virtual-core 3.17.11, `setOptions` edge-key anchoring). Items
+  // appended BELOW the viewport shift nothing that is on screen, so the
+  // tracked scroll offset must not move; items PREPENDED above it shift every
+  // existing start by the new items' size, so the offset must be compensated
+  // by exactly that amount or the content visibly jumps.
+  it("holds the scroll offset on append and compensates it on prepend", () => {
+    const itemSize = 32;
     const list = createVirtualizer<HTMLDivElement, HTMLDivElement>({
       count: 1000,
-      estimateSize: () => 32,
+      estimateSize: () => itemSize,
       observeElementRect: fixedRect,
       anchorTo: "end",
     });
@@ -99,24 +106,26 @@ describe("createVirtualizer anchorTo: 'end' pure-append fast path", () => {
     document.body.appendChild(el);
     list.setScrollElement(el);
 
-    const spy = vi.spyOn(list.virtualizer, "getVirtualItemForOffset");
+    el.scrollTop = 4000;
+    el.dispatchEvent(new Event("scroll"));
+    const offsetBefore = list.virtualizer.scrollOffset;
+    expect(offsetBefore).toBe(4000);
 
-    // A plain append: every existing item keeps its key/order, only the
-    // count grows past the old end. No anchor recomputation is needed.
+    // Plain append past the old end: nothing on screen moves.
     list.setOptions({ count: 1001 });
-    expect(spy).not.toHaveBeenCalled();
+    expect(list.virtualizer.scrollOffset).toBe(offsetBefore);
 
-    // A genuine edge-key change (here: the item at index 0 gets a new key,
-    // simulating a prepend) still needs anchor resolution.
+    // Prepend: index 0 gets a new key and every old item shifts down one
+    // slot, so the offset moves by one item's size to keep the same content
+    // under the viewport.
     const originalGetItemKey = list.virtualizer.options.getItemKey;
     list.setOptions({
       count: 1002,
       getItemKey: (index) =>
         index === 0 ? "prepended" : originalGetItemKey(index - 1),
     });
-    expect(spy).toHaveBeenCalled();
+    expect(list.virtualizer.scrollOffset).toBe(offsetBefore! + itemSize);
 
-    spy.mockRestore();
     list.destroy();
     el.remove();
   });

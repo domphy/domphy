@@ -14,6 +14,7 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { elevation } from "../utils/elevation.js";
+import { hasOpenFloatingPanel } from "../utils/floating.js";
 import { asOpenState, dismissOpen, subscribeOpen } from "../utils/openState.js";
 import { lockScroll, unlockScroll } from "../utils/scrollLock.js";
 
@@ -69,6 +70,9 @@ function attachDrawer(
 
   const onCancel = (e: Event) => {
     e.preventDefault();
+    // Top-layer-only dismissal: an open popover/select/datePicker inside this
+    // drawer owns the Escape (see hasOpenFloatingPanel).
+    if (hasOpenFloatingPanel(dlg)) return;
     dismissOpen(state, onDismiss);
   };
   dlg.addEventListener("cancel", onCancel);

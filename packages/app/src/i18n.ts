@@ -55,7 +55,7 @@ export function createI18nMiddleware<TLocale extends string>(
   const { locales, defaultLocale, prefixDefault = false } = options;
   const localeSet = new Set<string>(locales);
 
-  return ({ pathname }: MiddlewareContext) => {
+  return ({ pathname, url }: MiddlewareContext) => {
     const parts = pathname.split("/").filter(Boolean);
     const first = parts[0];
     const hasLocalePrefix = first !== undefined && localeSet.has(first);
@@ -67,7 +67,10 @@ export function createI18nMiddleware<TLocale extends string>(
 
     if (prefixDefault) {
       const suffix = pathname === "/" ? "" : pathname;
-      redirect(`/${defaultLocale}${suffix}`);
+      // Keep the query string and fragment: the redirect only adds the locale
+      // prefix, so `/search?q=x` must arrive as `/en/search?q=x` (Next.js
+      // preserves them on its locale redirect too).
+      redirect(`/${defaultLocale}${suffix}${url.search}${url.hash}`);
     }
   };
 }

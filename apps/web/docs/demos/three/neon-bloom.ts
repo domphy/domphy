@@ -1,5 +1,7 @@
 import type { DomphyElement } from "@domphy/core";
 import { effect } from "@domphy/core";
+import { themeSpacing } from "@domphy/theme";
+import type { SceneProps } from "@domphy/three";
 import { extend, three } from "@domphy/three";
 import { Color, Vector2 } from "three";
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
@@ -50,7 +52,7 @@ const RINGS = [
   },
 ];
 
-const ringNodes: Record<string, any>[] = [];
+const ringNodes: SceneProps[] = [];
 for (const ring of RINGS) {
   ringNodes.push({
     mesh: [
@@ -79,7 +81,7 @@ const App: DomphyElement<"div"> = {
   style: {
     width: "100%",
     height: "440px",
-    borderRadius: "12px",
+    borderRadius: themeSpacing(3),
     overflow: "hidden",
   },
   $: [

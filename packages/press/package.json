@@ -1,6 +1,6 @@
 {
   "name": "@domphy/press",
-  "version": "0.23.2",
+  "version": "0.24.0",
   "description": "Domphy Press — VitePress-baseline static doc site framework built on @domphy/app, with the Markdown pipeline (parseMarkdown/createMarkdown) built in",
   "type": "module",
   "sideEffects": false,
@@ -29,7 +29,8 @@
     "pack": "tsup && npm pack",
     "prepublishOnly": "node ../../scripts/guard-pnpm-publish.mjs && npm run build",
     "test": "vitest run --passWithNoTests",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "keywords": [
     "domphy",
@@ -61,7 +62,13 @@
     "@domphy/app": "workspace:^",
     "@domphy/core": "workspace:^",
     "@domphy/theme": "workspace:^",
-    "@domphy/ui": "workspace:^"
+    "@domphy/ui": "workspace:^",
+    "remark-math": "^6.0.0"
+  },
+  "peerDependenciesMeta": {
+    "remark-math": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@domphy/app": "workspace:*",

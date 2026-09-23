@@ -84,6 +84,44 @@ describe("domphy-doctor CLI", () => {
     expect(result.stdout).toContain("1 failed to import");
   }, 30000);
 
+  // Truth source: Node itself. Without a DOM, `document` at module scope is a
+  // ReferenceError and the file goes unanalyzed — the `--no-dom` run proves
+  // that is still exactly what happens, and the default run proves the
+  // installed jsdom window is what makes the same file analyzable.
+  it("analyzes a file that touches document at import time", async () => {
+    const result = await runCli(["--no-output", fixture("cli-needs-dom.mjs")]);
+    expect(result.stderr).not.toContain("Failed to import");
+    expect(result.stdout).toContain("1 file(s) checked");
+    expect(result.code).toBe(0);
+  }, 30000);
+
+  // Truth source: Node's unhandled-rejection contract. A lint CLI that ends
+  // with `process.exit(code)` races anything a scanned module left pending, so
+  // an error the run never saw must not be able to surface as a clean exit —
+  // the code says the run did not complete, and the message names the CLI
+  // rather than leaving a bare stack trace.
+  it("exits 2 and names itself when a scanned module leaves a rejection unhandled", async () => {
+    const result = await runCli([
+      "--no-output",
+      fixture("cli-floating-rejection.mjs"),
+      fixture("cli-ok.mjs"),
+    ]);
+    expect(result.code).toBe(2);
+    expect(result.stderr).toContain("domphy-doctor crashed");
+    expect(result.stderr).toContain("floating-rejection");
+  }, 30000);
+
+  it("--no-dom is a known flag and leaves the file unimportable", async () => {
+    const result = await runCli([
+      "--no-output",
+      "--no-dom",
+      fixture("cli-needs-dom.mjs"),
+    ]);
+    expect(result.stderr).not.toContain("Unknown option");
+    expect(result.stderr).toContain("document is not defined");
+    expect(result.code).toBe(1);
+  }, 30000);
+
   it("exits 1 when some input paths exist but another is not found", async () => {
     const result = await runCli([
       "--no-output",
@@ -95,13 +133,23 @@ describe("domphy-doctor CLI", () => {
     expect(result.stdout).toContain("1 not found");
   }, 30000);
 
-  it("diagnoses an exported array as one unit so duplicate-key fires", async () => {
+  // Reported failing once under heavy concurrent load (many other processes on
+  // the same machine), not reproduced in 27/27 sequential runs — this test's
+  // logic was never in question, only whether tsx's cold-start compile can
+  // outrun the 30s budget when CPU-starved by unrelated work. `retry: 1`
+  // absorbs exactly that: a genuine logic regression fails BOTH attempts
+  // deterministically (this test's assertions do not depend on timing), while
+  // a one-off environmental stall does not fail the suite.
+  it("diagnoses an exported array as one unit so duplicate-key fires", {
+    retry: 1,
+    timeout: 30000,
+  }, async () => {
     const result = await runCli(["--no-output", fixture("cli-dup-keys.mjs")]);
     expect(result.code).toBe(1);
     expect(result.stdout).toContain("duplicate-key");
     // The diagnostic is attributed to the file that exported the array.
     expect(result.stdout).toContain("cli-dup-keys.mjs");
-  }, 30000);
+  });
 
   it("descends into plain container objects to find elements", async () => {
     const result = await runCli(["--no-output", fixture("cli-routes.mjs")]);
@@ -118,6 +166,38 @@ describe("domphy-doctor CLI", () => {
     expect(result.stdout).toContain("duplicate-key");
   }, 30000);
 
+  it("without --merge-patches, a $-patch factory's own style is unreached (0 findings, not clean)", async () => {
+    const result = await runCli([
+      "--no-output",
+      fixture("cli-patch-hosttag.mjs"),
+    ]);
+    expect(result.code).toBe(0);
+    expect(result.stdout).not.toContain("raw-theme-value");
+    expect(result.stdout).toContain("1 file(s) checked");
+  }, 30000);
+
+  it("--merge-patches synthesizes the JSDoc @hostTag and finds the raw color inside", async () => {
+    const result = await runCli([
+      "--no-output",
+      "--merge-patches",
+      fixture("cli-patch-hosttag.mjs"),
+    ]);
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain("raw-theme-value");
+    expect(result.stdout).toContain("button");
+  }, 30000);
+
+  it("--merge-patches falls back to <div> when the factory has no @hostTag", async () => {
+    const result = await runCli([
+      "--no-output",
+      "--merge-patches",
+      fixture("cli-patch-no-hosttag.mjs"),
+    ]);
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain("raw-theme-value");
+    expect(result.stdout).toContain("div");
+  }, 30000);
+
   it("reports a throwing factory as a warning, not a crash or silent drop", async () => {
     const result = await runCli([
       "--no-output",
@@ -127,6 +207,35 @@ describe("domphy-doctor CLI", () => {
     expect(result.stdout).toContain("factory-threw");
     expect(result.stdout).toContain("needs-args");
     expect(result.stdout).toContain("1 warning(s)");
+  }, 30000);
+
+  it("skips an arg-requiring export as info, not a factory-threw warning", async () => {
+    // Truth source: Function.length (the ECMAScript arity contract — a
+    // parameter with no default counts, everything from the first defaulted
+    // parameter on does not, per the spec's FormalParameters evaluation).
+    // needsRequiredOptions has arity 1 (skipped, info) and hasDefaultOptions
+    // has arity 0 (invoked normally, and is bug-free so produces nothing).
+    const result = await runCli([
+      "--no-output",
+      fixture("cli-factory-requires-args.mjs"),
+    ]);
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain("factory-threw");
+    expect(result.stdout).toContain("skipped: requires arguments");
+    expect(result.stdout).toContain("needsRequiredOptions");
+    expect(result.stdout).not.toContain("hasDefaultOptions");
+    expect(result.stdout).toContain("1 info");
+    expect(result.stdout).not.toContain("warning(s)");
+  }, 30000);
+
+  it("clears a scanned file's setInterval/setTimeout instead of leaving them running", async () => {
+    const result = await runCli([
+      "--no-output",
+      fixture("cli-runaway-timers.mjs"),
+    ]);
+    expect(result.code).toBe(0);
+    expect(result.stderr).toContain("TIMERS_CLEARED");
+    expect(result.stderr).not.toContain("TIMERS_LEAKED");
   }, 30000);
 
   it("terminates on cyclic container objects", async () => {
@@ -212,6 +321,60 @@ describe("domphy-doctor CLI", () => {
     const result = await runCli(["--format", "yaml", fixture("cli-ok.mjs")]);
     expect(result.code).toBe(2);
     expect(result.stderr).toContain('Unknown --format "yaml"');
+  }, 30000);
+
+  // Truth source: the exit-code contract the CLI publishes in its own --help
+  // ("2  CLI usage error …"). An unknown flag used to escape parseArgs at
+  // module scope as an uncaught ERR_PARSE_ARGS_UNKNOWN_OPTION: a Node stack
+  // trace on stderr and exit 1, which CI reads as "found errors".
+  it("rejects an unknown flag with the documented usage exit code 2", async () => {
+    const result = await runCli(["--wat", fixture("cli-ok.mjs")]);
+    expect(result.code).toBe(2);
+    expect(result.stderr).toContain("Unknown option '--wat'");
+    expect(result.stderr).toContain("Usage: domphy-doctor");
+    expect(result.stderr).not.toContain("ERR_PARSE_ARGS_UNKNOWN_OPTION");
+  }, 30000);
+
+  // Truth source: same --help contract. `--only <typo>` whitelists a rule that
+  // can never fire, so every real diagnostic is filtered out and the run exits
+  // 0 — a silently green CI run over unchecked code.
+  it("rejects an unknown --only rule id instead of silently filtering everything", async () => {
+    const result = await runCli([
+      "--no-output",
+      "--only",
+      "void-contnet",
+      fixture("cli-void-error.mjs"),
+    ]);
+    expect(result.code).toBe(2);
+    expect(result.stderr).toContain(
+      'Unknown rule id for --only: "void-contnet"',
+    );
+    expect(result.stderr).toContain("void-content");
+  }, 30000);
+
+  it("rejects an unknown --exclude rule id", async () => {
+    const result = await runCli([
+      "--no-output",
+      "--exclude",
+      "not-a-rule",
+      fixture("cli-ok.mjs"),
+    ]);
+    expect(result.code).toBe(2);
+    expect(result.stderr).toContain(
+      'Unknown rule id for --exclude: "not-a-rule"',
+    );
+  }, 30000);
+
+  // Layer 4 ids are generated from htmlhint/stylelint rule names at run time,
+  // so they cannot be enumerated — namespaced ids must stay accepted.
+  it("accepts a namespaced Layer 4 rule id in --only", async () => {
+    const result = await runCli([
+      "--no-output",
+      "--only",
+      "html/tag-pair",
+      fixture("cli-void-error.mjs"),
+    ]);
+    expect(result.code).toBe(0);
   }, 30000);
 
   it("includes summary counts in the JSON payload", async () => {

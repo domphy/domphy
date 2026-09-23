@@ -21,7 +21,7 @@ const option: ChartOption = {
   geo: {
     map: "world",
     roam: true,
-    itemStyle: { areaColor: "#1a2035", borderColor: "#3a4a6b" },
+    itemStyle: { areaColor: "neutral", borderColor: "primary" },
   },
   series: [
     {
@@ -37,14 +37,13 @@ const option: ChartOption = {
         period: 2,
         scale: 2.5,
       },
+      itemStyle: { color: "attention" },
       label: {
         show: true,
         formatter: "{b}",
         position: "right",
         fontSize: 11,
-        color: "#e0e0e0",
       },
-      itemStyle: { color: "#f97316" },
     },
   ],
 };

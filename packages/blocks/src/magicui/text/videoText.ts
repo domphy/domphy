@@ -25,6 +25,10 @@ import type {
 } from "@domphy/core";
 import { hashString } from "@domphy/core";
 import { type ThemeColor, themeColor } from "@domphy/theme";
+import {
+  prefersReducedMotion,
+  REDUCED_MOTION_PAUSE,
+} from "../reducedMotion.js";
 
 export interface VideoTextProps {
   /** Text rendered as the video mask's glyph shapes. Defaults to `"OCEAN"`. */
@@ -163,7 +167,11 @@ function videoText(props: VideoTextProps = {}): DomphyElement<"div"> {
           // policies — the content attribute alone only seeds
           // `defaultMuted`, not the live playback state.
           videoElement.muted = muted;
-          if (!autoPlay) return;
+          // WCAG 2.2.2: a looping autoplaying video is auto-starting motion
+          // over five seconds long. Under reduce it holds its poster/first
+          // frame; native controls are not exposed (the element is decorative
+          // and `aria-hidden`), so the user keeps a static masked still.
+          if (!autoPlay || prefersReducedMotion()) return;
           const playResult = videoElement.play();
           // Autoplay can be rejected by the browser (e.g. no user gesture yet
           // on a strict mobile policy) — fail open, the frame just stays on
@@ -178,13 +186,13 @@ function videoText(props: VideoTextProps = {}): DomphyElement<"div"> {
         ariaHidden: "true",
         // Decorative gradient stand-in for the (unbundled) video — no text of
         // its own, exempt from the missing-color contract.
-        _doctorDisable: "missing-color",
         style: {
           ...maskedFillStyle,
           backgroundImage: (listener: Listener) =>
             `linear-gradient(90deg, ${themeColor(listener, "shift-8", fallbackColor)}, ${themeColor(listener, "shift-2", fallbackColor)}, ${themeColor(listener, "shift-11", fallbackColor)}, ${themeColor(listener, "shift-8", fallbackColor)})`,
           backgroundSize: "300% 100%",
           animation: `${gradientAnimationName} 6s linear infinite`,
+          ...REDUCED_MOTION_PAUSE,
           [`@keyframes ${gradientAnimationName}`]: gradientKeyframes,
         } as StyleObject,
       } as DomphyElement<"div">);

@@ -79,7 +79,6 @@ function gridPattern(props: GridPatternProps = {}): DomphyElement<"div"> {
         d: `M.5 ${height}V.5H${width}`,
         fill: "none",
         // Decorative line path, no text of its own.
-        _doctorDisable: "missing-color",
         style: {
           stroke: (listener: Listener) =>
             themeColor(listener, "shift-4", color),
@@ -105,7 +104,6 @@ function gridPattern(props: GridPatternProps = {}): DomphyElement<"div"> {
         width: width - 1,
         height: height - 1,
         ariaHidden: "true",
-        _doctorDisable: "missing-color",
         style: {
           // Same tone as the grid lines (upstream uses one `gray-400/30` for both
           // `fill-` squares and `stroke-` lines), so highlighted cells read as the

@@ -10,6 +10,7 @@ import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
 import { heading, link, paragraph } from "@domphy/ui";
+import { REDUCED_MOTION_PAUSE } from "../reducedMotion.js";
 
 export interface BentoCardSpec {
   title: string;
@@ -126,16 +127,11 @@ function gradientBlob(color: ThemeColor): DomphyElement<"div"> {
     "50%": { transform: "translate(8%, 8%) scale(1.15)" },
   };
   const animationName = `bento-blob-${hashString(JSON.stringify(keyframes) + color)}`;
-  // `_doctorDisable` is a doctor-only annotation not present in core's strict
-  // `PartialElement` type — build through an untyped literal, then assert, so
-  // the excess-property check doesn't fire (mirrors verticalDivider() in the
-  // shadcn sidebar family).
   const element = {
     div: null,
     ariaHidden: "true",
     // Decorative gradient blob with no text of its own — exempt from the
     // missing-color contract.
-    _doctorDisable: "missing-color",
     style: {
       position: "absolute",
       inset: "-25%",
@@ -143,8 +139,14 @@ function gradientBlob(color: ThemeColor): DomphyElement<"div"> {
       background: (listener: Listener) =>
         `radial-gradient(circle at 30% 30%, ${themeColor(listener, "shift-1", color)}, transparent 60%)`,
       opacity: 0.35,
+      // Decorative blob, not a control — the enclosing backgroundLayer div
+      // already sets pointer-events: none, restated here so doctor's
+      // low-opacity rule (which reads each element's own style, not an
+      // inherited one) can see the same exemption.
+      pointerEvents: "none",
       filter: "blur(28px)",
       animation: `${animationName} 9s ease-in-out infinite`,
+      ...REDUCED_MOTION_PAUSE,
       [`@keyframes ${animationName}`]: keyframes,
     },
   };
@@ -215,11 +217,6 @@ function bentoCard(card: BentoCardSpec): DomphyElement<"div"> {
       }
     : null;
 
-  // `_doctorDisable` is a doctor-only annotation not present in core's strict
-  // `PartialElement` type — build through an untyped literal, then assert, so
-  // the excess-property check doesn't fire (mirrors verticalDivider() in the
-  // shadcn sidebar family).
-  //
   // Full-card hover tint overlay — upstream's final card layer
   // (`group-hover:bg-black/3 group-hover:dark:bg-neutral-800/10`): fully
   // transparent at rest, a faint dark wash on hover. Replaces this port's
@@ -231,7 +228,6 @@ function bentoCard(card: BentoCardSpec): DomphyElement<"div"> {
     dataBentoOverlay: "true",
     // Decorative tint layer with no text of its own — exempt from the
     // missing-color contract.
-    _doctorDisable: "missing-color",
     style: {
       position: "absolute",
       inset: 0,

@@ -22,7 +22,7 @@ const noopCanvasContext = new Proxy(
   },
 );
 HTMLCanvasElement.prototype.getContext = (() =>
-  noopCanvasContext) as typeof HTMLCanvasElement.prototype.getContext;
+  noopCanvasContext) as unknown as typeof HTMLCanvasElement.prototype.getContext;
 
 function render(app: DomphyElement) {
   const host = document.createElement("div");

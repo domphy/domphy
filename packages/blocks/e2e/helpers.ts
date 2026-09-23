@@ -22,7 +22,7 @@ async function retryAcrossReload<T>(
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (
-      !/execution context was destroyed|Target closed|disconnectLazyMount is not a function|mountBlock is not a function/i.test(
+      !/execution context was destroyed|Target closed|interrupted by another navigation|disconnectLazyMount is not a function|mountBlock is not a function|element\(s\) not found/i.test(
         message,
       )
     ) {
@@ -35,6 +35,11 @@ async function retryAcrossReload<T>(
 
 /** Stop lazy-mount of sibling cards, then force-render one named block. */
 export async function mountBlock(page: Page, name: string): Promise<void> {
+  // The WHOLE sequence is retried, not just the evaluates: when Vite's reload
+  // lands AFTER mountBlock() ran, no evaluate throws — the page simply comes
+  // back with nothing mounted, and the failure surfaces as `[data-block=…]`
+  // "element(s) not found" on the assertion below. Re-running the sequence is
+  // safe (demo-main's mountBlock is a no-op once the block is mounted).
   await retryAcrossReload(page, async () => {
     await page.waitForFunction(
       () =>
@@ -42,24 +47,30 @@ export async function mountBlock(page: Page, name: string): Promise<void> {
         typeof (window as unknown as DemoWindow).disconnectLazyMount ===
           "function",
     );
-    await page.evaluate(() => {
-      (window as unknown as DemoWindow).disconnectLazyMount?.();
-    });
-  });
-  await retryAcrossReload(page, async () => {
     await page.evaluate((blockName) => {
-      (window as unknown as DemoWindow).mountBlock?.(blockName);
+      const demo = window as unknown as DemoWindow;
+      demo.disconnectLazyMount?.();
+      demo.mountBlock?.(blockName);
     }, name);
+    const card = page.locator(`[data-block="${name}"]`);
+    await expect(card).toBeVisible({ timeout: 10_000 });
+    await expect(card.locator(".error")).toHaveCount(0);
+    await card
+      .locator(".block-box")
+      .locator("*")
+      .first()
+      .waitFor({ state: "attached", timeout: 8_000 });
   });
-  const card = page.locator(`[data-block="${name}"]`);
-  await expect(card).toBeVisible();
-  await expect(card.locator(".error")).toHaveCount(0);
-  await card
-    .locator(".block-box")
-    .locator("*")
-    .first()
-    .waitFor({ state: "attached", timeout: 8_000 });
 }
+
+/**
+ * Theme the demo renders under. The whole demo chrome (body/card/label) is
+ * driven by the theme's `--neutral-N` variables, so `BLOCKS_E2E_THEME=dark`
+ * makes the axe/contrast lane measure blocks against the dark surface they
+ * actually sit on in a dark app.
+ */
+export const demoTheme =
+  process.env.BLOCKS_E2E_THEME === "dark" ? "dark" : "light";
 
 export async function openDemo(page: Page): Promise<void> {
   const pageErrors: string[] = [];
@@ -68,12 +79,20 @@ export async function openDemo(page: Page): Promise<void> {
   };
   page.on("pageerror", onError);
   try {
-    await page.goto("/demo.html", { waitUntil: "domcontentloaded" });
-    await page.waitForFunction(
-      () => typeof (window as unknown as DemoWindow).mountBlock === "function",
-      undefined,
-      { timeout: 90_000 },
-    );
+    // Vite's dep-optimizer can force a full reload WHILE this navigation is in
+    // flight ("interrupted by another navigation"), which killed a 97-block
+    // scan at block 83. Same retry class as mountBlock().
+    await retryAcrossReload(page, async () => {
+      await page.goto(`/demo.html?theme=${demoTheme}`, {
+        waitUntil: "domcontentloaded",
+      });
+      await page.waitForFunction(
+        () =>
+          typeof (window as unknown as DemoWindow).mountBlock === "function",
+        undefined,
+        { timeout: 90_000 },
+      );
+    });
     expect(pageErrors, pageErrors.join("\n")).toEqual([]);
   } finally {
     page.off("pageerror", onError);

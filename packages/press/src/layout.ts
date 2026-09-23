@@ -6,7 +6,7 @@ import { navLink } from "@domphy/app";
 import type { DomphyElement, StyleObject } from "@domphy/core";
 import { rawHtml } from "@domphy/core";
 import { themeColor, themeSpacing } from "@domphy/theme";
-import { linkButton, toolbar, toolbarSpacer } from "@domphy/ui";
+import { linkButton, small, strong, toolbar, toolbarSpacer } from "@domphy/ui";
 import {
   prevNextForRoute,
   sidebarForRoute,
@@ -34,10 +34,34 @@ const ts = (n: number): string => themeSpacing(n);
 
 // Press deliberately owns its documentation type scale (VitePress-derived
 // pixel values) rather than the theme's 8-step size scale — remapping every
-// fontSize onto the nearest token would visibly change every press site.
-// Declaring typography through functions is @domphy/doctor's designed marker
-// for intentional, non-token typography (inline-typography passes function
-// values); the values themselves stay pixel-identical.
+// fontSize onto the nearest token would visibly change every press site, and
+// markdown emits bare <h2>/<code>/<th> with no call site to attach a
+// typography patch to.
+//
+// This wrapper used to double as a doctor marker: `inline-typography` skipped
+// function values, so declaring typography through a function meant "not a
+// token, on purpose". Doctor now resolves reactive values and flags the literal
+// behind them, so the marker no longer carries that meaning and every element
+// that declares typography through `fixed()` states it itself, with
+// `_doctorDisable: "inline-typography"`. This comment is the reason for all of
+// them; the sites do not repeat it.
+//
+// MEASURED — why the theme scale cannot express this one (diagnose() over
+// pageShell + homeShell with every themeConfig feature enabled: 48 warnings
+// across 25 elements, all of them typography literals; a bare context renders
+// fewer elements, which is why any single count quoted without its fixture is
+// meaningless):
+//   - The scale is 12 / 14 / 16 / 20 / 25 / 31 / 39 / 49 px at a 16px root.
+//     The literals here are 10, 11, 12, 13, 13.5, 14, 14.5, 17, 18, 28, 30, 56
+//     and two clamp() ramps. Only 12px and 14px land on a token.
+//   - `themeSize()` covers fontSize only. There is no theme token for
+//     fontWeight (500/600/700/800) or letterSpacing (-.01/-.02/-.03em), so
+//     those elements would keep the warning even after a fontSize swap.
+//   - The generated stylesheet in theme.ts carries ~100 more px values for the
+//     same scale (12px, 13px, 13.5px, 14.5px, .85em…) as raw CSS text doctor
+//     cannot see. Routing the 2-3 coincidental matches through a token would
+//     make those elements follow a site's `fontSizes` override while the other
+//     ~120 declarations stayed put — one scale silently becoming two.
 const fixed = (value: string) => (): string => value;
 
 // Font hooks — sites inject these vars (e.g. a Google Fonts <link> plus a
@@ -61,10 +85,24 @@ const bg = tc("inherit");
 const bgSoft = tc("shift-1");
 const bgMute = tc("shift-2");
 const border = tc("shift-3");
-const textSoft = tc("shift-6");
+// Tone floors are measured, not chosen by eye (built-in theme, axe-core 4.12
+// on the sample site): on the page surface shift-9 = 4.61:1 (AA) while
+// shift-8 = 4.12:1 and shift-6 = 2.77:1 both fail. On a shift-1 surface
+// shift-9 drops to 4.23:1, so tinted chrome (code title bars, table headers,
+// feature cards, admonitions) needs shift-10 = 5.13:1. Essential UI chrome —
+// nav items, TOC links, prev/next labels — therefore uses `text`, never a
+// softer tone (see AGENTS.md "Contrast contract").
 const text = tc("shift-9");
+// Body tone for text sitting on a shift-1 tinted surface.
+const textOnTint = tc("shift-10");
 const textStrong = tc("shift-11");
 const brand = tc("shift-9", "primary");
+// Brand text on a tinted (shift-1/shift-2) surface: primary-9 measures
+// 4.87:1 on shift-1 light but only 4.12:1 on shift-2 light and 3.85:1 on
+// shift-2 dark; primary-10 clears AA on both (same reason as theme.ts).
+const brandOnTint = tc("shift-10", "primary");
+// …and shift-11 for the shift-2 surfaces (hovered panel row, tinted bars).
+const brandOnBar = tc("shift-11", "primary");
 
 const headerH = ts(14);
 const sidebarW = ts(62);
@@ -107,6 +145,7 @@ function socialLinkEl(social: SocialLink): DomphyElement {
     ariaLabel: social.ariaLabel ?? SOCIAL_LABELS[name] ?? social.icon,
     target: "_blank",
     rel: "noopener noreferrer",
+    _doctorDisable: "inline-typography",
     style: {
       display: "inline-flex",
       alignItems: "center",
@@ -114,15 +153,15 @@ function socialLinkEl(social: SocialLink): DomphyElement {
       width: ts(8.5),
       height: ts(8.5),
       borderRadius: ts(2),
-      color: textSoft,
+      color: textOnTint,
       background: bgSoft,
       border: `1px solid ${border}`,
       fontSize: fixed("10px"),
       fontWeight: fixed("700"),
       flexShrink: "0",
       "&:hover": {
-        color: text,
-        borderColor: textSoft,
+        color: textStrong,
+        borderColor: text,
         textDecoration: fixed("none"),
       },
     },
@@ -168,13 +207,20 @@ function navDropdown(
     flexDirection: "column" as const,
     gap: ts(0.5),
     boxShadow: "0 4px 16px rgba(0,0,0,.1)",
-    "& a": {
+    // `:any-link` bumps specificity past the header nav's own `& a` colour
+    // rule so panel links get the shift-1-surface tone regardless of the
+    // order the two scoped rules land in the generated stylesheet.
+    "& a:any-link": {
       display: "block",
       padding: `${ts(1.25)} ${ts(2.5)}`,
       borderRadius: ts(1.25),
       fontSize: fixed("13px"),
+      color: textOnTint,
     },
-    "& a:hover": { background: bgMute },
+    "& a:any-link:hover, & a:any-link[aria-current='page']": {
+      background: bgMute,
+      color: brandOnBar,
+    },
     // The reveal-on-hover pattern above doesn't work on touch. When this nav
     // becomes the mobile drawer (see header()'s Primary nav style), show the
     // submenu expanded inline instead of gating it behind hover/focus.
@@ -192,9 +238,22 @@ function navDropdown(
   return {
     div: [
       {
-        span: item.text,
+        // A <button>, not a <span>: the panel is revealed by :focus-within, so
+        // the trigger MUST be focusable or the whole submenu is unreachable by
+        // keyboard (its links are display:none, hence not tabbable either).
+        // Same mechanism as VitePress's VPFlyout. RUNTIME_SCRIPT mirrors the
+        // hover/focus state onto aria-expanded.
+        button: item.text,
+        type: "button",
+        ariaExpanded: "false",
+        ariaHaspopup: "true",
+        _doctorDisable: "inline-typography",
         style: {
-          color: textSoft,
+          color: text,
+          background: "none",
+          border: "none",
+          padding: "0",
+          fontFamily: fixed("inherit"),
           fontSize: fixed("14px"),
           fontWeight: fixed("500"),
           cursor: "pointer",
@@ -211,6 +270,7 @@ function navDropdown(
         style: menuStyle,
       },
     ],
+    dataNavDropdown: "",
     style: {
       position: "relative",
       display: "flex",
@@ -242,6 +302,7 @@ function announcementBar(config: SiteConfig): DomphyElement | null {
       type: "button",
       dataDismissAnnouncement: "",
       ariaLabel: "Dismiss",
+      _doctorDisable: "inline-typography",
       style: {
         background: "none",
         border: "none",
@@ -257,9 +318,13 @@ function announcementBar(config: SiteConfig): DomphyElement | null {
     } as DomphyElement);
   }
   return {
-    div: children,
+    // <aside>, not <div>: it sits outside header/main/footer, so as a plain
+    // div its text belongs to no landmark (axe `region`, moderate).
+    aside: children,
+    ariaLabel: "Announcement",
     class: "dp-announcement", // kept: JS uses querySelector('.dp-announcement')
     ...(idAttr ? { dataId: idAttr } : {}),
+    _doctorDisable: "inline-typography",
     style: {
       display: "flex",
       alignItems: "center",
@@ -324,16 +389,18 @@ function localeSwitcher(ctx: LayoutContext): DomphyElement | null {
       href,
       ...(isActive ? { ariaCurrent: "true" } : {}),
       lang: locale.lang,
+      _doctorDisable: "inline-typography",
       style: {
         display: "block",
         padding: `${ts(1.25)} ${ts(2.5)}`,
         borderRadius: ts(1.25),
         fontSize: fixed("13px"),
-        color: textSoft,
-        ...(isActive ? { color: brand, fontWeight: fixed("600") } : {}),
+        // The panel sits on a shift-1 surface — see textOnTint/brandOnTint.
+        color: textOnTint,
+        ...(isActive ? { color: brandOnTint, fontWeight: fixed("600") } : {}),
         "&:hover": {
           background: bgMute,
-          color: text,
+          color: textStrong,
           textDecoration: fixed("none"),
         },
       },
@@ -360,9 +427,17 @@ function localeSwitcher(ctx: LayoutContext): DomphyElement | null {
   return {
     div: [
       {
-        span: ["🌐 ", currentLocale.label],
+        // Focusable trigger — see navDropdown: the panel opens on
+        // :focus-within, which a <span> can never satisfy.
+        button: ["🌐 ", currentLocale.label],
+        type: "button",
+        ariaExpanded: "false",
+        ariaHaspopup: "true",
+        ariaLabel: `Select language, current ${currentLocale.label}`,
+        _doctorDisable: "inline-typography",
         style: {
-          color: textSoft,
+          color: textOnTint,
+          fontFamily: fixed("inherit"),
           fontSize: fixed("13px"),
           fontWeight: fixed("500"),
           cursor: "pointer",
@@ -384,7 +459,7 @@ function localeSwitcher(ctx: LayoutContext): DomphyElement | null {
       },
       { div: links, style: menuStyle },
     ],
-    ariaLabel: "Select language",
+    dataNavDropdown: "",
     style: {
       position: "relative",
       display: "flex",
@@ -448,12 +523,26 @@ function header(ctx: LayoutContext): DomphyElement {
     flexShrink: "0",
     textDecoration: fixed("none"),
     "&:hover": { textDecoration: fixed("none") },
+    // A long site title must give way rather than push the toolbar past the
+    // viewport edge (measured: 375px header scrollWidth 425px before this).
+    "@media (max-width: 860px)": {
+      flexShrink: "1",
+      minWidth: "0",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+    },
   };
   const logoEl: DomphyElement = logo
-    ? ({ a: logoInner, href: config.base, style: logoStyle } as DomphyElement)
+    ? ({
+        a: logoInner,
+        href: config.base,
+        _doctorDisable: "inline-typography",
+        style: logoStyle,
+      } as DomphyElement)
     : ({
         a: config.title,
         href: config.base,
+        _doctorDisable: "inline-typography",
         style: logoStyle,
       } as DomphyElement);
 
@@ -480,9 +569,10 @@ function header(ctx: LayoutContext): DomphyElement {
         ),
         $: [toolbar({ gap: 4 })],
         ariaLabel: "Primary",
+        id: "dp-primary-nav",
         style: {
           "& a": {
-            color: textSoft,
+            color: text,
             fontSize: fixed("14px"),
             fontWeight: fixed("500"),
             whiteSpace: "nowrap",
@@ -502,7 +592,11 @@ function header(ctx: LayoutContext): DomphyElement {
                 flexDirection: "column",
                 alignItems: "flex-start",
                 position: "fixed",
-                top: headerH,
+                // --dp-drawer-top is written by RUNTIME_SCRIPT from the live
+                // header bottom edge: with an announcement bar above it the
+                // header sits lower than headerH and a fixed `top: headerH`
+                // drawer covers it (reproduced at 375px with a bar present).
+                top: `var(--dp-drawer-top, ${headerH})`,
                 left: "0",
                 bottom: "0",
                 width: "80%",
@@ -532,6 +626,7 @@ function header(ctx: LayoutContext): DomphyElement {
                           config.themeConfig.search.placeholder) ||
                         "Search...",
                       ariaLabel: "Search documentation",
+                      _doctorDisable: "inline-typography",
                       style: {
                         width: "100%",
                         height: ts(8),
@@ -539,19 +634,37 @@ function header(ctx: LayoutContext): DomphyElement {
                         border: `1px solid ${border}`,
                         borderRadius: ts(1.5),
                         background: bgSoft,
-                        color: textSoft,
+                        color: textOnTint,
                         fontSize: fixed("13px"),
                         fontFamily: fixed("inherit"),
                         outline: "none",
                         cursor: "pointer",
-                        "&::placeholder": { color: textSoft },
+                        // Placeholder text is text under WCAG 1.4.3. On this
+                        // shift-1 tinted field shift-7 measured 2.84:1 light /
+                        // 3.33:1 dark, and shift-9 is still only 4.23:1 light;
+                        // shift-10 (the field's own textOnTint) is the first
+                        // tone that clears 4.5 on both — 5.13:1 / 6.03:1.
+                        //
+                        // Matching the field's text tone (rather than sitting a
+                        // step below it, as the `inputSearch()` patch does) is
+                        // correct here: this input is pre-hydration chrome for
+                        // the `search` island, which swaps in the real
+                        // `searchWidget()` field. It never holds a typed value,
+                        // so its placeholder IS its label.
+                        "&::placeholder": { color: textOnTint },
                       },
                     },
                   ],
                   dataIsland: "search",
                   style: {
                     width: ts(50),
-                    "@media (max-width: 860px)": { width: ts(35) },
+                    // Phone widths: give up width rather than push the
+                    // toolbar off-screen. ts(20) keeps the field usable.
+                    "@media (max-width: 860px)": {
+                      width: "auto",
+                      flex: `1 1 ${ts(35)}`,
+                      minWidth: ts(20),
+                    },
                   },
                 } as DomphyElement,
               ]
@@ -570,6 +683,9 @@ function header(ctx: LayoutContext): DomphyElement {
             ],
             type: "button",
             ariaLabel: "Toggle dark mode",
+            // Toggle button state (WAI-ARIA APG button pattern); RUNTIME_SCRIPT
+            // flips it together with html[data-theme].
+            ariaPressed: "false",
             dataThemeToggle: "",
             style: {
               border: `1px solid ${border}`,
@@ -597,6 +713,10 @@ function header(ctx: LayoutContext): DomphyElement {
             ],
             type: "button",
             ariaLabel: "Toggle menu",
+            // Disclosure pattern: the drawer it controls is the docs sidebar
+            // nav (or the Primary nav on pages without one).
+            ariaExpanded: "false",
+            ariaControls: showSidebar ? "dp-sidebar-nav" : "dp-primary-nav",
             dataMenuToggle: "",
             style: {
               border: `1px solid ${border}`,
@@ -617,7 +737,11 @@ function header(ctx: LayoutContext): DomphyElement {
           },
         ],
         $: [toolbar({ gap: 2 })],
-        style: { flexShrink: "0" },
+        style: {
+          flexShrink: "0",
+          // The search field inside is what absorbs the shrink (see above).
+          "@media (max-width: 860px)": { flexShrink: "1", minWidth: "0" },
+        },
       },
     ],
     $: [toolbar({ gap: 4 })],
@@ -638,11 +762,14 @@ function header(ctx: LayoutContext): DomphyElement {
 // --- Sidebar badges -----------------------------------------------------
 
 function badgeEl(badge: NonNullable<SidebarItem["badge"]>): DomphyElement {
+  // shift-10, not shift-9: the badge paints a 12% tint of its own family over
+  // the page surface, and shift-9 lands at 4.08–4.2:1 there in dark
+  // (axe-core on the sample site). shift-10 clears AA on both themes.
   const colorMap: Record<string, string> = {
-    tip: brand,
-    info: textSoft,
-    warning: tc("shift-9", "warning"),
-    danger: tc("shift-9", "danger"),
+    tip: brandOnTint,
+    info: textOnTint,
+    warning: tc("shift-10", "warning"),
+    danger: tc("shift-10", "danger"),
   };
   const bgMap: Record<string, string> = {
     tip: `color-mix(in srgb,${brand} 12%,${bg})`,
@@ -653,6 +780,7 @@ function badgeEl(badge: NonNullable<SidebarItem["badge"]>): DomphyElement {
   const type = badge.type ?? "tip";
   return {
     span: badge.text,
+    _doctorDisable: "inline-typography",
     style: {
       display: "inline-block",
       padding: `${ts(0.5)} ${ts(1.75)}`,
@@ -663,7 +791,7 @@ function badgeEl(badge: NonNullable<SidebarItem["badge"]>): DomphyElement {
       whiteSpace: "nowrap",
       verticalAlign: "middle",
       background: bgMap[type] ?? bgMute,
-      color: colorMap[type] ?? textSoft,
+      color: colorMap[type] ?? textOnTint,
     },
   } as DomphyElement;
 }
@@ -703,13 +831,17 @@ function sidebarGroup(group: SidebarItem, base: string): DomphyElement {
         button: group.collapsed ? "›" : "‹",
         type: "button",
         ariaLabel: group.collapsed ? "Expand" : "Collapse",
+        // Disclosure state for the group's link list — RUNTIME_SCRIPT keeps
+        // it in sync with the `collapsed` class (incl. the restored state).
+        ariaExpanded: group.collapsed ? "false" : "true",
         dataSidebarToggle: "",
+        _doctorDisable: "inline-typography",
         style: {
           marginLeft: "auto",
           background: "none",
           border: "none",
           cursor: "pointer",
-          color: textSoft,
+          color: text,
           fontSize: fixed("14px"),
           padding: `0 ${ts(1)}`,
           lineHeight: fixed("1"),
@@ -719,6 +851,7 @@ function sidebarGroup(group: SidebarItem, base: string): DomphyElement {
     }
     children.push({
       div: titleChildren,
+      _doctorDisable: "inline-typography",
       style: {
         display: "flex",
         alignItems: "center",
@@ -737,9 +870,10 @@ function sidebarGroup(group: SidebarItem, base: string): DomphyElement {
       if (item.items) {
         itemsEl.push({
           div: item.text,
+          _doctorDisable: "inline-typography",
           style: {
             fontSize: fixed("12px"),
-            color: textSoft,
+            color: text,
             padding: `${ts(1)} ${ts(3)}`,
             fontWeight: fixed("600"),
           },
@@ -776,11 +910,58 @@ function sidebarGroup(group: SidebarItem, base: string): DomphyElement {
   } as DomphyElement;
 }
 
+// Top-level site nav, flattened into the mobile drawer. On a doc page the
+// header's Primary nav is display:none below 860px, and the drawer is the only
+// panel that opens — without this copy the site nav is simply unreachable on a
+// phone (VitePress/Starlight/Docusaurus all surface it in the mobile menu).
+// Hidden above 860px, where the header nav is the real one.
+function mobileSiteNav(ctx: LayoutContext): DomphyElement | null {
+  const items = ctx.config.themeConfig.nav;
+  if (items.length === 0) return null;
+  const base = ctx.config.base;
+  const children: DomphyElement[] = [];
+  for (const item of items) {
+    if (item.items) {
+      children.push({
+        div: item.text,
+        _doctorDisable: "inline-typography",
+        style: {
+          fontSize: fixed("12px"),
+          color: text,
+          padding: `${ts(1)} ${ts(3)}`,
+          fontWeight: fixed("600"),
+        },
+      } as DomphyElement);
+      for (const child of item.items)
+        children.push(pageLink(child.text, child.link, base));
+    } else if (item.link) {
+      children.push(pageLink(item.text, item.link, base));
+    }
+  }
+  return {
+    div: children,
+    style: {
+      display: "none",
+      flexDirection: "column",
+      paddingBottom: ts(3),
+      marginBottom: ts(3),
+      borderBottom: `1px solid ${border}`,
+      color: text,
+      "@media (max-width: 860px)": { display: "flex" },
+    },
+  } as DomphyElement;
+}
+
 function sidebar(ctx: LayoutContext): DomphyElement {
   const groups = sidebarForRoute(ctx.route, ctx.config);
+  const siteNav = mobileSiteNav(ctx);
   return {
-    nav: groups.map((group) => sidebarGroup(group, ctx.config.base)),
+    nav: [
+      ...(siteNav ? [siteNav] : []),
+      ...groups.map((group) => sidebarGroup(group, ctx.config.base)),
+    ],
     ariaLabel: "Documentation", // used as stable selector in pressCSS mobile-open rule
+    id: "dp-sidebar-nav",
     style: {
       position: "sticky",
       top: headerH,
@@ -803,19 +984,22 @@ function sidebar(ctx: LayoutContext): DomphyElement {
         borderRadius: ts(1.5),
         textDecoration: fixed("none"),
       },
+      // brandOnTint, not brand: the hovered/active row paints a shift-1
+      // background under the label (primary-9 measures 4.34:1 there in dark).
       "& a:hover": {
-        color: brand,
+        color: brandOnTint,
         textDecoration: fixed("none"),
         background: bgSoft,
       },
       "& a[aria-current='page']": {
-        color: brand,
+        color: brandOnTint,
         fontWeight: fixed("600"),
         background: bgSoft,
       },
       "@media (max-width: 860px)": {
         position: "fixed",
-        top: headerH,
+        // See the Primary nav drawer — announcement bar offsets the header.
+        top: `var(--dp-drawer-top, ${headerH})`,
         left: "0",
         bottom: "0",
         width: "80%",
@@ -854,6 +1038,7 @@ function tocAside(ctx: LayoutContext): DomphyElement | null {
     aside: [
       {
         div: tocTitle,
+        _doctorDisable: "inline-typography",
         style: { fontWeight: fixed("700"), marginBottom: ts(2), color: text },
       },
       {
@@ -863,10 +1048,11 @@ function tocAside(ctx: LayoutContext): DomphyElement | null {
         nav: entries.map((e) => ({
           a: e.text,
           href: `#${e.slug}`,
+          _doctorDisable: "inline-typography",
           style: {
             display: "block",
             padding: `${ts(0.75)} 0`,
-            color: textSoft,
+            color: text,
             paddingLeft: indentMap[e.level] ?? basePad,
             borderLeft: fixed("2px solid transparent"),
             marginLeft: fixed("-2px"),
@@ -883,6 +1069,7 @@ function tocAside(ctx: LayoutContext): DomphyElement | null {
         ariaLabel: tocTitle,
       },
     ],
+    _doctorDisable: "inline-typography",
     style: {
       position: "sticky",
       top: headerH,
@@ -919,7 +1106,10 @@ function prevNext(ctx: LayoutContext): DomphyElement | null {
     padding: `${ts(3)} ${ts(4)}`,
     border: `1px solid ${border}`,
     borderRadius: ts(2),
-    fontWeight: fixed("600"),
+    // `color` as well as `border`: without it the link text does not
+    // re-resolve when an ancestor shifts the tone context (doctor
+    // `missing-color`).
+    color: text,
     flex: "1",
     "&:hover": { borderColor: brand, textDecoration: fixed("none") },
   });
@@ -928,39 +1118,37 @@ function prevNext(ctx: LayoutContext): DomphyElement | null {
       prev
         ? {
             a: [
+              // small(): the patch owns the size and the shift-10 tone that
+              // keeps sub-body type above 4.5:1. A host `style.color` or an
+              // inline fontSize here would outrank it (native beats patch) —
+              // only layout belongs in `style`.
               {
                 small: "Previous",
-                style: {
-                  display: "block",
-                  color: textSoft,
-                  fontWeight: fixed("400"),
-                  fontSize: fixed("12px"),
-                },
+                $: [small()],
+                style: { display: "block" },
               },
-              { span: prev.text },
+              { strong: prev.text, $: [strong()] },
             ],
             href: withBase(base, prev.link),
             style: linkStyle,
           }
-        : { span: "" },
+        : // Keeps the remaining link on its own half instead of letting it
+          // stretch across the full row (VitePress does the same).
+          { span: "", style: { flex: "1" } },
       next
         ? {
             a: [
               {
                 small: "Next",
-                style: {
-                  display: "block",
-                  color: textSoft,
-                  fontWeight: fixed("400"),
-                  fontSize: fixed("12px"),
-                },
+                $: [small()],
+                style: { display: "block" },
               },
-              { span: next.text },
+              { strong: next.text, $: [strong()] },
             ],
             href: withBase(base, next.link),
             style: { ...linkStyle, textAlign: "right" },
           }
-        : { span: "" },
+        : { span: "", style: { flex: "1" } },
     ],
     ariaLabel: "Page navigation",
     style: {
@@ -970,6 +1158,7 @@ function prevNext(ctx: LayoutContext): DomphyElement | null {
       marginTop: ts(12),
       paddingTop: ts(6),
       borderTop: `1px solid ${border}`,
+      color: text,
     },
   };
 }
@@ -1006,11 +1195,13 @@ function docFooter(ctx: LayoutContext): DomphyElement | null {
       href,
       target: "_blank",
       rel: "noopener noreferrer",
+      _doctorDisable: "inline-typography",
       style: { fontWeight: fixed("500"), fontSize: fixed("13px") },
     } as DomphyElement);
   }
   return {
     div: children,
+    _doctorDisable: "inline-typography",
     style: {
       display: "flex",
       alignItems: "center",
@@ -1020,7 +1211,7 @@ function docFooter(ctx: LayoutContext): DomphyElement | null {
       paddingTop: ts(5),
       borderTop: `1px solid ${border}`,
       fontSize: fixed("13px"),
-      color: textSoft,
+      color: text,
     },
   };
 }
@@ -1062,6 +1253,11 @@ function contentDiv(body: DomphyElement[], maxWidth?: string): DomphyElement {
     div: body,
     style: {
       maxWidth: maxWidth ?? contentMax,
+      // Inherited: a long unbroken token (a URL, a package specifier, a hash)
+      // otherwise widens the single mobile grid column and scrolls the whole
+      // page sideways — measured 508px of scrollWidth at a 375px viewport.
+      // VitePress applies the same on .vp-doc.
+      overflowWrap: "break-word",
       "& h1": {
         fontSize: fixed("30px"),
         fontWeight: fixed("700"),
@@ -1106,7 +1302,9 @@ function contentDiv(body: DomphyElement[], maxWidth?: string): DomphyElement {
       "& em": { fontStyle: "italic" },
       "& mark": {
         background: `color-mix(in srgb,${tc("shift-6", "warning")} 40%,${bg})`,
-        color: "inherit",
+        // Explicit, not inherit: the 40% warning tint is dark enough that the
+        // inherited body tone measures 3.42:1 on it (axe-core).
+        color: textStrong,
         padding: `${ts(0.25)} ${ts(0.75)}`,
         borderRadius: ts(0.75),
       },
@@ -1117,7 +1315,7 @@ function contentDiv(body: DomphyElement[], maxWidth?: string): DomphyElement {
         margin: `${ts(4)} 0`,
         padding: `0 ${ts(4)}`,
         borderLeft: `3px solid ${border}`,
-        color: textSoft,
+        color: text,
       },
       "& img": { maxWidth: "100%", height: "auto", borderRadius: ts(1.5) },
       "& hr": {
@@ -1130,14 +1328,22 @@ function contentDiv(body: DomphyElement[], maxWidth?: string): DomphyElement {
           `var(--dp-font-mono, ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace)`,
         ),
         fontSize: fixed(".85em"),
-        background: bgMute,
+        // shift-1 (not shift-2) + shift-10: the body tone on a shift-2 chip
+        // measured 3.57:1; this pair measures 5.13:1 on both themes.
+        background: bgSoft,
+        color: textOnTint,
         padding: `${ts(0.75)} ${ts(1.5)}`,
         borderRadius: ts(1),
+        border: `1px solid ${border}`,
       },
       "& pre": {
         margin: `${ts(4)} 0`,
         padding: `${ts(4)} ${ts(5)}`,
-        background: bgSoft,
+        // Same surface as `.code-block pre` in pressCSS — the two selectors
+        // have equal specificity, so they must agree or the winner depends on
+        // stylesheet order. See the contrast note there.
+        background: bg,
+        color: text,
         borderRadius: ts(2),
         overflowX: "auto",
         fontSize: fixed("13.5px"),
@@ -1155,11 +1361,23 @@ function contentDiv(body: DomphyElement[], maxWidth?: string): DomphyElement {
         borderRadius: "0",
         margin: "0",
       },
+      // The wrapper the markdown walker emits is the scroll container — it
+      // carries role=region + a name + tabindex=0 so the horizontal scroll is
+      // keyboard-reachable and announced (axe `scrollable-region-focusable`).
+      // The old rule put `display:block; overflow-x:auto` on the <table>
+      // itself, which made the table the scroll container AND dropped its
+      // table semantics in screen readers that key off the display type.
+      "& .dp-table-scroll": {
+        margin: `${ts(4)} 0`,
+        overflowX: "auto",
+        maxWidth: "100%",
+      },
+      "& .dp-table-scroll:focus-visible": {
+        outline: `2px solid ${brand}`,
+        outlineOffset: "2px",
+      },
       "& table": {
         borderCollapse: "collapse",
-        margin: `${ts(4)} 0`,
-        display: "block",
-        overflowX: "auto",
       },
       // th and td are declared separately (not "& th, & td" + a second
       // "& th" block): the selector list would re-emit ".scope th" twice,
@@ -1174,6 +1392,7 @@ function contentDiv(body: DomphyElement[], maxWidth?: string): DomphyElement {
         padding: `${ts(2)} ${ts(3.5)}`,
         textAlign: "left",
         background: bgSoft,
+        color: textOnTint,
         fontWeight: fixed("600"),
       },
     },
@@ -1249,6 +1468,7 @@ export function pageShell(ctx: LayoutContext): DomphyElement {
     ? slots.footer(ctx)
     : ({
         footer: rawHtml(ctx.config.themeConfig.footerMessage ?? ""),
+        _doctorDisable: "inline-typography",
         style: {
           padding: `${ts(6)} ${ts(12)}`,
           borderTop: `1px solid ${border}`,
@@ -1328,6 +1548,7 @@ function heroSection(hero: HeroConfig, base: string): DomphyElement {
   if (hero.name)
     textChildren.push({
       div: hero.name,
+      _doctorDisable: "inline-typography",
       style: {
         fontSize: hasImage ? fixed("56px") : fixed("clamp(56px, 7vw, 82px)"),
         fontWeight: fixed("800"),
@@ -1340,6 +1561,7 @@ function heroSection(hero: HeroConfig, base: string): DomphyElement {
   if (hero.text)
     textChildren.push({
       h1: hero.text,
+      _doctorDisable: "inline-typography",
       style: {
         fontSize: hasImage ? fixed("30px") : fixed("clamp(26px, 3vw, 38px)"),
         fontWeight: fixed("700"),
@@ -1352,9 +1574,10 @@ function heroSection(hero: HeroConfig, base: string): DomphyElement {
   if (hero.tagline)
     textChildren.push({
       p: hero.tagline,
+      _doctorDisable: "inline-typography",
       style: {
         fontSize: fixed("18px"),
-        color: textSoft,
+        color: text,
         maxWidth: hasImage ? "none" : ts(160),
         margin: hasImage ? `${ts(5)} 0 0` : `${ts(5)} auto 0`,
       },
@@ -1397,6 +1620,7 @@ function heroSection(hero: HeroConfig, base: string): DomphyElement {
         { span: "$", style: { color: brand, userSelect: "none" } },
         { span: hero.command },
       ] as DomphyElement[],
+      _doctorDisable: "inline-typography",
       style: {
         display: "inline-flex",
         gap: ts(2),
@@ -1406,7 +1630,7 @@ function heroSection(hero: HeroConfig, base: string): DomphyElement {
         borderRadius: ts(2),
         border: `1px solid ${border}`,
         background: bgSoft,
-        color: textSoft,
+        color: textOnTint,
         fontFamily: fixed("var(--dp-font-mono, ui-monospace, monospace)"),
         fontSize: fixed("13.5px"),
       },
@@ -1486,6 +1710,7 @@ function featuresSection(
           typeof f.icon === "string"
             ? ({
                 div: f.icon,
+                _doctorDisable: "inline-typography",
                 style: { fontSize: fixed("28px"), marginBottom: ts(3) },
               } as DomphyElement)
             : ({
@@ -1496,6 +1721,7 @@ function featuresSection(
       }
       inner.push({
         div: f.title,
+        _doctorDisable: "inline-typography",
         style: {
           fontWeight: fixed("700"),
           fontSize: fixed("17px"),
@@ -1505,9 +1731,11 @@ function featuresSection(
       } as DomphyElement);
       inner.push({
         p: f.details,
+        _doctorDisable: "inline-typography",
         style: {
           fontSize: fixed("14px"),
-          color: textSoft,
+          // Card surface is shift-1 — see textOnTint.
+          color: textOnTint,
           margin: "0",
           lineHeight: fixed("1.5"),
         },
@@ -1623,6 +1851,7 @@ export function homeShell(ctx: LayoutContext): DomphyElement {
     ? slots.footer(ctx)
     : ({
         footer: rawHtml(ctx.config.themeConfig.footerMessage ?? ""),
+        _doctorDisable: "inline-typography",
         style: {
           padding: `${ts(6)} ${ts(12)}`,
           borderTop: `1px solid ${border}`,

@@ -11,6 +11,17 @@ export type ContrastValue = {
 export type WcagContrasts = Record<30 | 45 | 70, ContrastValue>;
 export type ApcaContrasts = Record<45 | 60 | 75, ContrastValue>;
 
+/**
+ * Fraction of the ramp's index range a "perfect" WCAG-AA (4.5:1) contrast
+ * pair should span, derived empirically in DESIGN.md §2.1 from how the AA
+ * threshold sits inside the black-to-white 21:1 luminance range (chromametry
+ * paper's Contrast Efficiency metric). Single source of truth for the ideal
+ * span `K_ideal = ceil(LAMBDA * (steps - 1))` — consumed here for scoring an
+ * existing ramp (`contrastEfficiency`) and by `Generator.ts` for deciding how
+ * many steps apart the generator's own AA floor constraint must hold.
+ */
+export const CONTRAST_EFFICIENCY_LAMBDA = 0.501;
+
 export class Ramp {
   swatches: Swatch[];
   name: string;
@@ -340,7 +351,7 @@ export class Ramp {
     const steps = this.steps;
     if (steps <= 1) return 1;
 
-    const lambda = 0.501;
+    const lambda = CONTRAST_EFFICIENCY_LAMBDA;
     const density = span / (steps - 1);
 
     if (density <= lambda) return 1;

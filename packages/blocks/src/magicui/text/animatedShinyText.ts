@@ -14,7 +14,13 @@
 
 import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
-import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import {
+  type ThemeColor,
+  textToneOn,
+  themeColor,
+  themeSpacing,
+} from "@domphy/theme";
+import { REDUCED_MOTION_PAUSE } from "../reducedMotion.js";
 
 export interface AnimatedShinyTextProps {
   /** Label text. Defaults to `"Introducing Domphy Blocks"`. */
@@ -118,6 +124,7 @@ function animatedShinyText(props: AnimatedShinyTextProps = {}): DomphyElement {
       backgroundClip: "text",
       WebkitBackgroundClip: "text",
       animation: `${animationName} ${duration}ms ease infinite`,
+      ...REDUCED_MOTION_PAUSE,
       [`@keyframes ${animationName}`]: keyframes,
     } as StyleObject,
   };
@@ -139,11 +146,15 @@ function animatedShinyText(props: AnimatedShinyTextProps = {}): DomphyElement {
       outline: (listener: Listener) =>
         `1px solid ${themeColor(listener, "shift-3")}`,
       outlineOffset: "-1px",
-      transition: "background-color 200ms ease",
+      transition: "background-color 200ms ease, color 200ms ease",
       "&:hover": {
         cursor: "pointer",
         backgroundColor: (listener: Listener) =>
           themeColor(listener, "shift-2"),
+        // The hover fill moves the badge's surface to ramp step 3; an absolute
+        // shift-9 label stays at 10 and the gap collapses to 7. textToneOn()
+        // carries the label the same distance so the CONTRAST_SPAN holds.
+        color: (listener: Listener) => themeColor(listener, textToneOn(2)),
       },
       // Solidify the shiny text on badge hover (upstream demo:
       // hover:text-neutral-600 dark:hover:text-neutral-400).

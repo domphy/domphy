@@ -20,9 +20,17 @@ Every keystroke in the control pane runs the exact pipeline described in
 [**`DESIGN.md`**](https://github.com/domphy/domphy/blob/main/DESIGN.md):
 
 1. `generateRamp(hex, 18)` interpolates from black through your color to
-   white in Oklab space, sampled through a rational warp curve tuned so the
-   WCAG 4.5:1 contrast pair lands at index distance 9 (`K_ideal = ⌈0.501 ×
-   17⌉`) — not by convention, by construction.
+   white in Oklab space (hue and chroma follow a rational warp curve), then
+   re-samples that path at a constrained luminance ladder — the closest fit
+   (subject to monotonicity and the AA floor) to the closed-form ladder
+   `Y_i + 0.05 = 1.05 · 21^(-i/17)`, pulled toward your own hex's real
+   luminance at its nearest step. Because contrast is
+   `(Y_hi + 0.05)/(Y_lo + 0.05)`, every pair 9 steps apart still clears
+   4.5:1 (5.01:1 on the unconstrained ladder) and every pair 8 apart clears
+   less — so `K_ideal = ⌈0.501 × 17⌉ = 9` is the minimal AA span for any hue
+   you type, by construction rather than by statistics, while the color you
+   typed round-trips exactly whenever the AA floor allows it. See
+   [`generateRamp`](../palette/generator).
 2. `generateTheme` repeats this per role and finds each `baseTones` index by
    nearest CIEDE2000 match to your original input, so `themeColor(l, "base",
    role)` still resolves to (approximately) the color you actually picked.

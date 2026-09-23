@@ -54,7 +54,31 @@ Transfer between lists: give two lists the same `group`. Reorder/transfer behavi
 
 ## Accessibility
 
-The engine is **pointer-based** — keyboard drag-and-drop is not implemented upstream (FormKit's `handleNodeKeydown` is an empty stub; the only built-in key handling is `Escape` clearing a multi-drag selection), and FormKit sets no `aria-grabbed`/`aria-dropeffect`/`tabindex` attributes. For keyboard-operable reorder, make items focusable yourself and reorder the bound state from a key handler (`items.set(...)`) — Domphy re-renders the keyed children — or drive the re-exported programmatic API (`performSort`, `performTransfer`). Announce the result through an ARIA live region from the `onSort`/`onTransfer` config callbacks.
+The engine is **pointer-based** — keyboard drag-and-drop is not implemented upstream (FormKit's `handleNodeKeydown` is an empty stub; the only built-in key handling is `Escape` clearing a multi-drag selection), and FormKit sets no `aria-grabbed`/`aria-dropeffect`/`tabindex` attributes.
+
+`keyboardSort()` supplies the keyboard path [WCAG 2.2 SC 2.5.7](https://www.w3.org/WAI/WCAG22/Understanding/dragging-movements.html) requires. Apply it to each item; it writes the same state the drag engine writes, so pointer and keyboard reorders stay in sync:
+
+```ts
+import { dragDrop, keyboardSort } from "@domphy/dnd"
+
+const sortItem = keyboardSort(items)
+
+const App = {
+  ul: (l) =>
+    items.get(l).map((item, index) => ({
+      li: item.label,
+      _key: item.id,
+      $: [sortItem(index)],
+    })),
+  $: [dragDrop(items)],
+}
+```
+
+Space/Enter picks an item up and drops it, arrow keys move it, Home/End jump to the ends, Escape cancels and restores the original order. Focus follows the item; each step is announced through a visually-hidden `aria-live` region. `keyboardSortGroup(lists)` is the counterpart of `multiListGroup` — left/right arrows move the held item between lists.
+
+Pointer drags are not announced by FormKit: add a live region and update it from the `onSort`/`onTransfer` callbacks.
+
+`pnpm test:e2e` drives `keyboardSort()`/`keyboardSortGroup()` with real Tab/Space/Arrow/Escape in Chromium (Playwright) — jsdom (`pnpm test`) has no real focus/blur/scrollIntoView, so the keyboard path's actual browser behavior is only proven there. Not part of `pnpm test` / `pnpm -r test`.
 
 ## Cleanup
 

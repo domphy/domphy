@@ -4,6 +4,7 @@ import {
   themeColor,
   themeDensity,
   themeSpacing,
+  themeWeight,
 } from "@domphy/theme";
 import { elevation } from "../utils/elevation.js";
 
@@ -14,15 +15,13 @@ import { elevation } from "../utils/elevation.js";
  * `<div>` (any block container).
  *
  * @param props.color - Surface/border color tone. Optional `ValueOrState<ThemeColor>`, default "neutral".
- * @example { div: { h3: "Title", p: "Body" }, $: [card({ color: "neutral" })] }
+ * @example { div: [{ h3: "Title", $: [heading()] }, { p: "Body", $: [paragraph()] }], $: [card({ color: "neutral" })] }
  */
 function card(
   props: { color?: ValueOrState<ThemeColor> } = {},
 ): PartialElement {
   const color = toState(props.color ?? "neutral", "color");
   return {
-    // Title weight is design-system chrome for the card region layout.
-    _doctorDisable: "inline-typography",
     style: {
       display: "grid",
       gridTemplateColumns: "1fr auto",
@@ -49,7 +48,7 @@ function card(
         gridArea: "title",
         paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 2),
         paddingInline: (listener) => themeSpacing(themeDensity(listener) * 4),
-        fontWeight: "600",
+        fontWeight: themeWeight("semibold"),
         color: (listener) =>
           themeColor(listener, "shift-11", color.get(listener)),
         margin: 0,
@@ -67,11 +66,15 @@ function card(
         padding: (listener) => themeSpacing(themeDensity(listener) * 2),
         height: "auto",
       },
+      // No `color` here: it repeated the exact same shift-10 the card's own
+      // top-level `color` above already sets (and this content area inherits),
+      // at (0,1,0)+combinator specificity that used to silently outrank a
+      // composed child's own generated-class color — e.g. a `chart()`-mounted
+      // div's own styling (packages/blocks' chart-bar/-line-interactive
+      // recipes, doctor's descendant-color-override rule).
       "& > div": {
         gridArea: "content",
         padding: (listener) => themeSpacing(themeDensity(listener) * 4),
-        color: (listener) =>
-          themeColor(listener, "shift-10", color.get(listener)),
       },
       "& > footer": {
         gridArea: "footer",

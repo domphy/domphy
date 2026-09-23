@@ -25,6 +25,21 @@ const footer: DomphyElement = { footer: "© 2025 Acme" }
 
 Children use `ElementInput` = primitive | `DomphyElement`. A primitive is `null | undefined | number | string | RawHTML` (`rawHtml()`). Boolean is not a valid child. An array of those is the tag's content (multiple children), not a `DomphyElement` itself.
 
+### Custom elements
+
+`DomphyElement` accepts any hyphenated key, which covers a custom element's tag and its kebab-case attributes. camelCase JS properties that no HTML element declares need `CustomElement<Props>`:
+
+```ts
+import type { CustomElement } from "@domphy/core"
+
+const chart: CustomElement<{ data: ChartData }> = {
+  "my-chart": null,
+  data: { series: [] },
+}
+```
+
+There is deliberately no `[key: string]` index signature on `DomphyElement`: one in any member of its union would switch off excess-property checking for *every* element, so a typo'd attribute on a `<div>` would stop being an error. See [Syntax → Custom Elements](./syntax#custom-elements).
+
 ## Typing state
 
 ```ts

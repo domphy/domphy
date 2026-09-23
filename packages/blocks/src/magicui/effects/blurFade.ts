@@ -103,7 +103,6 @@ function defaultThumbnail(index: number): DomphyElement {
     alt: `Gallery thumbnail ${index + 1}`,
     // A purely decorative gradient tile with no text of its own — exempt from the
     // missing-color contract, same idiom as `parallaxScroll.ts`'s photo tiles.
-    _doctorDisable: "missing-color",
     style: {
       display: "block",
       width: "100%",

@@ -33,7 +33,8 @@ export function merge(
     Object.prototype.toString.call(target) === "[object Object]" &&
     Object.getPrototypeOf(target) === Object.prototype
   ) {
-    // plainjs not class instance
+    // plainjs not class instance. `deepClone` carries `_behaviors` through by
+    // reference (see its note) — a behavior's props identity is its contract.
     target = deepClone(target);
   }
 
@@ -43,7 +44,13 @@ export function merge(
     // Join paths for class/transition still filter falsy parts separately.
     if (value === undefined || value === null) continue;
 
-    if (typeof value === "object" && !Array.isArray(value)) {
+    if (key === "_behaviors") {
+      // Combine the RECORDS (so `$`-composed patches can each contribute their
+      // own key) but never recurse into a spec: two patches claiming one
+      // behavior key is a collision, last wins, and `props` must not be merged
+      // key-by-key into a fresh object.
+      source._behaviors = { ...source._behaviors, ...value };
+    } else if (typeof value === "object" && !Array.isArray(value)) {
       if (typeof source[key] === "object") {
         source[key] = merge(source[key], value);
       } else {

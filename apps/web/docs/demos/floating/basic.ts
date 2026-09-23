@@ -81,11 +81,7 @@ const App: DomphyElement<"div"> = {
           // Solid brand chip, same recipe as button()'s solid variant:
           // deep shift-13 fill + shift-0 neutral text (mid-ramp fills fail
           // WCAG), with the doctor's surface rules silenced accordingly.
-          _doctorDisable: [
-            "low-contrast",
-            "color-shift-minimum",
-            "tone-background-inherit",
-          ],
+          _doctorDisable: "tone-background-inherit",
           style: {
             position: "absolute",
             left: (l) => `${posX.get(l)}px`,

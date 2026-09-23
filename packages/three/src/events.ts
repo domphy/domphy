@@ -32,7 +32,7 @@ export interface EventCaptureTarget {
   releasePointerCapture(pointerId: number): void;
 }
 
-export interface ThreeEvent<TEvent> extends Intersection {
+export interface IntersectionEvent<TEvent> extends Intersection {
   intersections: Intersection[];
   unprojectedPoint: THREE.Vector3;
   pointer: THREE.Vector2;
@@ -45,6 +45,22 @@ export interface ThreeEvent<TEvent> extends Intersection {
   target: EventCaptureTarget;
   currentTarget: EventCaptureTarget;
 }
+
+// The non-function own properties of the DOM event — exactly what
+// handleIntersects copies onto the event object below ("copy the atomics,
+// not functions"). Mirrors r3f's `Properties<T>` helper.
+type EventValueProperties<T> = Pick<
+  T,
+  { [K in keyof T]: T[K] extends (...args: any[]) => any ? never : K }[keyof T]
+>;
+
+// What a pointer handler receives: the intersection data above MERGED with
+// the native event's value props (`deltaY`, `clientX`, `shiftKey`, …), which
+// is what the runtime actually hands over. r3f parity:
+// `ThreeEvent<TEvent> = IntersectionEvent<TEvent> & Properties<TEvent>`; the
+// keys this package defines itself win over the native ones.
+export type ThreeEvent<TEvent> = IntersectionEvent<TEvent> &
+  Omit<EventValueProperties<TEvent>, keyof IntersectionEvent<TEvent>>;
 
 // Rule-1 pointer-event handler bag as stored by props.ts (a plain record of
 // whichever of the 14 whitelisted keys currently have a live function).
@@ -374,9 +390,26 @@ export function intersect(
   return intersections;
 }
 
-function calculateDistance(root: RootState, event: DomEvent): number {
-  const dx = event.offsetX - root.internal.initialClick[0];
-  const dy = event.offsetY - root.internal.initialClick[1];
+// Which coordinate pair a click-distance/initial-click measurement reads off
+// the native event. "offset" (the default) is only meaningful when the
+// listener is bound to the canvas itself — offsetX/Y are relative to
+// event.target, which stops being the canvas once eventSource points
+// somewhere else (see `connect()` below). Port of r3f's `eventPrefix`.
+export type EventPrefix = "offset" | "client" | "page" | "layer" | "screen";
+
+function eventXY(event: DomEvent, prefix: EventPrefix): [number, number] {
+  const source = event as unknown as Record<string, number>;
+  return [source[`${prefix}X`], source[`${prefix}Y`]];
+}
+
+function calculateDistance(
+  root: RootState,
+  event: DomEvent,
+  eventPrefix: EventPrefix,
+): number {
+  const [x, y] = eventXY(event, eventPrefix);
+  const dx = x - root.internal.initialClick[0];
+  const dy = y - root.internal.initialClick[1];
   return Math.round(Math.sqrt(dx * dx + dy * dy));
 }
 
@@ -531,6 +564,11 @@ const CLICK_EVENT_NAMES = new Set([
 // connect/disconnect (folded into the same factory since this package has no
 // separate EventManager abstraction to route through).
 export function createEvents(root: RootState) {
+  // Set by connect() — read by every handlePointer closure below, so a
+  // reconnect (or the initial connect) doesn't require rebuilding the
+  // per-event-name handler table.
+  let eventPrefix: EventPrefix = "offset";
+
   function handlePointer(name: string): (event: DomEvent) => void {
     if (name === "onPointerLeave" || name === "onPointerCancel") {
       return () => cancelPointer(root, []);
@@ -562,10 +600,12 @@ export function createEvents(root: RootState) {
       const filter = isPointerMove ? filterPointerEvents : undefined;
 
       const hits = intersect(root, event, filter);
-      const delta = isClickEvent ? calculateDistance(root, event) : 0;
+      const delta = isClickEvent
+        ? calculateDistance(root, event, eventPrefix)
+        : 0;
 
       if (name === "onPointerDown") {
-        internal.initialClick = [event.offsetX, event.offsetY];
+        internal.initialClick = eventXY(event, eventPrefix);
         internal.initialHits = hits.map((hit) => hit.eventObject);
       }
 
@@ -660,34 +700,49 @@ export function createEvents(root: RootState) {
     onLostPointerCapture: ["lostpointercapture", true],
   };
 
-  let connectedCanvas: HTMLElement | null = null;
+  let connectedTarget: EventTarget | null = null;
   let boundListeners: Record<string, (event: any) => void> | null = null;
 
-  function connect(canvas: HTMLElement): void {
+  // `eventSource` binds pointer listeners to a DOM node OTHER than the
+  // canvas (e.g. a wrapping container, or `document`) — needed when an HTML
+  // overlay sits on top of the canvas and would otherwise swallow the
+  // pointer events three needs to raycast (r3f's Canvas `eventSource` prop).
+  // `computePointer` above already reads clientX/Y off the canvas's own
+  // bounding rect regardless of which element the listener is bound to, so
+  // hit-testing stays correct; only `offsetX`/`offsetY` (relative to
+  // event.target, not the canvas) need the caller to opt into a different
+  // `eventPrefix` when eventSource isn't the canvas itself.
+  function connect(
+    canvas: HTMLElement,
+    eventSource?: EventTarget,
+    prefix?: EventPrefix,
+  ): void {
     disconnect();
+    eventPrefix = prefix ?? "offset";
+    const target = eventSource ?? canvas;
     const listeners: Record<string, (event: any) => void> = {};
     for (const key in DOM_EVENTS) {
       const [eventName, passive] = DOM_EVENTS[key];
       const listener = handlePointer(key);
       listeners[eventName] = listener;
-      canvas.addEventListener(eventName, listener as EventListener, {
+      target.addEventListener(eventName, listener as EventListener, {
         passive,
       });
     }
     boundListeners = listeners;
-    connectedCanvas = canvas;
+    connectedTarget = target;
   }
 
   function disconnect(): void {
-    if (connectedCanvas && boundListeners) {
+    if (connectedTarget && boundListeners) {
       for (const eventName in boundListeners) {
-        connectedCanvas.removeEventListener(
+        connectedTarget.removeEventListener(
           eventName,
           boundListeners[eventName] as EventListener,
         );
       }
     }
-    connectedCanvas = null;
+    connectedTarget = null;
     boundListeners = null;
   }
 

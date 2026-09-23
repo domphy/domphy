@@ -113,7 +113,6 @@ describe("sidebar09", () => {
         messages: [
           {
             id: "c1",
-            folderId: "custom",
             sender: "Test Sender",
             timestamp: "now",
             subject: "Custom Subject",

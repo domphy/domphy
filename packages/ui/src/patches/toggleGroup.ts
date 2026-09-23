@@ -15,6 +15,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { horizontalArrowStep } from "../utils/direction.js";
 import { focusRing } from "../utils/focusRing.js";
 
 /** One item inside a toggle group. */
@@ -62,14 +63,29 @@ function moveToggle(
   multiple: boolean,
 ): void {
   const k = (e as KeyboardEvent).key;
-  if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(k)) return;
+  // WAI-ARIA APG toolbar/radio navigation: both axes move (Right/Down = next,
+  // Left/Up = previous), Home/End jump to the ends.
+  if (
+    ![
+      "ArrowLeft",
+      "ArrowRight",
+      "ArrowUp",
+      "ArrowDown",
+      "Home",
+      "End",
+    ].includes(k)
+  )
+    return;
   e.preventDefault();
   const keys = items.map((item, index) => item.key ?? String(index));
   const idx = keys.indexOf(key);
   let next = idx;
-  if (k === "ArrowRight") next = (idx + 1) % keys.length;
-  else if (k === "ArrowLeft") next = (idx - 1 + keys.length) % keys.length;
-  else if (k === "Home") next = 0;
+  if (k === "ArrowDown") next = (idx + 1) % keys.length;
+  else if (k === "ArrowUp") next = (idx - 1 + keys.length) % keys.length;
+  else if (k === "ArrowRight" || k === "ArrowLeft") {
+    const step = horizontalArrowStep(k, e.target as Element);
+    next = (idx + step + keys.length) % keys.length;
+  } else if (k === "Home") next = 0;
   else if (k === "End") next = keys.length - 1;
   if (!multiple) value.set(keys[next]);
   const group = (e.target as HTMLElement).closest("[role=group]");
@@ -79,6 +95,7 @@ function moveToggle(
 function buildToggleButtons(
   items: ToggleItem[],
   value: State<string | string[]>,
+  focusedKey: State<string | null>,
   multiple: boolean,
   color: ThemeColor,
   accentColor: ThemeColor,
@@ -96,17 +113,23 @@ function buildToggleButtons(
       type: "button",
       role: "button",
       ariaPressed: (l: Listener) => isPressed(value.get(l), key),
+      // Roving tab stop: the last-focused item, like single-select mode and
+      // the menu/tabs patches (WAI-ARIA APG). Falls back to the first
+      // selected item, then the first item, until focus has landed once.
       tabIndex: (l: Listener) => {
         const val = value.get(l);
         if (multiple) {
+          const focused = focusedKey.get(l);
+          if (focused !== null) return key === focused ? 0 : -1;
           const arr = Array.isArray(val) ? val : [];
-          const focusKey = arr[0] ?? items[0]?.key ?? "0";
-          return key === focusKey ? 0 : -1;
+          const fallback = arr[0] ?? items[0]?.key ?? "0";
+          return key === fallback ? 0 : -1;
         }
         if (val === key) return 0;
         if (val === "" && key === (items[0]?.key ?? "0")) return 0;
         return -1;
       },
+      onFocus: () => focusedKey.set(key),
       onClick: () => {
         const val = value.get();
         if (multiple) {
@@ -190,13 +213,6 @@ function toggleGroup(
 
   return {
     role: "group",
-    // Publish value + multiple so descendants can read the group selection.
-    _context: {
-      toggleGroup: {
-        value: toState(props.value ?? (multiple ? [] : "")),
-        multiple,
-      },
-    },
     _onSchedule: (node, element) => {
       const value = persistValue(
         node,
@@ -204,9 +220,20 @@ function toggleGroup(
         props.value,
         multiple ? [] : "",
       );
+      // Publish the SAME state the buttons write to — see segmented.ts for why
+      // a declared `_context` could not (disconnected State + notifier clobber
+      // when ElementNode.patch re-merges `element._context`).
+      node.setContext("toggleGroup", { value, multiple });
+      const focusedKey = persistValue<string | null>(
+        node,
+        "toggleGroupFocusedKey",
+        undefined,
+        null,
+      );
       (element as Record<string, unknown>)[node.tagName] = buildToggleButtons(
         items,
         value,
+        focusedKey,
         multiple,
         color,
         accentColor,
@@ -222,10 +249,17 @@ function toggleGroup(
             props.value,
             snapshot.multiple ? [] : "",
           );
+          const focusedKey = persistValue<string | null>(
+            node,
+            "toggleGroupFocusedKey",
+            undefined,
+            null,
+          );
           node.children.update(
             buildToggleButtons(
               snapshot.items,
               value,
+              focusedKey,
               snapshot.multiple,
               snapshot.color,
               snapshot.accentColor,

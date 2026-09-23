@@ -167,11 +167,28 @@ describe("loadAsset", () => {
     expect((wrapped as Error & { cause?: unknown }).cause).toBe(original);
   });
 
-  it("falls back to String() when the load failure is not an Error (XHR ProgressEvent)", async () => {
-    // XHR-based loaders reject with a ProgressEvent — `.message` is
-    // undefined, so the wrapped message must come from String() and the
-    // original event must still be reachable via `cause`.
-    const progressEvent = { type: "error", toString: () => "xhr failed" };
+  it("names the DOM event instead of the useless String(Event) === '[object Event]' (observed in Chromium: THREE.TextureLoader rejects with a plain error Event)", async () => {
+    // Truth source: a real browser run of TextureLoader against a missing URL
+    // hands onError a DOM Event whose `.message` is undefined and whose
+    // String() is literally "[object Event]" — asserted here so the wrapped
+    // message can never regress to it.
+    const domEvent = new Event("error");
+    expect(String(domEvent)).toBe("[object Event]");
+
+    const { FakeLoader } = createFakeLoaderClass({
+      shouldFail: true,
+      failWith: domEvent,
+    });
+    const result = loadAsset(FakeLoader, "missing.png");
+
+    const wrapped = await result.promise.catch((loadError: Error) => loadError);
+    expect(wrapped.message).not.toContain("[object Event]");
+    expect(wrapped.message).toContain("Could not load missing.png: error");
+    expect((wrapped as Error & { cause?: unknown }).cause).toBe(domEvent);
+  });
+
+  it("reports the HTTP status when the loader rejects with an XHR-backed ProgressEvent (XMLHttpRequest spec: event.target.status)", async () => {
+    const progressEvent = { type: "error", target: { status: 404 } };
     const { FakeLoader } = createFakeLoaderClass({
       shouldFail: true,
       failWith: progressEvent,
@@ -179,8 +196,9 @@ describe("loadAsset", () => {
     const result = loadAsset(FakeLoader, "missing.glb");
 
     const wrapped = await result.promise.catch((loadError: Error) => loadError);
-    expect(wrapped.message).toBe("Could not load missing.glb: xhr failed");
-    expect((wrapped as Error & { cause?: unknown }).cause).toBe(progressEvent);
+    expect(wrapped.message).toBe(
+      "Could not load missing.glb: error (HTTP 404)",
+    );
   });
 
   it("gltf-style .scene results get nodes/materials/meshes assigned onto the result", async () => {

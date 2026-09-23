@@ -1,5 +1,12 @@
 import type { DomphyElement } from "@domphy/core";
-import { themeColor, themeSize, themeSpacing } from "@domphy/theme";
+import {
+  themeColor,
+  themeFont,
+  themeLetterSpacing,
+  themeSize,
+  themeSpacing,
+  themeWeight,
+} from "@domphy/theme";
 
 /**
  * One screenshot target. Playwright selects `[data-visual="<id>"]`.
@@ -38,11 +45,12 @@ export function visualCell(
           display: "block",
           marginBottom: themeSpacing(1.5),
           fontSize: (l) => themeSize(l, "decrease-2"),
-          fontWeight: "600",
-          letterSpacing: "0.02em",
-          color: (l) => themeColor(l, "muted"),
-          fontFamily:
-            "var(--dp-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace)",
+          fontWeight: themeWeight("semibold"),
+          letterSpacing: themeLetterSpacing("wide"),
+          // "text", not "muted": the id label is essential content (it names
+          // the capture target), and muted sits below AA by design.
+          color: (l) => themeColor(l, "text"),
+          fontFamily: themeFont("monospace"),
         },
       },
       {
@@ -51,6 +59,13 @@ export function visualCell(
         dataVisual: id,
         dataVisualFocus: opts.focus ? "1" : undefined,
         dataVisualHover: opts.hover ? "1" : undefined,
+        // The raised cell fill MUST come with a tone context. Painting
+        // themeColor(l, "surface") without dataTone leaves every demo mounted
+        // inside resolving its "text"/"muted" against the page floor instead of
+        // this fill — a 8-step gap instead of the 9-step contract, which shows
+        // up as color-contrast failures that do not exist on the real docs
+        // pages. Shift the context, then paint "inherit".
+        dataTone: "shift-1",
         style: {
           display: opts.block ? "block" : "flex",
           flexWrap: opts.block ? undefined : "wrap",
@@ -63,7 +78,7 @@ export function visualCell(
           padding: themeSpacing(3),
           borderRadius: themeSpacing(2),
           border: (l) => `1px solid ${themeColor(l, "border")}`,
-          backgroundColor: (l) => themeColor(l, "surface"),
+          backgroundColor: (l) => themeColor(l, "inherit"),
           color: (l) => themeColor(l, "text"),
         },
       },
@@ -73,7 +88,6 @@ export function visualCell(
       flexDirection: "column",
       minWidth: "0",
     },
-    _doctorDisable: true,
   };
 }
 
@@ -87,7 +101,7 @@ export function visualSection(
         h2: title,
         style: {
           fontSize: (l) => themeSize(l, "increase-1"),
-          fontWeight: "700",
+          fontWeight: themeWeight("bold"),
           margin: `0 0 ${themeSpacing(3)}`,
           color: (l) => themeColor(l, "text"),
         },
@@ -107,8 +121,8 @@ export function visualSection(
       marginBottom: themeSpacing(10),
       paddingBottom: themeSpacing(6),
       borderBottom: (l) => `1px solid ${themeColor(l, "border")}`,
+      color: (l) => themeColor(l, "text"),
     },
-    _doctorDisable: true,
   };
 }
 
@@ -122,7 +136,7 @@ export function visualPage(
         h1: title,
         style: {
           fontSize: (l) => themeSize(l, "increase-3"),
-          fontWeight: "700",
+          fontWeight: themeWeight("bold"),
           margin: `0 0 ${themeSpacing(2)}`,
           color: (l) => themeColor(l, "text"),
           // Solo block pages title the page "Block <camelCaseName>" — a long
@@ -135,7 +149,7 @@ export function visualPage(
         p: "Visual regression catalog — each [data-visual] cell is a Playwright screenshot target (props + states).",
         style: {
           margin: `0 0 ${themeSpacing(8)}`,
-          color: (l) => themeColor(l, "muted"),
+          color: (l) => themeColor(l, "text"),
           maxWidth: "60ch",
         },
       },
@@ -146,12 +160,15 @@ export function visualPage(
       padding: themeSpacing(6),
       maxWidth: "1400px",
       margin: "0 auto",
-      backgroundColor: (l) => themeColor(l, "surface"),
+      // The page floor itself — "inherit", not a tinted "surface". A tint here
+      // without a matching dataTone shifted the fill under every child while
+      // their text tones stayed on the floor (see the cell's note below), and
+      // it also flattened the raised cells into the page.
+      backgroundColor: (l) => themeColor(l, "inherit"),
       color: (l) => themeColor(l, "text"),
       minHeight: "100vh",
       boxSizing: "border-box",
     },
-    _doctorDisable: true,
   };
 }
 

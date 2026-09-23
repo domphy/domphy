@@ -331,22 +331,71 @@ function htmlDir(lang: string): "rtl" | "ltr" {
 // --- HTML document -----------------------------------------------------------
 
 export const RUNTIME_SCRIPT = `(function(){
-try{var t=localStorage.getItem('dp-theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(_){}
-function closeSidebar(){document.documentElement.setAttribute('data-sidebar','');}
+// A stored choice wins; otherwise follow the OS. The document ships
+// data-theme="light", so without this a visitor whose system is dark got a
+// light page while <meta name="color-scheme" content="light dark"> already
+// told the UA to paint dark scrollbars and form controls.
+function systemTheme(){try{return matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';}catch(_){return 'light';}}
+var storedTheme=null;
+try{storedTheme=localStorage.getItem('dp-theme');}catch(_){}
+function applyTheme(n){
+  document.documentElement.setAttribute('data-theme',n);
+  var b=document.querySelector('[data-theme-toggle]');
+  if(b)b.setAttribute('aria-pressed',n==='dark'?'true':'false');
+}
+applyTheme(storedTheme||systemTheme());
+try{if(!storedTheme)matchMedia('(prefers-color-scheme: dark)').addEventListener('change',function(e){
+  var stored=null;try{stored=localStorage.getItem('dp-theme');}catch(_){}
+  if(!stored)applyTheme(e.matches?'dark':'light');
+});}catch(_){}
+function setSidebar(open){
+  var d=document.documentElement;
+  if(open){
+    // The drawer is fixed-positioned under the header, but an announcement bar
+    // pushes the sticky header down — read its live bottom edge instead of
+    // assuming the bare header height.
+    var h=document.querySelector('header');
+    d.style.setProperty('--dp-drawer-top',Math.max(0,h?h.getBoundingClientRect().bottom:0)+'px');
+  }
+  d.setAttribute('data-sidebar',open?'open':'');
+  var b=document.querySelector('[data-menu-toggle]');
+  if(b)b.setAttribute('aria-expanded',open?'true':'false');
+}
+function closeSidebar(){
+  // Closing hides the drawer; focus inside it would otherwise be dropped on
+  // the body (WAI-ARIA APG disclosure: return focus to the trigger).
+  var active=document.activeElement;
+  var nav=active&&active.closest&&active.closest('nav[aria-label="Documentation"],nav[aria-label="Primary"]');
+  setSidebar(false);
+  var b=document.querySelector('[data-menu-toggle]');
+  if(nav&&b)b.focus();
+}
 addEventListener('click',function(e){
   var el=e.target.closest&&e.target.closest('[data-theme-toggle]');
-  if(el){var d=document.documentElement;var n=d.getAttribute('data-theme')==='dark'?'light':'dark';d.setAttribute('data-theme',n);try{localStorage.setItem('dp-theme',n);}catch(_){}return;}
+  if(el){var n=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';applyTheme(n);try{localStorage.setItem('dp-theme',n);}catch(_){}return;}
   var m=e.target.closest&&e.target.closest('[data-menu-toggle]');
-  if(m){var d2=document.documentElement;d2.setAttribute('data-sidebar',d2.getAttribute('data-sidebar')==='open'?'':'open');return;}
+  if(m){setSidebar(document.documentElement.getAttribute('data-sidebar')!=='open');return;}
   var bd=e.target.closest&&e.target.closest('.dp-sidebar-backdrop');
   if(bd){closeSidebar();return;}
   var cp=e.target.closest&&e.target.closest('[data-copy]');
   if(cp){var ci=cp.closest('.code-block-inner');var ce=ci&&ci.querySelector('code');if(ce){navigator.clipboard&&navigator.clipboard.writeText(ce.textContent||'').then(function(){cp.textContent='✓';setTimeout(function(){cp.textContent='⎘';},2000);}).catch(function(){});}return;}
   var st=e.target.closest&&e.target.closest('[data-sidebar-toggle]');
-  if(st){var gr=st.closest('.dp-sidebar-group');if(gr){gr.classList.toggle('collapsed');var sp=st.parentNode&&st.parentNode.querySelector('span');var k=sp&&sp.textContent;if(k)try{localStorage.setItem('dp-sc-'+k,gr.classList.contains('collapsed')?'1':'0');}catch(_){}}return;}
+  if(st){var gr=st.closest('.dp-sidebar-group');if(gr){var collapsed=gr.classList.toggle('collapsed');st.setAttribute('aria-expanded',collapsed?'false':'true');st.setAttribute('aria-label',collapsed?'Expand':'Collapse');st.textContent=collapsed?'›':'‹';var sp=st.parentNode&&st.parentNode.querySelector('span');var k=sp&&sp.textContent;if(k)try{localStorage.setItem('dp-sc-'+k,collapsed?'1':'0');}catch(_){}}return;}
   var da=e.target.closest&&e.target.closest('[data-dismiss-announcement]');
   if(da){var bar=document.querySelector('.dp-announcement');if(bar){var id=bar.getAttribute('data-id');if(id)try{localStorage.setItem('dp-dismiss-'+id,'1');}catch(_){}bar.remove();}return;}
 });
+// Nav flyouts open purely on :hover/:focus-within (no JS state to mirror);
+// these two listeners only keep aria-expanded truthful for assistive tech.
+function syncDropdown(target,open){
+  var host=target&&target.closest&&target.closest('[data-nav-dropdown]');
+  if(!host)return;
+  var b=host.querySelector('button');
+  if(b)b.setAttribute('aria-expanded',open?'true':'false');
+}
+addEventListener('focusin',function(e){syncDropdown(e.target,true);});
+addEventListener('focusout',function(e){syncDropdown(e.target,false);});
+addEventListener('pointerover',function(e){syncDropdown(e.target,true);},{passive:true});
+addEventListener('pointerout',function(e){syncDropdown(e.target,false);},{passive:true});
 addEventListener('keydown',function(e){if(e.key==='Escape'){var d=document.documentElement;if(d.getAttribute('data-sidebar')==='open'){closeSidebar();}}});
 function initTocSpy(){
   var toc=document.querySelector('nav.dp-toc');
@@ -406,8 +455,12 @@ function initTocSpy(){
   }
 }
 addEventListener('DOMContentLoaded',function(){
+  // The initial applyTheme() runs from <head>, before the toggle button
+  // exists — sync its pressed state once the document is parsed.
+  var tb=document.querySelector('[data-theme-toggle]');
+  if(tb)tb.setAttribute('aria-pressed',document.documentElement.getAttribute('data-theme')==='dark'?'true':'false');
   try{document.querySelectorAll('.dp-announcement[data-id]').forEach(function(b){if(localStorage.getItem('dp-dismiss-'+b.getAttribute('data-id')))b.remove();});}catch(_){}
-  try{document.querySelectorAll('.dp-sidebar-group').forEach(function(gr){var tb=gr.querySelector('[data-sidebar-toggle]');if(!tb)return;var sp=tb.parentNode&&tb.parentNode.querySelector('span');var k=sp&&sp.textContent;if(!k)return;var v=localStorage.getItem('dp-sc-'+k);if(v==='1')gr.classList.add('collapsed');else if(v==='0')gr.classList.remove('collapsed');});}catch(_){}
+  try{document.querySelectorAll('.dp-sidebar-group').forEach(function(gr){var tb=gr.querySelector('[data-sidebar-toggle]');if(!tb)return;var sp=tb.parentNode&&tb.parentNode.querySelector('span');var k=sp&&sp.textContent;if(!k)return;var v=localStorage.getItem('dp-sc-'+k);if(v==='1')gr.classList.add('collapsed');else if(v==='0')gr.classList.remove('collapsed');var c=gr.classList.contains('collapsed');tb.setAttribute('aria-expanded',c?'false':'true');tb.setAttribute('aria-label',c?'Expand':'Collapse');tb.textContent=c?'›':'‹';});}catch(_){}
   try{initTocSpy();}catch(_){}
 });
 })();`;
@@ -681,6 +734,7 @@ export async function buildSite(options: BuildOptions): Promise<void> {
         docsDir: srcDir,
         repoRoot: srcDir,
         highlight,
+        base,
       });
     } catch (error) {
       failures.push({
@@ -903,12 +957,16 @@ export async function buildSite(options: BuildOptions): Promise<void> {
     });
   }
 
-  // 6. Search index (all docs: cached + newly rendered)
-  writeFileSync(
-    join(outDir, "search-index.json"),
-    buildSearchIndex(searchDocs),
-    "utf8",
-  );
+  // 6. Search index (all docs: cached + newly rendered). Skipped when search
+  // is off — nothing would ever fetch it, and on a large site it is the
+  // biggest file in the deploy.
+  if (searchEnabled) {
+    writeFileSync(
+      join(outDir, "search-index.json"),
+      buildSearchIndex(searchDocs),
+      "utf8",
+    );
+  }
 
   // 7. Public dir
   if (publicDir && existsSync(publicDir))

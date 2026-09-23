@@ -5,6 +5,8 @@ Scaffold a runnable [Domphy](https://domphy.com) starter project.
 ```bash
 npm create domphy@latest my-app
 # or
+pnpm create domphy@latest my-app
+# or
 npm init domphy@latest my-app
 ```
 
@@ -28,3 +30,7 @@ cd my-app
 npm install
 npm run dev
 ```
+
+The printed next steps name the package manager that invoked the scaffolder
+(read from `npm_config_user_agent`), so `pnpm create domphy` says
+`pnpm install` and not `npm install`.

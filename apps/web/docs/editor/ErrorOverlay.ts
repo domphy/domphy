@@ -8,9 +8,6 @@ export function ErrorOverlay(error: State<string>): DomphyElement<"div"> {
     // The alert patch owns the error surface (tinted background, readable
     // text color, inset accent bar) — the overlay only positions it.
     $: [alert({ color: "error" })],
-    // color/backgroundColor come from the alert() patch above, which the
-    // static analyzer cannot see through.
-    _doctorDisable: "missing-color",
     style: {
       display: (listener) => (error.get(listener) ? "block" : "none"),
       position: "absolute",

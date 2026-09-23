@@ -67,6 +67,15 @@ engine.setOption(option: ChartOption): void
 
 Subsequent calls replace the previous option entirely.
 
+### `engine.on(event, handler)` / `engine.off(event, handler?)`
+
+Subscribes to a chart event. The only event today is `"click"`; the handler receives the `TooltipParams` of the data item under the cursor and nothing fires when the click lands on empty space. `on()` returns an unsubscribe function; `off()` without a handler drops every handler for that event.
+
+```ts
+const stop = engine.on("click", (params) => console.log(params.seriesName, params.value))
+stop()
+```
+
 ### `engine.destroy()`
 
 Tears down the WebGL context, removes all DOM elements, and releases memory.
@@ -76,6 +85,12 @@ engine.destroy(): void
 ```
 
 Always call this when the chart is removed from the DOM.
+
+## Accessibility and context loss
+
+The WebGL canvas is `aria-hidden` (its pixels carry no accessible text), so the SVG overlay above it is the chart's accessible object: `role="img"` with an `aria-label` built from `option.title` when there is one, otherwise from the series types and names actually rendered.
+
+A WebGL context is not permanent — the browser drops it on a GPU reset, under memory pressure, and once a page passes the per-page context limit (~16 in Chrome, reachable with a dashboard of charts). The engine listens for `webglcontextlost`, prevents the default (which would make the loss permanent), drops the dead GPU resources, and rebuilds itself on `webglcontextrestored` — including a fresh canvas, because luma.gl caches compiled pipelines per device. No application code is needed.
 
 ## With ResizeObserver
 

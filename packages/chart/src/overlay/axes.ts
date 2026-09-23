@@ -112,12 +112,17 @@ export function renderAxes(
     }
 
     // Grid lines (vertical)
-    const ticks = scale.ticks(6);
+    // ECharts axis.splitNumber: requested tick count (a hint — nice-ing may
+    // return a neighbouring count). Default 6 keeps the previous look.
+    const ticks = scale.ticks(axis.splitNumber ?? 6);
 
-    // Compute label skip interval to avoid crowding on dense ordinal axes
+    // Compute the label skip interval to avoid crowding. Crowding is a
+    // function of tick count vs available width, not of the scale type: a
+    // narrow time axis overlapped its "Mar 1"/"May 1" labels because the skip
+    // used to be restricted to ordinal scales.
     const estLabelPx = 40;
     const labelInterval =
-      scale.type === "ordinal" && axis.axisLabel?.interval === undefined
+      axis.axisLabel?.interval === undefined
         ? Math.max(
             1,
             Math.ceil((ticks.length * estLabelPx) / (gridRect.width || 1)),
@@ -210,7 +215,21 @@ export function renderAxes(
       );
     }
 
-    const ticks = scale.ticks(6);
+    // ECharts axis.splitNumber: requested tick count (a hint — nice-ing may
+    // return a neighbouring count). Default 6 keeps the previous look.
+    const ticks = scale.ticks(axis.splitNumber ?? 6);
+
+    // Same crowding guard as the x axis, measured vertically: an 11px label
+    // needs its own 11px line box plus 3px of leading before the next one.
+    const estLabelHeight = 14;
+    const labelInterval =
+      axis.axisLabel?.interval === undefined
+        ? Math.max(
+            1,
+            Math.ceil((ticks.length * estLabelHeight) / (gridRect.height || 1)),
+          )
+        : 1;
+
     for (let ti = 0; ti < ticks.length; ti++) {
       const tick = ticks[ti];
       const tickY = scale.map(tick as any);
@@ -238,7 +257,7 @@ export function renderAxes(
         );
       }
 
-      if (axis.axisLabel?.show !== false) {
+      if (axis.axisLabel?.show !== false && ti % labelInterval === 0) {
         const labelX = finalX + (isLeft ? -10 : 10);
         const label = formatAxisLabel(axis, scale, tick, ti);
         group.appendChild(

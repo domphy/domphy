@@ -8,6 +8,8 @@ import InputRange from "../../demos/patches/InputRange.ts?raw"
 
 Styles a range slider with a themed track and thumb, plus hover, focus, and disabled states. Apply to an `<input type="range">` element — the patch sets `type: "range"`.
 
+Both engines are covered: `::-webkit-slider-runnable-track` / `::-webkit-slider-thumb` for Chromium and Safari, `::-moz-range-track` / `::-moz-range-thumb` for Firefox. The host box is 6U tall so the pointer/drag target clears the WCAG 2.2 SC 2.5.8 24x24 minimum; the visible track stays 1.5U.
+
 ## Props
 
 | Prop | Type | Default | Description |

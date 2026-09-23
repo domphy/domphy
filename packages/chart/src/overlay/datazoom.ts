@@ -3,6 +3,7 @@ import type {
   ChartRect,
   DataZoomOption,
   DataZoomSliderOption,
+  GridOption,
 } from "../types.js";
 
 export interface DataZoomState {
@@ -17,6 +18,52 @@ interface SliderHandle {
 
 const HANDLE_W = 8;
 const SLIDER_H = 30;
+const SLIDER_BOTTOM = 10;
+// Band the x axis needs under the plot rect, derived from overlay/axes.ts:
+// its tick label baseline sits at gridBottom + 18 with `dominant-baseline:
+// hanging` at font-size 11, so the glyph box ends ~13px lower. 18 + 13 + 1px
+// of clearance.
+const AXIS_LABEL_BAND = 32;
+
+function sliderHeight(option: DataZoomSliderOption): number {
+  if (typeof option.height === "number") return option.height;
+  return option.height ? parseFloat(String(option.height)) : SLIDER_H;
+}
+
+function sliderBottom(option: DataZoomSliderOption): number {
+  if (option.bottom === undefined) return SLIDER_BOTTOM;
+  return typeof option.bottom === "number"
+    ? option.bottom
+    : parseFloat(String(option.bottom));
+}
+
+/**
+ * Reserve the band a slider dataZoom occupies at the bottom of the canvas.
+ *
+ * The slider is positioned against the CANVAS bottom, not the plot rect, so
+ * with the default grid bottom it was drawn straight over the x axis tick
+ * labels. ECharts lays the slider out and shrinks the grid for it; do the
+ * same, and only when the caller has not positioned the grid itself.
+ */
+export function reserveDataZoomSpace(
+  grids: GridOption[],
+  dataZooms: DataZoomOption[],
+): GridOption[] {
+  const sliders = dataZooms.filter(
+    (dz) => dz.type !== "inside",
+  ) as DataZoomSliderOption[];
+  if (sliders.length === 0) return grids;
+  const needed = Math.max(
+    ...sliders.map(
+      (dz) => sliderBottom(dz) + sliderHeight(dz) + AXIS_LABEL_BAND,
+    ),
+  );
+  return grids.map((grid, index) =>
+    index === 0 && grid.bottom === undefined
+      ? { ...grid, bottom: needed }
+      : grid,
+  );
+}
 
 function svgEl(
   tag: string,
@@ -43,18 +90,8 @@ export function createDataZoomSlider(
   const handleColor = themeColor(null, "shift-5", "neutral");
   const _textColor = themeColor(null, "shift-7", "neutral");
 
-  const sliderH =
-    typeof option.height === "number"
-      ? option.height
-      : option.height
-        ? parseFloat(String(option.height))
-        : SLIDER_H;
-  const bottom =
-    option.bottom !== undefined
-      ? typeof option.bottom === "number"
-        ? option.bottom
-        : parseFloat(String(option.bottom))
-      : 10;
+  const sliderH = sliderHeight(option);
+  const bottom = sliderBottom(option);
   const sliderY = svgHeight - bottom - sliderH;
   const sliderX = gridRect.x;
   const sliderW = gridRect.width;
@@ -199,15 +236,24 @@ export function createDataZoomSlider(
     dragMode = null;
   }
 
-  group.addEventListener("mousedown", onMousedown as EventListener);
-  document.addEventListener("mousemove", onMousemove);
-  document.addEventListener("mouseup", onMouseup);
+  // Pointer events cover mouse, touch and pen with one code path; a
+  // mouse-only slider cannot be dragged on a touch device at all.
+  // touch-action:none stops the browser from turning the drag into a scroll.
+  // The move/up listeners sit on `document`, so a drag that leaves the slider
+  // keeps tracking without setPointerCapture (which throws NotFoundError when
+  // the pointer is no longer active).
+  group.style.touchAction = "none";
+  group.addEventListener("pointerdown", onMousedown as EventListener);
+  document.addEventListener("pointermove", onMousemove);
+  document.addEventListener("pointerup", onMouseup);
+  document.addEventListener("pointercancel", onMouseup);
 
   return {
     cleanup() {
-      group.removeEventListener("mousedown", onMousedown as EventListener);
-      document.removeEventListener("mousemove", onMousemove);
-      document.removeEventListener("mouseup", onMouseup);
+      group.removeEventListener("pointerdown", onMousedown as EventListener);
+      document.removeEventListener("pointermove", onMousemove);
+      document.removeEventListener("pointerup", onMouseup);
+      document.removeEventListener("pointercancel", onMouseup);
       group.remove();
     },
     update(s: DataZoomState) {

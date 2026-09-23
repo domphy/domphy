@@ -21,7 +21,7 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { button, divider, icon, image, label, link, small } from "@domphy/ui";
-import { fixed } from "../../shared/typography.js";
+import { instanceScoped } from "../../shared/instanceScope.js";
 
 // ---------------------------------------------------------------------------
 // Layout constants (all resolved through themeSpacing — never literal units)
@@ -133,8 +133,8 @@ export function brandBadge(): DomphyElement<"div"> {
 function fieldInputStyle(): PartialElement {
   return {
     style: {
-      fontFamily: fixed("inherit"),
-      lineHeight: fixed("inherit"),
+      fontFamily: "inherit",
+      lineHeight: "inherit",
       width: "100%",
       boxSizing: "border-box",
       paddingInline: (listener: Listener) =>
@@ -186,20 +186,26 @@ export interface EmailFieldOptions {
 /** Labeled email input row. */
 export function emailField(options: EmailFieldOptions): DomphyElement<"div"> {
   const { id, fieldLabel = "Email", placeholder = "m@example.com" } = options;
+  const buildRow = (inputId: string): DomphyElement[] => [
+    { label: fieldLabel, for: inputId, $: [label()] },
+    {
+      input: null,
+      id: inputId,
+      name: "email",
+      type: "email",
+      placeholder,
+      required: true,
+      autocomplete: "email",
+      $: [fieldInputStyle()],
+    },
+  ];
   return {
-    div: [
-      { label: fieldLabel, for: id, $: [label()] },
-      {
-        input: null,
-        id,
-        name: "email",
-        type: "email",
-        placeholder,
-        required: true,
-        autocomplete: "email",
-        $: [fieldInputStyle()],
-      },
-    ],
+    // `id` is only the readable prefix — the real DOM id is scoped to this
+    // row's nodeId so two mounted instances never share one id (see
+    // ../../shared/instanceScope.ts). The eager children keep the subtree
+    // visible to @domphy/doctor.
+    div: buildRow(id),
+    ...instanceScoped((instanceId) => buildRow(`${id}-${instanceId}`)),
     style: {
       display: "flex",
       flexDirection: "column",
@@ -227,31 +233,30 @@ export function passwordField(
     forgotPasswordLabel = "Forgot your password?",
   } = options;
 
-  const labelRowChildren: DomphyElement[] = [
-    { label: fieldLabel, for: id, $: [label()] },
-  ];
-  if (forgotPasswordHref) {
-    labelRowChildren.push({
-      a: forgotPasswordLabel,
-      href: forgotPasswordHref,
-      // `link()` only underlines on hover — axe-core's `link-in-text-block`
-      // rule (WCAG 1.4.1) needs this link visually distinguishable from
-      // surrounding text at rest too, not just by its color.
-      style: {
-        textDecoration: fixed("underline"),
-        // Upstream forgot-password link is text-sm.
-        fontSize: (listener: Listener) => themeSize(listener, "decrease-1"),
-      },
-      $: [link({ color: "neutral" })],
-      // `link()` already sets `style.color` — the doctor tool inspects only
-      // this element's own inline style, not patch contributions, so it
-      // can't see that and flags a false positive here.
-      _doctorDisable: "missing-color",
-    } as DomphyElement<"a">);
-  }
+  const buildRow = (inputId: string): DomphyElement[] => {
+    const labelRowChildren: DomphyElement[] = [
+      { label: fieldLabel, for: inputId, $: [label()] },
+    ];
+    if (forgotPasswordHref) {
+      labelRowChildren.push({
+        a: forgotPasswordLabel,
+        href: forgotPasswordHref,
+        // `link()` only underlines on hover — axe-core's `link-in-text-block`
+        // rule (WCAG 1.4.1) needs this link visually distinguishable from
+        // surrounding text at rest too, not just by its color.
+        style: {
+          textDecoration: "underline",
+          // Upstream forgot-password link is text-sm.
+          fontSize: (listener: Listener) => themeSize(listener, "decrease-1"),
+        },
+        $: [link({ color: "neutral" })],
+        // `link()` already sets `style.color` — the doctor tool inspects only
+        // this element's own inline style, not patch contributions, so it
+        // can't see that and flags a false positive here.
+      } as DomphyElement<"a">);
+    }
 
-  return {
-    div: [
+    return [
       {
         div: labelRowChildren,
         style: forgotPasswordHref
@@ -265,14 +270,20 @@ export function passwordField(
       },
       {
         input: null,
-        id,
+        id: inputId,
         name: "password",
         type: "password",
         required: true,
         autocomplete: "current-password",
         $: [fieldInputStyle()],
       },
-    ],
+    ];
+  };
+
+  return {
+    // See emailField — `id` is the readable prefix, the real id is per-instance.
+    div: buildRow(id),
+    ...instanceScoped((instanceId) => buildRow(`${id}-${instanceId}`)),
     style: {
       display: "flex",
       flexDirection: "column",
@@ -366,7 +377,7 @@ export function signUpLine(
       {
         a: linkLabel,
         href,
-        style: { textDecoration: fixed("underline") },
+        style: { textDecoration: "underline" },
         $: [link({ color: "neutral" })],
       },
     ],
@@ -400,14 +411,14 @@ export function legalFooter(
       {
         a: termsLabel,
         href: termsHref,
-        style: { textDecoration: fixed("underline") },
+        style: { textDecoration: "underline" },
         $: [link({ color: "neutral" })],
       },
       " and ",
       {
         a: privacyLabel,
         href: privacyHref,
-        style: { textDecoration: fixed("underline") },
+        style: { textDecoration: "underline" },
         $: [link({ color: "neutral" })],
       },
       ".",
@@ -437,7 +448,7 @@ export function coverImage(options: CoverImageOptions): DomphyElement<"img"> {
     // Empty string is a real value (`alt: ""` = decorative image).
     alt,
     ...(alt === "" ? { ariaHidden: "true" } : {}),
-    $: [image()],
+    $: [image(alt === "" ? { decorative: true } : { alt })],
     style: {
       width: "100%",
       height: "100%",

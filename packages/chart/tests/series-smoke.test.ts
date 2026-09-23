@@ -7,7 +7,11 @@ import { GaugeRenderer } from "../src/gl/GaugeRenderer.ts";
 import { chart } from "../src/patch.ts";
 import type { ChartOption } from "../src/types.ts";
 
-function makeEngine(): { engine: ChartEngine; overlaysvg: SVGSVGElement } {
+function makeEngine(): {
+  engine: ChartEngine;
+  overlaysvg: SVGSVGElement;
+  container: HTMLElement;
+} {
   const container = document.createElement("div");
   document.body.appendChild(container);
   const engine = new ChartEngine(container);
@@ -18,7 +22,11 @@ function makeEngine(): { engine: ChartEngine; overlaysvg: SVGSVGElement } {
     beginRenderPass: () => ({ end() {} }),
     submit() {},
   };
-  return { engine, overlaysvg: (engine as any).overlaysvg as SVGSVGElement };
+  return {
+    engine,
+    overlaysvg: (engine as any).overlaysvg as SVGSVGElement,
+    container,
+  };
 }
 
 afterEach(() => {
@@ -27,38 +35,69 @@ afterEach(() => {
 });
 
 describe("ChartEngine unsupported surface warnings", () => {
-  it("warns when series type custom is set (typed but not rendered)", () => {
+  // Regression: `custom` gained a real renderer (src/overlay/custom.ts) but
+  // was never added to engine.ts's IMPLEMENTED_SERIES_TYPES, so every
+  // `type: "custom"` series still logged the generic "not implemented"
+  // warning even though it rendered — a lie in the opposite direction from
+  // the one this warning exists to catch. Caught by this exact pre-existing
+  // test (written when custom truly was unimplemented) failing once
+  // custom.ts landed.
+  it("does NOT warn for series type custom (implemented — see src/overlay/custom.ts) and renders it", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const { engine } = makeEngine();
+    const { engine, overlaysvg } = makeEngine();
     engine.setOption({
+      xAxis: { type: "value" },
+      yAxis: { type: "value" },
       series: [
         {
           type: "custom",
-          // renderItem would be required for a real custom series; we only
-          // assert the honest unsupported warning fires.
-          renderItem: () => ({ type: "circle" }),
+          data: [[1, 1]],
+          renderItem: () => ({ type: "circle", shape: { cx: 0, cy: 0, r: 5 } }),
         } as any,
       ],
     });
-    expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining('series type "custom" is not implemented'),
-    );
+    expect(
+      warn.mock.calls.some((c) =>
+        String(c[0]).includes('series type "custom"'),
+      ),
+    ).toBe(false);
+    expect(overlaysvg.querySelector(".dc-custom circle")).not.toBeNull();
     warn.mockRestore();
   });
 
-  it("warns when toolbox or brush options are set", () => {
+  it("warns for a custom series' unsupported 'polygon' brush type, not for 'rect'/'lineX'/'lineY'", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const { engine } = makeEngine();
     engine.setOption({
-      toolbox: { show: true } as any,
-      brush: { toolbox: ["rect"] } as any,
+      brush: { brushType: "rect" },
       series: [{ type: "bar", data: [1, 2] }],
     });
-    expect(warn.mock.calls.some((c) => String(c[0]).includes("toolbox"))).toBe(
-      true,
-    );
     expect(warn.mock.calls.some((c) => String(c[0]).includes("brush"))).toBe(
-      true,
+      false,
+    );
+    engine.setOption({
+      brush: { brushType: "polygon" } as any,
+      series: [{ type: "bar", data: [1, 2] }],
+    });
+    expect(
+      warn.mock.calls.some((c) => String(c[0]).includes("'polygon'")),
+    ).toBe(true);
+    warn.mockRestore();
+  });
+
+  // WAI-ARIA: a group of related controls is exposed as role="toolbar".
+  it("mounts an accessible toolbar for option.toolbox instead of warning", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { engine, container } = makeEngine();
+    engine.setOption({
+      toolbox: { feature: { restore: {}, saveAsImage: {} } },
+      series: [{ type: "bar", data: [1, 2] }],
+    });
+    const toolbar = container.querySelector('[role="toolbar"]');
+    expect(toolbar).not.toBeNull();
+    expect(toolbar?.querySelectorAll("button").length).toBe(2);
+    expect(warn.mock.calls.some((c) => String(c[0]).includes("toolbox"))).toBe(
+      false,
     );
     warn.mockRestore();
   });

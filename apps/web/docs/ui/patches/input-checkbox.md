@@ -8,6 +8,8 @@ import InputCheckbox from "../../demos/patches/InputCheckbox.ts?raw"
 
 Styles a custom checkbox with a themed box, check mark, indeterminate state, hover, focus, and disabled styling. Apply to an `<input type="checkbox">` element — the patch sets `type: "checkbox"`.
 
+Disabled keeps the control's shape and only drops the colour family to neutral (Radix and MUI do the same): the box keeps its outline, so a disabled **unchecked** checkbox still reads as empty. The previous rule filled the box with flat grey and removed the outline, which made a disabled unchecked box look more "on" than an enabled one and indistinguishable from a disabled checked one.
+
 ## Props
 
 | Prop | Type | Default | Description |

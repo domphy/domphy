@@ -1,6 +1,14 @@
-import type { DomphyElement } from "@domphy/core";
+import type { DomphyElement, Listener } from "@domphy/core";
 import { themeColor, themeSpacing } from "@domphy/theme";
 import { panelSection, row, stack } from "@domphy/ui";
+
+const frame = {
+  width: themeSpacing(48),
+  outline: (listener: Listener) =>
+    `1px solid ${themeColor(listener, "shift-3")}`,
+  borderRadius: themeSpacing(2),
+  color: (listener: Listener) => themeColor(listener, "text"),
+};
 
 const box: DomphyElement<"div"> = {
   div: null,
@@ -17,20 +25,12 @@ const App: DomphyElement<"div"> = {
     {
       div: [{ ...box }, { ...box }, { ...box }],
       $: [stack(), panelSection()],
-      style: {
-        width: themeSpacing(48),
-        outline: (l) => `1px solid ${themeColor(l, "shift-3")}`,
-        borderRadius: themeSpacing(2),
-      },
+      style: frame,
     },
     {
       div: [{ ...box }, { ...box }, { ...box }],
       $: [stack({ gap: 6, align: "center" }), panelSection()],
-      style: {
-        width: themeSpacing(48),
-        outline: (l) => `1px solid ${themeColor(l, "shift-3")}`,
-        borderRadius: themeSpacing(2),
-      },
+      style: frame,
     },
   ],
   $: [row({ align: "stretch", wrap: true })],

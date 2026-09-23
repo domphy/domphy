@@ -100,6 +100,7 @@ interface SearchWidgetOptions {
   placeholder?: string    // input placeholder text
   limit?: number          // max results (default: 10)
   basePath?: string       // site base without trailing slash (e.g. "/docs"); prefixed onto result hrefs so they resolve on non-root deploys. Default ""
+  label?: string          // accessible name for the input. Default "Search documentation"
 }
 ```
 

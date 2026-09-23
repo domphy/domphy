@@ -7,7 +7,7 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { three } from "@domphy/three";
-import { button, buttonGhost, heading, paragraph, small } from "@domphy/ui";
+import { heading, linkButton, paragraph, small } from "@domphy/ui";
 import { AdditiveBlending, CanvasTexture, Color } from "three";
 
 // Landing hero: the starfield IS the hero — a full-bleed WebGL canvas with
@@ -273,15 +273,19 @@ const App: DomphyElement<"div"> = {
             },
             {
               div: [
+                // linkButton(), not button()/buttonGhost(): both of those
+                // check their host tag and logged '"button" primitive patch
+                // must use button tag' to every visitor's console here.
+                // linkButton is the same visual system for an <a>.
                 {
                   a: "Get Started",
                   href: "/docs/quickstart",
-                  $: [button({ color: "primary" })],
+                  $: [linkButton({ color: "primary" })],
                 },
                 {
                   a: "Building with AI",
                   href: "/docs/ai",
-                  $: [buttonGhost()],
+                  $: [linkButton({ variant: "ghost" })],
                 },
               ],
               style: {
@@ -334,6 +338,9 @@ const App: DomphyElement<"div"> = {
         },
       ],
       dataTone: "shift-16",
+      // See the `& h1` note in `style`: press's own content heading rule, not
+      // a patch, is what that colour has to outrank.
+      _doctorDisable: "descendant-color-override",
       // The canvas behind this overlay is FIXED deep-space dark on both site
       // themes, so the overlay's tone context must come from the light
       // theme's ramp (where shift-16 is a dark surface) no matter which site
@@ -357,6 +364,22 @@ const App: DomphyElement<"div"> = {
         // tie because Domphy's style element is injected after the page
         // stylesheet. The display typeface itself is inherited from press's
         // h1 rule (var(--dp-font-display)) — no local fontFamily needed.
+        //
+        // `& p` carries LAYOUT ONLY now: paragraph()'s own relative "text"
+        // tone measures 6.16:1 on the canvas, so the old shift-10 override
+        // (7.36:1) was buying nothing and only shadowed the patch.
+        //
+        // `& h1` must keep its colour, and it is not a patch-shadowing bug —
+        // it is what press's own content rule forces. press styles generated
+        // markdown with `<contentClass> h1 { color: var(--neutral-11) }`,
+        // also (0,1,1), which outranks heading()'s (0,1,0) class inside the
+        // content area. Measured in Chromium on the fixed #03040c canvas,
+        // both site themes: without this line the headline resolves to
+        // #565656 = 2.79:1 (shift-11 clamped against this shift-16 anchor),
+        // with it #bababa = 10.54:1. heading() takes a colour FAMILY, not a
+        // tone, so the tone cannot move onto the patch, and the dataTone is
+        // already the one the dark canvas needs — hence the suppression on
+        // the element below.
         "& h1": {
           fontSize: (l) => themeSize(l, "increase-6"),
           color: (l) => themeColor(l, "shift-12"),
@@ -364,7 +387,6 @@ const App: DomphyElement<"div"> = {
           marginBottom: 0,
         },
         "& p": {
-          color: (l) => themeColor(l, "shift-10"),
           marginTop: 0,
           marginBottom: 0,
         },

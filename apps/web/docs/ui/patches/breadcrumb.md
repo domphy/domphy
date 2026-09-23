@@ -6,7 +6,7 @@ import Breadcrumb from "../../demos/patches/Breadcrumb.ts?raw"
 
 # Breadcrumb
 
-Use `breadcrumb` on a `nav` element. It styles direct children automatically. Mark the current page by setting `ariaCurrent: "page"` directly on the current item. The separator is configured once via the `separator` prop.
+Use `breadcrumb` on a `nav` element. It styles direct children automatically (layout, separators, and marking the current item non-interactive), but does not paint `color` on them — each crumb (`link()` for non-current items, `strong()` for the current one, or any other patch) owns its own color. Mark the current page by setting `ariaCurrent: "page"` directly on the current item; wrap it in `strong()` for the usual "reads stronger" emphasis. The separator is configured once via the `separator` prop.
 
 Use `breadcrumbEllipsis` on a `button` element to represent collapsed breadcrumb items.
 

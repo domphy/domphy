@@ -4,32 +4,35 @@
 
 ## Upstream version
 
-**Pinned: `@tanstack/virtual-core@3.17.7`** (npm). Originally ported from `3.17.0`; rebased to `3.17.7` on 2026-08-04 (audit `.stable-audit/19-virtual.md`) to pick up upstream fixes in the measurement/scroll-anchoring surfaces:
-
-- spurious no-op scroll events (Safari/Firefox) no longer re-arm `isScrolling` — fixes an infinite re-render loop
-- `gap` added to the `getMeasurementOptions` memo dependencies — changing `gap` via `setOptions` now rebuilds measurements
-- anchor resolution clamps the tracked offset to `>= 0` (rubber-band / unscrollable element never self-healed, #1229)
-- `resizeItem` distinguishes first-measure vs re-measure for above-fold compensation (#1218) and notifies synchronously when `scrollTop` was written in the same tick (#1227)
-- iOS deferred-adjustment lifecycle fixes (#1233) and cleanup on scroll-element swap
-- O(lanes) lane-argmin placement + monomorphic flat-array binary search (perf)
+**Pinned: `@tanstack/virtual-core@3.17.11`** (npm). Ported from 3.17.0, rebased to 3.17.7 on 2026-08-04 (audit `.stable-audit/19-virtual.md`), resynced to 3.17.11 on 2026-09-23.
 
 Evidence (direct, not inferred):
 
-1. **Full-tree diff.** Every file under `src/` that has an upstream counterpart (`index.ts`, `lazy-measurements.ts`, `utils.ts`) is byte-identical to the `3.17.7` npm tarball (`https://registry.npmjs.org/@tanstack/virtual-core/-/virtual-core-3.17.7.tgz`), except for the deliberate deviation listed below. Verified 2026-08-04 by diffing all 3 files (`lazy-measurements.ts` and `utils.ts` are byte-identical with zero hunks; `index.ts` differs only by the deviation hunk). Reproduce with `npm pack @tanstack/virtual-core@3.17.7`.
+1. **Full-tree diff.** Every file under `src/` that has an upstream counterpart (`index.ts`, `utils.ts`, `lazy-measurements.ts`) is byte-identical to the `3.17.11` npm tarball (`https://registry.npmjs.org/@tanstack/virtual-core/-/virtual-core-3.17.11.tgz`). Verified 2026-09-23 by `diff -q` on all three files: **0 differing files**. The only non-upstream files under `src/` are `domphy/` (the adapter) and `global.ts` (tsup global build shim).
+2. **Dependency signature.** Upstream virtual-core has zero runtime dependencies at 3.17.11; `@domphy/virtual` likewise has zero runtime dependencies.
+
+### What the 3.17.7 -> 3.17.11 resync brought in
+
+Before the resync `utils.ts` and `lazy-measurements.ts` were already byte-identical to 3.17.7 and `index.ts` carried exactly one deviation (the pure-append anchor fast path, two hunks in `setOptions`). Upstream 3.17.11 supersedes that deviation with a more general form — `isAppendWithTrim` also treats a *windowed* append (old items trimmed off the front while new ones land at the end) as an append for `followOnAppend`, and edge keys are read from the single-lane items buffer via `getMeasurementKey` instead of re-resolving them through `getItemKey` — so the resync **dropped the deviation** rather than re-applying it. Fixes the port did not have before:
+
+- `debounce()` gained `.cancel()`, and `observeElementOffset`'s teardown now calls `fallback?.cancel()`. Removing the scroll listener never retracted the `isScrolling = false` reset the last scroll had already queued, so that call landed on a torn-down virtualizer. In Domphy that reaches `onChange` -> the adapter's disposed version `State` after `destroy()`. The queued reset also re-reads the element at fire time (`cb(readOffset(element), false)`) instead of replaying the offset captured when it was queued.
+- `cleanup()` also resets `isScrolling` / `scrollDirection` (and the pending clamped adjustment). `cleanup` runs on a scroll-element swap and on `enabled: false`, where the instance lives on — a cleanup inside the reset window used to strand `isScrolling`, and the direction derived from it, as `true`.
+- `isIndexInRange()` guards on the resize-observer callback, `measureElement` and `resizeItem`, so a stale `data-index` past the current `count` no longer writes a bogus size into the cache.
+- `_clampedAdjustment` (#1258, #1266): a compensation write the browser clamped because the consumer's sizer had not grown yet is now re-issued from `_willUpdate` and after `notify` in `resizeItem`.
+- Anchor sync is skipped while a smooth programmatic scroll is still travelling (writing `scrollTop` there cancels the browser animation, and Chromium drops a smooth request re-issued right after that cancel), and skipped when `followOnAppend` will handle the move.
+- `lazy-measurements` stores each item's key in the measurements buffer at build time (`_flatMeasurements` -> `_singleLaneMeasurements { flat, items }`), so keys belong to the layout build rather than to the later read.
 
 ## Port scope
 
-- Ported 1-1 from upstream: the entire headless core — `Virtualizer` (element + window observers, dynamic measurement, scroll anchoring with `anchorTo`/`followOnAppend`, lanes/masonry, gap, RTL, iOS workarounds), `lazy-measurements`, `utils`.
-- In-house additions (no upstream counterpart): `src/domphy/` (`createVirtualizer`, `createWindowVirtualizer` — the Domphy adapter with a reactive `State`-backed `version` counter) and `src/global.ts` (tsup global build shim).
+- Ported 1-1 from upstream: the entire headless core — `Virtualizer`, the element/window rect + offset observers, `elementScroll`/`windowScroll`, `measureElement`, range calculation, the lanes/masonry layout, the lazy single-lane measurement view, and the `memo`/`debounce`/`approxEqual` utilities.
+- In-house additions (no upstream counterpart): `src/domphy/` (`createVirtualizer`, `createWindowVirtualizer` — reactive `State`-backed handles) and `src/global.ts` (tsup global build shim).
 - Not ported: upstream's framework adapters (React/Vue/Solid/Svelte/Angular/Lit) — the Domphy adapter replaces them.
 
 ## Intentional deviations from upstream
 
-| File | Deviation | Reason |
-|---|---|---|
-| `src/index.ts` (`setOptions`) | A pure append (count grows, every existing item keeps its key at its index — detected by comparing first/last keys against the previous options) skips the O(n) anchor-key resolution and forced measurement rebuild; it only evaluates `followOnAppend`. | A pure append never shifts any existing item's start offset, so the current `scrollOffset` is already correct; upstream ran the full prepend/reorder anchoring path on *any* count change. Behavior on prepends/trims/reorders is unchanged (full anchor resolution still runs). Pinned by `tests/domphy-adapter.test.ts` ("anchorTo: 'end' pure-append fast path"). |
+**None.** All three vendored core files are byte-identical to the 3.17.11 tarball. Deviations, if ever needed, must be recorded here in a table like `packages/form/SOURCES.md`'s and re-applied on every re-sync.
 
 ## Verification
 
-- `pnpm --filter @domphy/virtual test` — 20 tests (adapter reactivity, cleanup/destroy hardening, pure-append deviation, `data-index` measurement contract, `setOptions` size-cache preservation, `createWindowVirtualizer`).
-- `pnpm --filter @domphy/virtual build` — tsup.
+- `pnpm --filter @domphy/virtual test` — 20 tests across 3 files (adapter lifecycle/reactivity under jsdom, window virtualizer, element-syntax integration).
+- `pnpm --filter @domphy/virtual build` — tsup (ESM + CJS + IIFE + d.ts).

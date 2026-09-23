@@ -1,10 +1,11 @@
 import type {
+  BehaviorInstance,
   DomphyElement,
   ElementNode,
   PartialElement,
   State,
 } from "@domphy/core";
-import { toState } from "@domphy/core";
+import { behavior, toState } from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
@@ -43,19 +44,132 @@ const readOpen = (listener: any): boolean => {
   return node ? resolveOpenState(node).get(listener) : false;
 };
 
+// Radix Toast Provider's documented default `duration` (ms) before a toast
+// dismisses itself. Sonner defaults to 4000ms instead; Radix's value is used
+// here since this patch's semantics (role="status", one component owning its
+// own exit animation) already track Radix's Toast.Root more closely.
+const DEFAULT_DURATION_MS = 5000;
+
+type AutoDismissProps = {
+  duration: number;
+  onDismiss?: () => void;
+};
+
+type AutoDismissInstance = BehaviorInstance<AutoDismissProps> & {
+  pause: () => void;
+  resume: () => void;
+};
+
+// Lives in a behavior() instance (not `_onMount`) for the same reason
+// resolveOpenState lives on node metadata above: a reactive ancestor
+// re-render gives the toast() factory a fresh closure over `duration`/
+// `onDismiss` on every generation, but `_onMount` only ever fires for the
+// FIRST one — a closure-captured timer would keep calling generation-1's
+// stale `onDismiss` (or never adopt a later `duration`) for the node's whole
+// life. `update()` routes every later generation's props into this SAME
+// instance instead.
+function _attachAutoDismiss(
+  node: ElementNode,
+  initial: AutoDismissProps,
+): AutoDismissInstance {
+  let { duration, onDismiss } = initial;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let remaining = duration;
+  let startedAt = 0;
+  let dismissed = false;
+
+  const clearTimer = () => {
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
+    }
+  };
+  const dismiss = () => {
+    if (dismissed) return;
+    dismissed = true;
+    clearTimer();
+    onDismiss?.();
+    node.remove();
+  };
+  // duration <= 0 or non-finite (e.g. Infinity, Radix's "never auto-dismiss"
+  // convention) means no timer at all.
+  const arm = (ms: number) => {
+    clearTimer();
+    if (dismissed || !Number.isFinite(ms) || ms <= 0) return;
+    startedAt = Date.now();
+    timer = setTimeout(dismiss, ms);
+  };
+
+  arm(duration);
+
+  // Pause/resume on hover/focus (Radix/Sonner parity): a toast whose
+  // countdown elapses while the pointer is over it (or focus is inside it,
+  // e.g. an action button) would otherwise vanish out from under the user
+  // mid-read or mid-interaction. Wired directly on the node's own element —
+  // pointerenter/pointerleave bracket a hover, focusin/focusout (which
+  // bubble, unlike focus/blur) bracket focus landing anywhere inside.
+  const pause = () => {
+    if (!timer) return;
+    remaining -= Date.now() - startedAt;
+    clearTimer();
+  };
+  const resume = () => {
+    if (dismissed || timer) return;
+    arm(remaining);
+  };
+  const element = node.domElement;
+  element?.addEventListener("pointerenter", pause);
+  element?.addEventListener("pointerleave", resume);
+  element?.addEventListener("focusin", pause);
+  element?.addEventListener("focusout", resume);
+
+  return {
+    pause,
+    resume,
+    update(next) {
+      duration = next.duration;
+      onDismiss = next.onDismiss;
+      // A running countdown keeps its own schedule — a new `duration` from a
+      // later generation only takes effect on the next pause/resume cycle
+      // (Radix: changing `duration` does not reset an in-flight toast).
+      if (!timer && !dismissed) remaining = duration;
+    },
+    destroy() {
+      clearTimer();
+      element?.removeEventListener("pointerenter", pause);
+      element?.removeEventListener("pointerleave", resume);
+      element?.removeEventListener("focusin", pause);
+      element?.removeEventListener("focusout", resume);
+    },
+  };
+}
+
 /**
  * Renders a transient notification surface as a fixed-position overlay (portaled
- * into a corner stack), animating in on mount and out before removal. No host
+ * into a corner stack), animating in on mount and out before removal. Auto-dismisses
+ * after `duration` (Radix/Sonner semantics), paused while hovered or focused. No host
  * tag check; typically applied to a `<div>`.
  *
  * @param props.position - Corner of the screen for the toast stack. Optional, one of `"top-left" | "top-center" | "top-right" | "bottom-left" | "bottom-center" | "bottom-right"`. Defaults to `"top-center"`.
  * @param props.color - Theme color for the toast surface. Optional. Defaults to `"neutral"`.
+ * @param props.duration - Milliseconds before the toast dismisses itself (calls `onDismiss` then removes itself). Pass `Infinity` or `0` to disable. Optional. Defaults to `5000`.
+ * @param props.onDismiss - Called once, right before the toast removes itself, when `duration` elapses without the pointer/focus inside it. Optional — a caller tracking its own toast list should use this to drop the entry from state.
  * @example { div: "Saved!", $: [toast({ position: "top-right" })] }
  */
 function toast(
-  props: { position?: ToastPosition; color?: ThemeColor } = {},
+  props: {
+    position?: ToastPosition;
+    color?: ThemeColor;
+    duration?: number;
+    onDismiss?: () => void;
+  } = {},
 ): PartialElement {
-  const { position = "top-center", color = "neutral" } = props;
+  const {
+    position = "top-center",
+    color = "neutral",
+    duration = DEFAULT_DURATION_MS,
+    onDismiss,
+  } = props;
 
   const isTop = position.startsWith("top");
   const isCenter = position.endsWith("center");
@@ -78,6 +192,10 @@ function toast(
   };
 
   return {
+    ...behavior("toastAutoDismiss", _attachAutoDismiss, {
+      duration,
+      onDismiss,
+    }),
     _portal: (rootNode) => {
       let overlay = rootNode.domElement!.querySelector(
         `#domphy-toast-${position}`,

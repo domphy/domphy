@@ -70,6 +70,21 @@ function isAttributeBag(value: unknown): value is Attributes {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/** Accept the drag, so the browser delivers a `drop` event. */
+function allowDrop(event: DragEvent): void {
+  event.preventDefault();
+}
+
+/**
+ * The modifier that turns a drag into a copy, per platform — the same split
+ * prosemirror-view's `dragCopyModifier` makes.
+ */
+function dragCopies(event: DragEvent): boolean {
+  const platform =
+    typeof navigator === "undefined" ? "" : navigator.platform || "";
+  return /Mac|iP(hone|[oa]d)/.test(platform) ? event.altKey : event.ctrlKey;
+}
+
 function renderSpec(
   spec: DOMOutputSpec,
   document: Document,
@@ -116,6 +131,13 @@ export class EditorView implements EditorViewLike {
   private blocks: BlockEntry[] = [];
   private composing = false;
   private applyingSelection = false;
+
+  /**
+   * The range this view handed to the drag currently in flight, and whether
+   * dropping it should move it (prosemirror-view's `Dragging`). Null while no
+   * drag started inside this editor — a drop then carries foreign content.
+   */
+  private dragging: { from: number; to: number; move: boolean } | null = null;
 
   /**
    * Live node-view instances, keyed by child-index path + node type.
@@ -166,6 +188,13 @@ export class EditorView implements EditorViewLike {
     element.addEventListener("beforeinput", this.onBeforeInput);
     element.addEventListener("keydown", this.onKeyDown);
     element.addEventListener("paste", this.onPaste);
+    element.addEventListener("dragstart", this.onDragStart);
+    element.addEventListener("dragend", this.onDragEnd);
+    // prosemirror-view: `editHandlers.dragover = editHandlers.dragenter =
+    // e => e.preventDefault()`. Without it the element is not a drop target
+    // and no `drop` event is ever delivered.
+    element.addEventListener("dragover", allowDrop);
+    element.addEventListener("dragenter", allowDrop);
     element.addEventListener("drop", this.onDrop);
     element.addEventListener("focus", this.onFocus);
     element.addEventListener("blur", this.onBlur);
@@ -667,21 +696,167 @@ export class EditorView implements EditorViewLike {
     if (html) {
       this.editor.commands.insertContent(html);
     } else if (text) {
-      this.editor.commands.insertContent(text);
+      this.insertPlainText(text);
     }
   };
 
   /**
-   * ponytail: no built-in drop handling — a native drop into contenteditable
-   * would edit the DOM behind the model, so we block it. Wire `onDrop` to
-   * implement dropping.
+   * Insert clipboard `text/plain` as literal text — never as HTML.
+   *
+   * `insertContent(string)` parses its argument as HTML (tiptap does too), so
+   * handing it `text/plain` would turn typed-out markup into real markup and
+   * fold every newline into a space. ProseMirror's clipboard parser instead
+   * builds one block per line as an *open* slice, so the first line merges into
+   * the block holding the caret and only the later lines split it; the split is
+   * reproduced here with `splitBlock`. One chain, so one undo step.
+   */
+  private insertPlainText(
+    text: string,
+    at = this.editor.state.selection.from,
+    initial = this.editor.chain(),
+  ): void {
+    const parentName = resolveInternal(this.schema, this.editor.state.doc, at)
+      .parent.type;
+    // Newlines are ordinary content inside a code block — never a split.
+    const lines =
+      parentName && this.schema.nodes.get(parentName)?.code === true
+        ? [text]
+        : text.split(/\r\n?|\n/);
+    let chain = initial;
+    lines.forEach((line, index) => {
+      if (index > 0) {
+        chain = chain.splitBlock();
+      }
+      if (line) {
+        chain = chain.insertContent([{ type: "text", text: line }]);
+      }
+    });
+    chain.run();
+  }
+
+  /**
+   * Remember the dragged range so a drop inside this editor can MOVE it
+   * (prosemirror-view's `handlers.dragstart` building a `Dragging`).
+   *
+   * The clipboard payload itself is left to the browser: a drag out of a
+   * contenteditable already carries `text/html` and `text/plain` for the
+   * selected DOM, which is the same markup this view rendered.
+   */
+  private onDragStart = (event: DragEvent): void => {
+    this.dragging = null;
+    if (!this.editor.isEditable) {
+      return;
+    }
+    const { from, to, empty } = this.editor.state.selection;
+    if (empty) {
+      return;
+    }
+    // Only a drag that grabbed the selection moves it; grabbing anything else
+    // (an image, a node view) leaves the selection where it is.
+    const origin = this.posAtCoords(event.clientX, event.clientY);
+    if (origin === null || origin < from || origin > to) {
+      return;
+    }
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = "copyMove";
+    }
+    this.dragging = { from, to, move: !dragCopies(event) };
+  };
+
+  private onDragEnd = (): void => {
+    this.dragging = null;
+  };
+
+  /**
+   * prosemirror-view's `handleDrop`: drop at the caret the pointer is over,
+   * moving the dragged range when the drag started in this editor and the
+   * copy modifier is not held.
+   *
+   * The `onDrop` option still runs first and still wins — a file drop, which
+   * has no text payload, is left entirely to it (this handler only cancels
+   * the browser's own DOM edit, which would desync the model).
    */
   private onDrop = (event: DragEvent): void => {
+    const dragging = this.dragging;
+    this.dragging = null;
     if (this.editor.options.onDrop?.(event, this.editor)) {
       return;
     }
+    // The browser must never edit the contenteditable itself: it would rewrite
+    // the DOM behind the model.
     event.preventDefault();
+    if (!this.editor.isEditable) {
+      return;
+    }
+    const html = event.dataTransfer?.getData("text/html");
+    const text = event.dataTransfer?.getData("text/plain");
+    if (!html && !text) {
+      return;
+    }
+    const dropAt = this.posAtCoords(event.clientX, event.clientY);
+    if (dropAt === null) {
+      return;
+    }
+    const move = dragging !== null && dragging.move;
+    // Dropping a moved range back inside itself is a no-op, not a delete
+    // followed by a re-insert at the same place.
+    if (move && dragging && dropAt >= dragging.from && dropAt <= dragging.to) {
+      return;
+    }
+    this.captureSelection();
+    let chain = this.editor.chain();
+    let insertAt = dropAt;
+    if (move && dragging) {
+      chain = chain.deleteRange({ from: dragging.from, to: dragging.to });
+      if (dropAt > dragging.to) {
+        insertAt = dropAt - (dragging.to - dragging.from);
+      }
+    }
+    if (html) {
+      // `replaceRange` leaves the caret after the inserted content, which is
+      // where prosemirror-view puts it too (`selectionBetween`).
+      chain.insertContentAt(insertAt, html).run();
+    } else {
+      this.insertPlainText(
+        text ?? "",
+        insertAt,
+        chain.setTextSelection(insertAt),
+      );
+    }
+    this.editor.commands.focus();
   };
+
+  /**
+   * The model position under a viewport point. Uses the standard
+   * `caretPositionFromPoint`, falling back to WebKit/Blink's older
+   * `caretRangeFromPoint` (the only one Chrome had before 128).
+   */
+  private posAtCoords(clientX: number, clientY: number): number | null {
+    const owner = this.element.ownerDocument as Document & {
+      caretPositionFromPoint?: (
+        x: number,
+        y: number,
+      ) => { offsetNode: Node; offset: number } | null;
+      caretRangeFromPoint?: (x: number, y: number) => Range | null;
+    };
+    let container: Node | null = null;
+    let offset = 0;
+    const caret = owner.caretPositionFromPoint?.(clientX, clientY);
+    if (caret) {
+      container = caret.offsetNode;
+      offset = caret.offset;
+    } else {
+      const range = owner.caretRangeFromPoint?.(clientX, clientY);
+      if (range) {
+        container = range.startContainer;
+        offset = range.startOffset;
+      }
+    }
+    if (!container || !this.element.contains(container)) {
+      return null;
+    }
+    return this.positionFromDOM(container, offset);
+  }
 
   private onBeforeInput = (event: InputEvent): void => {
     if (!this.editor.isEditable) {
@@ -708,7 +883,11 @@ export class EditorView implements EditorViewLike {
       }
       case "insertParagraph":
         event.preventDefault();
-        this.editor.commands.splitBlock();
+        // ProseMirror's baseKeymap runs `newlineInCode` before `splitBlock`:
+        // inside a `code` textblock Enter is a literal newline, not a split.
+        if (!this.insertNewlineInCode()) {
+          this.editor.commands.splitBlock();
+        }
         break;
       case "insertLineBreak":
         event.preventDefault();
@@ -758,6 +937,27 @@ export class EditorView implements EditorViewLike {
     }
   };
 
+  /**
+   * ProseMirror's `newlineInCode`: Enter inside a `code` textblock inserts a
+   * newline instead of splitting the block. Returns false elsewhere.
+   */
+  private insertNewlineInCode(): boolean {
+    const { from, to } = this.editor.state.selection;
+    const doc = this.editor.state.doc;
+    const parent = resolveInternal(this.schema, doc, from).parent;
+    const parentName = parent.type;
+    if (!parentName || this.schema.nodes.get(parentName)?.code !== true) {
+      return false;
+    }
+    // `$head.sameParent($anchor)`: a selection reaching out of the code block
+    // is a plain split for ProseMirror, not a newline.
+    if (resolveInternal(this.schema, doc, to).parent !== parent) {
+      return false;
+    }
+    this.editor.insertTextWithRules("\n");
+    return true;
+  }
+
   private deleteBackward(): void {
     const editor = this.editor;
     const { from, empty } = editor.state.selection;
@@ -773,7 +973,20 @@ export class EditorView implements EditorViewLike {
     const previousEnd = this.previousTextblockEnd(from);
     if (previousEnd !== null) {
       editor.commands.deleteRange({ from: previousEnd, to: from });
+      return;
     }
+    // ProseMirror's joinBackward: "If there is no node before this, try to
+    // lift" — Backspace at the start of the first list item outdents it.
+    editor.commands.command(({ tr, dispatch }) => {
+      const range = tr.selection;
+      if (!tr.canLift(range.from, range.to)) {
+        return false;
+      }
+      if (dispatch) {
+        tr.lift(range.from, range.to);
+      }
+      return true;
+    });
   }
 
   private deleteForward(): void {
@@ -1011,6 +1224,10 @@ export class EditorView implements EditorViewLike {
     this.element.removeEventListener("beforeinput", this.onBeforeInput);
     this.element.removeEventListener("keydown", this.onKeyDown);
     this.element.removeEventListener("paste", this.onPaste);
+    this.element.removeEventListener("dragstart", this.onDragStart);
+    this.element.removeEventListener("dragend", this.onDragEnd);
+    this.element.removeEventListener("dragover", allowDrop);
+    this.element.removeEventListener("dragenter", allowDrop);
     this.element.removeEventListener("drop", this.onDrop);
     this.element.removeEventListener("focus", this.onFocus);
     this.element.removeEventListener("blur", this.onBlur);

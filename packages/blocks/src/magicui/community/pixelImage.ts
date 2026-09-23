@@ -28,6 +28,7 @@ import type {
   StyleObject,
 } from "@domphy/core";
 import { behavior, toState } from "@domphy/core";
+import { themeSpacing } from "@domphy/theme";
 
 export type PixelImageGridPreset =
   | "default"
@@ -216,7 +217,8 @@ function pixelImage(props: PixelImageProps = {}): DomphyElement<"div"> {
           objectFit: "cover",
           // Upstream rounds each full-size <img> (`rounded-[2.5rem]` = 40px);
           // the per-cell clip-path then keeps only the corner tiles rounded.
-          borderRadius: "2.5rem",
+          // themeSpacing(10) = calc(2.5em) = 40px at the theme's 16px root.
+          borderRadius: themeSpacing(10),
           clipPath: `polygon(${leftPercent}% ${topPercent}%, ${rightPercent}% ${topPercent}%, ${rightPercent}% ${bottomPercent}%, ${leftPercent}% ${bottomPercent}%)`,
           opacity: (listener: Listener) =>
             pixelRevealStates(listener, revealed, colorRevealed).revealed.get(
@@ -235,6 +237,11 @@ function pixelImage(props: PixelImageProps = {}): DomphyElement<"div"> {
                   : "grayscale(1)"
             : "none",
           transition,
+          // WCAG 2.3.3: the staggered per-tile fade is decorative, so under
+          // reduce the tiles snap straight to their revealed state (the
+          // `opacity`/`filter` values above are reactive and already correct
+          // — only the transition between them is suppressed).
+          "@media (prefers-reduced-motion: reduce)": { transition: "none" },
         } as StyleObject,
       } as DomphyElement<"img">);
     }

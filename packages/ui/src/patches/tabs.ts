@@ -16,6 +16,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { horizontalArrowStep } from "../utils/direction.js";
 import { focusRing } from "../utils/focusRing.js";
 
 /** One tab entry: a trigger label and its panel content. */
@@ -87,10 +88,10 @@ function buildTabsChildren(
         const keys = items.map((it, i) => it.key ?? i);
         const idx = keys.indexOf(key);
         let next = idx;
-        if (k === "ArrowRight") next = (idx + 1) % keys.length;
-        else if (k === "ArrowLeft")
-          next = (idx - 1 + keys.length) % keys.length;
-        else if (k === "Home") next = 0;
+        if (k === "ArrowRight" || k === "ArrowLeft") {
+          const step = horizontalArrowStep(k, e.target as Element);
+          next = (idx + step + keys.length) % keys.length;
+        } else if (k === "Home") next = 0;
         else if (k === "End") next = keys.length - 1;
         activeKey.set(keys[next]);
         // Focus must follow selection: without this the next arrow key
@@ -153,6 +154,11 @@ function buildTabsChildren(
       role: "tabpanel",
       id: `panel${id}${key}`,
       ariaLabelledby: `tab${id}${key}`,
+      // WAI-ARIA APG tabs pattern: the panel is the Tab stop after the
+      // tablist, so panel content with no focusable element of its own is
+      // still reachable and scrollable by keyboard (Radix Tabs.Content and
+      // React Aria TabPanel both set tabindex=0 unconditionally).
+      tabIndex: 0,
       hidden: (l: Listener) => activeKey.get(l) !== key,
       style: {
         paddingBlock: (l: Listener) => themeSpacing(themeDensity(l) * 2),

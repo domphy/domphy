@@ -24,6 +24,7 @@
 import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
 import { type ThemeColor, themeColor } from "@domphy/theme";
+import { REDUCED_MOTION_PAUSE } from "../reducedMotion.js";
 
 export type AuroraTextTag =
   | "span"
@@ -127,6 +128,7 @@ function auroraText(props: AuroraTextProps = {}): DomphyElement {
       color: "transparent",
       WebkitTextFillColor: "transparent",
       animation: `${animationName} ${durationSeconds}s ease-in-out infinite alternate`,
+      ...REDUCED_MOTION_PAUSE,
       [`@keyframes ${animationName}`]: keyframes,
     } as StyleObject,
   };

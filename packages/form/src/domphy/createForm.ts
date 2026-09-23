@@ -3,6 +3,20 @@ import { FieldApi, FormApi, type FieldOptions } from "../index.js"
 import type { ValidationCause, ValidationError } from "../types.js"
 import type { DeepKeys, DeepKeysOfType, DeepValue } from "../util-types.js"
 
+declare const process:
+  | { env: Record<string, string | undefined> }
+  | undefined
+
+// Dev-only warning guard, same pattern as @domphy/core's dev.ts and the
+// query/virtual adapters — production bundlers fold this to `false` and
+// tree-shake the guarded warning away. The `typeof process` check matters in
+// an unbundled browser context (native ESM / <script>), where a bare
+// `process.env` read throws `ReferenceError: process is not defined`.
+const __DEV__: boolean =
+  typeof process !== "undefined" &&
+  process.env != null &&
+  process.env.NODE_ENV !== "production"
+
 // FieldApi carries 23 generics; erase them at the adapter boundary.
 type AnyFieldApi = InstanceType<typeof FieldApi>
 type FieldMeta = ReturnType<AnyFieldApi["getMeta"]>
@@ -210,7 +224,7 @@ export function createForm<TFormData>(
         // with a dev-time warning so it is discovered, not silently dropped.
         // A call with no options at all carries no preference and never warns.
         if (
-          process.env.NODE_ENV !== "production" &&
+          __DEV__ &&
           Object.keys(fieldOptions).length > 0 &&
           !fieldOptionsEqual(cached.options, fieldOptions, 2)
         ) {

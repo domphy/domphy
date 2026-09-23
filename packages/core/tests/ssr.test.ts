@@ -168,10 +168,24 @@ describe("SSR: generateHTML", () => {
     expect(inline).toContain("<strong>hi</strong>");
   });
 
-  it("renders empty string as a zero-width space entity", () => {
-    expect(
-      new ElementNode({ div: "" } as DomphyElement).generateHTML(),
-    ).toContain("&#8203;");
+  // An empty text node serializes to nothing, so the parser returns no node
+  // and the child loses its hydration slot. A comment survives the round trip
+  // and, unlike the U+200B this used to emit, contributes nothing to the
+  // accessible name (HTML-AAM: comments are not in the accessibility tree).
+  it("anchors an empty text child with a comment, not a printable character", () => {
+    const html = new ElementNode({ div: "" } as DomphyElement).generateHTML();
+    expect(html).toBe("<div><!----></div>");
+    expect(html).not.toContain("&#8203;");
+  });
+
+  it("keeps adjacent empty children as separate parse nodes", () => {
+    // `&#8203;&#8203;` parsed back as ONE text node, so the alignment the
+    // placeholder exists to protect broke for the sibling after it.
+    const host = document.createElement("div");
+    host.innerHTML = new ElementNode({
+      div: ["", "", "x"],
+    } as DomphyElement).generateHTML();
+    expect(host.firstElementChild!.childNodes.length).toBe(3);
   });
 
   it("resolves reactive content/attributes to their initial value", () => {
@@ -347,11 +361,14 @@ describe("SSR: hydration via mount()", () => {
       div: "x",
       style: { color: (l: any) => color.get(l) },
     } as DomphyElement);
-    const token = classToken(rootEl);
-    expect(ruleFor(styleEl, token)?.style.color).toBe("red");
+    // Re-read the class after the update: a node whose declarations change
+    // leaves the shared content scope for its own class, so the rule backing
+    // it is not guaranteed to be the same one. What must hold is that the live
+    // stylesheet shows the new value for THIS element.
+    expect(ruleFor(styleEl, classToken(rootEl))?.style.color).toBe("red");
     color.set("green");
     await flush();
-    expect(ruleFor(styleEl, token)?.style.color).toBe("green");
+    expect(ruleFor(styleEl, classToken(rootEl))?.style.color).toBe("green");
   });
 
   it("updates a reactive nested/pseudo style rule after hydration", async () => {
@@ -360,9 +377,9 @@ describe("SSR: hydration via mount()", () => {
       div: "x",
       style: { "&:hover": { color: (l: any) => color.get(l) } },
     } as DomphyElement);
-    const token = classToken(rootEl);
     color.set("blue");
     await flush();
+    const token = classToken(rootEl);
     const hoverRule = Array.from(styleEl.sheet!.cssRules).find(
       (r) => (r as CSSStyleRule).selectorText === `.${token}:hover`,
     ) as CSSStyleRule;
@@ -376,10 +393,9 @@ describe("SSR: hydration via mount()", () => {
       { div: "x", style: { color: (l: any) => color.get(l) } } as DomphyElement,
       { stylePrefix: prefix },
     );
-    const token = classToken(rootEl);
     color.set("orange");
     await flush();
-    expect(ruleFor(styleEl, token)?.style.color).toBe("orange");
+    expect(ruleFor(styleEl, classToken(rootEl))?.style.color).toBe("orange");
   });
 
   it("replaces reactive text without duplicating the server node", async () => {

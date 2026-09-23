@@ -65,6 +65,29 @@ Use `merge()` when composing patches or mutating a raw element in `_onSchedule`.
 
 ---
 
+## `mergePartial(element)`
+
+Collapses an element's `$` patch array into the element itself, the way `ElementNode` does before rendering: every patch is expanded first (a patch may carry its own `$`), the results are composed left to right, and the element's own keys are applied last so a **native declaration always beats a patch default**.
+
+```ts
+mergePartial({
+  button: "Save",
+  id: "native",
+  $: [{ id: "patch", title: "from patch" }],
+})
+// { button: "Save", id: "native", title: "from patch" }
+```
+
+| Parameter | Type | Description |
+|---|---|---|
+| `element` | `PartialElement \| DomphyElement` | Element whose `$` to collapse |
+
+Returns a **new** object when the element has a `$`, and the element itself when it has none. The input is never modified, and the result carries no `$`.
+
+You rarely need this when rendering — `ElementNode` calls it for you. It is public for tooling that has to see a fully-composed element *before* one is constructed (`@domphy/doctor` analysing a tree), so that composition order has exactly one definition.
+
+---
+
 ## `behavior(key, attach, props)`
 
 Declares a per-node behavior (Svelte-action-like) inside a patch factory. `attach(node, props)` runs once for the real DOM node the returned partial lands on, no matter how many times the factory itself is re-invoked by a reactive parent — every later call routes its `props` into the SAME instance via `update()` instead of creating a new, disconnected one. `destroy()` fires exactly once when the node is removed.
@@ -125,7 +148,9 @@ const style = {
 }
 ```
 
-Do not use `hashString()` to generate ids for Domphy nodes. `ElementNode` already exposes `node.nodeId`, which is the runtime-scoped unique id used by the framework.
+Do not use `hashString()` to generate ids for Domphy nodes. `ElementNode` already exposes `node.nodeId`, a per-instance id assigned in document order by the node's root — unique across the page (two mounts of one component get different ids) and identical between SSR and hydration.
+
+A content-hashed `@keyframes` name like the one above is shared rather than re-inserted: identical keyframes text ends up as one rule in the stylesheet no matter how many elements animate with it.
 
 Notes:
 
@@ -247,6 +272,19 @@ const stop = effect(() => {
 // Logs on every count change. Call stop() to clean up.
 ```
 
+`fn` may **return a cleanup function**, which runs right before each re-run and once on dispose — the same contract as Svelte 5's `$effect` and Preact signals' `effect` (Solid's `onCleanup`). Use it for per-run resources so they do not accumulate one per dependency change:
+
+```ts
+const id = toState(1)
+
+const stop = effect(() => {
+  const socket = new WebSocket(`wss://example.com/${id.get()}`)
+  return () => socket.close()   // closed before the next run, and on stop()
+})
+```
+
+Any `effect`, `computed` or `effectScope` created **inside** a run is owned by that run and disposed when it is superseded (Solid owner semantics), so a nested effect does not accumulate one live instance per outer re-run.
+
 Returns a cleanup function `() => void`. Always call it in `_onBeforeRemove` or `_onRemove` to avoid memory leaks.
 
 ---
@@ -335,6 +373,8 @@ const stop = watch(count, (newVal, oldVal) => {
 ```
 
 `source` can be a `State` or a getter function `() => T`. `callback` receives `(newValue, oldValue)`. Options: `{ immediate?: boolean }` — if `true`, runs callback immediately with the current value.
+
+Only the **source** is tracked. Reads inside `callback` are untracked, so an unrelated state read there never becomes a watcher dependency (Vue 3 `watch` semantics).
 
 To watch multiple sources at once, compose them into a single getter — `watch` re-runs whenever any state read inside it changes:
 

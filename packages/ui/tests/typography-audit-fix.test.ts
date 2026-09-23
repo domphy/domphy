@@ -149,9 +149,17 @@ describe("M32 breadcrumb essential nav uses text tone", () => {
       nav: [{ a: "Home" }, { a: "Library", ariaCurrent: "page" }],
       $: [breadcrumb()],
     } as DomphyElement);
-    // muted → --neutral-8 (below AA for essential nav); text → --neutral-9.
+    // AGENTS.md contrast contract: "Essential text (labels, instructions,
+    // error text, button names, nav items) must use `text`", while `muted`
+    // (--neutral-8) "is the de-emphasis tone for supplementary/decorative
+    // content". The crumbs themselves are nav items, so they must be
+    // --neutral-9; the `::after` separator glyph is decorative generated
+    // content and is allowed the muted tone (it clears the 3:1 non-text floor
+    // at 4.06:1 light / 4.24:1 dark, where the previous shift-4 measured
+    // 1.94:1 and was effectively invisible).
     expect(css).toMatch(/var\(--neutral-9\)/);
-    expect(css).not.toMatch(/var\(--neutral-8\)/);
+    const withoutSeparator = css.replace(/[^{}]*::after\s*\{[^}]*\}/g, "");
+    expect(withoutSeparator).not.toMatch(/var\(--neutral-8\)/);
   });
 });
 

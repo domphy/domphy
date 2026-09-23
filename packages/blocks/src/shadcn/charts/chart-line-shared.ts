@@ -22,9 +22,13 @@
 import type { AxisOption, ChartOption, TooltipParams } from "@domphy/chart";
 import { chart, createLinearScale, createOrdinalScale } from "@domphy/chart";
 import type { DomphyElement, PartialElement } from "@domphy/core";
-import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
+import {
+  type ThemeColor,
+  themeColor,
+  themeSpacing,
+  themeWeight,
+} from "@domphy/theme";
 import { card, heading, icon, motion, paragraph, small } from "@domphy/ui";
-import { fixed } from "../../shared/typography.js";
 
 // ─── Single-hue series ramp ─────────────────────────────────────────────────
 //
@@ -372,7 +376,7 @@ export function trendFooter(props: TrendFooterProps): DomphyElement<"footer"> {
           {
             span: headline,
             style: {
-              fontWeight: fixed(500),
+              fontWeight: themeWeight("medium"),
               color: (listener) => themeColor(listener, "shift-11", "neutral"),
             },
           } as DomphyElement<"span">,

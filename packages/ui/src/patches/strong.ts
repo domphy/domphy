@@ -1,8 +1,13 @@
 import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
-import { type ThemeColor, themeColor, themeSize } from "@domphy/theme";
+import {
+  type ThemeColor,
+  themeColor,
+  themeSize,
+  themeWeight,
+} from "@domphy/theme";
 
 /**
- * Styles strongly emphasized (bold) text: inherited font size, `font-weight: 700`, and a
+ * Styles strongly emphasized (bold) text: inherited font size, the theme's `bold` weight, and a
  * themed foreground color.
  *
  * @hostTag strong
@@ -23,7 +28,7 @@ function strong(
     },
     style: {
       fontSize: (listener) => themeSize(listener, "inherit"),
-      fontWeight: "bold",
+      fontWeight: themeWeight("bold"),
       color: (listener) =>
         themeColor(listener, "shift-11", color.get(listener)),
       backgroundColor: (listener) => themeColor(listener),

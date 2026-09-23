@@ -6,6 +6,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { fieldTextStyle } from "../utils/fieldText.js";
 import { focusRing } from "../utils/focusRing.js";
 
 /**
@@ -18,7 +19,7 @@ import { focusRing } from "../utils/focusRing.js";
  * @param props.type - The input's `type` attribute (e.g. `"email"`, `"url"`, `"tel"`). Defaults to `"text"`.
  * @param props.color - Base color tone for text/border/background. Defaults to `"neutral"`.
  * @param props.accentColor - Accent color tone for the hover/focus outline. Defaults to `"primary"`.
- * @example { input: "", type: "text", placeholder: "Name", $: [inputText()] }
+ * @example { input: null, type: "text", placeholder: "Name", $: [inputText()] }
  */
 function inputText(
   props: {
@@ -43,7 +44,6 @@ function inputText(
       }
     },
     style: {
-      fontFamily: "inherit",
       lineHeight: "inherit",
       minWidth: themeSpacing(10),
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
@@ -54,16 +54,10 @@ function inputText(
       outlineOffset: "-1px",
       outline: (listener) =>
         `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
-      color: (listener) => themeColor(listener, "text", color.get(listener)),
+      ...fieldTextStyle(color),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
       transition: "outline-color 140ms ease, box-shadow 140ms ease",
-      "&::placeholder": {
-        color: (listener) => themeColor(listener, "shift-7"),
-      },
-      "&:not(:placeholder-shown)": {
-        color: (listener) => themeColor(listener, "shift-10"),
-      },
       "&:hover:not([disabled]):not([aria-busy=true])": {
         outline: (listener) =>
           `1px solid ${themeColor(listener, "shift-5", accentColor.get(listener))}`,
@@ -80,7 +74,12 @@ function inputText(
           `1px solid ${themeColor(listener, "border-strong", "neutral")}`,
         color: (listener) => themeColor(listener, "muted", "neutral"),
       },
-      "&:invalid:not(:placeholder-shown)": {
+      // `[placeholder]` is load-bearing: `:placeholder-shown` only matches an
+      // input that HAS a placeholder, so on a field without one
+      // `:not(:placeholder-shown)` is always true and a pristine untouched
+      // `required` field painted itself red before the user typed a character.
+      // Fields with no placeholder opt into the error look via `data-status`.
+      "&[placeholder]:invalid:not(:placeholder-shown)": {
         outline: (listener) =>
           `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", "error")}`,
       },

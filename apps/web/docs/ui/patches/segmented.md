@@ -8,6 +8,10 @@ import Segmented from "../../demos/patches/Segmented.ts?raw"
 
 All-in-one single-select segmented control. Apply `segmented({ items })` to a wrapper element — it sets `role="radiogroup"` on the wrapper and generates `role="radio"` `<button>` options from the `items` array. The container has an inline pill style with a muted background.
 
+Keyboard follows the WAI-ARIA APG [Radio Group](https://www.w3.org/WAI/ARIA/apg/patterns/radio/) pattern: ArrowRight/ArrowDown move to and check the next segment, ArrowLeft/ArrowUp the previous (both wrap), Home/End jump to the first/last. Roving `tabindex` keeps a single tab stop on the group.
+
+The selected key is published on a `segmented` context (`{ value }`) that descendants can read with `node.getContext("segmented")` — it is the same `State` the buttons write to, including when `value` was passed as a plain string or omitted.
+
 ## Props
 
 | Prop | Type | Default | Description |

@@ -8,7 +8,7 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { button, divider, heading, icon, label, link, small } from "@domphy/ui";
-import { fixed } from "../../shared/typography.js";
+import { instanceScoped } from "../../shared/instanceScope.js";
 
 // Visually-hidden but screen-reader-visible text — same recipe as this
 // package's other `sr-only` usages (see shadcn/auth/login05.ts).
@@ -51,8 +51,8 @@ const LOGO_ICON =
 function authFieldInput(): PartialElement {
   return {
     style: {
-      fontFamily: fixed("inherit"),
-      lineHeight: fixed("inherit"),
+      fontFamily: "inherit",
+      lineHeight: "inherit",
       width: "100%",
       boxSizing: "border-box",
       paddingInline: (listener: Listener) =>
@@ -131,14 +131,14 @@ function legalLine(
       {
         a: "Terms of Service",
         href: termsHref,
-        style: { textDecoration: fixed("underline") },
+        style: { textDecoration: "underline" },
         $: [link({ color: "neutral" })],
       },
       " and ",
       {
         a: "Privacy Policy",
         href: privacyHref,
-        style: { textDecoration: fixed("underline") },
+        style: { textDecoration: "underline" },
         $: [link({ color: "neutral" })],
       },
       ".",
@@ -244,20 +244,29 @@ function signup05(props: Signup05Props = {}): DomphyElement<"div"> {
     },
   };
 
+  const buildEmailRow = (inputId: string): DomphyElement[] => [
+    { label: emailLabel, for: inputId, $: [label()] },
+    {
+      input: null,
+      id: inputId,
+      name: "signup05-email",
+      type: "email",
+      placeholder: emailPlaceholder,
+      required: true,
+      autocomplete: "email",
+      $: [authFieldInput()],
+    },
+  ];
+
   const emailField: DomphyElement<"div"> = {
-    div: [
-      { label: emailLabel, for: "signup05-email", $: [label()] },
-      {
-        input: null,
-        id: "signup05-email",
-        name: "signup05-email",
-        type: "email",
-        placeholder: emailPlaceholder,
-        required: true,
-        autocomplete: "email",
-        $: [authFieldInput()],
-      },
-    ],
+    // The `name` stays the form-payload key; the DOM id is scoped to this
+    // row's nodeId so two mounted instances never share one id (see
+    // ../../shared/instanceScope.ts). The eager children keep the subtree
+    // visible to @domphy/doctor.
+    div: buildEmailRow("signup05-email"),
+    ...instanceScoped((instanceId) =>
+      buildEmailRow(`signup05-email-${instanceId}`),
+    ),
     style: {
       display: "flex",
       flexDirection: "column",
@@ -285,7 +294,7 @@ function signup05(props: Signup05Props = {}): DomphyElement<"div"> {
       {
         a: signInLinkText,
         href: signInHref,
-        style: { textDecoration: fixed("underline") },
+        style: { textDecoration: "underline" },
         $: [link({ color: "neutral" })],
       },
     ],

@@ -26,13 +26,14 @@ The first key must be a valid lowercase HTML tag name such as `div`, `button`, `
 The tag value is the content:
 
 - `string` or `number` becomes a child text node
-- `array` becomes multiple children
+- `array` becomes children — one child still needs its brackets: `{ button: [{ span: "Save" }] }`
 - `function(listener)` becomes reactive content
-- `null` is used for void tags such as `input` or `img`
+- `null` is used for void tags such as `input` or `img` — and is the only value they accept, since a void element cannot have children (`{ hr: "" }` builds a child text node the client renders and SSR omits, so it warns in development)
 
 ```ts
 { p: "Static text" }
 { p: 42 }
+{ button: [{ span: "Save" }] }
 { ul: [{ li: "A" }, { li: "B" }] }
 { p: (listener) => `Count: ${count.get(listener)}` }
 { input: null, type: "text" }
@@ -192,6 +193,71 @@ import { button, spinner } from "@domphy/ui"
 A patch is a function returning a `PartialElement`. Domphy merges patch output into the element before rendering.
 
 Patch composition and merge rules are explained in [Overview](./).
+
+## Custom Elements
+
+A tag key that is a [valid custom element name](https://html.spec.whatwg.org/multipage/custom-elements.html#valid-custom-element-name) — lowercase, containing a hyphen, not one of the eight names the spec reserves (`annotation-xml`, `font-face`, …) — is rendered as that element. No registration with Domphy is needed; use any web component.
+
+```ts
+customElements.define("my-chart", MyChart)
+
+const App = {
+  div: [
+    {
+      "my-chart": null,
+      "help-text": "Revenue by quarter",   // attribute
+      data: { series: [1, 2, 3] },         // property on the instance
+      "onmy-chart-select": (event) => console.log(event.detail),
+    },
+  ],
+}
+```
+
+The custom element name must be the **first** key, and it may not sit in the `data-*` or `aria-*` namespaces. Both are attribute namespaces HTML and WAI-ARIA reserve, yet both match the custom-element-name production — without that rule `{ "aria-label": "Close", "my-widget": "…" }` would render an `<aria-label>` element instead of failing. Give a component an ordinary vendor prefix (`sl-`, `ion-`, `my-`), as every shipped web component library does.
+
+### Props: property or attribute
+
+Domphy applies the same rule as React 19 and Preact:
+
+- if the key names a **property of the element instance** (`"data" in element`), it is assigned as a property — objects, arrays, `Map`s and functions reach the component intact
+- if the value is an object or a function but the property is not there yet, it is *still* assigned as a property: the element is simply not upgraded, and a property set before upgrade is the documented hand-off (Lit picks it up when the definition lands)
+- everything else is set as an attribute, with the same naming rules as a built-in tag (`helpText` → `help-text`)
+
+Props on a custom element are passed **by reference**, not deep-cloned like the attribute values of a built-in tag — a web component compares prop identity (`!==`) to decide whether to re-render, and copying a dataset on every render would be wasteful anyway. Treat the object you pass as owned by the component.
+
+Setting a prop to `null`/`undefined`, or dropping it in a later render, clears the property as well as the attribute.
+
+A **function** value means the same thing here as on any other tag — a reactive value, called with a listener (`"help-text": (listener) => hint.get(listener)`). To pass a *callback* to a component, return it from that function: `renderItem: () => myCallback` resolves to the function itself, which is then assigned as the property.
+
+### Events
+
+`onX` still maps to the standard DOM event when `x` is one (`onClick` → `click`). Anything else keeps its **case** on a custom element, so the case-sensitive names web components dispatch are reachable:
+
+```ts
+{ "sl-input": null, "onsl-change": (event) => … }   // addEventListener("sl-change")
+{ "my-widget": null, onMyEvent: (event) => … }      // addEventListener("MyEvent")
+```
+
+Handlers receive `(event, node)` like any other Domphy event, so `event.detail` is available directly.
+
+### SSR
+
+A custom element serializes like any other tag, with its primitive props as attributes. Object/array props have no attribute form, so they are **omitted** from the server HTML and assigned to the instance when `mount()` hydrates the node — server and client markup stay identical.
+
+### TypeScript
+
+`DomphyElement` accepts any hyphenated key, which covers the tag and kebab-case attributes. camelCase JS properties that no HTML element declares (`data`, `helpText`) are typed with `CustomElement<Props>`:
+
+```ts
+import type { CustomElement } from "@domphy/core"
+
+const chart: CustomElement<{ data: ChartData }> = {
+  "my-chart": null,
+  data: { series: [] },
+}
+```
+
+(A `[key: string]` index signature is deliberately not used: it would switch off excess-property checking for every element type, so a typo'd attribute on a `<div>` would stop being an error.)
 
 ## Internal Keys
 

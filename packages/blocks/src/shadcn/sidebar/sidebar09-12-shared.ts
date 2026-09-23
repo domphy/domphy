@@ -14,6 +14,7 @@
 import type { DomphyElement, Listener, State } from "@domphy/core";
 import { toState } from "@domphy/core";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
+import { interactiveFill } from "../../shared/interactiveFill.js";
 import { sidebarIcon } from "./sidebar05-08-shared.js";
 
 export {
@@ -31,6 +32,7 @@ export {
   ICON_PLUS,
   ICON_SEARCH,
   ICON_USERS,
+  makeSidebarToggle,
   placeholderCard,
   placeholderPanel,
   renderExpandableNavRow,
@@ -120,9 +122,7 @@ function interactiveRowStyle(dense = false) {
     whiteSpace: "nowrap",
     color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
     backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-    "&:hover": {
-      backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral"),
-    },
+    "&:hover": interactiveFill(2),
     "&[aria-current=page], &[aria-current=true]": {
       // Upstream active nav item is monochrome (sidebar-accent), not brand blue.
       backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral"),

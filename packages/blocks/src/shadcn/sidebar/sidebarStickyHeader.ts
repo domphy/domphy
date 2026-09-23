@@ -27,6 +27,8 @@ import {
   small,
   strong,
 } from "@domphy/ui";
+import { instanceScoped } from "../../shared/instanceScope.js";
+import { interactiveFill } from "../../shared/interactiveFill.js";
 import {
   glyphChild,
   ICON_BAR_CHART,
@@ -38,6 +40,7 @@ import {
   ICON_MESSAGE,
   ICON_PANEL_TOGGLE,
   ICON_SEARCH,
+  makeSidebarToggle,
   renderExpandableNavRow,
   renderPlainNavRow,
   renderProjectRow,
@@ -161,10 +164,7 @@ function renderSecondaryNavRow(
           whiteSpace: "nowrap",
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": {
-            backgroundColor: (l: Listener) =>
-              themeColor(l, "shift-2", "neutral"),
-          },
+          "&:hover": interactiveFill(2),
         },
       } as unknown as DomphyElement,
     ],
@@ -230,10 +230,7 @@ function renderBrandHeader(brand: SidebarTeam): DomphyElement<"div"> {
           overflow: "hidden",
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": {
-            backgroundColor: (l: Listener) =>
-              themeColor(l, "shift-2", "neutral"),
-          },
+          "&:hover": interactiveFill(2),
         },
       } as unknown as DomphyElement,
     ],
@@ -271,6 +268,51 @@ function stickyHeaderBreadcrumb(
 }
 
 /**
+ * The header's search field content: a decorative magnifier glyph, a
+ * visually-hidden label and the search input, all sharing one id so two
+ * mounted sidebarStickyHeader instances never collide (caller scopes it via
+ * instanceScoped).
+ */
+function stickyHeaderSearchRow(
+  searchId: string,
+  searchPlaceholder: string,
+): (DomphyElement | null)[] {
+  return [
+    {
+      span: rawHtml(ICON_SEARCH),
+      style: {
+        position: "absolute",
+        insetInlineStart: themeSpacing(3),
+        top: "50%",
+        transform: "translateY(-50%)",
+        pointerEvents: "none",
+        display: "inline-flex",
+        color: (l: Listener) => themeColor(l, "shift-6", "neutral"),
+      },
+    } as unknown as DomphyElement,
+    srOnlyLabel("Search", searchId),
+    {
+      input: null,
+      id: searchId,
+      type: "search",
+      placeholder: searchPlaceholder,
+      ariaLabel: "Search",
+      // The leading magnifier sits at inset 12px + 16px wide, so the
+      // text must start past 28px. `paddingInlineStart` alone loses to
+      // inputSearch()'s `paddingInline` SHORTHAND in the cascade
+      // (measured: computed padding-inline-start 18px, text overlapping
+      // the glyph), so declare the shorthand at the same level here.
+      style: {
+        width: "100%",
+        paddingInline: (l: Listener) =>
+          `${themeSpacing(9)} ${themeSpacing(themeDensity(l) * 3)}`,
+      },
+      $: [inputSearch({ color: "neutral", accentColor: "neutral" })],
+    } as unknown as DomphyElement,
+  ];
+}
+
+/**
  * shadcn/ui "sidebar-sticky-header" — a full-featured collapsible sidebar
  * (brand header, nested Platform nav, Projects list, secondary nav, user
  * footer) below a full-width site header that is a sibling of the sidebar,
@@ -301,6 +343,12 @@ function sidebarStickyHeader(
   // their expanded-vs-icon variant; pass a constant `false` so they only ever
   // draw the expanded rows.
   const collapsed = toState(false);
+  // Upstream `SidebarProvider` keeps the desktop `open` state (default true)
+  // and the mobile `openMobile` state (default FALSE) apart. Sharing one
+  // state rendered the off-canvas drawer OPEN over the page on first paint at
+  // phone widths — measured at 375px, the panel covered the whole block.
+  const mobileOpen = toState(false);
+  const toggleSidebar = makeSidebarToggle(sidebarOpen, mobileOpen);
 
   const navMainRows = navMain.map((item) =>
     item.items && item.items.length > 0
@@ -314,37 +362,20 @@ function sidebarStickyHeader(
         button: sidebarIcon(ICON_PANEL_TOGGLE),
         type: "button",
         ariaLabel: "Toggle sidebar",
-        onClick: () => sidebarOpen.set(!sidebarOpen.get()),
+        onClick: toggleSidebar,
         $: [buttonGhost({ color: "neutral" })],
       } as unknown as DomphyElement,
       verticalDivider(),
       stickyHeaderBreadcrumb(breadcrumbItems),
       { div: null, style: { flex: "1 1 auto" } } as unknown as DomphyElement,
       {
-        form: [
-          {
-            span: rawHtml(ICON_SEARCH),
-            style: {
-              position: "absolute",
-              insetInlineStart: themeSpacing(3),
-              top: "50%",
-              transform: "translateY(-50%)",
-              pointerEvents: "none",
-              display: "inline-flex",
-              color: (l: Listener) => themeColor(l, "shift-6", "neutral"),
-            },
-          } as unknown as DomphyElement,
-          srOnlyLabel("Search", "sidebar16-search"),
-          {
-            input: null,
-            id: "sidebar16-search",
-            type: "search",
-            placeholder: searchPlaceholder,
-            ariaLabel: "Search",
-            style: { width: "100%", paddingInlineStart: themeSpacing(9) },
-            $: [inputSearch({ color: "neutral", accentColor: "neutral" })],
-          } as unknown as DomphyElement,
-        ],
+        form: stickyHeaderSearchRow("sidebar16-search", searchPlaceholder),
+        ...instanceScoped((instanceId) =>
+          stickyHeaderSearchRow(
+            `sidebar16-search-${instanceId}`,
+            searchPlaceholder,
+          ),
+        ),
         role: "search",
         onSubmit: (e: Event) => e.preventDefault(),
         style: {
@@ -458,7 +489,7 @@ function sidebarStickyHeader(
       {
         div: null,
         ariaHidden: "true",
-        onClick: () => sidebarOpen.set(!sidebarOpen.get()),
+        onClick: toggleSidebar,
         style: {
           position: "absolute",
           insetBlock: "0",
@@ -471,7 +502,7 @@ function sidebarStickyHeader(
     dataTone: "shift-1",
     // Ctrl/Cmd+B hotkey via behavior() — a `_onMount` listener would keep
     // calling generation 1's `sidebarOpen` state after any ancestor re-render.
-    ...sidebarHotkey(() => sidebarOpen.set(!sidebarOpen.get())),
+    ...sidebarHotkey(toggleSidebar),
     // Offcanvas panel: a fixed-position sibling of the layout spacer below.
     // Toggling `sidebarOpen` slides the whole panel off the left edge (upstream
     // `collapsible="offcanvas"` → fixed container `left: -sidebar-width`) while
@@ -488,13 +519,20 @@ function sidebarStickyHeader(
       overflow: "hidden",
       transform: (l: Listener) =>
         sidebarOpen.get(l) ? "translateX(0)" : "translateX(-100%)",
-      transition: "transform 0.2s ease",
+      // `transform` alone leaves every link in the slid-out panel in the tab
+      // order (WCAG 2.4.3): measured 36 tabbable controls reachable while the
+      // panel was off screen. `visibility` is animated so the slide still runs.
+      visibility: (l: Listener) => (sidebarOpen.get(l) ? "visible" : "hidden"),
+      transition: "transform 0.2s ease, visibility 0.2s ease",
       borderInlineEnd: (l: Listener) =>
         `1px solid ${themeColor(l, "shift-3", "neutral")}`,
       backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
       "@media (max-width: 768px)": {
         width: themeSpacing(72),
+        transform: (l: Listener) =>
+          mobileOpen.get(l) ? "translateX(0)" : "translateX(-100%)",
+        visibility: (l: Listener) => (mobileOpen.get(l) ? "visible" : "hidden"),
         boxShadow: (l: Listener) =>
           `0 0 ${themeSpacing(6)} ${themeColor(l, "shift-3", "neutral")}`,
       },
@@ -534,7 +572,7 @@ function sidebarStickyHeader(
           sidebarSpacer,
           asideElement,
           mainElement,
-          sidebarBackdrop(sidebarOpen, () => sidebarOpen.set(false)),
+          sidebarBackdrop(mobileOpen, () => mobileOpen.set(false)),
         ],
         // Layout-only row (aside + main manage their own color/background) —
         // the `var(--siteHeaderHeight)` reference in height/marginBlockStart is

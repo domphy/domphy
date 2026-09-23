@@ -1,10 +1,14 @@
 import type { DomphyElement } from "@domphy/core";
+import { themeSpacing } from "@domphy/theme";
 import { three } from "@domphy/three";
 import * as THREE from "three";
 
-// Injected in place of the default `new THREE.WebGLRenderer({ canvas,
-// antialias: true, ...gl })` — `alpha: true` + a transparent clear color let
-// the page's own background show through the canvas.
+// Replaces the default renderer wholesale. The defaults already cover the
+// ordinary knobs (`powerPreference: "high-performance"`, `antialias: true`,
+// `alpha: true`, and anything passed through the `gl` option), so reach for
+// this hook when you need a DIFFERENT renderer object: a WebGPURenderer, a
+// post-processing composer, or a stub in tests. Spelled out here so you can
+// see exactly what the contract is.
 function createRenderer(canvas: HTMLCanvasElement) {
   const renderer = new THREE.WebGLRenderer({
     canvas,
@@ -20,7 +24,7 @@ const App: DomphyElement<"div"> = {
   style: {
     width: "100%",
     height: "420px",
-    borderRadius: "12px",
+    borderRadius: themeSpacing(3),
     overflow: "hidden",
   },
   $: [

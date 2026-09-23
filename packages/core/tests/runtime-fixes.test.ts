@@ -11,6 +11,7 @@
 //  f. A behavior attach() throw routes to the nearest _onError boundary.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ElementNode } from "../src/classes/ElementNode.ts";
+import { rawHtml } from "../src/classes/RawHTML.ts";
 import { effect, effectScope } from "../src/classes/Reactive.ts";
 import type { DomphyElement } from "../src/types.ts";
 import { behavior, toState } from "../src/utils.ts";
@@ -131,13 +132,35 @@ describe("void-tag content", () => {
     expect(warnSpy).not.toHaveBeenCalled();
   });
 
-  it('does not warn for the empty-string idiom ({ hr: "" })', () => {
+  it('warns for an empty string on a void tag ({ hr: "" })', () => {
+    // `""` is content, not an absence: it builds a child text node the client
+    // renders and SSR omits. AGENTS.md, `DomphyElement` and doctor's
+    // void-content rule all require `null` here.
     new ElementNode({ hr: "" } as any);
-    expect(warnSpy).not.toHaveBeenCalled();
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining("<hr> is a void element"),
+    );
   });
 
   it("does not warn for non-void elements with content", () => {
     new ElementNode({ div: "content" } as any);
+    expect(warnSpy).not.toHaveBeenCalled();
+  });
+
+  it("warns for a bare child object instead of an array", () => {
+    // AGENTS.md and `DomphyElement` both declare content as a primitive, a
+    // reactive function or an ARRAY. The runtime wraps whatever it is given,
+    // which let an unsupported shape spread through casts unnoticed.
+    new ElementNode({ div: { span: "x" } } as any);
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining("single child object"),
+    );
+  });
+
+  it("does not warn for an array child, a primitive or rawHtml()", () => {
+    new ElementNode({ div: [{ span: "x" }] } as any);
+    new ElementNode({ div: "x" } as any);
+    new ElementNode({ div: rawHtml("<b>x</b>") } as any);
     expect(warnSpy).not.toHaveBeenCalled();
   });
 });

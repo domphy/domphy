@@ -1,5 +1,5 @@
 import type { DomphyElement } from "@domphy/core";
-import { themeColorToken } from "@domphy/theme";
+import { themeColorToken, themeSpacing } from "@domphy/theme";
 import { three } from "@domphy/three";
 
 const App: DomphyElement<"div"> = {
@@ -7,7 +7,7 @@ const App: DomphyElement<"div"> = {
   style: {
     width: "100%",
     height: "420px",
-    borderRadius: "12px",
+    borderRadius: themeSpacing(3),
     overflow: "hidden",
   },
   $: [

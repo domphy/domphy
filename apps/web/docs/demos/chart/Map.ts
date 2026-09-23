@@ -39,11 +39,10 @@ const option: ChartOption = {
     {
       type: "map",
       map: "world",
-      roam: true,
       name: "GDP",
+      roam: true,
       data: gdpData,
       label: { show: false },
-      emphasis: { label: { show: true } },
     },
   ],
 };

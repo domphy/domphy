@@ -28,6 +28,12 @@
 import type { DomphyElement, ElementNode } from "@domphy/core";
 import { behavior } from "@domphy/core";
 import { themeColorToken } from "@domphy/theme";
+import {
+  easeOutCubic,
+  focusRotationForPoint,
+  rotatePoint,
+  type SpherePoint,
+} from "./iconCloudMath.js";
 
 export interface IconCloudItem {
   /** Bitmap image URL. Takes priority over `glyphMarkup` when both are set. */
@@ -118,12 +124,6 @@ function defaultIcons(colorHex: string): IconCloudItem[] {
   }));
 }
 
-interface SpherePoint {
-  x: number;
-  y: number;
-  z: number;
-}
-
 /** Golden-angle (Fibonacci) spiral — distributes `count` points evenly over a unit sphere
  * surface with no pole clumping, cheaper than iterative relaxation for a small fixed set. */
 function buildFibonacciSpherePoints(count: number): SpherePoint[] {
@@ -141,52 +141,8 @@ function buildFibonacciSpherePoints(count: number): SpherePoint[] {
   return points;
 }
 
-function rotatePoint(
-  point: SpherePoint,
-  yaw: number,
-  pitch: number,
-): SpherePoint {
-  // Matches upstream's projection exactly: yaw (spin about the vertical axis)
-  // is applied first and alone determines depth (z), then pitch only slides the
-  // point vertically (y) reusing that pre-pitch depth — a deliberately partial,
-  // non-orthonormal rotation. Consequences that make it faithful to upstream:
-  // vertical drag moves icons up/down WITHOUT changing their depth/scale, and
-  // the yaw handedness (sign of the sin terms) matches, so horizontal drag
-  // spins the sphere the same direction as the reference.
-  const cosYaw = Math.cos(yaw);
-  const sinYaw = Math.sin(yaw);
-  const rotatedX = point.x * cosYaw - point.z * sinYaw;
-  const rotatedZ = point.x * sinYaw + point.z * cosYaw;
-  const cosPitch = Math.cos(pitch);
-  const sinPitch = Math.sin(pitch);
-  const rotatedY = point.y * cosPitch + rotatedZ * sinPitch;
-  return { x: rotatedX, y: rotatedY, z: rotatedZ };
-}
-
 function lerp(from: number, to: number, t: number): number {
   return from + (to - from) * t;
-}
-
-function easeOutCubic(t: number): number {
-  return 1 - (1 - t) ** 3;
-}
-
-/** The absolute yaw/pitch that, applied via `rotatePoint`, bring `point` to the
- * screen center (projected to the canvas center, on the viewer-facing side).
- * Independent of the current rotation — the tween interpolates from wherever the
- * sphere currently sits to these target angles. Uses upstream's exact target
- * formula (yaw = atan2(x, z), pitch = -atan2(y, r_xz)); under the partial
- * rotation the focused point lands at x=0, y=0 with depth r_xz — upstream does
- * not renormalize it to the front pole, so neither do we. */
-function focusRotationForPoint(point: SpherePoint): {
-  yaw: number;
-  pitch: number;
-} {
-  const radiusInXZ = Math.sqrt(point.x * point.x + point.z * point.z);
-  return {
-    yaw: Math.atan2(point.x, point.z),
-    pitch: -Math.atan2(point.y, radiusInXZ),
-  };
 }
 
 /**
@@ -290,6 +246,8 @@ function attachIconCloud(node: ElementNode, initialProps: IconCloudProps) {
     image.decoding = "async";
     image.onload = () => {
       loaded[index].source = image;
+      // A glyph that decodes after the loop idled out still has to be painted.
+      scheduleFrame();
     };
     image.src = `data:image/svg+xml,${encodeURIComponent(icon.glyphMarkup)}`;
   });
@@ -485,7 +443,20 @@ function attachIconCloud(node: ElementNode, initialProps: IconCloudProps) {
       }
     }
     draw();
+    // Under reduce the idle drift above is skipped, so once the user is
+    // neither dragging nor mid-focus-tween every further frame would repaint
+    // the identical sphere. Idle the loop out rather than hold a full-canvas
+    // redraw at 60fps forever; `scheduleFrame()` re-arms it from each of the
+    // inputs that can still change what is drawn.
+    if (prefersReducedMotion && !dragging && !focusTarget) {
+      frameHandle = null;
+      return;
+    }
     frameHandle = requestAnimationFrame(tick);
+  };
+
+  const scheduleFrame = () => {
+    if (frameHandle === null) frameHandle = requestAnimationFrame(tick);
   };
 
   const handlePointerDown = (event: PointerEvent) => {
@@ -495,6 +466,7 @@ function attachIconCloud(node: ElementNode, initialProps: IconCloudProps) {
     pointerDownX = event.clientX;
     pointerDownY = event.clientY;
     pointerMovedFar = false;
+    scheduleFrame();
     // A fresh press cancels any in-flight focus tween so the drag (or the
     // next auto-rotation) takes over cleanly rather than fighting it.
     focusTarget = null;
@@ -523,6 +495,7 @@ function attachIconCloud(node: ElementNode, initialProps: IconCloudProps) {
     }
     yaw += deltaX * dragSensitivity();
     pitch += deltaY * dragSensitivity();
+    scheduleFrame();
   };
   // Tracks the pointer position (in the canvas's own drawing space)
   // continuously, drag or not — the only input the idle-drift branch of
@@ -548,6 +521,7 @@ function attachIconCloud(node: ElementNode, initialProps: IconCloudProps) {
       const index = iconIndexAtPoint(point.x, point.y);
       if (index !== null) startFocus(index);
     }
+    scheduleFrame();
   };
 
   canvas.addEventListener("pointerdown", handlePointerDown);
@@ -556,7 +530,12 @@ function attachIconCloud(node: ElementNode, initialProps: IconCloudProps) {
   window.addEventListener("pointerup", handlePointerUp);
 
   if (typeof ResizeObserver !== "undefined") {
-    resizeObserver = new ResizeObserver(() => resizeCanvas());
+    resizeObserver = new ResizeObserver(() => {
+      resizeCanvas();
+      // Resizing clears the backing store, so a repaint is needed even when
+      // the rotation itself has not moved and the loop has idled out.
+      scheduleFrame();
+    });
     resizeObserver.observe(container);
   }
 
@@ -577,4 +556,4 @@ function attachIconCloud(node: ElementNode, initialProps: IconCloudProps) {
   };
 }
 
-export { iconCloud, easeOutCubic, focusRotationForPoint, rotatePoint };
+export { iconCloud };

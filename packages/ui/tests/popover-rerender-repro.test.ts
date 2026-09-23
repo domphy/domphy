@@ -26,13 +26,12 @@ if (!("ResizeObserver" in globalThis)) {
 // across the whole file that (a) leaves createFloating()'s setTimeout(
 // instantShow/instantHide, 100) callbacks from an EARLIER test still pending
 // against a shared fake clock when a LATER test starts advancing it, and (b)
-// leaves the #domphy-floating overlay div — one per app root, a fixed,
-// non-unique id BY DESIGN (a single shared overlay per root) — accumulating
-// duplicates across the whole jsdom `document` once more than one test's
-// root is mounted at once. jsdom's querySelector('#id') returns null (not
-// just "first match") once an id collides document-wide, even when scoped to
-// a specific host that DOES contain a matching descendant. Restore real
-// timers AND wipe body between tests so each one starts clean.
+// leaves the shared floating overlay div — one per app root — accumulating
+// across the whole jsdom `document` once more than one test's root is
+// mounted at once, so a document-wide lookup can resolve to another test's
+// overlay. (This is also why the container is marked with a data attribute
+// rather than a fixed id: several of them legitimately coexist.) Restore
+// real timers AND wipe body between tests so each one starts clean.
 afterEach(() => {
   vi.useRealTimers();
   document.body.innerHTML = "";
@@ -178,7 +177,7 @@ describe("popover teardown when the anchor is removed while open (repro)", () =>
     // The reactive list lives INSIDE a stable outer div — matching real app
     // structure (a nested reactive list, e.g. a node collection body, under
     // a static app root) — not AS the root itself. createFloating() inserts
-    // the #domphy-floating overlay as a child of the trigger's ROOT node; if
+    // the [data-domphy-floating] overlay as a child of the trigger's ROOT node; if
     // the list's own reactive div were the root, its OWN re-render would
     // wipe the overlay as an unrelated side effect of the test's shape, not
     // the bug under test.
@@ -202,15 +201,15 @@ describe("popover teardown when the anchor is removed while open (repro)", () =>
     host.querySelector("button")!.click();
     vi.advanceTimersByTime(150);
     flushSync();
-    expect(host.querySelector("#domphy-floating")!.textContent).toContain(
+    expect(host.querySelector("[data-domphy-floating]")!.textContent).toContain(
       "Body 1",
     );
 
     items.set([]);
     flushSync();
-    expect(host.querySelector("#domphy-floating")!.textContent).not.toContain(
-      "Body 1",
-    );
+    expect(
+      host.querySelector("[data-domphy-floating]")!.textContent,
+    ).not.toContain("Body 1");
   });
 
   it("removing the anchor after MULTIPLE reactive re-renders of its row still removes the CURRENTLY open floating panel", () => {
@@ -222,7 +221,7 @@ describe("popover teardown when the anchor is removed while open (repro)", () =>
     // anchor's ONE-EVER BeforeRemove hook (registered by the first closure's
     // _onMount, which never re-fires on a reused node) used to tear down the
     // wrong (stale, never-shown) generation — leaving the actually-visible
-    // floating panel orphaned in #domphy-floating when the row was removed.
+    // floating panel orphaned in [data-domphy-floating] when the row was removed.
     vi.useFakeTimers();
     const items = toState([1]);
     const refreshTrigger = toState(0);
@@ -256,7 +255,7 @@ describe("popover teardown when the anchor is removed while open (repro)", () =>
     host.querySelector("button")!.click();
     vi.advanceTimersByTime(150);
     flushSync();
-    expect(host.querySelector("#domphy-floating")!.textContent).toContain(
+    expect(host.querySelector("[data-domphy-floating]")!.textContent).toContain(
       "Body 1",
     );
 
@@ -264,9 +263,9 @@ describe("popover teardown when the anchor is removed while open (repro)", () =>
     // from a node's settings menu.
     items.set([]);
     flushSync();
-    expect(host.querySelector("#domphy-floating")!.textContent).not.toContain(
-      "Body 1",
-    );
+    expect(
+      host.querySelector("[data-domphy-floating]")!.textContent,
+    ).not.toContain("Body 1");
   });
 });
 
@@ -298,7 +297,7 @@ describe("floating teardown when the anchor merely RE-RENDERS while a panel is o
     host.querySelector("button")!.dispatchEvent(new Event("mouseenter"));
     vi.advanceTimersByTime(150);
     flushSync();
-    expect(host.querySelector("#domphy-floating")!.textContent).toContain(
+    expect(host.querySelector("[data-domphy-floating]")!.textContent).toContain(
       "Help text",
     );
 
@@ -308,7 +307,7 @@ describe("floating teardown when the anchor merely RE-RENDERS while a panel is o
     flushSync();
     // Still visible right after the re-render — this fix does not eagerly
     // close it, only when the new generation is actually interacted with.
-    expect(host.querySelector("#domphy-floating")!.textContent).toContain(
+    expect(host.querySelector("[data-domphy-floating]")!.textContent).toContain(
       "Help text",
     );
 
@@ -316,9 +315,9 @@ describe("floating teardown when the anchor merely RE-RENDERS while a panel is o
     host.querySelector("button")!.dispatchEvent(new Event("mouseleave"));
     vi.advanceTimersByTime(150);
     flushSync();
-    expect(host.querySelector("#domphy-floating")!.textContent).not.toContain(
-      "Help text",
-    );
+    expect(
+      host.querySelector("[data-domphy-floating]")!.textContent,
+    ).not.toContain("Help text");
   });
 
   it("popover: opening a NEW generation while an OLD generation's panel is still open closes the old one (no duplicate panels)", () => {
@@ -340,9 +339,9 @@ describe("floating teardown when the anchor merely RE-RENDERS while a panel is o
     host.querySelector("button")!.click();
     vi.advanceTimersByTime(150);
     flushSync();
-    expect(host.querySelectorAll("#domphy-floating [role=dialog]").length).toBe(
-      1,
-    );
+    expect(
+      host.querySelectorAll("[data-domphy-floating] [role=dialog]").length,
+    ).toBe(1);
 
     // Re-render while open (fresh closure, same reused button), then open
     // via the new generation.
@@ -354,8 +353,8 @@ describe("floating teardown when the anchor merely RE-RENDERS while a panel is o
 
     // Exactly one panel — the stale generation's got torn down when the new
     // one was interacted with, not left stacked underneath it.
-    expect(host.querySelectorAll("#domphy-floating [role=dialog]").length).toBe(
-      1,
-    );
+    expect(
+      host.querySelectorAll("[data-domphy-floating] [role=dialog]").length,
+    ).toBe(1);
   });
 });

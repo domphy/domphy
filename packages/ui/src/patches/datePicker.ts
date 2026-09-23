@@ -13,10 +13,12 @@ import {
 import type { Placement } from "@domphy/floating";
 import {
   type ThemeColor,
+  textToneOn,
   themeColor,
   themeDensity,
   themeSize,
   themeSpacing,
+  themeWeight,
 } from "@domphy/theme";
 import { elevation } from "../utils/elevation.js";
 import { createFloating, floatingPanelId } from "../utils/floating.js";
@@ -179,7 +181,7 @@ function attachDatePicker(
  * @param props.onChange - Called with the new value whenever the selection changes, `(value: DatePickerValue) => void`.
  * @param props.accentColor - Accent color (`ValueOrState<ThemeColor>`) for selected/active days. Defaults to "primary".
  * @param props.placement - Popover placement (`ValueOrState<Placement>`) relative to the input. Defaults to "bottom-start".
- * @example { input: "", $: [inputText(), datePicker({ mode: "range" })] }
+ * @example { input: null, $: [inputText(), datePicker({ mode: "range" })] }
  */
 function datePicker(props: DatePickerProps = {}): PartialElement {
   const {
@@ -383,9 +385,14 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
     onClick: (_e, node) => {
       openAndFocus(node);
     },
-    onFocus: (_e, node) => {
-      openAndFocus(node);
-    },
+    // NOT on focus. The APG combobox contract is "Escape dismisses the popup
+    // and returns focus to the combobox" — and floating.ts now does return the
+    // focus — so an onFocus that re-opens makes Escape permanently
+    // un-dismissable (measured in Chromium: panel back within 100ms of every
+    // Escape). It also popped the calendar over the next fields whenever a
+    // keyboard user merely Tabbed through the form. Click, ArrowDown and Enter
+    // cover every path, as in the APG Date Picker Combobox example, React Aria
+    // and MUI.
     onKeyDown: (event, node) => {
       const key = (event as KeyboardEvent).key;
       if (key === "ArrowDown" || key === "Enter") {
@@ -443,13 +450,10 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
               new Date(viewYear.get(listener), viewMonth.get(listener), 1),
             ),
           ariaLive: "polite",
-          // Calendar chrome (month/year header), not prose — weight is part
-          // of the widget's visual design, not the theme's type scale.
-          _doctorDisable: "inline-typography",
           style: {
             flex: "1",
             textAlign: "center",
-            fontWeight: "bold",
+            fontWeight: themeWeight("bold"),
             fontSize: (listener) => themeSize(listener),
           },
         },
@@ -467,13 +471,10 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
     const weekdayHeader: DomphyElement<"div"> = {
       div: weekdayNames.map((name, index) => ({
         div: name,
-        // Calendar chrome (weekday column labels) — weight is widget design,
-        // not theme typography.
-        _doctorDisable: "inline-typography",
         style: {
           textAlign: "center",
           fontSize: (listener) => themeSize(listener, "decrease-1"),
-          fontWeight: "bold",
+          fontWeight: themeWeight("bold"),
           color: (listener) => themeColor(listener, "shift-7"),
           paddingBlock: themeSpacing(1),
         },
@@ -578,18 +579,25 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
         aspectRatio: "1",
         borderRadius: themeSpacing(1),
         fontSize: (l: Listener) => themeSize(l),
-        fontFamily: "inherit",
         opacity: disabled ? 0.35 : outside ? 0.5 : 1,
+        // Selected day: the deep-fill + light-text pairing the rest of the
+        // library uses for a chosen row (selectItem, pagination, solid
+        // button). The old shift-7 fill under shift-0 text measured 3.73:1
+        // (light) / 2.92:1 (dark) — a gap of 7, below the ramp's K=9 span.
         backgroundColor: (l: Listener) =>
           selected
-            ? themeColor(l, "shift-7", accentColor.get(l))
+            ? themeColor(l, "shift-13", accentColor.get(l))
             : within
               ? themeColor(l, "hover", accentColor.get(l))
               : "transparent",
+        // An in-range day sits on a +2 accent fill, so its number tracks it
+        // (3.51:1 at the plain "text" tone, light).
         color: (l: Listener) =>
           selected
-            ? themeColor(l, "shift-0", accentColor.get(l))
-            : themeColor(l, "text"),
+            ? themeColor(l, "shift-0", "neutral")
+            : within
+              ? themeColor(l, textToneOn(2))
+              : themeColor(l, "text"),
         outline: isToday
           ? (l: Listener) =>
               `1px solid ${themeColor(l, "shift-6", accentColor.get(l))}`
@@ -598,8 +606,13 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
         "&:hover:not([disabled])": {
           backgroundColor: (l: Listener) =>
             selected
-              ? themeColor(l, "shift-7", accentColor.get(l))
+              ? themeColor(l, "shift-13", accentColor.get(l))
               : themeColor(l, "shift-3", accentColor.get(l)),
+          // Unselected hover paints a +3 fill; the day number follows it
+          // (2.93:1 at the plain "text" tone, light).
+          ...(selected
+            ? {}
+            : { color: (l: Listener) => themeColor(l, textToneOn(3)) }),
         },
         transition: "background-color 140ms ease, box-shadow 140ms ease",
         "&:focus-visible": {
@@ -633,12 +646,7 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
     return {
       div: [
         numberSelect(24, hour, "Hour"),
-        // Time separator glyph — widget chrome, not prose.
-        {
-          span: ":",
-          _doctorDisable: "inline-typography",
-          style: { fontWeight: "bold" },
-        },
+        { span: ":", style: { fontWeight: themeWeight("bold") } },
         numberSelect(60, minute, "Minute"),
       ],
       style: {
@@ -664,7 +672,6 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
         border: "none",
         background: "transparent",
         cursor: "pointer",
-        fontFamily: "inherit",
         fontSize: (l: Listener) => themeSize(l, "decrease-1"),
         color: (l: Listener) => themeColor(l, "muted", accentColor.get(l)),
         padding: themeSpacing(1),
@@ -753,7 +760,6 @@ function navButtonStyle() {
     border: "none",
     background: "transparent",
     cursor: "pointer",
-    fontFamily: "inherit",
     fontSize: (l: Listener) => themeSize(l),
     color: (l: Listener) => themeColor(l, "muted"),
     width: themeSpacing(7),
@@ -761,13 +767,15 @@ function navButtonStyle() {
     borderRadius: themeSpacing(1),
     "&:hover": {
       backgroundColor: (l: Listener) => themeColor(l, "shift-3"),
+      // The chevron glyph tracks the +3 hover fill: "muted" on it measured
+      // 2.48:1 (light) / 2.98:1 (dark).
+      color: (l: Listener) => themeColor(l, textToneOn(3)),
     },
   };
 }
 
 function timeSelectStyle() {
   return {
-    fontFamily: "inherit",
     fontSize: (l: Listener) => themeSize(l),
     padding: themeSpacing(1),
     borderRadius: themeSpacing(1),

@@ -31,6 +31,7 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { heading, paragraph } from "@domphy/ui";
+import { prefersReducedMotion } from "../reducedMotion.js";
 
 export interface FlickeringGridProps {
   /** Side length of each square, in canvas px. Defaults to `4`. */
@@ -160,6 +161,10 @@ function attachFlickeringGrid(
   }
 
   function startLoop(): void {
+    // WCAG 2.2.2 (and 2.3.1 — the grid flickers indefinitely): under reduce
+    // the canvas keeps the static field `drawGrid()` already painted and the
+    // rAF loop never starts.
+    if (prefersReducedMotion()) return;
     if (animationFrameId !== null) return;
     lastFrameTime = performance.now();
     animationFrameId = window.requestAnimationFrame(tick);
@@ -244,15 +249,11 @@ function flickeringGrid(props: FlickeringGridProps = {}): DomphyElement<"div"> {
         } as DomphyElement,
       ];
 
-  // `_doctorDisable` is a doctor-only annotation not present in core's strict
-  // `PartialElement` type — build through an untyped literal, then assert, so
-  // the excess-property check doesn't fire (mirrors particles.ts).
   const canvasElement = {
     canvas: null,
     ariaHidden: "true",
     // Decorative canvas with no text of its own — fill color is resolved
     // imperatively below (canvas 2D has no themeColor() var() concept).
-    _doctorDisable: "missing-color",
     style: {
       position: "absolute",
       inset: 0,

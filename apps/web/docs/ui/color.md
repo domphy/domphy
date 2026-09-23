@@ -73,7 +73,9 @@ Note:
 | Emphasis 1 | `shift-10` | emphasized text such as filled field text, stronger labels, and alert text |
 | Emphasis 2 | `shift-11` | highest semantic emphasis on a normal surface, such as strong headings or high-emphasis labels |
 | Secondary | `shift-8` | helper text, secondary text, dimmed text, and lower-priority supporting text |
-| Secondary 2 | `shift-7` | placeholder text and the weakest supporting text |
+| Secondary 2 | `shift-7` | the weakest supporting text — decoration only |
+
+Measured over all 10 built-in roles x the 8 edge anchors x both built-in themes, `shift-7` is 2.83:1 at worst and `shift-8` 3.55:1, so neither clears WCAG 2.1 SC 1.4.3 anywhere near reliably. Reserve them for content that is decorative or repeated elsewhere. **Placeholder text is not decorative** — an editable field is not an "inactive user interface component", so the input patches paint `::placeholder` with `shift-9` (`"text"`), the lowest tone that clears 4.5:1 everywhere (4.53:1 worst case). Since that pins the placeholder at the AA floor, those same patches paint the field's own value at `shift-11` (7.34:1 worst case), keeping the hint and the typed value 10.67 ΔE apart — roughly 4.6x the ~2.3 CIELAB just-noticeable difference — so users can still tell them apart.
 
 ### Static State
 
@@ -100,10 +102,21 @@ It is a delta applied on top of the current static state.
 
 Notes:
 
-- choose only one role to carry the interaction state, not all three at the same time
+- choose only one role to carry the interaction *cue*, not all three at the same time
 - priority order is: background, then boundary edge, then text
 - use text interaction only when background and boundary edge interaction are both absent
 - static states stay `3` levels apart, while interaction changes by at most `1` or `2` levels, so hover and active do not collide with adjacent static states
+
+When the background carries the cue, the label still has to move with it. That is not a second cue — it is the `text = surface ± K` relationship holding still while the surface underneath it shifts. A label pinned to the absolute `"text"` alias over a `shift-2` hover fill measures `3.58:1` on the default neutral ramp (light), below WCAG AA. Write the pairing with [`textToneOn(n)`](/docs/theme/api#texttoneonsurfaceshift):
+
+```ts
+import { textToneOn, themeColor } from "@domphy/theme"
+
+"&:hover:not([disabled])": {
+  backgroundColor: (listener) => themeColor(listener, "hover", color),
+  color: (listener) => themeColor(listener, textToneOn(2), color),
+}
+```
 
 ## Focus Visible
 

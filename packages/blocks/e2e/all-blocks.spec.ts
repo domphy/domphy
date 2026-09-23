@@ -4,27 +4,31 @@ import { fileURLToPath } from "node:url";
 import { expect, test } from "@playwright/test";
 import {
   attachConsole,
+  demoTheme,
   isHardFailure,
   mountBlock,
   openDemo,
   scanMounted,
-} from "./helpers";
+} from "./helpers.js";
 
 /**
  * Full-catalog scan. After each mount: screenshot, axe critical/serious,
  * horizontal overflow, 300×150 replaced-element layout bug.
  * Reloads every RELOAD_EVERY mounts so WebGL contexts cannot pile up.
  *
- * Screenshots + HTML gallery: .ui-qa/blocks-e2e/ (gitignored).
+ * Screenshots + HTML gallery: .ui-qa/blocks-e2e/ — .ui-qa/blocks-e2e-dark/
+ * under BLOCKS_E2E_THEME=dark (both gitignored).
  */
 const RELOAD_EVERY = 8;
+// Per-theme output dir so a dark run (BLOCKS_E2E_THEME=dark) doesn't clobber
+// the light gallery.
 const shotsDir = join(
   dirname(fileURLToPath(import.meta.url)),
   "..",
   "..",
   "..",
   ".ui-qa",
-  "blocks-e2e",
+  demoTheme === "dark" ? "blocks-e2e-dark" : "blocks-e2e",
 );
 
 test.describe.configure({ timeout: 20 * 60 * 1000 });

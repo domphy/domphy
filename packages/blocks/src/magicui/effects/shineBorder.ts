@@ -15,7 +15,7 @@
 // source (registry/magicui/shine-border.tsx, MIT-licensed); the SMIL ring is a
 // technique substitution for upstream's CSS `animate-shine` (see SOURCES.md).
 
-import type { DomphyElement } from "@domphy/core";
+import type { DomphyElement, ElementNode } from "@domphy/core";
 import type { ThemeColor } from "@domphy/theme";
 import { themeColor, themeSpacing } from "@domphy/theme";
 import { heading, paragraph } from "@domphy/ui";
@@ -71,7 +71,6 @@ function shineBorder(props: ShineBorderProps = {}): DomphyElement<"div"> {
       stop: null,
       offset,
       style: { stopColor: "transparent" },
-      _doctorDisable: "missing-color",
       _key: key,
     }) as DomphyElement;
   const stops: DomphyElement[] = [
@@ -82,7 +81,6 @@ function shineBorder(props: ShineBorderProps = {}): DomphyElement<"div"> {
       style: {
         stopColor: (listener) => themeColor(listener, "shift-9", color),
       },
-      _doctorDisable: "missing-color",
       _key: `stop-${index}`,
     })) as DomphyElement[]),
     transparentStop("100%", "stop-end"),
@@ -106,6 +104,11 @@ function shineBorder(props: ShineBorderProps = {}): DomphyElement<"div"> {
       strokeWidth: String(strokeWidth),
       style: {
         opacity,
+        // Decorative ring, not a control — the enclosing <svg> already sets
+        // pointer-events: none, restated here so doctor's low-opacity rule
+        // (which reads each element's own style, not an inherited one) can
+        // see the same exemption.
+        pointerEvents: "none",
         ...(blur > 0 ? { filter: `blur(${blur}px)` } : {}),
       },
     }) as DomphyElement;
@@ -170,8 +173,40 @@ function shineBorder(props: ShineBorderProps = {}): DomphyElement<"div"> {
         xmlns: "http://www.w3.org/2000/svg",
         ariaHidden: "true",
         style: { position: "absolute", inset: 0, pointerEvents: "none" },
+        // The `<animateTransform>` above carries SMIL's implicit `begin="0s"`,
+        // which resolves against the DOCUMENT's SVG time container — already
+        // running long before any block mounts. Blink does not retro-activate
+        // an interval whose begin instant is in the past, so a late-inserted
+        // SMIL animation never paints at all, `repeatCount="indefinite"`
+        // notwithstanding. Measured in Chromium: 0 changed pixels over 1.5s,
+        // while `getStartTime()` reported 0, `getSimpleDuration()` 14 and
+        // `svg.animationsPaused()` false. It is the document clock, not this
+        // element or Domphy's DOM construction — the identical markup written
+        // by hand, or built with `createElementNS`, animates on a fresh page
+        // and is equally inert once injected into a page that has been up a
+        // few seconds. `beginElement()` restarts the interval at the current
+        // time, which is all that is needed.
+        //
+        // It has to land on a LATER frame than the mount: measured, calling it
+        // synchronously in this hook (or from `setTimeout(…, 0)`) still gives
+        // 0 changed pixels, while one `requestAnimationFrame` gives ~11k — the
+        // element is in the DOM but its time container has not ticked yet, so
+        // the begin instant is dropped.
+        _onMount: (node: ElementNode) => {
+          if (typeof requestAnimationFrame !== "function") return;
+          const frame = requestAnimationFrame(() => {
+            const animation = (
+              node.domElement as SVGSVGElement | null
+            )?.querySelector("animateTransform") as SVGAnimateElement | null;
+            animation?.beginElement?.();
+          });
+          node.addHook("Remove", () => cancelAnimationFrame(frame));
+        },
       } as DomphyElement,
     ],
+    // `borderRadius` below is the caller-supplied `borderRadius` number prop
+    // (matches upstream's own contract), not a design-system constant.
+    _doctorDisable: "raw-spacing-value",
     style: {
       position: "relative",
       overflow: "hidden",

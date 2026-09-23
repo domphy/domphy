@@ -15,8 +15,11 @@ async function main() {
   const page = await mountedPage(demoUrl, "Login01");
   const block = await locate(page, "Login01");
 
-  const email = block.locator("#login01-email");
-  const password = block.locator("#login01-password");
+  // `name="email"`/`name="password"` are the stable form-payload attributes;
+  // the DOM `id` is per-instance-scoped (see ../../src/shared/instanceScope.ts)
+  // and must not be hardcoded here.
+  const email = block.locator('input[name="email"]');
+  const password = block.locator('input[name="password"]');
   const submit = block.getByRole("button", { name: "Login", exact: true });
 
   const passwordType = await password.getAttribute("type");
@@ -30,12 +33,12 @@ async function main() {
   const emailValid = await email.evaluate(
     (element: HTMLInputElement) => element.validity.valid,
   );
-  const focusedAfterEmptySubmit = await page.evaluate(
-    () => document.activeElement?.id,
+  const focusedAfterEmptySubmit = await page.evaluate(() =>
+    document.activeElement?.getAttribute("name"),
   );
   report(
     "Login01: empty submit blocked by native required validation",
-    emailValid === false && focusedAfterEmptySubmit === "login01-email",
+    emailValid === false && focusedAfterEmptySubmit === "email",
     `email.validity.valid=${emailValid}, focused="${focusedAfterEmptySubmit}"`,
   );
 
@@ -54,15 +57,15 @@ async function main() {
     };
   });
   await page.keyboard.press("Tab");
-  const focusedAfterSecondTab = await page.evaluate(
-    () => document.activeElement?.id,
+  const focusedAfterSecondTab = await page.evaluate(() =>
+    document.activeElement?.getAttribute("name"),
   );
   report(
     "Login01: tab order is email -> forgot-password link (real href) -> password",
     forgotLinkFocus.tag === "A" &&
       forgotLinkFocus.text === "Forgot your password?" &&
       !!forgotLinkFocus.href &&
-      focusedAfterSecondTab === "login01-password",
+      focusedAfterSecondTab === "password",
     `forgotLink=${JSON.stringify(forgotLinkFocus)}, thenFocused="${focusedAfterSecondTab}"`,
   );
 

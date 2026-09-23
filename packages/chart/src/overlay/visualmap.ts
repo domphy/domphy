@@ -40,15 +40,27 @@ function colorToRgb(hex: string): [number, number, number] {
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
-function interpolateColor(colors: string[], t: number): string {
-  const i = Math.min(colors.length - 2, Math.floor(t * (colors.length - 1)));
-  const localT = t * (colors.length - 1) - i;
+/** Piecewise-linear ramp over `colors`, in 0..255 channels. */
+function interpolateRgb(colors: string[], t: number): [number, number, number] {
+  // A single-colour ramp has no segment to interpolate over; without the
+  // clamp the index goes to -1 and colorToRgb reads undefined.
+  const i = Math.max(
+    0,
+    Math.min(colors.length - 2, Math.floor(t * (colors.length - 1))),
+  );
+  const localT = colors.length < 2 ? 0 : t * (colors.length - 1) - i;
   const a = colorToRgb(colors[i]);
-  const b = colorToRgb(colors[i + 1]);
-  const r = Math.round(a[0] + (b[0] - a[0]) * localT);
-  const g = Math.round(a[1] + (b[1] - a[1]) * localT);
-  const bl = Math.round(a[2] + (b[2] - a[2]) * localT);
-  return `rgb(${r},${g},${bl})`;
+  const b = colorToRgb(colors[i + 1] ?? colors[i]);
+  return [
+    Math.round(a[0] + (b[0] - a[0]) * localT),
+    Math.round(a[1] + (b[1] - a[1]) * localT),
+    Math.round(a[2] + (b[2] - a[2]) * localT),
+  ];
+}
+
+function interpolateColor(colors: string[], t: number): string {
+  const [r, g, b] = interpolateRgb(colors, t);
+  return `rgb(${r},${g},${b})`;
 }
 
 export function colorFromVisualMap(vm: VisualMapOption, value: number): string {
@@ -57,6 +69,55 @@ export function colorFromVisualMap(vm: VisualMapOption, value: number): string {
   const colors = (vm.inRange?.color as string[] | undefined) ?? DEFAULT_COLORS;
   const t = Math.max(0, Math.min(1, (value - min) / (max - min)));
   return interpolateColor(colors, t);
+}
+
+/**
+ * ECharts `visualMap.seriesIndex`: a visualMap with no `seriesIndex` targets
+ * every series; otherwise it targets the listed indices in `option.series`.
+ */
+export function visualMapForSeries(
+  visualMaps: VisualMapOption[],
+  seriesIndex: number,
+): VisualMapOption | undefined {
+  return visualMaps.find((vm) => {
+    if (vm.show === false) return false;
+    const target = vm.seriesIndex;
+    if (target === undefined) return true;
+    return Array.isArray(target)
+      ? target.includes(seriesIndex)
+      : target === seriesIndex;
+  });
+}
+
+/**
+ * The colour a visualMap gives `value`, as normalized RGB for a GL uniform.
+ *
+ * `range` is the visualMap's [min, max] after the caller has filled in any
+ * data-derived fallback (ECharts defaults them to the target series' extent).
+ * ECharts splits values by `getValueState`: inside the range they map linearly
+ * onto `inRange.color`; outside they take the `outOfRange` visual, whose
+ * default colour is `rgba(0,0,0,0)` — i.e. the item is not drawn, which is
+ * what `null` means here.
+ */
+export function visualMapRgb(
+  vm: VisualMapOption,
+  value: number,
+  range: [number, number],
+): [number, number, number] | null {
+  const [min, max] = range;
+  const outOfRange = value < min || value > max;
+  const colors = (
+    outOfRange
+      ? (vm.outOfRange?.color as string[] | undefined)
+      : ((vm.inRange?.color as string[] | undefined) ?? DEFAULT_COLORS)
+  ) as string[] | undefined;
+  if (!colors || colors.length === 0) return null;
+  const span = max - min || 1;
+  const t = Math.max(0, Math.min(1, (value - min) / span));
+  const [r, g, b] = interpolateRgb(colors, t);
+  if (!Number.isFinite(r) || !Number.isFinite(g) || !Number.isFinite(b))
+    return null;
+  return [r / 255, g / 255, b / 255];
 }
 
 export function renderVisualMap(

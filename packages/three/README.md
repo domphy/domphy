@@ -39,11 +39,14 @@ const App = {
   $: [
     three({
       camera: { position: [3, 3, 3], lookAt: [0, 0, 0] },
+      // Canvas fallback content — the accessible name a screen reader gets
+      // for the scene, the way `alt` names an image.
+      fallback: "An orange box you can orbit around",
       scene: [
         {
           mesh: [
             { boxGeometry: null },
-            { meshStandardMaterial: { color: "orange" } },
+            { meshStandardMaterial: null, color: "orange" },
           ],
           "rotation-y": (l) => spin.get(l), // pierced prop, reactive
         },
@@ -69,6 +72,13 @@ const App = {
 ```
 
 Mount `App` the same way you mount any Domphy tree (`new ElementNode(App).render(host)`).
+
+Canvas defaults match the reference: `dpr: [1, 2]` (device resolution capped
+at 2x, re-resolved when `devicePixelRatio` changes) and
+`gl: { powerPreference: "high-performance", antialias: true, alpha: true }`.
+`alpha: true` is why a scene with no background shows the page through the
+canvas — pass `gl: { alpha: false }` for an opaque one. Full option table:
+[domphy.com/docs/three](https://domphy.com/docs/three#three-options).
 
 ## JSX → Domphy
 
@@ -103,6 +113,9 @@ validate(options).ok; // false only when error-severity issues exist
 Every built-in rule comes from a real silent failure: `unknown-tag` (typo'd
 or unregistered tag throws at runtime), `tag-not-first` (a props-first
 description makes the reconciler's first-own-key tag read throw),
+`invalid-child` (props written as the tag's VALUE — `{ meshStandardMaterial:
+{ color: "orange" } }` — turn "color" into a child node whose own child is
+the string "orange", and the node throws at runtime),
 `legacy-light-intensity` (three
 r155+ physical units — a 0-1 point light is nearly invisible),
 `additive-blowout` (large bright additive points stack into white blobs),

@@ -50,16 +50,25 @@ function pressCtrlB() {
 // CSSOM rule text on state change — the collapse flip is observable as the
 // `width:` declaration inside the aside's generated rule.
 function widthDeclaration(element: HTMLElement): string {
-  const className = element.getAttribute("class") ?? "";
+  // Match the element against each rule's own selector and read the declared
+  // width from the rule, rather than substring-scanning cssText: an element
+  // can carry several classes, a shared rule is not named after any one
+  // element, and "max-width: 768px" in an @media prelude contains the
+  // substring "width" too (which is what the old scan returned).
+  let found: string | null = null;
   for (const sheet of Array.from(document.styleSheets)) {
     for (const rule of Array.from(sheet.cssRules)) {
-      if (rule.cssText.includes(className) && rule.cssText.includes("width")) {
-        const match = /width:\s*([^;]+);/.exec(rule.cssText);
-        if (match) return match[1];
-      }
+      const styleRule = rule as CSSStyleRule;
+      if (!styleRule.selectorText || !styleRule.style) continue;
+      if (!element.matches(styleRule.selectorText)) continue;
+      const width = styleRule.style.getPropertyValue("width");
+      if (width) found = width;
     }
   }
-  throw new Error(`no width rule found for .${className}`);
+  if (found === null) {
+    throw new Error(`no width rule found for ${element.getAttribute("class")}`);
+  }
+  return found;
 }
 
 afterEach(() => {

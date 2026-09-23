@@ -6,7 +6,7 @@ import Tabs from "../../demos/patches/Tabs.ts?raw"
 
 # Tabs
 
-All-in-one tabs patch. Apply `tabs({ items })` to any wrapper element (`div`, `section`, …) — it generates a `role="tablist"` button row and one `role="tabpanel"` panel per item from the `items` array. Tab buttons support keyboard navigation (ArrowLeft&nbsp;/ ArrowRight&nbsp;/ Home&nbsp;/ End). To control the active tab programmatically, pass an external `State` as `activeKey` and call `.set()` on it from outside.
+All-in-one tabs patch. Apply `tabs({ items })` to any wrapper element (`div`, `section`, …) — it generates a `role="tablist"` button row and one `role="tabpanel"` panel per item from the `items` array. Tab buttons support keyboard navigation (ArrowLeft&nbsp;/ ArrowRight&nbsp;/ Home&nbsp;/ End) with a roving `tabindex`; each panel gets `tabindex="0"` so panel content with no focusable element of its own is still reachable and scrollable by keyboard (WAI-ARIA APG tabs pattern). To control the active tab programmatically, pass an external `State` as `activeKey` and call `.set()` on it from outside.
 
 ## Props
 

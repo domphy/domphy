@@ -15,10 +15,12 @@ import { button, inputText, menu, popover, small, strong } from "@domphy/ui";
 type DropdownPlacement = "right-start" | "bottom-end";
 
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
+import { interactiveFill } from "../../shared/interactiveFill.js";
 import {
   glyphChild,
   ICON_MARK,
   ICON_MORE,
+  makeSidebarToggle,
   type SidebarBreadcrumbItem,
   sidebarBackdrop,
   sidebarIcon,
@@ -103,6 +105,12 @@ function sidebar06(props: Sidebar06Props = {}): DomphyElement<"div"> {
   } = props;
 
   const sidebarOpen = toState(true);
+  // Upstream `SidebarProvider` keeps the desktop `open` state (default true)
+  // and the mobile `openMobile` state (default FALSE) apart. Sharing one
+  // state rendered the off-canvas drawer OPEN over the page on first paint
+  // at phone widths — measured at 375px, the panel covered the whole block.
+  const mobileOpen = toState(false);
+  const toggleSidebar = makeSidebarToggle(sidebarOpen, mobileOpen);
 
   // Responsive dropdown placement: below-and-trailing on mobile, beside-and-
   // leading on desktop, so the floating panel never collides with the
@@ -163,10 +171,7 @@ function sidebar06(props: Sidebar06Props = {}): DomphyElement<"div"> {
             color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
             backgroundColor: (l: Listener) =>
               themeColor(l, "inherit", "neutral"),
-            "&:hover": {
-              backgroundColor: (l: Listener) =>
-                themeColor(l, "shift-2", "neutral"),
-            },
+            "&:hover": interactiveFill(2),
             // Upstream: data-[state=open]:bg-sidebar-accent /
             // text-sidebar-accent-foreground — the neutral gray accent, not a
             // brand-tinted highlight.
@@ -326,10 +331,7 @@ function sidebar06(props: Sidebar06Props = {}): DomphyElement<"div"> {
               textDecoration: () => "none",
               overflow: "hidden",
               color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
-              "&:hover": {
-                backgroundColor: (l: Listener) =>
-                  themeColor(l, "shift-2", "neutral"),
-              },
+              "&:hover": interactiveFill(2),
             },
           } as unknown as DomphyElement,
         ],
@@ -366,7 +368,7 @@ function sidebar06(props: Sidebar06Props = {}): DomphyElement<"div"> {
       {
         div: null,
         ariaHidden: "true",
-        onClick: () => sidebarOpen.set(!sidebarOpen.get()),
+        onClick: toggleSidebar,
         style: {
           position: "absolute",
           insetBlock: "0",
@@ -411,7 +413,10 @@ function sidebar06(props: Sidebar06Props = {}): DomphyElement<"div"> {
       flexShrink: "0",
       width: (l: Listener) => (sidebarOpen.get(l) ? themeSpacing(64) : "0"),
       overflow: "hidden",
-      transition: "width 0.2s linear",
+      // Collapsing to width 0 clips the panel but does NOT take its ~30 links
+      // out of the tab order (measured in Chromium) — hide it outright.
+      visibility: (l: Listener) => (sidebarOpen.get(l) ? "visible" : "hidden"),
+      transition: "width 0.2s linear, visibility 0.2s linear",
       borderInlineEnd: (l: Listener) =>
         `1px solid ${themeColor(l, "shift-3", "neutral")}`,
       backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
@@ -423,8 +428,12 @@ function sidebar06(props: Sidebar06Props = {}): DomphyElement<"div"> {
         zIndex: "15",
         width: themeSpacing(72),
         transform: (l: Listener) =>
-          sidebarOpen.get(l) ? "translateX(0)" : "translateX(-100%)",
-        transition: "transform 0.2s ease",
+          mobileOpen.get(l) ? "translateX(0)" : "translateX(-100%)",
+        // `transform` alone leaves every link in the slid-out panel in the tab
+        // order (WCAG 2.4.3): measured 24-46 tabbable controls reachable in a
+        // closed drawer. `visibility` is animated so the slide-out still runs.
+        visibility: (l: Listener) => (mobileOpen.get(l) ? "visible" : "hidden"),
+        transition: "transform 0.2s ease, visibility 0.2s ease",
         boxShadow: (l: Listener) =>
           `0 0 ${themeSpacing(6)} ${themeColor(l, "shift-3", "neutral")}`,
       },
@@ -434,7 +443,7 @@ function sidebar06(props: Sidebar06Props = {}): DomphyElement<"div"> {
   const mainElement: DomphyElement<"main"> = {
     main: [
       sidebarStickyHeader({
-        onToggle: () => sidebarOpen.set(!sidebarOpen.get()),
+        onToggle: toggleSidebar,
         breadcrumbItems,
       }),
       sidebarMainContent(children),
@@ -453,7 +462,7 @@ function sidebar06(props: Sidebar06Props = {}): DomphyElement<"div"> {
     div: [
       asideElement,
       mainElement,
-      sidebarBackdrop(sidebarOpen, () => sidebarOpen.set(false)),
+      sidebarBackdrop(mobileOpen, () => mobileOpen.set(false)),
     ],
     style: {
       display: "flex",

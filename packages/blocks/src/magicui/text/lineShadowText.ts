@@ -35,7 +35,12 @@
 
 import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
-import { type ThemeColor, themeColor, themeSize } from "@domphy/theme";
+import {
+  type ThemeColor,
+  themeColor,
+  themeSize,
+  themeWeight,
+} from "@domphy/theme";
 
 export type LineShadowTextTag =
   | "span"
@@ -96,7 +101,8 @@ function lineShadowText(props: LineShadowTextProps = {}): DomphyElement {
       // token it inherits whatever tiny ambient font-size the caller's
       // context happens to have, which reads as plain unstyled text.
       fontSize: (listener: Listener) => themeSize(listener, "increase-7"),
-      fontWeight: () => "800",
+      // Upstream `font-extrabold` (weight 800).
+      fontWeight: themeWeight("extrabold"),
       color: (listener: Listener) =>
         themeColor(listener, "shift-9", shadowColor),
       "&::after": {
@@ -121,6 +127,15 @@ function lineShadowText(props: LineShadowTextProps = {}): DomphyElement {
         color: "transparent",
         WebkitTextFillColor: "transparent",
         animation: `${animationName} 15s linear infinite`,
+      },
+      // The pause has to live at the host style root, with the pseudo-element
+      // nested INSIDE the media query — spreading REDUCED_MOTION_PAUSE into
+      // the `&::after` block instead emits an at-rule nested under a pseudo
+      // selector, which the browser drops (verified: the crawl kept running
+      // under `prefers-reduced-motion: reduce`), the same emit constraint the
+      // `@keyframes` note below records.
+      "@media (prefers-reduced-motion: reduce)": {
+        "&::after": { animationPlayState: "paused" },
       },
       // Keyframes must be at the host style root — nesting them under
       // `&::after` emits invalid CSS (`.scope::after @keyframes name from {…}`)

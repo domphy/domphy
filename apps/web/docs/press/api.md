@@ -63,6 +63,7 @@ const result = await renderDoc("# Hello\n\nContent.", {
   docsDir: "/docs",
   repoRoot: "/",
   highlight,
+  base: "/",           // optional: prefixes root-relative links/images
 })
 // result.body: DomphyElement[]
 // result.toc: TocEntry[]
@@ -79,8 +80,14 @@ interface RenderDocOptions {
   docsDir: string                              // absolute path to srcDir
   repoRoot: string                             // repo root (for git last-updated)
   highlight: (code: string, lang: string) => string
+  base?: string                                // site base, default "/"
 }
 ```
+
+`base` prefixes root-relative link and image destinations written in the
+Markdown (`[x](/guide/)` → `/docs/guide/` when `base` is `"/docs/"`), the same
+way the layout prefixes nav and sidebar hrefs. External URLs, anchors and
+relative paths pass through. `buildSite()` passes `config.base` for you.
 
 `RenderedDoc`:
 
@@ -129,7 +136,7 @@ const css = pressCSS()  // string
 
 ### `RUNTIME_SCRIPT`
 
-A string constant containing the client-side runtime `buildSite()` inlines into every page: restores `data-theme` from `localStorage` before first paint, and wires up dark-mode toggle, the mobile nav drawer (`[data-menu-toggle]`, `.dp-sidebar-backdrop`, <kbd>Escape</kbd> to close), copy-code buttons (`[data-copy]`), collapsible sidebar groups (`[data-sidebar-toggle]`), and dismissible announcement bars (`[data-dismiss-announcement]`). If you write a custom `htmlDocument()` (as `apps/web` does for its production build), import this instead of hand-rolling your own — a hand-rolled copy will drift out of sync as these handlers evolve:
+A string constant containing the client-side runtime `buildSite()` inlines into every page. Before first paint it applies the stored `dp-theme` choice, or the visitor's `prefers-color-scheme` when none is stored. It then wires up the dark-mode toggle (`[data-theme-toggle]`, kept in sync with `aria-pressed`), the mobile nav drawer (`[data-menu-toggle]` with `aria-expanded`, `.dp-sidebar-backdrop`, <kbd>Escape</kbd> to close — which returns focus to the toggle), the nav flyouts' `aria-expanded` (`[data-nav-dropdown]`), copy-code buttons (`[data-copy]`), collapsible sidebar groups (`[data-sidebar-toggle]`), and dismissible announcement bars (`[data-dismiss-announcement]`). If you write a custom `htmlDocument()` (as `apps/web` does for its production build), import this instead of hand-rolling your own — a hand-rolled copy will drift out of sync as these handlers evolve:
 
 ```ts
 import { RUNTIME_SCRIPT } from "@domphy/press"
@@ -139,28 +146,36 @@ const html = `<script>${RUNTIME_SCRIPT}</script>`
 
 ## Server
 
-### `startServer(root, port)`
+### `startServer(root, port, base?)`
 
 Starts a static file server to preview the built output:
 
 ```ts
 import { startServer } from "@domphy/press"
 
-const server = startServer("/path/to/dist", 4173)
+const server = startServer("/path/to/dist", 4173, "/docs/")
 // server is a Node.js http.Server
 ```
 
-### `startDevServer(root, port)`
+`base` defaults to `"/"`. Pass the site's `config.base` for a sub-path
+deployment: the build emits every asset URL and internal href under that
+prefix, so the server has to answer there (`http://localhost:4173/docs/`).
+Requests outside the base return 404 rather than resolving as if no base were
+configured. The `domphy-press preview` CLI reads it from `press.config.ts`.
+
+### `startDevServer(root, port, base?)`
 
 Starts a development server with live rebuild on Markdown changes. Used by the `domphy-press dev` CLI command:
 
 ```ts
 import { startDevServer } from "@domphy/press"
 
-const { server, notify } = startDevServer("/path/to/dist", 3000)
+const { server, notify } = startDevServer("/path/to/dist", 3000, "/docs/")
 // server — Node.js http.Server
 // notify() — broadcast a reload event to all connected browser tabs (SSE)
 ```
+
+`base` behaves as in `startServer`.
 
 ## TocEntry
 
@@ -174,7 +189,7 @@ interface TocEntry {
 
 ## Markdown pipeline
 
-The Markdown API (formerly the standalone `@domphy/markdown` package) is exported from the main entry: `parseMarkdown`, `markdownToDomphy`, `createMarkdown`, `walkMdast`, `splitFrontmatter`, `transformOutsideCodeBlocks`, `createUniqueSlugger`, `defaultSlugify`. Main entry only — not available from `@domphy/press/browser`. See [Markdown](/docs/markdown/) for the full reference.
+The Markdown API (formerly the standalone `@domphy/markdown` package) is exported from both the main entry and `@domphy/press/browser`: `parseMarkdown`, `markdownToDomphy`, `createMarkdown`, `walkMdast`, `splitFrontmatter`, `transformOutsideCodeBlocks`, `createUniqueSlugger`, `defaultSlugify`. The pipeline itself is free of Node.js built-ins, so browser bundles import it from `/browser` (the main entry also pulls in `buildSite`/`startServer`, which need Node). The one difference: `createMarkdown({ math: true })` resolves the optional `remark-math` peer through Node module resolution, so it works only on the main entry — in a browser bundle, import `remark-math` yourself and pass it via `plugins`. See [Markdown](/docs/markdown/) for the full reference.
 
 ## LayoutContext
 

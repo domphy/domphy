@@ -15,11 +15,24 @@
 //
 // A failing property prints the fast-check seed + shrunk counterexample —
 // keep that output intact for debugging (do not hard-code the seed away).
+//
+// Both suites declare an explicit timeout, well above the package's own
+// vitest.config.ts default (see that file). These properties are CPU-bound
+// (100 and 50 runs of up to 60 jsdom render/flush steps each) and measured
+// 1.9s–3.7s and 1.3s–1.9s on the same machine — the spread is competing load,
+// nothing else. A timeout here is silent about its cause: a vitest timeout
+// aborts the `it` with "Test timed out in Nms" and NO fast-check output, so it
+// looks like a property violation whose seed and counterexample were lost,
+// which is not a thing fast-check does. The budget below is runtime headroom
+// only; no assertion or numRuns changes.
 
 import fc from "fast-check";
 import { afterEach, describe, expect, it } from "vitest";
 import type { DomphyElement } from "../src/index.ts";
 import { ElementNode, flushSync, toState } from "../src/index.ts";
+
+// Runtime budget per suite (see the note at the top of the file).
+const PROPERTY_TIMEOUT_MS = 30_000;
 
 // Small key pool so removals + re-inserts actually reuse/collide keys.
 const KEY_POOL = Array.from({ length: 16 }, (_, i) => `K${i}`);
@@ -167,7 +180,9 @@ afterEach(() => {
   document.head.querySelectorAll("style").forEach((s) => s.remove());
 });
 
-describe("property: keyed list reconciliation matches a naive array model", () => {
+describe("property: keyed list reconciliation matches a naive array model", {
+  timeout: PROPERTY_TIMEOUT_MS,
+}, () => {
   it("random insert/remove/move/update sequences preserve order, identity and length", () => {
     fc.assert(
       fc.property(
@@ -223,7 +238,9 @@ describe("property: keyed list reconciliation matches a naive array model", () =
   });
 });
 
-describe("property: interleaved state.set + list ops render the latest state", () => {
+describe("property: interleaved state.set + list ops render the latest state", {
+  timeout: PROPERTY_TIMEOUT_MS,
+}, () => {
   it("text always reflects the latest tick and the latest model after a flush", () => {
     fc.assert(
       fc.property(

@@ -12,13 +12,12 @@
 // directly on its own DOM node, mirroring upstream's CSS sibling chain
 // (`hover:` / `has-[+span:hover]` / `[:hover+&]`): the hovered letter reaches
 // 900, its ±1 neighbors 600, its ±2 neighbors 400, everything else the 300
-// baseline. These are continuous, high-frequency imperative writes
-// (not part of the declarative `style` object the doctor's static analyzer
-// walks) — the same exemption `dock.ts`'s `ref.element.style.transform`
-// writes rely on. The declarative resting style only ever sets a *thin*
-// weight through a `(l) => value` function form (the doctor only flags a
-// literal typography value), matching the `wordRotate`/`numberTicker`
-// escape hatch used elsewhere in this package.
+// baseline. Every one of those steps is a `themeWeight()` token, so the whole
+// ramp remaps with a theme that swaps in a narrower weight axis; clearing the
+// inline value falls the letter back to the declarative `light` resting step.
+// These are continuous, high-frequency imperative writes (not part of the
+// declarative `style` object the doctor's static analyzer walks) — the same
+// exemption `dock.ts`'s `ref.element.style.transform` writes rely on.
 //
 // A visually-hidden duplicate of the full text is rendered alongside the
 // decorative, `aria-hidden` per-letter spans, so screen readers announce
@@ -31,7 +30,7 @@ import type {
   Listener,
   StyleObject,
 } from "@domphy/core";
-import { themeColor, themeSize } from "@domphy/theme";
+import { themeColor, themeSize, themeWeight } from "@domphy/theme";
 
 export type KineticTextTag =
   | "h1"
@@ -56,11 +55,6 @@ export interface KineticTextProps {
 }
 
 const DEFAULT_TEXT = "Kinetic Type In Motion";
-const BASE_WEIGHT = 300;
-// Discrete weight ramp keyed by index-distance from the hovered letter,
-// mirroring upstream's CSS sibling chain: hovered 900, ±1 600, ±2 400.
-// Any distance past ±2 falls off the array and reverts to the 300 baseline.
-const NEIGHBOR_WEIGHTS = [900, 600, 400];
 // Upstream --hover-padding: calc(1em / 12) (~0.083em), applied to the hovered
 // letter and both immediate ±1 neighbors.
 const HOVER_PADDING = "calc(1em / 12)";
@@ -88,6 +82,19 @@ function kineticText(props: KineticTextProps = {}): DomphyElement {
   const text = props.children ?? DEFAULT_TEXT;
   const tag = props.tag ?? "h1";
 
+  // Resolved per call, not at module scope: themeWeight() throws when the name
+  // is not registered on the active theme, and an import-time throw would take
+  // the whole barrel down instead of this one block.
+  const baseWeight = themeWeight("light");
+  // Discrete weight ramp keyed by index-distance from the hovered letter,
+  // mirroring upstream's CSS sibling chain: hovered 900, ±1 600, ±2 400. Any
+  // distance past ±2 falls off the array and reverts to the 300 baseline.
+  const neighborWeights = [
+    themeWeight("black"),
+    themeWeight("semibold"),
+    themeWeight("regular"),
+  ];
+
   const characters = Array.from(text);
   const characterElementRefs: (HTMLElement | null)[] = new Array(
     characters.length,
@@ -99,10 +106,9 @@ function kineticText(props: KineticTextProps = {}): DomphyElement {
       _key: `character-${index}`,
       ariaHidden: "true",
       style: {
-        // Function-form escape hatch (see file header) — the thin resting
-        // weight is the entire premise of this component, not something a
-        // typography patch can express.
-        fontWeight: () => BASE_WEIGHT,
+        // The thin resting weight is the entire premise of this component —
+        // the theme's `light` step (300), matching upstream's `font-light`.
+        fontWeight: baseWeight,
         // Match upstream's transition list exactly: font-weight, stroke-color,
         // and padding (each 0.4s). Stroke-width and shadow are intentionally
         // not transitioned upstream.
@@ -174,9 +180,8 @@ function kineticText(props: KineticTextProps = {}): DomphyElement {
           // Discrete weights (900 / 600 / 400) for the hovered letter and its
           // ±1, ±2 neighbors; past ±2 the lookup is undefined and reverts to
           // the 300 baseline.
-          const weight = NEIGHBOR_WEIGHTS[distance];
-          characterElement.style.fontWeight =
-            weight === undefined ? "" : String(weight);
+          const weight = neighborWeights[distance];
+          characterElement.style.fontWeight = weight ?? "";
           // padding-inline nudges the hovered letter AND both immediate ±1
           // neighbors apart (upstream hover: / has-[+span:hover] / [:hover+&]).
           characterElement.style.paddingInline =

@@ -48,15 +48,24 @@ describe("generateRamp", () => {
   });
 
   it("accepts multiple anchor colors as fixed waypoints", () => {
-    const ramp = generateRamp(["#4a7ff4", "#d8597d"], 18);
+    // Waypoints are pinned HARD at their own real luminance (constrained-
+    // ladder solve, DESIGN.md §3.1) — the caller's array order must already
+    // be compatible with (non-decreasing along) that real luminance, since
+    // a later-position waypoint darker than an earlier one is a direct
+    // contradiction of the tone system's monotonic-ramp guarantee, not
+    // something a resample can silently paper over. #f7d774 (light) then
+    // #1a2f6b (dark) is compatible; see the "throws" tests below for what
+    // happens when it isn't.
+    const ramp = generateRamp(["#f7d774", "#1a2f6b"], 18);
     expect(ramp).toHaveLength(18);
     ramp.forEach((hex) => expect(hex).toMatch(HEX_RE));
   });
 
-  // Mid-lightness brand colors that sort-by-L would reorder (yellow is
-  // lighter than blue, pink sits between them). Input order is the
-  // intended waypoint sequence, not an L ranking.
-  const MID_ANCHORS = ["#4a7ff4", "#e8b923", "#d8597d"] as const;
+  // Different hues (not merely different lightnesses) in luminance-
+  // compatible order: input order is the intended waypoint sequence — the
+  // generator does not resort by lightness — but it must already agree with
+  // it, since each waypoint is pinned to its OWN real luminance.
+  const MID_ANCHORS = ["#fefae0", "#2a9d8f", "#2a0708"] as const;
 
   it("round-trips each mid-anchor hex as a waypoint", () => {
     const ramp = generateRamp([...MID_ANCHORS], 18);
@@ -72,6 +81,31 @@ describe("generateRamp", () => {
     for (let i = 1; i < indices.length; i++) {
       expect(indices[i]).toBeGreaterThan(indices[i - 1]);
     }
+  });
+
+  // Truth source: WCAG 2.1 SC 1.4.3 relative luminance — #4a7ff4 and
+  // #d8597d are both ~0.232 (near-identical, independently computed from the
+  // WCAG formula, not the package's own code), so pinning them at DIFFERENT
+  // ramp positions asks for a darker-positioned step to be exactly as light
+  // as a lighter-positioned one: infeasible under strict monotonicity.
+  it("throws naming the pair when waypoint order conflicts with the waypoints' own luminance", () => {
+    expect(() => generateRamp(["#4a7ff4", "#d8597d"], 18)).toThrow(
+      /#d8597d.+#4a7ff4|#4a7ff4.+#d8597d/,
+    );
+  });
+
+  // Truth source: WCAG 2.1 SC 1.4.3 — #85260c (a dark rust), one of two
+  // waypoints here, lands via the black-anchor-white arc-length placement
+  // (Generator.ts's `sequentialInterpolator`) 10 steps from the black edge:
+  // 1 full K=9 AA window. Its own relative luminance only contrasts 2.28:1
+  // against pure black (independently computed from the WCAG formula) —
+  // short of the 4.5:1 floor by more than resampling the FREE steps between
+  // them can make up, since both ends of that window are pinned exactly:
+  // the black edge always, and every multi-anchor waypoint.
+  it("throws naming the pair when an anchor's own luminance can't clear AA against an edge it's one K-step window from", () => {
+    expect(() => generateRamp(["#85260c", "#3949ff"], 18)).toThrow(
+      /#85260c.+the black edge|the black edge.+#85260c/,
+    );
   });
 
   // The generator's whole purpose is to make the Ramp evaluator (Ramp.ts,

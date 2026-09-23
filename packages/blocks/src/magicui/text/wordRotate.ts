@@ -21,8 +21,14 @@ import type {
   StyleObject,
 } from "@domphy/core";
 import { toState } from "@domphy/core";
-import { type ThemeColor, themeColor, themeSize } from "@domphy/theme";
+import {
+  type ThemeColor,
+  themeColor,
+  themeSize,
+  themeWeight,
+} from "@domphy/theme";
 import { motion } from "@domphy/ui";
+import { prefersReducedMotion } from "../reducedMotion.js";
 
 export interface WordRotateTransition {
   /** Milliseconds the slide/fade itself takes. Defaults to `250` (upstream 0.25s). */
@@ -69,7 +75,8 @@ function wordLayer(
       margin: 0,
       whiteSpace: "nowrap",
       fontSize: (listener: Listener) => themeSize(listener, "increase-4"),
-      fontWeight: () => "800",
+      // Upstream `font-extrabold` (800), one step past the `<h1>` UA default.
+      fontWeight: themeWeight("extrabold"),
       color: (listener: Listener) => themeColor(listener, "shift-11", color),
     },
     $: [
@@ -140,7 +147,14 @@ function wordRotate(props: WordRotateProps = {}): DomphyElement<"div"> {
       ...(props.style ?? {}),
     } as StyleObject,
     _onMount: (node: ElementNode) => {
-      if (typeof window === "undefined" || words.length <= 1) return;
+      // WCAG 2.2.2: the rotation cycles forever. Under reduce the first word
+      // (already seeded into `layers`) simply stays put.
+      if (
+        typeof window === "undefined" ||
+        words.length <= 1 ||
+        prefersReducedMotion()
+      )
+        return;
       const timer = window.setInterval(advance, holdDuration);
       node.addHook("Remove", () => {
         window.clearInterval(timer);

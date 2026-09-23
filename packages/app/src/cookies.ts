@@ -18,7 +18,12 @@ export function cookies(headers?: Headers): ReadonlyMap<string, string> {
     if (eq === -1) continue;
     const name = part.slice(0, eq).trim();
     if (!name) continue;
-    const value = part.slice(eq + 1).trim();
+    let value = part.slice(eq + 1).trim();
+    // RFC 6265 4.1.1 allows a DQUOTE-wrapped cookie-value; the quotes are
+    // delimiters, not data (the `cookie` package Next.js uses strips them too).
+    if (value.length > 1 && value.startsWith('"') && value.endsWith('"')) {
+      value = value.slice(1, -1);
+    }
     try {
       map.set(name, decodeURIComponent(value));
     } catch {

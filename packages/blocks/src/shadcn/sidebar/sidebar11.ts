@@ -8,14 +8,16 @@ import type { DomphyElement, Listener, State } from "@domphy/core";
 import { rawHtml, toState } from "@domphy/core";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import { breadcrumb, buttonGhost, icon, link, small, strong } from "@domphy/ui";
-import { fixed } from "../../shared/typography.js";
+import { interactiveFill } from "../../shared/interactiveFill.js";
 import {
   ICON_CHEVRON_RIGHT,
   ICON_FILE,
   ICON_FOLDER,
   ICON_PANEL_TOGGLE,
+  makeSidebarToggle,
   renderUserFooter,
   type SidebarUser,
+  sidebarBackdrop,
   sidebarIcon,
   sidebarMainContent,
   verticalDivider,
@@ -123,6 +125,9 @@ function fileRow(
         ariaCurrent: (l: Listener) =>
           activeFilePath.get(l) === path ? "true" : undefined,
         onClick: () => onSelect(path),
+        // The active state's `font-medium` (500) has no theme token —
+        // strong() is 700 and would jump a full weight step here.
+        _doctorDisable: "inline-typography",
         style: {
           display: "flex",
           alignItems: "center",
@@ -139,15 +144,12 @@ function fileRow(
           whiteSpace: "nowrap",
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": {
-            backgroundColor: (l: Listener) =>
-              themeColor(l, "shift-2", "neutral"),
-          },
+          "&:hover": interactiveFill(2),
           // Upstream's active leaf button carries `data-[active=true]:bg-transparent`,
           // suppressing the accent fill: the active file gets NO background, only
           // font-medium plus the subtle accent-foreground text color.
           "&[aria-current=true]": {
-            fontWeight: fixed("500"),
+            fontWeight: 500,
             color: (l: Listener) => themeColor(l, "shift-12", "neutral"),
           },
         },
@@ -200,10 +202,7 @@ function folderRow(
                 themeColor(l, "inherit", "neutral"),
               "&::-webkit-details-marker": { display: "none" },
               "&::marker": { content: `""` },
-              "&:hover": {
-                backgroundColor: (l: Listener) =>
-                  themeColor(l, "shift-2", "neutral"),
-              },
+              "&:hover": interactiveFill(2),
             },
           } as unknown as DomphyElement,
           {
@@ -307,7 +306,12 @@ function changeRow(change: Sidebar11Change): DomphyElement<"li"> {
             ariaLabel: `status ${change.state}`,
             style: {
               flexShrink: "0",
-              color: (l: Listener) => themeColor(l, "shift-7", "neutral"),
+              // The letter IS the change's state — essential text with no
+              // other on-screen representation, so it takes the `text` tone,
+              // not a muted one (measured 3.5:1 at shift-7 in the dark theme,
+              // below the 4.5:1 floor). Upstream's SidebarMenuBadge likewise
+              // paints `text-sidebar-foreground`.
+              color: (l: Listener) => themeColor(l, "text", "neutral"),
             },
           } as unknown as DomphyElement,
         ],
@@ -326,10 +330,7 @@ function changeRow(change: Sidebar11Change): DomphyElement<"li"> {
           textAlign: "left",
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": {
-            backgroundColor: (l: Listener) =>
-              themeColor(l, "shift-2", "neutral"),
-          },
+          "&:hover": interactiveFill(2),
         },
       } as unknown as DomphyElement,
     ],
@@ -387,6 +388,15 @@ function sidebar11(props: Sidebar11Props = {}): DomphyElement<"div"> {
   const initialActivePath = props.activeFilePath ?? DEFAULT_ACTIVE_PATH;
   const activeFilePath = toState(initialActivePath);
   const collapsed = toState(false);
+  // Desktop rail state and the mobile off-canvas drawer are separate, the way
+  // upstream `SidebarProvider` keeps `open` and `openMobile` apart — measured
+  // at 375px, one shared flag left the 256px panel inline over the content
+  // with its own toggle pushed off screen. Each flag is only read at its own
+  // breakpoint: `makeSidebarToggle` reads the viewport and flips only the one
+  // that is live, so opening the mobile drawer does not also collapse the
+  // desktop rail (which would hide every row label inside the open drawer).
+  const mobileOpen = toState(false);
+  const toggleSidebar = makeSidebarToggle(collapsed, mobileOpen);
 
   const selectFile = (path: string) => {
     activeFilePath.set(path);
@@ -449,7 +459,7 @@ function sidebar11(props: Sidebar11Props = {}): DomphyElement<"div"> {
       {
         div: null,
         ariaHidden: "true",
-        onClick: () => collapsed.set(!collapsed.get()),
+        onClick: toggleSidebar,
         style: {
           position: "absolute",
           insetBlock: "0",
@@ -466,11 +476,27 @@ function sidebar11(props: Sidebar11Props = {}): DomphyElement<"div"> {
       flexShrink: "0",
       width: (l: Listener) => (collapsed.get(l) ? "0" : themeSpacing(64)),
       overflow: "hidden",
-      transition: "width 180ms ease-out",
+      // Collapsing to width 0 clips the panel but does NOT take its links out
+      // of the tab order (measured in Chromium) — hide it outright.
+      visibility: (l: Listener) => (collapsed.get(l) ? "hidden" : "visible"),
+      transition: "width 180ms ease-out, visibility 180ms ease-out",
       borderInlineEnd: (l: Listener) =>
         `1px solid ${themeColor(l, "shift-3", "neutral")}`,
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
       backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
+      // Below the family's mobile breakpoint the panel leaves the flow and
+      // slides in over the content, like every other sidebar variant here.
+      "@media (max-width: 768px)": {
+        position: "fixed",
+        insetBlock: "0",
+        insetInlineStart: "0",
+        zIndex: "15",
+        width: themeSpacing(64),
+        transform: (l: Listener) =>
+          mobileOpen.get(l) ? "translateX(0)" : "translateX(-100%)",
+        visibility: (l: Listener) => (mobileOpen.get(l) ? "visible" : "hidden"),
+        transition: "transform 180ms ease-out, visibility 180ms ease-out",
+      },
     },
   } as unknown as DomphyElement<"aside">;
 
@@ -480,7 +506,7 @@ function sidebar11(props: Sidebar11Props = {}): DomphyElement<"div"> {
         button: [sidebarIcon(ICON_PANEL_TOGGLE)],
         type: "button",
         ariaLabel: "Toggle sidebar",
-        onClick: () => collapsed.set(!collapsed.get()),
+        onClick: toggleSidebar,
         $: [buttonGhost({ color: "neutral" })],
       } as unknown as DomphyElement,
       verticalDivider(),
@@ -518,7 +544,13 @@ function sidebar11(props: Sidebar11Props = {}): DomphyElement<"div"> {
   } as unknown as DomphyElement<"main">;
 
   return {
-    div: [asideElement, mainElement],
+    // The mobile drawer is a modal overlay, so it gets the family's dimming
+    // backdrop — which also carries the Escape-to-dismiss listener.
+    div: [
+      asideElement,
+      mainElement,
+      sidebarBackdrop(mobileOpen, () => mobileOpen.set(false)),
+    ],
     dataTone: "shift-0",
     style: {
       display: "flex",

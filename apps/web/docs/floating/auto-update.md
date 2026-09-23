@@ -43,8 +43,8 @@ function autoUpdate(
 autoUpdate(reference, floating, update, {
   ancestorScroll:  true,   // update on ancestor scroll events (default true)
   ancestorResize:  true,   // update on ancestor resize events (default true)
-  elementResize:   true,   // update via ResizeObserver on both elements (default true)
-  layoutShift:     true,   // update via IntersectionObserver on layout shift (default true)
+  elementResize:   true,   // update via ResizeObserver on both elements (default: on where ResizeObserver exists)
+  layoutShift:     true,   // update via IntersectionObserver on layout shift (default: on where IntersectionObserver exists)
   animationFrame:  false,  // update every rAF — for transform animations (default false)
 })
 ```
@@ -59,11 +59,11 @@ Listens for `resize` events on overflow ancestors. Covers window resize and any 
 
 ### `elementResize`
 
-Uses `ResizeObserver` to watch both elements directly. Triggers when the reference or floating element grows or shrinks — for example when content loads inside the floating panel.
+Uses `ResizeObserver` to watch both elements directly. Triggers when the reference or floating element grows or shrinks — for example when content loads inside the floating panel. Defaults to on wherever `ResizeObserver` exists, and off where it does not, so an engine without it is not a crash.
 
 ### `layoutShift`
 
-Uses `IntersectionObserver` to detect when the reference moves because content was inserted above it in the page flow. Slightly more expensive than the scroll/resize listeners.
+Uses `IntersectionObserver` to detect when the reference moves because content was inserted above it in the page flow. Slightly more expensive than the scroll/resize listeners. Like `elementResize`, it defaults to on only where `IntersectionObserver` exists.
 
 ### `animationFrame`
 

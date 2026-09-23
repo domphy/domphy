@@ -11,7 +11,7 @@ import {
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
-import { writeScaffoldFiles } from "../src/write.ts";
+import { writeScaffoldFiles } from "../src/write.js";
 
 const PACKAGE_DIR = resolve(__dirname, "..");
 const DIST_CLI = join(PACKAGE_DIR, "dist", "index.js");
@@ -49,15 +49,34 @@ function buildCliIfStale(): void {
 
 function runCli(
   args: string[],
-  options: { cwd?: string } = {},
-): { status: number | null; output: string } {
+  options: { cwd?: string; userAgent?: string } = {},
+): {
+  status: number | null;
+  output: string;
+  stdout: string;
+  stderr: string;
+} {
   const result = spawnSync(process.execPath, [DIST_CLI, ...args], {
     cwd: options.cwd,
     encoding: "utf8",
+    // Windows env names are case-insensitive: spreading process.env (this
+    // suite runs under a package manager, which already set the variable)
+    // and adding a lowercase key leaves two spellings, and the inherited one
+    // wins. Drop every case variant first.
+    env: {
+      ...Object.fromEntries(
+        Object.entries(process.env).filter(
+          ([key]) => key.toLowerCase() !== "npm_config_user_agent",
+        ),
+      ),
+      npm_config_user_agent: options.userAgent ?? "",
+    },
   });
   return {
     status: result.status,
     output: `${result.stdout}${result.stderr}`,
+    stdout: result.stdout,
+    stderr: result.stderr,
   };
 }
 
@@ -206,5 +225,38 @@ describe("create-domphy CLI", () => {
     expect(run.status).toBe(1);
     expect(run.output).toContain('Unknown template "nope"');
     expect(existsSync(projectDir)).toBe(false);
+  });
+
+  // Truth source: POSIX stream conventions — diagnostics go to stderr so a
+  // caller piping stdout (`create-domphy … | tee`) gets the scaffold report
+  // and nothing else, and a failure is still visible on a redirected run.
+  it("writes failures to stderr, keeping stdout clean", () => {
+    const projectDir = join(makeTempDir("create-domphy-cli-"), "app");
+    const run = runCli([projectDir, "--template", "nope"]);
+    expect(run.stderr).toContain('Unknown template "nope"');
+    expect(run.stdout).toBe("");
+  });
+
+  // Truth source: the `npm_config_user_agent` variable npm, pnpm, yarn and bun
+  // each set on a `<manager> create …` run, formatted `<name>/<version> …`.
+  // create-vite reads the same variable to print matching next-step commands.
+  // Printing "npm install" after `pnpm create domphy` drops a package-lock.json
+  // beside the user's pnpm workspace.
+  it.each([
+    [
+      "pnpm/10.24.0 npm/? node/v22.17.1 win32 x64",
+      "pnpm install",
+      "pnpm run dev",
+    ],
+    ["yarn/4.5.0 npm/? node/v22.17.1 win32 x64", "yarn install", "yarn dev"],
+    ["bun/1.1.38 npm/? node/v22.17.1 win32 x64", "bun install", "bun dev"],
+    ["npm/10.9.2 node/v22.17.1 win32 x64", "npm install", "npm run dev"],
+    ["", "npm install", "npm run dev"],
+  ])("prints next steps for the invoking package manager (%s)", (userAgent, install, dev) => {
+    const projectDir = join(makeTempDir("create-domphy-cli-"), "app");
+    const run = runCli([projectDir], { userAgent });
+    expect(run.status).toBe(0);
+    expect(run.stdout).toContain(`  ${install}`);
+    expect(run.stdout).toContain(`  ${dev}`);
   });
 });

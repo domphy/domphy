@@ -5,6 +5,7 @@ import {
   themeDensity,
   themeSize,
   themeSpacing,
+  themeWeight,
 } from "@domphy/theme";
 
 /**
@@ -26,15 +27,13 @@ function badge(
   const state = toState(label);
   const color = toState(props.color ?? "danger", "color");
   return {
-    // Badge ::after uses a fixed size scale for the pill chrome.
-    _doctorDisable: "inline-typography",
     style: {
       position: "relative",
       "&::after": {
         content: (l) => `"${state.get(l)}"`,
         position: "absolute",
         top: 0,
-        right: 0,
+        insetInlineEnd: 0,
         transform: "translate(50%,-50%)",
         // Bare themeSpacing(U) at snapshot time; n = U / 1.5 (light.densities[2]).
         paddingInline: (l) => themeSpacing(themeDensity(l) * (1.5 / 1.5)),
@@ -44,7 +43,7 @@ function badge(
         alignItems: "center",
         justifyContent: "center",
         fontSize: (l) => themeSize(l, "decrease-2"),
-        fontWeight: "600",
+        fontWeight: themeWeight("semibold"),
         lineHeight: 1,
         borderRadius: (l) => themeSpacing(themeDensity(l) * 999),
         backgroundColor: (l) => themeColor(l, "shift-9", color.get(l)),

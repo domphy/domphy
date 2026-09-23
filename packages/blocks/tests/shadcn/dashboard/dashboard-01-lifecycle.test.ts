@@ -63,8 +63,13 @@ afterEach(() => {
 describe("dashboard01 — select-all indeterminate", () => {
   it("shows the partial-selection dash after one row is selected, clears on select-all", async () => {
     const { host } = render(dashboard01() as DomphyElement);
+    // Not a literal id: `dashboard01`'s select-all id is scoped per mount
+    // (../../../src/shadcn/dashboard/dashboard-01.ts's `instanceToken`) so two
+    // mounted instances never collide — the aria-label stays constant.
     const headerCheckbox = () =>
-      host.querySelector("#dashboard01-select-all") as HTMLInputElement;
+      host.querySelector(
+        'input[aria-label="Select all rows"]',
+      ) as HTMLInputElement;
     expect(headerCheckbox()).toBeTruthy();
     expect(headerCheckbox().indeterminate).toBe(false);
 

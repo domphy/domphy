@@ -42,6 +42,7 @@ SVG spinners cannot be dropped in as raw HTML — Domphy has no `innerHTML`. Con
 **Example — 3-dots-bounce:**
 
 ```ts
+import type { Listener } from "@domphy/core"
 import { hashString } from "@domphy/core"
 import { themeColor } from "@domphy/theme"
 
@@ -61,7 +62,7 @@ export const spinnerDots = {
   width: "24", height: "24", viewBox: "0 0 24 24",
   xmlns: "http://www.w3.org/2000/svg",
   fill: "currentColor",
-  style: { color: (l) => themeColor(l, "shift-7", "neutral"), display: "inline-block", flexShrink: 0, verticalAlign: "middle" },
+  style: { color: (l: Listener) => themeColor(l, "shift-7", "neutral"), display: "inline-block", flexShrink: 0, verticalAlign: "middle" },
 }
 ```
 

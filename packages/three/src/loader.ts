@@ -90,6 +90,26 @@ function buildGraph(object: any): {
   return graph;
 }
 
+// Image/XHR-based loaders (TextureLoader, CubeTextureLoader, ...) reject with
+// a DOM Event, not an Error: `.message` is undefined and `String(event)` is
+// the useless `"[object Event]"`. Report the event type — plus the HTTP status
+// when the loader handed back an XHR-backed ProgressEvent — so a failed load
+// says what actually happened. Loaders that do reject with an Error
+// (FileLoader/GLTFLoader) keep their own message verbatim.
+function describeLoadError(loadError: unknown): string {
+  const message = (loadError as { message?: string } | null)?.message;
+  if (typeof message === "string" && message) return message;
+
+  const type = (loadError as { type?: string } | null)?.type;
+  if (typeof type !== "string" || !type) return String(loadError);
+
+  const status = (loadError as { target?: { status?: number } } | null)?.target
+    ?.status;
+  return typeof status === "number" && status > 0
+    ? `${type} (HTTP ${status})`
+    : `${type} event (network failure, 404, or unsupported format)`;
+}
+
 function loadFromUrl(loader: any, url: string): Promise<any> {
   return new Promise((resolve, reject) => {
     loader.load(
@@ -103,13 +123,9 @@ function loadFromUrl(loader: any, url: string): Promise<any> {
       },
       undefined,
       (loadError: unknown) => {
-        // XHR-based loaders reject with a ProgressEvent, not an Error — its
-        // `.message` is undefined, so fall back to String(). The original
-        // failure is chained as `cause` so callers don't lose it.
-        const message =
-          (loadError as { message?: string })?.message ?? String(loadError);
+        // The original failure is chained as `cause` so callers don't lose it.
         reject(
-          new Error(`Could not load ${url}: ${message}`, {
+          new Error(`Could not load ${url}: ${describeLoadError(loadError)}`, {
             cause: loadError,
           }),
         );

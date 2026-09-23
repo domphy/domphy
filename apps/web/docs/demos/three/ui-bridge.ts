@@ -99,9 +99,6 @@ const panel: DomphyElement<"div"> = {
                   (e.target as HTMLInputElement).checked,
                 );
               },
-              // Decorative track/knob, no text content of its own — the
-              // sibling <label> carries the color-bearing text.
-              _doctorDisable: "missing-color",
               $: [inputSwitch()],
             } as DomphyElement<"input">,
           ],

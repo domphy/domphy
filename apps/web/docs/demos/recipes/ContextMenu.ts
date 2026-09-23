@@ -42,9 +42,6 @@ const contextMenu: DomphyElement<"div"> = {
     display: (listener) => (open.get(listener) ? "flex" : "none"),
     pointerEvents: (listener) => (open.get(listener) ? "auto" : "none"),
   },
-  // Text color is set by the menuitem buttons the menu() patch renders —
-  // the outer container itself carries no text.
-  _doctorDisable: "missing-color",
 };
 
 const App: DomphyElement<"div"> = {
@@ -54,7 +51,7 @@ const App: DomphyElement<"div"> = {
     userSelect: "none",
     minHeight: "8rem",
     border: "2px dashed currentColor",
-    borderRadius: "0.5rem",
+    borderRadius: themeSpacing(2),
     cursor: "context-menu",
   },
   onContextMenu: (e: MouseEvent) => {

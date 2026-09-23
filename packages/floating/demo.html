@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>@domphy/floating Demo</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; }
+    .spacer { height: 900px; padding: 24px; }
+    button { font: inherit; padding: 8px 16px; cursor: pointer; }
+    #anchor-top { position: fixed; top: 24px; left: 24px; }
+    #anchor-bottom-wrap { padding: 24px; }
+    .panel {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 180px;
+      padding: 12px;
+      background: #222;
+      color: #fff;
+      border-radius: 6px;
+      font-size: 13px;
+      display: none;
+    }
+    .panel[data-open="true"] { display: block; }
+  </style>
+</head>
+<body>
+  <div class="spacer">
+    <p>Scroll down for the second anchor. The top anchor stays fixed on screen so scroll-triggered
+       <code>autoUpdate</code> repositioning is observable without it leaving the viewport.</p>
+    <button id="anchor-top" type="button">Top anchor</button>
+    <div id="panel-top" class="panel" role="tooltip">Positioned by createFloating()</div>
+  </div>
+  <div style="height: 200px;"></div>
+
+  <div id="scroll-wrap" style="position: relative; width: 260px; height: 150px; overflow: auto; border: 1px solid #ccc; margin: 40px;">
+    <div style="height: 400px; position: relative;">
+      <button id="anchor-scroll" type="button" style="position: absolute; top: 300px; left: 20px;">Scroll anchor</button>
+    </div>
+  </div>
+  <div id="panel-scroll" class="panel" role="tooltip" style="position: fixed;">Follows on ancestor scroll</div>
+
+  <!-- Last element in the document: scrollIntoViewIfNeeded() lands the
+       viewport at the document's own bottom edge, leaving genuinely no room
+       below the trigger — the real condition flip() reacts to. -->
+  <div id="anchor-bottom-wrap">
+    <button id="anchor-bottom" type="button">Bottom anchor (flips)</button>
+  </div>
+  <div id="panel-bottom" class="panel" role="tooltip">Flips to top near the viewport edge</div>
+  <script type="module" src="./demo-main.ts"></script>
+</body>
+</html>

@@ -31,7 +31,7 @@ function unorderedList(
       color: (listener) => themeColor(listener, "text", color.get(listener)),
       marginTop: 0,
       marginBottom: 0,
-      paddingLeft: themeSpacing(3),
+      paddingInlineStart: themeSpacing(3),
       listStyleType: "disc",
       listStylePosition: "outside",
     },

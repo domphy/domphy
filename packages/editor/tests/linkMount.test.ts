@@ -68,7 +68,14 @@ describe("link openOnClick binding", () => {
 
     clickFirstLink(host, true);
 
-    expect(opened).toHaveBeenCalledWith("https://example.com", "_blank");
+    // "noopener" in the features string: the HTML standard makes the opened
+    // context's `opener` null, which the anchor's own rel cannot do once the
+    // handler has preventDefault-ed the native navigation (reverse tabnabbing).
+    expect(opened).toHaveBeenCalledWith(
+      "https://example.com",
+      "_blank",
+      "noopener",
+    );
     editor.destroy();
     host.remove();
   });

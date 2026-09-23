@@ -33,10 +33,12 @@ Use shift scale anchors for backgrounds and borders — prefer the semantic alia
 | Hover / input background | `"hover"` | `"shift-2"` | Form fields, hover backgrounds, code blocks |
 | Border | `"border"` | `"shift-3"` | Dividers, subtle separators |
 | Control outline | `"border-strong"` | `"shift-4"` | Button/input/card boundary |
-| Placeholder text | — | `"shift-7"` | Hint text |
-| Supplementary / de-emphasis | `"muted"` | `"shift-8"` | timestamps, captions, placeholders — **not** labels |
-| Body text / labels / icon | `"text"` | `"shift-9"` | Essential readable content (labels, instructions, nav), action icons |
-| Heading text | — | `"shift-11"` | High-contrast headings |
+| Weakest supporting text | — | `"shift-7"` | Decoration only — below AA |
+| Supplementary / de-emphasis | `"muted"` | `"shift-8"` | timestamps, captions — **not** labels, **not** placeholders |
+| Body text / labels / placeholder / icon | `"text"` | `"shift-9"` | Essential readable content (labels, instructions, nav, input placeholders), action icons |
+| Heading text / field value | — | `"shift-11"` | High-contrast headings, the value typed into a field |
+
+Placeholder text is **not** exempt from WCAG 2.1 SC 1.4.3 — an editable field is not an "inactive user interface component" — so it uses `"text"`, not `"shift-7"`/`"muted"`. Measured over all 10 built-in roles x the 8 edge anchors x both built-in themes: `shift-7` is 2.83:1 at worst (fails 142/160 combinations), `"muted"` 3.55:1 (fails 40/160), `"text"` 4.53:1 (fails none) — `"text"` is the lowest compliant tone. Because the placeholder sits at that floor, the field's own value paints `shift-11` instead, so a hint is never mistaken for typed input: worst-case CIELAB ΔE between the two is 10.67, about 4.6x the ~2.3 just-noticeable difference.
 
 ```ts
 const Card = {

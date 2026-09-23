@@ -32,6 +32,7 @@ import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
 import { card, heading, paragraph } from "@domphy/ui";
+import { REDUCED_MOTION_PAUSE } from "../reducedMotion.js";
 
 export type WarpBackgroundPlaneSide = "top" | "bottom" | "left" | "right";
 
@@ -147,16 +148,12 @@ function warpBeam(
   color: ThemeColor,
   driftAnimationName: string,
 ): DomphyElement<"span"> {
-  // `_doctorDisable` is a doctor-only annotation not present in core's strict
-  // `PartialElement` type — build through an untyped literal, then assert, so
-  // the excess-property check doesn't fire (mirrors meteors.ts).
   return {
     span: null,
     _key: `${side}-beam-${instanceId}-${index}`,
     ariaHidden: "true",
     // Decorative glow bar with no text of its own — exempt from the
     // missing-color contract, matching meteors.ts's dot/tail spans.
-    _doctorDisable: "missing-color",
     style: {
       position: "absolute",
       // top-0 left-(x%), width beamSize%, aspect-ratio 1/ar — upstream's exact
@@ -172,6 +169,7 @@ function warpBeam(
       // `both` holds the 0% frame (fully below) during the delay, matching
       // framer's `initial={{ y: "100cqmax" }}`.
       animation: `${driftAnimationName} ${duration}s linear ${delaySeconds}s infinite both`,
+      ...REDUCED_MOTION_PAUSE,
     } as StyleObject,
   } as DomphyElement<"span">;
 }

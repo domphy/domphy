@@ -64,13 +64,15 @@ document.head.appendChild(sheet)
 
 ## How Selection Works
 
+Selection is built on `pointerdown`, before any drag starts — not on `click`.
+
 | Interaction | Effect |
 |---|---|
-| Click | Select only this item (deselect others) |
-| `Shift` + Click | Extend selection from last-selected to here |
-| `Ctrl` / `Cmd` + Click | Toggle this item, keep others |
+| Press an item | Select only this item (deselect others) |
+| `Shift` + press | Extend selection from last-selected to here |
+| `Ctrl` / `Cmd` + press | Toggle this item, keep others |
 | Drag a selected item | All selected items move together |
-| `Escape` during drag | Cancel, return all items to original positions |
+| `Escape` | Clear the selection (FormKit's only built-in key handling — it does **not** cancel an in-flight drag) |
 
 No custom event handlers are needed — FormKit manages selection state internally.
 

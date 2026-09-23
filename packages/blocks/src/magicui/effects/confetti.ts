@@ -187,16 +187,11 @@ function confetti(props: ConfettiProps = {}): DomphyElement {
   };
   const autoFire = props.autoFire ?? true;
 
-  // `_doctorDisable` is a doctor-only annotation not present in core's strict
-  // `PartialElement` type — build through an untyped literal, then assert, so
-  // the excess-property check doesn't fire (mirrors fadeOverlay() in the
-  // marquee block).
   const canvasElementNode = {
     canvas: null,
     ariaHidden: "true",
     // Decorative/transparent burst surface with no text of its own — exempt
     // from the missing-color contract (no reactive themeColor is used here).
-    _doctorDisable: "missing-color",
     style: {
       position: "fixed",
       inset: 0,
@@ -256,14 +251,9 @@ function confettiButton(
     ...(props.options ?? {}),
   };
 
-  // `_doctorDisable` is a doctor-only annotation not present in core's strict
-  // `PartialElement` type — build through an untyped literal, then assert, so
-  // the excess-property check doesn't fire (mirrors fadeOverlay() in the
-  // marquee block).
   const overlayCanvas = {
     canvas: null,
     ariaHidden: "true",
-    _doctorDisable: "missing-color",
     style: {
       position: "fixed",
       inset: 0,

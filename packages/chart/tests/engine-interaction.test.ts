@@ -51,8 +51,8 @@ describe("dataZoom slider survives re-renders", () => {
 
     // gridRect.x = 60, width = 320 (container 400 minus default left/right).
     // start=0 → left handle at x=60; grab it and drag right by 32px (10%).
-    (groupBefore as Element).dispatchEvent(mouseEvent("mousedown", 60));
-    document.dispatchEvent(mouseEvent("mousemove", 92));
+    (groupBefore as Element).dispatchEvent(mouseEvent("pointerdown", 60));
+    document.dispatchEvent(mouseEvent("pointermove", 92));
 
     // The drag re-rendered — the slider group must NOT have been replaced.
     const groupAfter = document.querySelector(".dc-datazoom");
@@ -62,10 +62,10 @@ describe("dataZoom slider survives re-renders", () => {
 
     // The drag is still alive after the re-render: a second mousemove moves
     // the thumb again (start=20 → fill x = 124).
-    document.dispatchEvent(mouseEvent("mousemove", 124));
+    document.dispatchEvent(mouseEvent("pointermove", 124));
     expect(Number(fill().getAttribute("x"))).toBeCloseTo(124, 0);
 
-    document.dispatchEvent(mouseEvent("mouseup", 124));
+    document.dispatchEvent(mouseEvent("pointerup", 124));
     // And the live zoom window (not the option's initial 0–50) is what the
     // scale sees: the engine's xZoomMap reflects the dragged range.
     expect((engine as any).xZoomMap.get(0)).toEqual({ start: 20, end: 50 });
@@ -259,7 +259,7 @@ describe("pie hit-test ignores legend-hidden slices", () => {
     const container = tooltipEl().parentElement!;
     const hoverIn = (x: number, y: number) =>
       container.dispatchEvent(
-        new MouseEvent("mousemove", {
+        new MouseEvent("pointermove", {
           bubbles: true,
           cancelable: true,
           clientX: x,
@@ -289,7 +289,7 @@ describe("tooltip trigger defaults and item hit-tests", () => {
 
   function hover(container: HTMLElement, x: number, y: number) {
     container.dispatchEvent(
-      new MouseEvent("mousemove", {
+      new MouseEvent("pointermove", {
         bubbles: true,
         cancelable: true,
         clientX: x,

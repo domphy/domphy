@@ -4,8 +4,9 @@
 // initI18n('vi') on the same createI18n() singleton without clobbering each
 // other. Client tests live in i18n.test.ts (@vitest-environment jsdom) and
 // keep the globalThis dedup path (document is defined there).
+import { peek } from "@domphy/core";
 import { describe, expect, it } from "vitest";
-import { createI18n, runWithI18n } from "../src/index.ts";
+import { createI18n, runWithI18n } from "../src/index.js";
 
 const en = {
   hello: "Hello",
@@ -44,7 +45,7 @@ describe("SSR per-request locale isolation", () => {
         await delay(20);
         return {
           locale: i18n.getLocale(),
-          current: i18n.currentLocale(() => {}),
+          current: peek((l) => i18n.currentLocale(l)),
           hello: i18n.t("hello"),
           greeting: i18n.t("greeting", { name: "Ada" }),
         };
@@ -54,7 +55,7 @@ describe("SSR per-request locale isolation", () => {
         await delay(20);
         return {
           locale: i18n.getLocale(),
-          current: i18n.currentLocale(() => {}),
+          current: peek((l) => i18n.currentLocale(l)),
           hello: i18n.t("hello"),
           greeting: i18n.t("greeting", { name: "Ada" }),
         };

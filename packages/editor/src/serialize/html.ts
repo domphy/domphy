@@ -77,6 +77,21 @@ export function renderedAttributes(
   return result;
 }
 
+/**
+ * Tags whose subtree is never content, so their text must not be harvested by
+ * the fallback "no rule matched, recurse into it" branch — otherwise pasting a
+ * real web page injects the page's CSS and JavaScript source as paragraphs.
+ * Same set as prosemirror-model's `ignoreTags` (from_dom.ts).
+ */
+const IGNORED_TAGS = new Set([
+  "HEAD",
+  "NOSCRIPT",
+  "OBJECT",
+  "SCRIPT",
+  "STYLE",
+  "TITLE",
+]);
+
 function isAttributeBag(value: unknown): value is Attributes {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -309,6 +324,12 @@ function parseChildren(
       continue;
     }
     const element = child as Element;
+    // `.toUpperCase()`: upstream matches on a lower-cased `nodeName`, so the
+    // check is case-insensitive — inside SVG/MathML `tagName` keeps its
+    // authored case and a `<style>` there would otherwise slip through.
+    if (IGNORED_TAGS.has(element.tagName.toUpperCase())) {
+      continue;
+    }
     if (
       stripTrailingBreak &&
       element.tagName === "BR" &&

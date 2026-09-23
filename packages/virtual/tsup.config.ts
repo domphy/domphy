@@ -22,5 +22,7 @@ export default defineConfig([
     outDir: "dist",
     minify: true,
     target: "es6",
+    // no Node `process` global in a plain <script> tag; inline NODE_ENV so esbuild strips the dev-only branches
+    define: { "process.env.NODE_ENV": '"production"' },
   },
 ]);

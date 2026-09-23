@@ -1,5 +1,6 @@
 import {
   type DomphyElement,
+  flushSync,
   Notifier,
   RecordState,
   type State,
@@ -83,6 +84,13 @@ const renderStack: AppRouter[] = [];
 
 /** Depth budget shared by redirect and middleware-rewrite chains before a loop is declared. */
 const MAX_NAVIGATION_LOOPS = 10;
+
+/** Live region that reads the new page name after a client navigation. */
+const ROUTE_ANNOUNCER_ID = "domphy-route-announcer";
+
+/** Off-screen but still announced — the standard clip-rect recipe. */
+const VISUALLY_HIDDEN =
+  "position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0";
 
 /** Prefixes compiled slot route ids so two `path: ""` slots do not share a cache key. */
 function namespaceSlotRoutes(
@@ -387,6 +395,12 @@ export class AppRouter {
     this.releaseRevalidated?.();
     this.releaseRevalidated = null;
     if (defaultRouter === this) defaultRouter = null;
+    // The announcer is a singleton looked up by a fixed id (one router owns
+    // the document's route announcements at a time, same as document.title),
+    // so it belongs to whichever router's lifecycle is ending here.
+    if (typeof document !== "undefined") {
+      document.getElementById(ROUTE_ANNOUNCER_ID)?.remove();
+    }
   }
 
   currentUrl(): URL {
@@ -758,7 +772,11 @@ export class AppRouter {
     const href = url.pathname + url.search + url.hash;
     if (!options.fromHistory) this.lastRedirect = null;
     this.events.notify("routeChangeStart", href);
-    this.saveScroll();
+    // Only for router-driven navigation: a popstate transition arrives after
+    // the history adapter has already moved to the restored entry, so saving
+    // here would overwrite that entry's stored offset (the adapter saves the
+    // outgoing one itself, before it moves).
+    if (!options.fromHistory) this.saveScroll();
 
     try {
       let renderPathname = url.pathname;
@@ -1039,6 +1057,7 @@ export class AppRouter {
       }
     }
 
+    const previousPathname = this.state.get("pathname") as string;
     this.state.set("pathname", url.pathname);
     this.state.set("search", url.search);
     this.state.set("hash", url.hash);
@@ -1048,6 +1067,72 @@ export class AppRouter {
     this.tree.set(element);
 
     this.restoreScroll(url, options);
+    this.announceNavigation(url, options, previousPathname);
+  }
+
+  /**
+   * Announces the new route and resets the tab order, what a document load
+   * would have done for free. Every peer router ships this: Next.js mounts a
+   * route announcer, SvelteKit announces and focuses the body. Without it a
+   * screen reader is told nothing after a client navigation and the next Tab
+   * continues from the link that was clicked, deep inside the old page.
+   *
+   * Gated like `restoreScroll`: the initial render is a real document load, and
+   * `scroll: false` transitions (a background revalidation, an explicit
+   * `refresh()`) are not navigations and must never take focus. Gated once
+   * more on the pathname actually changing — syncing state into the query
+   * string (a filter, a search box typing into `?q=`) is a same-page update,
+   * and pulling focus out of the control being operated is a change of context
+   * on input, WCAG 3.2.2.
+   */
+  private announceNavigation(
+    url: URL,
+    options: TransitionOptions,
+    previousPathname: string,
+  ): void {
+    if (
+      typeof document === "undefined" ||
+      options.scroll === false ||
+      options.initial ||
+      (url.pathname === previousPathname && !url.hash)
+    )
+      return;
+
+    const hashTarget = url.hash
+      ? document.getElementById(url.hash.slice(1))
+      : null;
+    const focusTarget = hashTarget ?? document.body;
+    // `document.body.tabIndex` reads -1 with no attribute set, so the attribute
+    // is what says whether this already happened — without that half of the
+    // test every navigation would stack another blur listener on the body.
+    if (focusTarget.tabIndex < 0 && !focusTarget.hasAttribute("tabindex")) {
+      focusTarget.tabIndex = -1;
+      // Drop the attribute again once focus leaves, so the element does not
+      // stay programmatically focusable for the rest of the session.
+      focusTarget.addEventListener(
+        "blur",
+        () => focusTarget.removeAttribute("tabindex"),
+        { once: true },
+      );
+    }
+    // Scrolling is `restoreScroll`'s job and already ran.
+    focusTarget.focus({ preventScroll: true });
+
+    let announcer = document.getElementById(ROUTE_ANNOUNCER_ID);
+    if (!announcer) {
+      announcer = document.createElement("div");
+      announcer.id = ROUTE_ANNOUNCER_ID;
+      announcer.setAttribute("aria-live", "assertive");
+      announcer.setAttribute("aria-atomic", "true");
+      announcer.style.cssText = VISUALLY_HIDDEN;
+      document.body.appendChild(announcer);
+    }
+    // The head tags of this navigation are applied before commit(), so the
+    // title is already the new one.
+    const label = document.title || url.pathname;
+    // An identical string is not re-announced; the space forces a change.
+    announcer.textContent =
+      announcer.textContent === label ? `${label} ` : label;
   }
 
   private saveScroll(): void {
@@ -1062,6 +1147,12 @@ export class AppRouter {
       options.initial
     )
       return;
+    // `tree.set()` schedules the re-render, so without this the old (possibly
+    // much shorter) page is still laid out: the browser clamps the restored
+    // offset to the old scroll height and every back/forward landed at the top.
+    // The same clamp silently broke `#hash` targets that only exist on the new
+    // page, since getElementById could not find them yet.
+    flushSync();
     if (options.fromHistory) {
       const position = this.history?.readScroll?.();
       window.scrollTo(position?.x ?? 0, position?.y ?? 0);

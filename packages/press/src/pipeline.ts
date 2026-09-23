@@ -20,6 +20,7 @@ import {
   walkMdast,
 } from "./markdown/index.js";
 import { remarkMarkSubSup } from "./markdown/mark-sub-sup.js";
+import { withBase } from "./routes-browser.js";
 import type { RenderDocOptions, RenderedDoc, TocEntry } from "./types.js";
 
 // --- <<< code imports --------------------------------------------------------
@@ -397,7 +398,7 @@ export async function renderDoc(
   source: string,
   options: RenderDocOptions,
 ): Promise<RenderedDoc> {
-  const { filePath, docsDir, highlight } = options;
+  const { filePath, docsDir, highlight, base = "/" } = options;
   const fileDir = dirname(filePath);
   const { frontmatter, content } = splitFrontmatter(source);
 
@@ -447,6 +448,7 @@ export async function renderDoc(
     slug,
     toc,
     onCustom: pressDirectiveHandler,
+    transformUrl: base === "/" ? undefined : (url) => withBase(base, url),
   });
 
   const frontmatterTitle =

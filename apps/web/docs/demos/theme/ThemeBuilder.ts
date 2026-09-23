@@ -132,6 +132,19 @@ export function defaultColors(): Record<Role, string> {
 }
 
 /**
+ * A role's ramp as a fresh `string[]` — `[]` when the theme omits the role.
+ * Copied so callers may `reverse()` without mutating the source theme.
+ */
+function denseRamp(ramp: string[] | undefined): string[] {
+  return ramp ? [...ramp] : [];
+}
+
+/** One step of a ramp, or null when the ramp has no color at that index. */
+function rampStep(ramp: string[] | undefined, index: number): string | null {
+  return ramp?.[index] ?? null;
+}
+
+/**
  * Derive a dark sibling of a generated theme by reversing each ramp and
  * remapping baseTones (same logic as the private createDark in @domphy/theme).
  */
@@ -140,8 +153,10 @@ export function deriveDarkTheme(source: PartialThemeInput): PartialThemeInput {
   const baseTones = source.baseTones ?? {};
   const darkColors: Record<string, string[]> = {};
   const darkBaseTones: Record<string, number> = {};
-  for (const name of Object.keys(colors)) {
-    const ramp = [...colors[name]].reverse();
+  for (const [name, steps] of Object.entries(colors)) {
+    // denseRamp() always returns a fresh array — reversing never mutates source.
+    const ramp = denseRamp(steps).reverse();
+    if (ramp.length === 0) continue;
     darkColors[name] = ramp;
     const base = baseTones[name] ?? 0;
     darkBaseTones[name] = ramp.length - 1 - base;
@@ -170,40 +185,38 @@ export function buildQualityReport(theme: PartialThemeInput): QualityReport {
   const baseTones = theme.baseTones ?? {};
   const contrasts: ContrastCheck[] = [];
 
-  const neutral = colors.neutral;
-  if (neutral && neutral.length > 9) {
-    const bg = neutral[0];
-    const fg = neutral[9];
-    const ratio = contrastRatio(fg, bg);
+  const neutralSurface = rampStep(colors.neutral, 0);
+  const neutralText = rampStep(colors.neutral, 9);
+  if (neutralSurface && neutralText) {
+    const ratio = contrastRatio(neutralText, neutralSurface);
     contrasts.push({
       id: "neutral-body",
       label: "Neutral body text (shift-9 on surface)",
       ratio,
       pass: ratio >= WCAG_AA,
-      foreground: fg,
-      background: bg,
+      foreground: neutralText,
+      background: neutralSurface,
     });
   }
 
-  const primary = colors.primary;
-  if (primary && primary.length > 9) {
-    const bg = primary[0];
-    const fg = primary[9];
-    const ratio = contrastRatio(fg, bg);
+  const primary = denseRamp(colors.primary);
+  const primarySurface = rampStep(primary, 0);
+  const primaryText = rampStep(primary, 9);
+  if (primarySurface && primaryText) {
+    const ratio = contrastRatio(primaryText, primarySurface);
     contrasts.push({
       id: "primary-ramp",
       label: "Primary ramp (shift-9 on surface)",
       ratio,
       pass: ratio >= WCAG_AA,
-      foreground: fg,
-      background: bg,
+      foreground: primaryText,
+      background: primarySurface,
     });
 
-    if (neutral && neutral.length > 0) {
+    if (neutralSurface) {
       const baseIndex = baseTones.primary ?? Math.floor(primary.length / 2);
-      const cta = primary[baseIndex] ?? primary[9];
-      const surface = neutral[0];
-      const ctaRatio = contrastRatio(cta, surface);
+      const cta = rampStep(primary, baseIndex) ?? primaryText;
+      const ctaRatio = contrastRatio(cta, neutralSurface);
       contrasts.push({
         id: "primary-cta",
         label: "Primary base on neutral surface",
@@ -212,15 +225,15 @@ export function buildQualityReport(theme: PartialThemeInput): QualityReport {
         // typically use light text on a dark primary step, not this pair.
         pass: ctaRatio >= WCAG_AA,
         foreground: cta,
-        background: surface,
+        background: neutralSurface,
       });
     }
   }
 
   const rampScores: { role: Role; score: number }[] = [];
   for (const role of ROLES) {
-    const ramp = colors[role];
-    if (!ramp || ramp.length === 0) continue;
+    const ramp = denseRamp(colors[role]);
+    if (ramp.length === 0) continue;
     const score = new Ramp(ramp, role).score;
     rampScores.push({ role, score });
   }

@@ -24,10 +24,14 @@ interface WalkContext {
   slug: (text: string) => string;
   toc: TocEntry[];
   onCustom?: (node: Nodes, helper: WalkHelper) => DomphyElement | string | null;
+  transformUrl?: (url: string) => string;
   definitions: Map<string, Definition>;
   footnoteDefinitions: Map<string, FootnoteDefinition>;
   footnoteOrder: string[];
   footnoteCounts: Map<string, number>;
+  /** Numbers the per-document table scroll regions so their accessible names
+   *  stay unique (axe `landmark-unique`). */
+  tableCount: number;
 }
 
 /** Inherited: mdast-util-to-hast default `clobberPrefix` (GitHub GFM). */
@@ -41,6 +45,9 @@ export interface MdastWalkOptions {
   /** Handle MDAST nodes that the core walker doesn't know about (e.g. directive
    *  nodes from remark-directive). Return null to fall back to the default. */
   onCustom?: (node: Nodes, helper: WalkHelper) => DomphyElement | string | null;
+  /** Rewrite every link/image destination after scheme sanitization — press
+   *  uses it to prefix root-relative URLs with the site `base`. */
+  transformUrl?: (url: string) => string;
 }
 
 type Child = string | RawHTML | DomphyElement;
@@ -141,10 +148,10 @@ function walkNode(node: Nodes, ctx: WalkContext): Child | null {
       return { s: walkChildren(node, ctx) } as DomphyElement;
 
     case "link":
-      return buildLink(node.url, node.title, walkChildren(node, ctx));
+      return buildLink(node.url, node.title, walkChildren(node, ctx), ctx);
 
     case "image":
-      return buildImage(node.url, node.alt ?? "", node.title);
+      return buildImage(node.url, node.alt ?? "", node.title, ctx);
 
     case "linkReference": {
       const definition = ctx.definitions.get(node.identifier);
@@ -158,13 +165,14 @@ function walkNode(node: Nodes, ctx: WalkContext): Child | null {
         definition.url,
         definition.title,
         walkChildren(node, ctx),
+        ctx,
       );
     }
 
     case "imageReference": {
       const definition = ctx.definitions.get(node.identifier);
       if (!definition) return node.alt ?? null;
-      return buildImage(definition.url, node.alt ?? "", definition.title);
+      return buildImage(definition.url, node.alt ?? "", definition.title, ctx);
     }
 
     case "blockquote":
@@ -225,12 +233,19 @@ function walkNode(node: Nodes, ctx: WalkContext): Child | null {
   }
 }
 
+function resolveUrl(url: string, ctx: WalkContext): string {
+  const safe = sanitizeUrl(url);
+  // Never rewrite a neutralized URL — "#" must stay "#".
+  return safe === "#" || !ctx.transformUrl ? safe : ctx.transformUrl(safe);
+}
+
 function buildLink(
   url: string,
   title: string | null | undefined,
   children: Child[],
+  ctx: WalkContext,
 ): DomphyElement {
-  const href = sanitizeUrl(url);
+  const href = resolveUrl(url, ctx);
   const el: Record<string, unknown> = { a: children, href };
   if (title) el.title = title;
   if (href.startsWith("http://") || href.startsWith("https://")) {
@@ -244,10 +259,11 @@ function buildImage(
   url: string,
   alt: string,
   title: string | null | undefined,
+  ctx: WalkContext,
 ): DomphyElement {
   const el: Record<string, unknown> = {
     img: null,
-    src: sanitizeUrl(url),
+    src: resolveUrl(url, ctx),
     alt,
     loading: "lazy",
   };
@@ -396,12 +412,16 @@ function walkListItem(
 ): DomphyElement {
   const children: Child[] = [];
 
-  // GFM task list checkbox (remark-gfm sets item.checked)
+  // GFM task list checkbox (remark-gfm sets item.checked). A bare disabled
+  // checkbox has no accessible name (axe `label`, critical). The name is the
+  // STATE, not the item text: the text is already announced as the list
+  // item's own content, so repeating it here would read every task twice.
   if (typeof item.checked === "boolean") {
     const input: Record<string, unknown> = {
       input: null,
       type: "checkbox",
       disabled: true,
+      ariaLabel: item.checked ? "done" : "not done",
     };
     if (item.checked) input.checked = true;
     children.push(input as DomphyElement);
@@ -482,7 +502,28 @@ function buildTable(node: Table, ctx: WalkContext): DomphyElement {
     ),
   } as DomphyElement;
 
-  return { table: [thead, tbody] } as DomphyElement;
+  // The SCROLL CONTAINER is this wrapper, not the <table>. Making the table
+  // itself `display:block; overflow-x:auto` (the old press rule) both strips
+  // its table semantics — a block-display table is exposed as a generic
+  // container by several screen readers — and leaves a keyboard-only visitor
+  // unable to reach the horizontal scroll (axe `scrollable-region-focusable`).
+  // tabindex=0 makes it reachable; role=region + a unique name announce what
+  // was reached (WCAG 2.1.1 / G202). The label is numbered because two
+  // same-named landmarks on one page trip axe `landmark-unique`.
+  //
+  // The same three attributes are what `scrollArea({ label })` in
+  // @domphy/ui emits — that is the patch to reach for in application code.
+  // They are inlined here so this walker keeps its only runtime dependency
+  // (@domphy/core): it is a plain MDAST -> element transform that consumers
+  // use standalone, and a fixed `label` could not be numbered per document.
+  ctx.tableCount += 1;
+  return {
+    div: [{ table: [thead, tbody] } as DomphyElement],
+    class: "dp-table-scroll",
+    role: "region",
+    ariaLabel: `Table ${ctx.tableCount}`,
+    tabIndex: 0,
+  } as DomphyElement;
 }
 
 /**
@@ -498,9 +539,11 @@ export function walkMdast(
     slug: options.slug,
     toc: options.toc,
     onCustom: options.onCustom,
+    transformUrl: options.transformUrl,
     definitions: new Map(),
     footnoteDefinitions: new Map(),
     footnoteOrder: [],
+    tableCount: 0,
     footnoteCounts: new Map(),
   };
   collectAssociations(root, ctx);

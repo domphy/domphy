@@ -12,6 +12,7 @@ import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
 import { avatar, paragraph, small, strong } from "@domphy/ui";
+import { REDUCED_MOTION_PAUSE } from "../reducedMotion.js";
 
 export interface MarqueeReviewItem {
   name: string;
@@ -139,16 +140,11 @@ function fadeOverlay(
         ? "to bottom"
         : "to top";
 
-  // `_doctorDisable` is a doctor-only annotation not present in core's strict
-  // `PartialElement` type — build through an untyped literal, then assert, so
-  // the excess-property check doesn't fire (mirrors verticalDivider() in the
-  // shadcn sidebar family).
-  const element = {
+  const element: DomphyElement<"div"> = {
     div: null,
     ariaHidden: "true",
     // Decorative gradient scrim with no text of its own — exempt from the
     // missing-color contract.
-    _doctorDisable: "missing-color",
     style: {
       position: "absolute",
       pointerEvents: "none",
@@ -165,7 +161,7 @@ function fadeOverlay(
         `linear-gradient(${toDirection}, ${themeColor(listener, "inherit")}, transparent)`,
     },
   };
-  return element as DomphyElement<"div">;
+  return element;
 }
 
 /**
@@ -206,6 +202,7 @@ function marquee(props: MarqueeProps = {}): DomphyElement<"div"> {
     justifyContent: "space-around",
     gap: themeSpacing(gapUnits),
     animation,
+    ...REDUCED_MOTION_PAUSE,
     [`@keyframes ${animationName}`]: keyframes,
     // The repeated groups are the scrolling elements upstream, so the
     // `trackStyle` passthrough is merged onto each of them.

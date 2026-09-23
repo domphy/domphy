@@ -208,21 +208,36 @@ describe("H04: sibling @media rules do not collide on hydration", () => {
       ],
     } as DomphyElement);
 
-    const media = Array.from(styleEl.sheet!.cssRules).filter(
-      (rule) => rule instanceof CSSMediaRule,
-    ) as CSSMediaRule[];
-    expect(media.length).toBe(2);
+    // Re-read the LIVE sheet each time. A node whose declarations change
+    // leaves the shared content scope, which re-inserts all of its rules —
+    // including the @media wrapper — so the rule OBJECT backing an element is
+    // not stable across an update. What the contract guarantees is that the
+    // live stylesheet shows each element's current value under its own class.
+    const colorFor = (className: string) => {
+      for (const rule of Array.from(styleEl.sheet!.cssRules)) {
+        if (!(rule instanceof CSSMediaRule)) continue;
+        const inner = rule.cssRules[0] as CSSStyleRule;
+        if (inner.selectorText === `.${className}`) return inner.style.color;
+      }
+      return undefined;
+    };
+    const classOf = (index: number) =>
+      (
+        document.querySelectorAll("span")[index] as HTMLElement
+      ).className.trim();
 
-    const colorOf = (rule: CSSMediaRule) =>
-      (rule.cssRules[0] as CSSStyleRule).style.color;
-
-    expect(colorOf(media[0])).toBe("red");
-    expect(colorOf(media[1])).toBe("blue");
+    expect(
+      Array.from(styleEl.sheet!.cssRules).filter(
+        (rule) => rule instanceof CSSMediaRule,
+      ).length,
+    ).toBe(2);
+    expect(colorFor(classOf(0))).toBe("red");
+    expect(colorFor(classOf(1))).toBe("blue");
 
     second.set("green");
     flushSync();
-    expect(colorOf(media[0])).toBe("red");
-    expect(colorOf(media[1])).toBe("green");
+    expect(colorFor(classOf(0))).toBe("red");
+    expect(colorFor(classOf(1))).toBe("green");
   });
 });
 

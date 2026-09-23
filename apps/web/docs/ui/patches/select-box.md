@@ -12,7 +12,9 @@ Unlike `combobox`, `selectBox` has no input field — it is suited for fixed opt
 
 `selectBox` gives the dropdown panel a default surface (background, `"border-strong"` outline, density-scaled radius, medium `elevation()` shadow) so it's usable without the caller styling `content` itself.
 
-Keyboard: Enter/Space toggle the dropdown, ArrowDown opens it, Escape closes. Typing printable characters runs typeahead (Radix Select character-search parity): while closed, the first case-insensitive prefix match in `options` becomes the selection; while open, focus moves to the matching `[role=option]` in the panel. The buffer resets after 1s of idle, a repeated character cycles through that character's matches, and disabled options are skipped.
+The trigger is `role="combobox"` with `aria-haspopup="listbox"` — the WAI-ARIA APG [Select-Only Combobox](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/examples/combobox-select-only/) pattern. That role takes its accessible name from the author only, so the patch sets a default `aria-label="Select"`; declare your own `aria-label`/`aria-labelledby` on the host to replace it (native wins over patch).
+
+Keyboard: Enter/Space toggle the dropdown; ArrowDown/Home open it and move focus to the first `[role=option]`, ArrowUp/End to the last, and while it is open the same keys move focus between options (a `selectList` panel's own listbox model then takes over); Escape closes. Typing printable characters runs typeahead (Radix Select character-search parity): while closed, the first case-insensitive prefix match in `options` becomes the selection; while open, focus moves to the matching `[role=option]` in the panel. The buffer resets after 1s of idle, a repeated character cycles through that character's matches, and disabled options are skipped.
 
 ## Props
 

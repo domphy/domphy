@@ -35,10 +35,10 @@ const handler = createApiHandler([
 
 ## Built-In Behavior
 
-- **404** for unmatched paths, **405** with an `Allow` header for unsupported methods
+- **404** for unmatched paths, **400** for a path whose percent-encoding is invalid (`/api/%`), **405** with an `Allow` header for unsupported methods
 - **HEAD** falls back to `GET` with the body stripped
 - **OPTIONS** answers automatically with the allowed methods
-- `redirect()` thrown inside a handler becomes a `307`/`308` response, `notFound()` a `404`, other errors a `500`
+- `redirect()` thrown inside a handler becomes a `307`/`308` response, `notFound()` a `404`, other errors a `500`. CR/LF are stripped from the `Location` value, so a handler that redirects to unvalidated input cannot inject a second header — validate the target yourself to also close the open redirect.
 - `json(data, init?)` is the `NextResponse.json()` equivalent
 
 ## Serving from Node

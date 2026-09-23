@@ -18,17 +18,22 @@ import type {
   StyleObject,
 } from "@domphy/core";
 import { behavior, toState } from "@domphy/core";
-import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
+import {
+  textToneOn,
+  themeColor,
+  themeDensity,
+  themeSpacing,
+} from "@domphy/theme";
 import {
   avatar,
   empty,
+  focusRing,
   icon,
   paragraph,
   skeleton,
   small,
   strong,
 } from "@domphy/ui";
-import { fixed } from "../../shared/typography.js";
 
 export interface TweetAuthor {
   name: string;
@@ -260,8 +265,9 @@ const SR_ONLY_STYLE: StyleObject = {
  * distinction fails axe `link-in-text-block`. */
 const ENTITY_STYLE: StyleObject = {
   color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),
-  textDecoration: fixed("underline"),
-  fontWeight: fixed(400),
+  textDecoration: "underline",
+  // `normal` is the cascade keyword for weight 400 — identical face.
+  fontWeight: "normal",
   transition: "color 150ms ease",
   "&:hover": {
     color: (listener: Listener) => themeColor(listener, "shift-10", "neutral"),
@@ -369,7 +375,7 @@ function tweetHeader(data: TweetData): DomphyElement<"div"> {
         style: {
           display: "inline-flex",
           flexShrink: "0",
-          textDecoration: fixed("none"),
+          textDecoration: "none",
         },
       }
     : avatarSpan;
@@ -390,7 +396,7 @@ function tweetHeader(data: TweetData): DomphyElement<"div"> {
           alignItems: "center",
           gap: themeSpacing(1),
           whiteSpace: "nowrap",
-          textDecoration: fixed("none"),
+          textDecoration: "none",
           color: "inherit",
           transition: "opacity 150ms ease",
           "&:hover": { opacity: "0.8" },
@@ -415,7 +421,7 @@ function tweetHeader(data: TweetData): DomphyElement<"div"> {
         style: {
           color: (listener: Listener) =>
             themeColor(listener, "shift-9", "neutral"),
-          textDecoration: fixed("none"),
+          textDecoration: "none",
           transition: "color 150ms ease",
           "&:hover": {
             color: (listener: Listener) =>
@@ -439,7 +445,7 @@ function tweetHeader(data: TweetData): DomphyElement<"div"> {
           alignItems: "flex-start",
           flexShrink: "0",
           marginInlineStart: "auto",
-          textDecoration: fixed("none"),
+          textDecoration: "none",
           color: "inherit",
         },
       }
@@ -577,7 +583,7 @@ function linkPreviewCard(preview: TweetLinkPreview): DomphyElement<"a"> {
     rel: "noopener noreferrer",
     style: {
       display: "block",
-      textDecoration: () => "none",
+      textDecoration: "none",
       borderRadius: (listener: Listener) =>
         themeSpacing(themeDensity(listener) * 3),
       overflow: "hidden",
@@ -586,9 +592,23 @@ function linkPreviewCard(preview: TweetLinkPreview): DomphyElement<"a"> {
       outlineOffset: "-1px",
       color: (listener: Listener) => themeColor(listener, "shift-9"),
       backgroundColor: (listener: Listener) => themeColor(listener, "inherit"),
+      // WCAG 2.4.7 (Focus Visible): this control paints a STATIC `outline` as
+      // its border (this package's convention over `border`), which replaces
+      // the UA's own `:focus-visible` outline — tabbing to it in Chromium left
+      // the computed `outline`/`box-shadow` byte-identical to the resting
+      // state, i.e. no visible focus indicator at all. The shared ring layers
+      // on top of the existing outline instead of fighting it.
+      "&:focus-visible": {
+        boxShadow: (listener: Listener) => focusRing(listener, "neutral"),
+      },
       "&:hover": {
         backgroundColor: (listener: Listener) =>
           themeColor(listener, "increase-1"),
+        // The +1 hover fill moves this card's surface, so the label moves the
+        // same step: an absolute shift-9 against a step-1 fill is a gap of 8,
+        // under the CONTRAST_SPAN of 9 (measured on the shift-0 root anchor,
+        // both built-in themes).
+        color: (listener: Listener) => themeColor(listener, textToneOn(1)),
       },
     },
   };

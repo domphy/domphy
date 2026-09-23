@@ -7,6 +7,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { isRTL } from "../utils/direction.js";
 import { focusRing } from "../utils/focusRing.js";
 
 /**
@@ -32,7 +33,6 @@ function select(
     },
     style: {
       appearance: "none",
-      fontFamily: "inherit",
       fontSize: (listener) => themeSize(listener, "inherit"),
       lineHeight: "inherit",
       color: (listener) => themeColor(listener, "text", color),
@@ -43,14 +43,20 @@ function select(
         `1px solid ${themeColor(listener, "border-strong", color)}`,
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
       paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
-      paddingLeft: (listener) => themeSpacing(themeDensity(listener) * 3),
-      paddingRight: (listener) => themeSpacing(themeDensity(listener) * 5),
+      paddingInlineStart: (listener) =>
+        themeSpacing(themeDensity(listener) * 3),
+      paddingInlineEnd: (listener) => themeSpacing(themeDensity(listener) * 5),
       backgroundImage: (l: Listener) => {
         const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke="${themeColorToken(l, "shift-7")}" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
         return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
       },
       backgroundRepeat: "no-repeat",
-      backgroundPosition: `right ${themeSpacing(2)} center`,
+      // background-position has no logical ("inline-end") keyword support in
+      // Chrome 88-class embedded browsers, so the physical side is picked at
+      // paint time from the resolved CSS `direction` (same technique
+      // @domphy/floating's platform.isRTL uses) instead of a fixed "right".
+      backgroundPosition: (l: Listener) =>
+        `${isRTL(l.elementNode?.domElement) ? "left" : "right"} ${themeSpacing(2)} center`,
       backgroundSize: `${themeSpacing(2.5)} ${themeSpacing(1.5)}`,
       transition: "outline-color 140ms ease, box-shadow 140ms ease",
       "&:not([multiple])": {

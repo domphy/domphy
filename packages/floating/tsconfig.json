@@ -14,5 +14,11 @@
       "@floating-ui/utils/dom": ["./src/utils/dom.ts"]
     }
   },
-  "include": ["src/**/*"]
+  "include": [
+    "src/**/*",
+    "e2e/**/*",
+    "demo-main.ts",
+    "playwright.config.ts",
+    "vite.demo.config.ts"
+  ]
 }

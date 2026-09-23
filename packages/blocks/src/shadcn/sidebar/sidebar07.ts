@@ -237,7 +237,12 @@ function sidebar07(props: Sidebar07Props = {}): DomphyElement<"div"> {
         width: themeSpacing(72),
         transform: (l: Listener) =>
           sidebarOpen.get(l) ? "translateX(0)" : "translateX(-100%)",
-        transition: "transform 0.2s ease",
+        // `transform` alone leaves every link in the slid-out panel in the tab
+        // order (WCAG 2.4.3): measured 24-46 tabbable controls reachable in a
+        // closed drawer. `visibility` is animated so the slide-out still runs.
+        visibility: (l: Listener) =>
+          sidebarOpen.get(l) ? "visible" : "hidden",
+        transition: "transform 0.2s ease, visibility 0.2s ease",
         boxShadow: (l: Listener) =>
           `0 0 ${themeSpacing(6)} ${themeColor(l, "shift-3", "neutral")}`,
       },

@@ -8,6 +8,7 @@ import {
   createRootRouteWithContext,
   createRoute,
   createRouter,
+  linkProps,
 } from "../src/index";
 
 interface AppContext {
@@ -45,8 +46,18 @@ const badPath: Paths = "/nope";
 router.navigate({ to: "/posts/$postId", params: { postId: "1" } });
 
 // Note: `RouterCore.navigate` does not reject a missing required param at the
-// type level — verified identical in upstream @tanstack/router-core@1.171.13
+// type level — verified identical in upstream @tanstack/router-core@1.171.32
 // (strict param checking lives in the framework Link layer). Parity, not a
 // port regression.
 
-export { router, postRoute, knownPath, badPath };
+// linkProps keeps the NavigateOptions type surface: `to` is constrained to the
+// router's known paths, and the returned props are not `any`.
+const anchorProps = linkProps(router, {
+  to: "/posts/$postId",
+  params: { postId: "1" },
+});
+const anchorHref: string | undefined = anchorProps.href;
+// @ts-expect-error "/nope" is not a known route path
+linkProps(router, { to: "/nope" });
+
+export { router, postRoute, knownPath, badPath, anchorProps, anchorHref };

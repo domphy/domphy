@@ -1,13 +1,26 @@
+import { ElementNode } from "@domphy/core";
 import {
+  CONTRAST_SPAN,
   cssRgbToRgb,
+  type ElementTone,
   ElementTones,
   hexToRgb,
   labToLch,
+  resolveToneStep,
   rgbToLab,
   TONE_STEPS,
   ToneAliases,
 } from "@domphy/theme";
-import { findTag, isPlainObject, isRawHTML, SVG_ONLY, VOID } from "./shared.js";
+import {
+  expandPatches,
+  findTag,
+  isCustomElementName,
+  isPlainObject,
+  isRawHTML,
+  SVG_ONLY,
+  TAGS,
+  VOID,
+} from "./shared.js";
 
 export type Severity = "error" | "warning" | "info";
 
@@ -123,7 +136,9 @@ const RESERVED = new Set([
 // typo'd suppression entries ("low-contrst" matches no known rule → always
 // stale). tests/extra.test.ts pins this exact set against the diagnostics the
 // rules actually produce, so the two cannot drift apart silently.
-const BUILTIN_RULE_IDS = [
+// Exported so callers (the CLI's --only/--exclude validation, editors) can
+// reject a typo'd rule id instead of silently filtering everything away.
+export const BUILTIN_RULE_IDS = [
   "missing-key",
   "unstable-key",
   "duplicate-key",
@@ -145,6 +160,7 @@ const BUILTIN_RULE_IDS = [
   "invalid-nesting",
   "click-without-keyboard",
   "missing-required-attribute",
+  "descendant-color-override",
   "unused-doctor-disable",
 ] as const;
 
@@ -253,6 +269,88 @@ const INTERACTIVE_ROLES = new Set([
   "treeitem",
 ]);
 
+// ─── low-contrast nested-block predicates ────────────────────────────────────
+// Which nested style blocks (`&:hover`, `&::backdrop`, `&[disabled]`) carry a
+// real text-on-surface pair. Both exclusions below are objective, not taste:
+// the pair either has no contrast requirement, or no text at all.
+
+// WCAG 2.1 SC 1.4.3 "Incidental": text that is part of an INACTIVE user
+// interface component has no contrast requirement. `&:hover:not([disabled])`
+// is the ENABLED state, so every `:not(…)` group is stripped before testing —
+// otherwise the substring `[disabled]` inside it would exempt the very state
+// the block styles.
+const INACTIVE_SELECTOR =
+  /\[(?:aria-)?disabled(?:\s*=\s*["']?true["']?)?\]|:disabled\b/;
+
+function selectorTargetsInactive(selector: string): boolean {
+  return INACTIVE_SELECTOR.test(selector.replace(/:not\([^)]*\)/g, ""));
+}
+
+/**
+ * True when a nested style key styles OTHER elements rather than this one.
+ *
+ * Follows core's own join (`StyleList.getSelector`, packages/core/src/classes/
+ * StyleList.ts:30): a key starting with `&` is CONCATENATED onto the element's
+ * selector, anything else is joined with a space and is therefore a descendant.
+ * So `&:hover`, `&::after`, `&[disabled]`, `&.active` are this element, while
+ * `"& h1"`, `"& > p"`, `"& a[target]::after"`, `":hover"` and a bare `"code"`
+ * reach into the subtree.
+ */
+/**
+ * At-rules whose contents style THIS element. Core re-runs `addCSS` with the
+ * SAME parent selector for `@media`/`@container`/`@supports`/`@layer`
+ * (packages/core/src/classes/StyleList.ts:41), so a declaration inside one is
+ * the element's own style under a condition and every rule that applies to the
+ * flat block applies there too — the responsive half of a stylesheet was
+ * simply unchecked before.
+ *
+ * `@keyframes` and `@font-face` are NOT matched here, and adding them would
+ * change nothing observable: a keyframe block's own children are stops
+ * (`"0%"`, `"from"`, `"to"`), never a `"& …"` selector or another conditional
+ * at-rule, so `walkNestedBlocks` would skip straight past them via the same
+ * general filter either way — there is no test that can tell "keyframes
+ * excluded" from "keyframes included" apart, because both produce identical
+ * output. What actually keeps a keyframe stop's `fontSize`/`fontWeight` (or
+ * `@font-face`'s, which legitimately declares them for the font being
+ * defined) from being flagged as inline typography is this structural fact,
+ * not a keyframes-specific carve-out — see the "keyframe stops are never
+ * flagged" test in tests/extra.test.ts for the behavior this pins instead.
+ */
+const CONDITIONAL_AT_RULE = /^@(?:media|container|supports|layer)\b/;
+
+function selectorTargetsDescendants(selector: string): boolean {
+  return selector.split(",").some((part) => {
+    const trimmed = part.trim();
+    if (!trimmed.startsWith("&")) return true;
+    return /^[\s>+~]/.test(trimmed.slice(1));
+  });
+}
+
+// Pseudo-elements that paint a box and never a glyph. A `color` in such a
+// block (usually inherited from the base block, occasionally declared and
+// unused) never reaches text, so there is no pair to measure. `::selection`,
+// `::placeholder`, `::marker` and `::first-line` DO render text and stay in.
+const TEXTLESS_PSEUDO =
+  /::(?:backdrop|-webkit-scrollbar[\w-]*|-webkit-resizer|-webkit-slider[\w-]*|-webkit-progress[\w-]*|-moz-range[\w-]*|-moz-progress-bar)\b/;
+
+// `::before`/`::after` render exactly what `content` puts there: an absent,
+// empty or `none` content is a decorative box (a grip dot, a divider rule),
+// not text.
+const GENERATED_CONTENT_PSEUDO = /::(?:before|after)\b/;
+const EMPTY_CONTENT = /^\s*(?:""|''|none)\s*$/;
+
+function paintsNoText(
+  selector: string,
+  block: Record<string, unknown>,
+): boolean {
+  if (TEXTLESS_PSEUDO.test(selector)) return true;
+  if (GENERATED_CONTENT_PSEUDO.test(selector)) {
+    const content = block.content;
+    return typeof content !== "string" || EMPTY_CONTENT.test(content);
+  }
+  return false;
+}
+
 // Typography style properties that must not be set inline — use patches instead.
 // Expanded from bench data: fontFamily + textDecoration were missing and caused
 // agents to write { style: { fontFamily: "..." } } without correction.
@@ -264,6 +362,29 @@ const TYPOGRAPHY_STYLE = new Set([
   "fontFamily",
   "textDecoration",
 ]);
+
+// The fix for each property, named precisely. A patch is the right answer for
+// the ones that carry a whole type step (size, decoration, the pairing of the
+// two), but @domphy/theme now exports a token for the three properties a patch
+// cannot express on its own — themeWeight/themeLetterSpacing/themeFont
+// (packages/theme/src/typography.ts) — and each returns a var(--…) reference,
+// which this rule already treats as theme-driven. Listing the valid names in
+// the hint matters: an agent that is told "use themeWeight()" without them
+// invents `themeWeight("500")`, which throws.
+const TYPOGRAPHY_HINT: Record<string, string> = {
+  fontSize:
+    'Use a typography patch (paragraph()/heading()/small()/strong()/…) via $, or themeSize(l, "increase-N"|"decrease-N") for a one-off step, so the theme owns the type scale.',
+  lineHeight:
+    "Use a typography patch (paragraph()/heading()/small()/…) via $ — it sets the line-height that belongs to the type step. A unitless multiplier (1.5) is fine on its own and is not reported.",
+  fontWeight:
+    'Use themeWeight() from @domphy/theme: "light" | "regular" | "medium" | "semibold" | "bold" | "extrabold" | "black". For emphasis prefer the strong()/heading() patch, which sets the weight that belongs to the step.',
+  letterSpacing:
+    'Use themeLetterSpacing() from @domphy/theme: "tighter" | "tight" | "normal" | "wide" | "wider" | "widest".',
+  fontFamily:
+    'Remove it — the themed root already carries the sans stack and it inherits. To opt OUT of that stack (a code block, tabular figures) use themeFont("monospace"|"sans-serif") from @domphy/theme.',
+  textDecoration:
+    'Use the link()/small()/strong() patch that owns this text, or the cascade keywords ("none", "underline") which are not reported.',
+};
 
 // CSS cascade / non-scale values are NOT hard-coded type metrics — they
 // deliberately defer to the theme or UA cascade (inherit), reset decoration
@@ -284,6 +405,15 @@ const TYPOGRAPHY_CASCADE = new Set([
   "bolder",
   "lighter",
 ]);
+
+/**
+ * A value the THEME owns rather than the author: a `var(--…)` reference (what
+ * `themeSize()` and the `--dp-font-*` hooks emit) or a `calc()`, which is
+ * computed and in practice built from tokens.
+ */
+function isThemeDrivenValue(text: string): boolean {
+  return text.includes("var(") || text.includes("calc(");
+}
 
 function isTypographyCascadeValue(prop: string, value: unknown): boolean {
   if (
@@ -333,6 +463,163 @@ const DIRECT_COLOR_PROPS = new Set([
   "textDecorationColor",
 ]);
 
+// The 148 CSS Color Module Level 4 §6.1 named colors (extended color
+// keywords, X11 set plus "rebeccapurple"). Used to tell a genuine named color
+// ("red", "cornflowerblue") — which DOES bypass theming and must be flagged —
+// from an arbitrary bare identifier that is not valid CSS at all (a typo, a
+// custom ident) and is not this linter's concern. Source of truth: the spec
+// table at https://www.w3.org/TR/css-color-4/#named-colors.
+const CSS_NAMED_COLORS = new Set([
+  "aliceblue",
+  "antiquewhite",
+  "aqua",
+  "aquamarine",
+  "azure",
+  "beige",
+  "bisque",
+  "black",
+  "blanchedalmond",
+  "blue",
+  "blueviolet",
+  "brown",
+  "burlywood",
+  "cadetblue",
+  "chartreuse",
+  "chocolate",
+  "coral",
+  "cornflowerblue",
+  "cornsilk",
+  "crimson",
+  "cyan",
+  "darkblue",
+  "darkcyan",
+  "darkgoldenrod",
+  "darkgray",
+  "darkgreen",
+  "darkgrey",
+  "darkkhaki",
+  "darkmagenta",
+  "darkolivegreen",
+  "darkorange",
+  "darkorchid",
+  "darkred",
+  "darksalmon",
+  "darkseagreen",
+  "darkslateblue",
+  "darkslategray",
+  "darkslategrey",
+  "darkturquoise",
+  "darkviolet",
+  "deeppink",
+  "deepskyblue",
+  "dimgray",
+  "dimgrey",
+  "dodgerblue",
+  "firebrick",
+  "floralwhite",
+  "forestgreen",
+  "fuchsia",
+  "gainsboro",
+  "ghostwhite",
+  "gold",
+  "goldenrod",
+  "gray",
+  "green",
+  "greenyellow",
+  "grey",
+  "honeydew",
+  "hotpink",
+  "indianred",
+  "indigo",
+  "ivory",
+  "khaki",
+  "lavender",
+  "lavenderblush",
+  "lawngreen",
+  "lemonchiffon",
+  "lightblue",
+  "lightcoral",
+  "lightcyan",
+  "lightgoldenrodyellow",
+  "lightgray",
+  "lightgreen",
+  "lightgrey",
+  "lightpink",
+  "lightsalmon",
+  "lightseagreen",
+  "lightskyblue",
+  "lightslategray",
+  "lightslategrey",
+  "lightsteelblue",
+  "lightyellow",
+  "lime",
+  "limegreen",
+  "linen",
+  "magenta",
+  "maroon",
+  "mediumaquamarine",
+  "mediumblue",
+  "mediumorchid",
+  "mediumpurple",
+  "mediumseagreen",
+  "mediumslateblue",
+  "mediumspringgreen",
+  "mediumturquoise",
+  "mediumvioletred",
+  "midnightblue",
+  "mintcream",
+  "mistyrose",
+  "moccasin",
+  "navajowhite",
+  "navy",
+  "oldlace",
+  "olive",
+  "olivedrab",
+  "orange",
+  "orangered",
+  "orchid",
+  "palegoldenrod",
+  "palegreen",
+  "paleturquoise",
+  "palevioletred",
+  "papayawhip",
+  "peachpuff",
+  "peru",
+  "pink",
+  "plum",
+  "powderblue",
+  "purple",
+  "rebeccapurple",
+  "red",
+  "rosybrown",
+  "royalblue",
+  "saddlebrown",
+  "salmon",
+  "sandybrown",
+  "seagreen",
+  "seashell",
+  "sienna",
+  "silver",
+  "skyblue",
+  "slateblue",
+  "slategray",
+  "slategrey",
+  "snow",
+  "springgreen",
+  "steelblue",
+  "tan",
+  "teal",
+  "thistle",
+  "tomato",
+  "turquoise",
+  "violet",
+  "wheat",
+  "white",
+  "whitesmoke",
+  "yellow",
+  "yellowgreen",
+]);
+
 // CSS keyword values that carry no color meaning. These must never be flagged
 // even though they appear on color properties.
 const CSS_SEMANTIC_VALUES = new Set([
@@ -348,12 +635,88 @@ const CSS_SEMANTIC_VALUES = new Set([
   "",
 ]);
 
-// A literal color value: hex (#rgb … #rrggbbaa) or a color function —
-// rgb()/rgba()/hsl()/hsla() plus the modern oklch()/oklab()/lab()/lch()/
-// color()/color-mix() forms. Keywords like transparent/currentColor/inherit
-// are intentionally allowed — they carry no theme meaning.
+// A literal color value: hex (#rgb … #rrggbbaa) or a color function that
+// PRODUCES a color from raw channels — rgb()/rgba()/hsl()/hsla() plus the
+// modern oklch()/oklab()/lab()/lch()/color() forms. Keywords like
+// transparent/currentColor/inherit are intentionally allowed — they carry no
+// theme meaning.
+//
+// `color-mix()` is deliberately NOT in this list: it produces no color of its
+// own, it blends the colors handed to it. `color-mix(in srgb, var(--primary-9)
+// 55%, var(--neutral-3))` is theme tokens being blended and resolves through
+// the theme at paint time exactly like themeColor() does — flagging it as a
+// raw value was wrong. A literal INSIDE a color-mix is still caught, by the
+// hex and channel-function alternatives above. (`\bcolor\s*\(` cannot match
+// "color-mix(" — the next character after "color" is "-", not "(".)
 const LITERAL_COLOR =
-  /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|oklch|oklab|lab|lch|color|color-mix)\s*\(/;
+  /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|oklch|oklab|lab|lch|color)\s*\(/;
+
+/**
+ * Split a CSS function's argument list on top-level commas, honoring nesting.
+ * `"in srgb, var(--a) 55%, color-mix(in srgb, var(--b), transparent)"` →
+ * three arguments, not five.
+ */
+function splitTopLevelArgs(args: string): string[] {
+  const out: string[] = [];
+  let depth = 0;
+  let start = 0;
+  for (let index = 0; index < args.length; index++) {
+    const char = args[index];
+    if (char === "(") depth++;
+    else if (char === ")") depth--;
+    else if (char === "," && depth === 0) {
+      out.push(args.slice(start, index));
+      start = index + 1;
+    }
+  }
+  out.push(args.slice(start));
+  return out;
+}
+
+/**
+ * True when a value contains a `color-mix()` whose COLOR arguments are not all
+ * theme tokens. The first argument is the colorspace (`in srgb`,
+ * `in oklch longer hue` — css-color-5 §3), never a color, so it is skipped by
+ * position rather than by keeping a list of colorspace names.
+ *
+ * A color term is theme-safe when it is a `var(--…)` reference, one of the
+ * keywords that carry no theme meaning (`transparent`, `currentColor`, …), or
+ * a nested `color-mix()` that is itself theme-safe. Anything else — a hex, a
+ * channel function, or a real CSS Color 4 named color like `red` — makes the
+ * whole mix raw. A bare identifier that is none of the above (a typo, a
+ * custom ident) is not a color at all and is left alone — this is a theming
+ * linter, not a CSS validator.
+ */
+function hasRawColorMix(value: string): boolean {
+  const start = value.toLowerCase().indexOf("color-mix(");
+  if (start === -1) return false;
+  let depth = 0;
+  let end = -1;
+  for (let index = start + "color-mix".length; index < value.length; index++) {
+    if (value[index] === "(") depth++;
+    else if (value[index] === ")" && --depth === 0) {
+      end = index;
+      break;
+    }
+  }
+  // Unbalanced (a truncated or generated value) — nothing decidable inside.
+  if (end === -1) return false;
+  const args = splitTopLevelArgs(
+    value.slice(start + "color-mix(".length, end),
+  ).slice(1);
+  const raw = args.some((arg) => {
+    // Percentages are the mix weight, not a color.
+    const term = arg.replace(/-?\d+(?:\.\d+)?%/g, "").trim();
+    if (term === "" || CSS_SEMANTIC_VALUES.has(term.toLowerCase()))
+      return false;
+    if (/^var\(/i.test(term)) return false;
+    if (/^color-mix\(/i.test(term)) return hasRawColorMix(term);
+    if (LITERAL_COLOR.test(term)) return true;
+    return CSS_NAMED_COLORS.has(term.toLowerCase());
+  });
+  // Keep scanning: a value may carry several mixes (a multi-stop gradient).
+  return raw || hasRawColorMix(value.slice(end + 1));
+}
 
 // Props where a literal color (hex/rgb/modern function) is flagged: the
 // COLOR_STYLE shorthands plus every direct color-only prop. caretColor/
@@ -558,28 +921,107 @@ function buildSpacingHint(prop: string, value: string): string | null {
 // ─── Style resolution helpers ─────────────────────────────────────────────────
 
 /**
- * Resolves a style property's value without building any live UI object: a
- * literal string passes through; a reactive `(listener) => value` function is
- * invoked with a bare no-op listener (the same pattern the tone-background-inherit
- * and low-contrast checks below already use), never by constructing a real
- * ElementNode. An earlier version built a full recursive ElementNode per element
- * just to read one resolved string — that recurses into every descendant and
- * fires Init/Insert lifecycle hooks on a detached subtree, and leaks a State
- * listener per reactive prop per element visited. Returns null for non-string
- * results, or when `runReactive` is false and the value is a function.
+ * One standalone `ElementNode` per distinct surface tone, used ONLY as the
+ * tone context a probe listener carries (see `resolveStyleValue`). It is a
+ * childless `{ div: null }` — nothing recurses, no Init/Insert hook of the
+ * analyzed tree runs — and `dataTone` is a small closed set (inherit/base/
+ * shift-N/increase-N/decrease-N, N ≤ 17, or the semantic aliases), so this map
+ * is bounded regardless of how many trees are analyzed or how large they are.
+ *
+ * A real node rather than a stand-in object: @domphy/theme's `contextTone()`
+ * walks `listener.elementNode` up through `parent` reading the `dataTone`
+ * attribute, so the only thing that resolves a tone exactly the way the
+ * browser paints it is the runtime's own node type.
+ *
+ * Cached across analyses, not per-call: `probeStyleValue` releases every
+ * subscription it picks up in a `finally`, and since core's
+ * `ElementAttribute.addListener` now COMPOSES onto the caller's `onSubscribe`
+ * instead of replacing it (packages/core/src/classes/ElementAttribute.ts),
+ * that release handle actually arrives and actually works — a probe's
+ * subscription to a cached node's `dataTone` attribute is gone again before
+ * `probeStyleValue` returns. Before that core fix this map had to be cleared
+ * after every `diagnose()` call (the probe's release handle never arrived, so
+ * the subscription lived as long as the node did — measured 51 MB retained
+ * over 40k resolutions against one cached node with forced GC); verified fixed
+ * by `packages/doctor/scripts/verify-surface-retention.mjs` (0 net listeners
+ * retained after 50k resolutions against 3 shared surfaces, `node
+ * --expose-gc`) and by `packages/core/tests/attribute-listener-release.test.ts`,
+ * which proves the same release path from core's side.
+ */
+const surfaceNodes = new Map<string, ElementNode>();
+
+function surfaceNode(surface: string | number): ElementNode {
+  const key = String(surface);
+  let node = surfaceNodes.get(key);
+  if (!node) {
+    node = new ElementNode({ div: null, dataTone: surface } as never);
+    surfaceNodes.set(key, node);
+  }
+  return node;
+}
+
+/**
+ * Resolves a style property's value without building any live UI object for the
+ * analyzed element: a literal string passes through; a reactive
+ * `(listener) => value` function is invoked with a probe listener. Returns null
+ * for non-string results, or when `runReactive` is false and the value is a
+ * function.
+ *
+ * The probe does two things a bare `() => {}` did not:
+ *
+ *  - it carries a tone CONTEXT when `surface` is given. Every themeColor() tone
+ *    is relative to the surrounding context (@domphy/theme `offsetTone`:
+ *    `shift-N` mirrors once past the ramp midpoint, `increase-N`/`decrease-N`
+ *    walk from it and clamp, and the theme's edge `darkBias` applies), so a
+ *    node-less listener answers for an unshifted root and nothing else.
+ *    Measured: on a `dataTone: "shift-17"` surface `shift-9` paints
+ *    var(--neutral-7) and `increase-2` paints var(--neutral-17), where a
+ *    node-less listener reads 9 and 2.
+ *  - it RELEASES every subscription it picks up. `state.get(listener)` adds the
+ *    listener to a Set the State owns (core `Notifier.addListener`), so the
+ *    fresh no-op this used to pass was retained by every module-level State it
+ *    ever touched, for the life of the process.
+ *
+ * The analyzed element itself is never constructed as an ElementNode: that
+ * would recurse into every descendant and fire Init/Insert lifecycle hooks on a
+ * detached subtree.
+ */
+function probeStyleValue(
+  value: unknown,
+  runReactive: boolean,
+  surface: string | number | null = null,
+): unknown {
+  if (typeof value !== "function") return value;
+  if (!runReactive) return undefined;
+  const releases: Array<() => void> = [];
+  const probe = (() => {}) as {
+    (): void;
+    elementNode?: ElementNode;
+    onSubscribe?: (release: () => void) => void;
+  };
+  if (surface !== null) probe.elementNode = surfaceNode(surface);
+  probe.onSubscribe = (release) => releases.push(release);
+  try {
+    return (value as (l: unknown) => unknown)(probe);
+  } catch {
+    return undefined; // reactive fn threw without a real runtime — skip
+  } finally {
+    for (const release of releases) release();
+  }
+}
+
+/**
+ * The string form of a style value, or null when there is none — the shape
+ * most rules want (a CSS declaration they pattern-match). A reactive value is
+ * resolved through {@link probeStyleValue} first.
  */
 function resolveStyleValue(
   value: unknown,
   runReactive: boolean,
+  surface: string | number | null = null,
 ): string | null {
-  if (typeof value === "string") return value;
-  if (typeof value !== "function" || !runReactive) return null;
-  try {
-    const result = (value as (l: unknown) => unknown)(() => {});
-    return typeof result === "string" ? result : null;
-  } catch {
-    return null; // reactive fn threw without a real runtime — skip
-  }
+  const resolved = probeStyleValue(value, runReactive, surface);
+  return typeof resolved === "string" ? resolved : null;
 }
 
 /**
@@ -589,6 +1031,179 @@ function resolveStyleValue(
  */
 function hasStyleProp(style: Record<string, unknown>, prop: string): boolean {
   return prop in style && !isPlainObject(style[prop]);
+}
+
+// ─── descendant-color-override helpers ───────────────────────────────────────
+// A patch styles its host through ONE generated class — specificity (0,1,0).
+// An ancestor's scoped `"& small": { color: … }` is (0,1,1) and therefore wins
+// on every descendant that carries such a patch, silently voiding the patch's
+// color/contrast guarantee. Measured: small()'s shift-10 (6.27:1 on a shift-1
+// card) dropped to 4.22:1 under an ancestor `& small { color: shift-8 }`.
+
+/** The properties a patch can guarantee and a descendant selector can steal. */
+const OVERRIDABLE_COLOR_PROPS = ["color", "backgroundColor"] as const;
+
+/**
+ * One simple selector parsed out of a `"& …"` descendant key: a bare tag
+ * (`small`), a class (`.caption`), an attribute's presence (`[data-x]`), or
+ * the universal selector (`*`). Compound selectors (`small.caption`,
+ * `small:hover`) and value-qualified attributes (`[data-x="y"]`) are not
+ * parsed — a resting-state match has to be unambiguous, and a pseudo-class
+ * is deliberately excluded everywhere: it names a transient state, not the
+ * resting color a patch guarantees.
+ */
+type DescendantSelector = {
+  direct: boolean;
+  kind: "tag" | "class" | "attr" | "universal";
+  value: string;
+  label: string;
+};
+
+/**
+ * Parse a nested style key into the simple descendant selectors it targets:
+ * `"& small"`, `"& > p"`, `"& .caption"`, `"& [data-x]"`, `"& > *"`,
+ * `"& img, & svg"`. A pseudo-class (`"& small:hover"`) or any other
+ * functional/compound form is not recognized — see {@link DescendantSelector}.
+ */
+function parseDescendantSelectors(selector: string): DescendantSelector[] {
+  const out: DescendantSelector[] = [];
+  for (const rawPart of selector.split(",")) {
+    const combinatorMatch = /^\s*&\s*(>?)\s*(.*)$/.exec(rawPart);
+    if (!combinatorMatch) continue;
+    const direct = combinatorMatch[1] === ">";
+    const rest = combinatorMatch[2];
+    // `"&div"` (no combinator, no space) is a compound selector on the host
+    // itself, not a descendant — require either a child combinator or real
+    // whitespace before the rest of the selector.
+    if (!direct && !/^\s*&\s/.test(rawPart)) continue;
+
+    const tagMatch = /^([a-zA-Z][a-zA-Z0-9]*)\s*$/.exec(rest);
+    if (tagMatch) {
+      const tag = tagMatch[1].toLowerCase();
+      if (TAGS.has(tag))
+        out.push({ direct, kind: "tag", value: tag, label: tag });
+      continue;
+    }
+    const classMatch = /^\.([a-zA-Z_][a-zA-Z0-9_-]*)\s*$/.exec(rest);
+    if (classMatch) {
+      out.push({
+        direct,
+        kind: "class",
+        value: classMatch[1],
+        label: `.${classMatch[1]}`,
+      });
+      continue;
+    }
+    const attrMatch = /^\[([a-zA-Z_][a-zA-Z0-9_-]*)\]\s*$/.exec(rest);
+    if (attrMatch) {
+      out.push({
+        direct,
+        kind: "attr",
+        value: attrMatch[1],
+        label: `[${attrMatch[1]}]`,
+      });
+      continue;
+    }
+    if (/^\*\s*$/.test(rest)) {
+      out.push({ direct, kind: "universal", value: "", label: "*" });
+    }
+    // Anything else (compound selector, pseudo-class, functional selector) is
+    // left unrecognized on purpose — see the DescendantSelector doc comment.
+  }
+  return out;
+}
+
+/** True when a declared element matches a parsed simple selector. */
+function elementMatchesSelector(
+  element: Record<string, unknown>,
+  tag: string,
+  selector: DescendantSelector,
+): boolean {
+  switch (selector.kind) {
+    case "universal":
+      return true;
+    case "tag":
+      return tag === selector.value;
+    case "class": {
+      const value = element.class ?? element.className;
+      // A reactive class (`(l) => …`) is one sample of many possible
+      // classlists, not the declaration — skip, matching the reactive-content
+      // boundary the rest of this rule already observes.
+      if (typeof value !== "string") return false;
+      return value.trim().split(/\s+/).includes(selector.value);
+    }
+    case "attr":
+      return selector.value in element;
+  }
+}
+
+/**
+ * The value declared for `prop` on `element` — its own native `style[prop]`
+ * when present (native always wins over a patch default, same as the
+ * runtime's own merge), otherwise the value the LAST patch in its `$` array
+ * declares. Patches may compose (a patch returning `$: [other()]`), so nested
+ * `$` arrays are followed too. Both origins generate the identical per-node
+ * class at specificity (0,1,0), so both are equally outranked by a (0,1,1)
+ * ancestor selector — checking patches only would miss a native declaration
+ * that is just as silently overridden.
+ */
+function declaredStyleProp(element: unknown, prop: string): unknown {
+  if (!isPlainObject(element)) return undefined;
+  if (isPlainObject(element.style) && hasStyleProp(element.style, prop)) {
+    return element.style[prop];
+  }
+  const patches = element.$;
+  if (!Array.isArray(patches)) return undefined;
+  let found: unknown;
+  for (const patch of patches) {
+    if (!isPlainObject(patch)) continue;
+    const nested = declaredStyleProp(patch, prop);
+    if (nested !== undefined) found = nested;
+    if (isPlainObject(patch.style) && hasStyleProp(patch.style, prop)) {
+      found = patch.style[prop];
+    }
+  }
+  return found;
+}
+
+/**
+ * Collect declared descendant elements matching the given selector. Reactive
+ * content (`(listener) => …`) is a boundary, exactly like the other
+ * declared-tree rules: what a reactive function returns is one sample, not
+ * the declaration. `selector.direct` restricts the search to the host's own
+ * children (`& > p`).
+ */
+function collectDeclaredDescendants(
+  content: unknown,
+  selector: DescendantSelector,
+  out: Record<string, unknown>[],
+  seen: Set<unknown>,
+): void {
+  if (Array.isArray(content)) {
+    if (seen.has(content)) return;
+    seen.add(content);
+    for (const child of content) {
+      collectDeclaredDescendants(child, selector, out, seen);
+    }
+    return;
+  }
+  if (!isPlainObject(content) || isRawHTML(content)) return;
+  if (seen.has(content)) return;
+  seen.add(content);
+  const childTag = findTag(content);
+  if (!childTag) return;
+  if (elementMatchesSelector(content, childTag, selector)) out.push(content);
+  // A direct-child selector stops at the host's own children; a descendant
+  // selector keeps going. Either way an element that already matched still has
+  // its subtree scanned for a descendant selector — `& p` matches nested <p>
+  // too (invalid HTML, but the selector would still apply).
+  if (selector.direct) return;
+  collectDeclaredDescendants(
+    content[childTag],
+    { ...selector, direct: false },
+    out,
+    seen,
+  );
 }
 
 /**
@@ -623,6 +1238,12 @@ const THEME_COLOR_VAR = /var\(--(?!fontSize-)[\w-]+-\d+\)/;
  */
 function applyDisable(
   disable: unknown,
+  // The `_doctorDisable` the element ITSELF declares, before `$` patches are
+  // merged in. Suppression uses the union (a patch author knows their patch
+  // trips a rule and says so once), but staleness is only ever reported for
+  // what this element declares: whether a patch's entry fires depends on the
+  // patch's props, and the call site could not remove it anyway.
+  ownDisable: unknown,
   elementDiags: Diagnostic[],
   contentDiags: Diagnostic[],
   here: string,
@@ -637,7 +1258,7 @@ function applyDisable(
       if (d.path !== here) out.push(d);
       else suppressedAny = true;
     }
-    if (!suppressedAny) {
+    if (!suppressedAny && ownDisable === true) {
       // `_doctorDisable: true` suppressed nothing — it can only be proven stale
       // when zero diagnostics were consumed (unlike named entries, "all rules"
       // stays meaningful as long as ANY rule fired here).
@@ -671,7 +1292,14 @@ function applyDisable(
       }
       out.push(d);
     }
-    reportUnusedDisable(entries, used, here, out, options);
+    // `ownDisable === true` cannot reach here — the union would have been true
+    // and taken the branch above.
+    const own = Array.isArray(ownDisable)
+      ? ownDisable.map(String)
+      : ownDisable === undefined || ownDisable === null || ownDisable === false
+        ? []
+        : [String(ownDisable)];
+    reportUnusedDisable(own, disabled, used, here, out, options);
     return;
   }
   // No disable — pass everything through.
@@ -700,13 +1328,19 @@ function applyDisable(
  * for that element (self-reference) and is itself never reported as stale.
  */
 function reportUnusedDisable(
+  // Only the entries the element DECLARES itself — a patch's entry is not the
+  // call site's to remove (see applyDisable's `ownDisable`).
   entries: string[],
+  // The full effective suppression set (element + patches), for the
+  // self-suppression check: a patch may silence this rule for its hosts.
+  disabled: Set<string>,
   used: Set<string>,
   here: string,
   out: Diagnostic[],
   options: DiagnoseOptions,
 ): void {
-  if (entries.includes("unused-doctor-disable")) return; // self-suppressed
+  if (entries.length === 0) return;
+  if (disabled.has("unused-doctor-disable")) return; // self-suppressed
   const known = new Set<string>([
     ...BUILTIN_RULE_IDS,
     ...(options.rules ?? []).map((rule) => rule.id),
@@ -748,6 +1382,8 @@ export function diagnose(
 ): Diagnostic[] {
   const out: Diagnostic[] = [];
   walk(root, "", out, false, options, new Set());
+  // surfaceNodes is a persistent, bounded cache across calls — see its doc
+  // comment for why clearing it per-call is no longer necessary.
 
   // Apply only/exclude post-filter (covers both built-in and custom rule ids).
   // `only` being set (even empty) activates whitelist mode: only listed rule ids pass.
@@ -775,6 +1411,10 @@ function walk(
   // `inSvg` this drives the invalid-nesting content-model check.
   parentTag: string | null = null,
   inSvg = false,
+  // The `dataTone` of the nearest declared ancestor surface (null at the root =
+  // the theme's own edge). Reactive theme values are resolved against it, since
+  // every themeColor() tone is relative to the surrounding tone context.
+  surface: string | number | null = null,
 ): void {
   const runReactive = options.runReactive !== false;
 
@@ -795,7 +1435,7 @@ function walk(
       seen.delete(node);
       return; // reactive fn threw without a real runtime — skip
     }
-    walk(result, path, out, true, options, seen);
+    walk(result, path, out, true, options, seen, null, false, surface);
     seen.delete(node);
     return;
   }
@@ -885,6 +1525,7 @@ function walk(
         seen,
         parentTag,
         inSvg,
+        surface,
       );
     });
     return;
@@ -897,9 +1538,44 @@ function walk(
 
   if (!isPlainObject(node)) return;
 
-  const element = node;
-  const tag = findTag(element);
+  // The tag comes from the DECLARED element, exactly like core: `ElementNode`
+  // reads `getTagName(domphyElement)` (and `validate()` rejects a first key
+  // that is not a tag) BEFORE `mergePartial` runs, so a patch can never supply
+  // the host tag.
+  const tag = findTag(node);
+  // Every rule below reads the EFFECTIVE props — the declared element with its
+  // `$` patches applied. Without this a patch's style, dataTone, role,
+  // tabIndex, keyboard handlers and `_doctorDisable` were invisible to every
+  // rule: false negatives wherever a patch introduced the problem, false
+  // positives wherever a patch already supplied what a rule asks for.
+  // A tagless object is left declared-as-written: `unknown-tag` reports the
+  // keys the author typed, not the props a patch contributed.
+  const element = tag ? expandPatches(node, tag) : node;
   const here = tag ? (path ? `${path} > ${tag}` : tag) : path || "(root)";
+
+  // The surface this element's own theme values resolve against: its own
+  // `dataTone` when it declares one, otherwise the nearest declared ancestor's.
+  // `contextTone()` starts the walk AT the node, so an element's own dataTone
+  // applies to its own styles too. "inherit" passes the ancestor through.
+  //
+  // Scope limit, by design, not a gap: a `dataTone` contributed at RUNTIME
+  // (a portal's `node.children.insert(...)`, an imperative `_onMount`, a
+  // reactive branch) is not in this declared object graph, so there is
+  // nothing here to see it with — same reactive/imperative boundary every
+  // other rule in this file observes. The complementary check for that case
+  // is a real browser: axe-core's `color-contrast` against the actually
+  // rendered page (this repo's browser-QA lanes) measures the real computed
+  // contrast regardless of where a tone came from. See
+  // apps/web/docs/doctor/rules.md's low-contrast "Scope limit" section.
+  const declaredTone = element.dataTone;
+  const ownSurface: string | number | null =
+    typeof declaredTone === "number"
+      ? declaredTone
+      : typeof declaredTone === "string" &&
+          declaredTone !== "inherit" &&
+          isValidTone(declaredTone)
+        ? declaredTone
+        : surface;
 
   // Collect element-level diagnostics in a local buffer so `_doctorDisable`
   // can filter them before they reach `out`.
@@ -923,10 +1599,20 @@ function walk(
         category: "structure",
         path: here,
         message: `"${key}" is not a known HTML/SVG tag — likely a typo.`,
-        hint: "An element's first key must be a valid tag (div, button, span, …).",
+        hint: key.includes("-")
+          ? `An element's first key must be a valid tag, or a valid custom element name — lowercase, one hyphen after the first character ("my-widget", not "${key}").`
+          : "An element's first key must be a valid tag (div, button, span, …).",
       });
     }
-    applyDisable(element._doctorDisable, elementDiags, [], here, out, options);
+    applyDisable(
+      element._doctorDisable,
+      node._doctorDisable,
+      elementDiags,
+      [],
+      here,
+      out,
+      options,
+    );
     return;
   }
 
@@ -951,7 +1637,15 @@ function walk(
   // to the static tree and stay exempt (the walk clears parentTag across a
   // function boundary). SVG subtrees have their own content model — skipped
   // whenever the parent context or the child tag is SVG-only.
-  if (parentTag !== null && !inSvg && !SVG_ONLY.has(tag)) {
+  // A custom element has no declared content model in either direction: the
+  // parser never re-parents around one, so nothing here can break SSR parity.
+  if (
+    parentTag !== null &&
+    !inSvg &&
+    !SVG_ONLY.has(tag) &&
+    !isCustomElementName(tag) &&
+    !isCustomElementName(parentTag)
+  ) {
     if (parentTag === "p" && P_FORBIDDEN_CHILDREN.has(tag)) {
       elementDiags.push({
         rule: "invalid-nesting",
@@ -1090,18 +1784,64 @@ function walk(
     });
   }
 
+  // True when a `"& …"`-style selector has no declared element in `content`
+  // that inline-typography could point the author at — see
+  // `typographyExempt` on walkStyleProps for the reasoning. Checked per
+  // comma-separated part: `"&::after, & h2"` is exempt only if EVERY part is
+  // (a pseudo-element, or a tag selector matching no declared child).
+  const isTypographyExemptSelector = (selector: string): boolean =>
+    selector.split(",").every((rawPart) => {
+      const part = rawPart.trim();
+      // A pseudo-element is its own generated box — no patch can attach there
+      // regardless of what children the host declares.
+      if (part.includes("::")) return true;
+      const targets = parseDescendantSelectors(part).filter(
+        (target) => target.kind === "tag",
+      );
+      // A class/attribute/universal/pseudo-class selector, or anything
+      // unparseable, names no single declared element doctor can point the
+      // author at — the original "no call site" reasoning holds.
+      if (targets.length === 0) return true;
+      return !targets.some((target) => {
+        const matches: Record<string, unknown>[] = [];
+        collectDeclaredDescendants(content, target, matches, new Set());
+        return matches.length > 0;
+      });
+    });
+
   // walkStyleProps: checks a flat style object (or pseudo-class nested style
   // like "&:hover") for theme/visual violations. Called for the element's own
-  // style AND for any nested pseudo-class objects found inside it.
+  // style AND for any nested pseudo-class/pseudo-element/descendant objects
+  // found inside it.
+  //
+  // `typographyExempt` is true for a nested block inline-typography cannot
+  // act on: a pseudo-element (`"&::after"` — no patch attaches to a generated
+  // box), or a block whose selector reaches into the subtree (`"& h1"`,
+  // `"& > p"`) with NO matching declared child in `content`. Its whole
+  // prescription is "put a typography patch on this element via `$`", and `$`
+  // attaches to ONE declared element — never a pseudo-element, never a
+  // subtree. When the selector DOES match a declared child (`{ div: [{ h2 }],
+  // style: { "& h2": { fontSize: … } } }`), there IS a call site — the h2
+  // itself — so the exemption does not apply and the hint points there.
+  // Otherwise the descendant is markup this element's author does not
+  // construct — a Markdown/rawHtml render, or whatever children a caller
+  // hands a layout patch — so there is genuinely no call site, and a
+  // descendant selector is the only implementation available. This is the
+  // same shape Tailwind Typography's `prose` and VitePress's `.vp-doc` take,
+  // and the one @domphy/ui's own card()/table() slot styles take. The theme
+  // rules (raw-theme-value, raw-spacing-value) still run in these blocks: a
+  // hard-coded hex or px is wrong no matter who it lands on.
   const walkStyleProps = (
     style: Record<string, unknown>,
     stylePath: string,
+    typographyExempt = false,
   ) => {
     for (const prop in style) {
-      // Skip nested pseudo-class objects at this level — they are walked
-      // separately after the outer loop so their rules fire at the right path.
-      if (prop.startsWith("&") || prop.startsWith(":")) continue;
       const value = style[prop];
+      // An object value is a nested block (selector or at-rule), never a style
+      // value — the same split StyleList.addCSS makes. Those are walked
+      // separately, by walkNestedBlocks, so their rules fire at their own path.
+      if (isPlainObject(value)) continue;
 
       // Resolved string form of the style value: a static string passes
       // through; a reactive `(listener) => …` function is invoked with a
@@ -1109,35 +1849,31 @@ function walk(
       // context rules). Null for non-strings and unevaluated functions.
       const resolved = resolveStyleValue(value, runReactive);
 
-      if (TYPOGRAPHY_STYLE.has(prop)) {
-        if (typeof value === "function") {
-          // Reactive typography: flag literal metrics resolved from the
-          // function, but never theme-driven results — themeSize() returns a
-          // var(--fontSize-N) reference and calc() values are computed, both
-          // of which are the prescribed pattern.
-          if (
-            resolved !== null &&
-            !resolved.includes("var(") &&
-            !resolved.includes("calc(") &&
-            !isTypographyCascadeValue(prop, resolved)
-          ) {
-            elementDiags.push({
-              rule: "inline-typography",
-              severity: "warning",
-              category: "typography",
-              path: stylePath,
-              message: `Inline reactive \`${prop}\` resolves to a literal ("${resolved}") — avoid inline typography styles.`,
-              hint: "Use a typography patch (paragraph()/heading()/small()/strong()/…) via $ so the theme owns the type scale.",
-            });
-          }
-        } else if (!isTypographyCascadeValue(prop, value)) {
+      // A reactive function is only a WRAPPER around a value, so static and
+      // reactive forms are judged identically: `fontWeight: 500` and
+      // `fontWeight: () => 500` are the same declaration, and a static
+      // `fontFamily: "var(--dp-font-mono, ui-monospace)"` is as theme-driven as
+      // the reactive one. (Previously the var()/calc() exemption lived only in
+      // the reactive branch, so a static var() reference was flagged, and the
+      // reactive branch only looked at STRING results, so `() => 500` escaped
+      // entirely while `() => "500"` was reported.)
+      if (TYPOGRAPHY_STYLE.has(prop) && !typographyExempt) {
+        const reactive = typeof value === "function";
+        const metric = reactive ? probeStyleValue(value, runReactive) : value;
+        if (
+          (typeof metric === "string" || typeof metric === "number") &&
+          !isTypographyCascadeValue(prop, metric) &&
+          !isThemeDrivenValue(String(metric))
+        ) {
           elementDiags.push({
             rule: "inline-typography",
             severity: "warning",
             category: "typography",
             path: stylePath,
-            message: `Inline \`${prop}\` — avoid inline typography styles.`,
-            hint: "Use a typography patch (paragraph()/heading()/small()/strong()/…) via $ so the theme owns the type scale.",
+            message: reactive
+              ? `Inline reactive \`${prop}\` resolves to a literal ("${metric}") — avoid inline typography styles.`
+              : `Inline \`${prop}\` — avoid inline typography styles.`,
+            hint: TYPOGRAPHY_HINT[prop],
           });
         }
       }
@@ -1145,7 +1881,7 @@ function walk(
       if (
         LITERAL_COLOR_PROPS.has(prop) &&
         resolved !== null &&
-        LITERAL_COLOR.test(resolved)
+        (LITERAL_COLOR.test(resolved) || hasRawColorMix(resolved))
       ) {
         const colorLiteral = extractColorLiteral(resolved) ?? resolved;
         const lch = parseLiteralToLch(colorLiteral);
@@ -1165,14 +1901,14 @@ function walk(
       // Named-color detection stays static-only: a reactive function's
       // resolved string is one sample of many possible values, so flagging a
       // named color from that single sample would be noisier than the
-      // hex/function checks above.
+      // hex/function checks above. Membership in CSS_NAMED_COLORS (not mere
+      // elimination of the other cases) keeps the message's claim — "this is
+      // a CSS named color" — actually true, instead of firing on any bare
+      // identifier that happens not to be a keyword, function, or var().
       if (
         DIRECT_COLOR_PROPS.has(prop) &&
         typeof value === "string" &&
-        !LITERAL_COLOR.test(value) &&
-        !value.includes("(") &&
-        !value.startsWith("--") &&
-        !CSS_SEMANTIC_VALUES.has(value.trim().toLowerCase())
+        CSS_NAMED_COLORS.has(value.trim().toLowerCase())
       ) {
         elementDiags.push({
           rule: "raw-theme-value",
@@ -1200,19 +1936,114 @@ function walk(
     }
   };
 
+  // Every nested block, at any depth: selector blocks (`&:hover`, `& h1`) and
+  // conditional at-rules (`@media …`) alike. A condition keeps the element's
+  // current target, a selector block may move it into the subtree — and once
+  // there it stays there, so `@media { "& h1": { … } }` is as much a
+  // descendant block as `"& h1"` at the top level.
+  const walkNestedBlocks = (
+    style: Record<string, unknown>,
+    stylePath: string,
+    typographyExempt: boolean,
+  ) => {
+    for (const prop in style) {
+      const block = style[prop];
+      if (!isPlainObject(block)) continue;
+      const isSelector = prop.startsWith("&") || prop.startsWith(":");
+      if (!isSelector && !CONDITIONAL_AT_RULE.test(prop)) continue;
+      const reachesDescendants = isSelector && selectorTargetsDescendants(prop);
+      // A pseudo-element concatenates onto the HOST (`selectorTargetsDescendants`
+      // is false for it, same as `&:hover`) — it needs its own check, entirely
+      // independent of the descendants check, or it is indistinguishable from a
+      // pseudo-CLASS/attribute/class block that IS patchable.
+      const purePseudoElement =
+        isSelector &&
+        prop.split(",").every((part) => part.trim().includes("::"));
+      // Once exempt, stays exempt through deeper nesting (a "&:hover" inside
+      // an exempt "& h2" is still inside that same subtree). A newly-entered
+      // block earns exemption on its own selector text.
+      const nestedExempt =
+        typographyExempt ||
+        purePseudoElement ||
+        (reachesDescendants && isTypographyExemptSelector(prop));
+      const nestedPath = `${stylePath}[${prop}]`;
+      walkStyleProps(
+        block as Record<string, unknown>,
+        nestedPath,
+        nestedExempt,
+      );
+      walkNestedBlocks(
+        block as Record<string, unknown>,
+        nestedPath,
+        nestedExempt,
+      );
+    }
+  };
+
   if (isPlainObject(element.style)) {
     const style = element.style as Record<string, unknown>;
     walkStyleProps(style, here);
-    // Walk pseudo-class nested objects (&:hover, &:focus, &:active, etc.)
+    walkNestedBlocks(style, here, false);
+
+    // descendant-color-override: a scoped `"& <tag>": { color: … }` block is
+    // specificity (0,1,1); the descendant's own generated class — whether the
+    // color on it came from a patch or was declared natively — is only
+    // (0,1,0). So the ancestor's rule wins on every matching descendant that
+    // declares that property, patch or native, silently voiding the color it
+    // was given at the call site.
+    //
+    // Scope limit, by design: only ONE declared tree is ever analyzed here, so
+    // an equal-specificity collision across TWO separately-authored trees (a
+    // page shell's `"& a"` vs an unrelated flyout's own `"& a"`, only a
+    // problem if they are ever actually nested together at runtime) is not
+    // seen — whether they nest is an app-composition fact this tree's own
+    // source does not expose, and reporting every syntactic match across a
+    // codebase would be an unacceptable false-positive rate. The complementary
+    // check is the same as the surface scope limit above: a real browser
+    // (axe-core `color-contrast` against the actually rendered page) measures
+    // whatever the real cascade produces, composition included. See
+    // apps/web/docs/doctor/rules.md's descendant-color-override "Scope limit"
+    // section.
     for (const prop in style) {
-      if (
-        (prop.startsWith("&") || prop.startsWith(":")) &&
-        isPlainObject(style[prop])
-      ) {
-        walkStyleProps(
-          style[prop] as Record<string, unknown>,
-          `${here}[${prop}]`,
-        );
+      const block = style[prop];
+      if (!isPlainObject(block)) continue;
+      const targets = parseDescendantSelectors(prop);
+      if (targets.length === 0) continue;
+      for (const colorProp of OVERRIDABLE_COLOR_PROPS) {
+        if (!hasStyleProp(block, colorProp)) continue;
+        const blockValue = resolveStyleValue(block[colorProp], runReactive);
+        for (const target of targets) {
+          const matches: Record<string, unknown>[] = [];
+          collectDeclaredDescendants(content, target, matches, new Set());
+          const patched = matches.filter((match) => {
+            const declared = declaredStyleProp(match, colorProp);
+            if (declared === undefined) return false;
+            // An ancestor block that resolves to the SAME value the
+            // descendant would paint changes nothing — a patch's own slot
+            // styling (card()'s `"& > p"` repeats paragraph()'s
+            // `themeColor(l, "text", …)`) is the common case. Only a value
+            // the descendant did not choose voids its guarantee.
+            // Unresolvable values (a reactive fn that needs a real runtime)
+            // stay reported.
+            const declaredValue = resolveStyleValue(declared, runReactive);
+            return (
+              blockValue === null ||
+              declaredValue === null ||
+              blockValue !== declaredValue
+            );
+          });
+          if (patched.length === 0) continue;
+          const targetLabel =
+            target.kind === "tag" ? `<${target.label}>` : `"${target.label}"`;
+          elementDiags.push({
+            rule: "descendant-color-override",
+            severity: "warning",
+            category: "theme",
+            path: `${here}[${prop}]`,
+            message: `Scoped \`${prop}\` sets \`${colorProp}\` and outranks the declared value on ${patched.length} matching ${targetLabel} descendant${patched.length > 1 ? "s" : ""} — a descendant selector is specificity (0,1,1), the descendant's own generated class only (0,1,0), so its ${colorProp} is silently overridden.`,
+            hint: `Drop \`${colorProp}\` from "${prop}" and keep only layout there. To change the ${colorProp}, pass it on the matching ${targetLabel} element itself (as a patch prop or natively), or shift the surface with \`dataTone\` so it resolves against it.`,
+          });
+        }
       }
     }
 
@@ -1279,9 +2110,15 @@ function walk(
   // This catches backgroundColor: (l) => themeColor(l, "shift-N") — which
   // double-shifts when the element itself also has dataTone set, but is also
   // wrong in general: use dataTone to shift the surface, not backgroundColor.
-  const bgProp = isPlainObject(element.style)
-    ? (element.style as Record<string, unknown>).backgroundColor
-    : undefined;
+  // Skip void/decorative hosts (`tag: null` content) — the same exemption
+  // missing-color and low-contrast apply. A legend swatch or icon chip paints
+  // a fixed tone BY DEFINITION and has no children for a tone context to reach:
+  // `dataTone` (the fix this rule prescribes) would be meaningless there, and a
+  // mid-ramp chip tone would then trip middle-surface-anchor instead.
+  const bgProp =
+    isPlainObject(element.style) && element[tag] !== null
+      ? (element.style as Record<string, unknown>).backgroundColor
+      : undefined;
   if (typeof bgProp === "function" && runReactive) {
     let bgResult: unknown;
     try {
@@ -1346,6 +2183,15 @@ function walk(
     }
   }
 
+  // Set when the FLAT color/backgroundColor pair below was reported. On a
+  // `dataTone` element that honors the surface contract (`backgroundColor:
+  // themeColor(l, "inherit")`) the background IS the surface, so
+  // color-shift-minimum would measure the very same pair and report it a second
+  // time — it defers to low-contrast there and covers only what low-contrast
+  // cannot see (a background that is a gradient/image/literal, or one from a
+  // different color family).
+  let flatContrastReported = false;
+
   // low-contrast: detect insufficient contrast between `color` and `backgroundColor`
   // by comparing their shift numbers extracted from `var(--X-N)` strings — the
   // shape themeColor() returns from a reactive function, but also the literal
@@ -1361,9 +2207,27 @@ function walk(
       : null;
     const contentIsNull = tag ? element[tag] === null : false;
 
+    // Both sides are resolved against `ownSurface` — the element's own
+    // `dataTone` when it declares one, otherwise the nearest declared
+    // ancestor's. Every themeColor() tone is relative to that context
+    // (@domphy/theme `offsetTone`: `shift-N` mirrors once past the ramp
+    // midpoint, `increase-N`/`decrease-N` walk from it and clamp, plus the
+    // theme's edge `darkBias`), so resolving at context 0 answered for an
+    // unshifted root and nothing else. Measured on blocks' submitButton
+    // (`dataTone: "shift-17"`): `shift-9` paints var(--neutral-7) and
+    // `increase-2` paints var(--neutral-17) — a gap of 10, which passes —
+    // where context-0 resolution read shift-9 vs shift-2 and reported 7.
     if (!contentIsNull && styleProp) {
-      const colorVar = resolveStyleValue(styleProp.color, runReactive);
-      const bgVar = resolveStyleValue(styleProp.backgroundColor, runReactive);
+      const colorVar = resolveStyleValue(
+        styleProp.color,
+        runReactive,
+        ownSurface,
+      );
+      const bgVar = resolveStyleValue(
+        styleProp.backgroundColor,
+        runReactive,
+        ownSurface,
+      );
 
       // Captures both the CSS-var family (e.g. "neutral") and the numeric shift,
       // so two vars from different families (var(--error-3) vs var(--success-9))
@@ -1378,22 +2242,90 @@ function walk(
           : null;
       };
 
-      const textShift = extractShift(colorVar);
-      const bgShift = extractShift(bgVar);
-
-      if (textShift && bgShift && textShift.family === bgShift.family) {
+      const check = (
+        color: string | null,
+        background: string | null,
+        selector: string,
+        severity: Severity,
+      ) => {
+        const textShift = extractShift(color);
+        const bgShift = extractShift(background);
+        if (!textShift || !bgShift || textShift.family !== bgShift.family)
+          return;
         const diff = Math.abs(textShift.shift - bgShift.shift);
-        if (diff < 9) {
-          elementDiags.push({
-            rule: "low-contrast",
-            severity: "warning",
-            category: "theme",
-            path: here,
-            message: `Text/background shift gap is ${diff} (shift-${textShift.shift} vs shift-${bgShift.shift}) — contrast may be insufficient.`,
-            hint: `Aim for ≥9 shift steps between text and surface. E.g. shift-0 bg + shift-9 text, or shift-11 text on a shift-0 surface. Increase the gap or rely on a parent dataTone to open it.`,
-          });
+        if (diff >= CONTRAST_SPAN) return;
+        if (selector === "") flatContrastReported = true;
+        elementDiags.push({
+          rule: "low-contrast",
+          severity,
+          category: "theme",
+          path: here,
+          message: `${selector ? `\`${selector}\`: t` : "T"}ext/background ramp gap is ${diff} (step ${textShift.shift} vs step ${bgShift.shift}) — contrast may be insufficient.`,
+          hint: `Aim for ≥${CONTRAST_SPAN} ramp steps between text and surface — the span at which every pair clears WCAG 4.5:1 (@domphy/theme CONTRAST_SPAN, DESIGN.md §2.1). Steps are resolved against this element's surface, so widen the gap or shift the surface with dataTone.`,
+        });
+      };
+
+      check(colorVar, bgVar, "", "warning");
+
+      // Re-measured 2026-09-24: `domphy-doctor --merge-patches` against the
+      // current packages/ui/src/patches (and the whole packages/ui/src tree)
+      // reports 0 low-contrast findings, nested or flat — the 14 info findings
+      // across 12 patches this rule once caught were fixed in @domphy/ui after
+      // this comment was written.
+
+      // Nested selector / at-rule blocks (`&:hover`, `@media …`, `.icon`) are a
+      // second set of painted states this element really renders, and they
+      // CASCADE: a hover block that only swaps `backgroundColor` still paints
+      // the base block's `color` on top of it. Checking the flat properties
+      // alone let the most common contrast regression through — a hover
+      // background that walks up toward the text tone. Any object-valued style
+      // property is such a block (that is exactly how StyleList splits them),
+      // and blocks nest, so inherit downward and recurse.
+      //
+      // Reported at `info`, not `warning`, unlike the flat pair. A nested block
+      // is a transient state — hover, press, focus — and the design system
+      // explicitly sanctions a ±1/±2 interactive delta there, which by
+      // construction narrows the gap below CONTRAST_SPAN while the pointer is
+      // down. The finding is real and worth surfacing, but the threshold cannot
+      // tell a sanctioned transient state from a regression, so it must not
+      // block. A patch whose own state is deliberate declares
+      // `_doctorDisable: "low-contrast"` (see button()'s solid variant).
+      const checkNested = (
+        block: Record<string, unknown>,
+        inheritedColor: string | null,
+        inheritedBackground: string | null,
+        selectorPath: string,
+      ) => {
+        for (const key in block) {
+          const value = block[key];
+          if (!isPlainObject(value)) continue;
+          const nested = value as Record<string, unknown>;
+          // Same join StyleList.getSelector uses: "&" glues, anything else
+          // is a descendant.
+          const selector = !selectorPath
+            ? key
+            : key.startsWith("&")
+              ? `${selectorPath}${key.slice(1)}`
+              : `${selectorPath} ${key}`;
+          const color =
+            resolveStyleValue(nested.color, runReactive, ownSurface) ??
+            inheritedColor;
+          const background =
+            resolveStyleValue(
+              nested.backgroundColor,
+              runReactive,
+              ownSurface,
+            ) ?? inheritedBackground;
+          if (
+            !selectorTargetsInactive(selector) &&
+            !paintsNoText(selector, nested)
+          ) {
+            check(color, background, selector, "info");
+          }
+          checkNested(nested, color, background, selector);
         }
-      }
+      };
+      checkNested(styleProp, colorVar, bgVar, "");
     }
   }
 
@@ -1463,24 +2395,38 @@ function walk(
       });
     }
 
-    // color-shift-minimum: when color IS set, verify its resolved tone step is ≥ 9
-    // (minimum legibility against any standard surface). Extracted from the CSS var
-    // that themeColor() emits; skipped if the value isn't a recognizable theme var,
-    // or if `runReactive` is false and color is a reactive function.
-    if (!missingColor && styleForToneCheck) {
+    // color-shift-minimum: when color IS set, verify the text clears the ramp's
+    // contrast span AGAINST THIS SURFACE. The threshold is a GAP, not an
+    // absolute step: `shift-N` is relative to the tone context, so on a
+    // `dataTone: "shift-17"` surface `themeColor(l, "shift-9")` resolves to
+    // step 7 — perfectly legible (|16 - 7| = 9) even though 7 < 9. The old
+    // absolute `step < 9` test read the step at context 0 and was measuring a
+    // number the browser never paints on a shifted surface.
+    //
+    // The surface's own index comes from @domphy/theme's `resolveToneStep`
+    // (the same arithmetic the runtime uses), and the text's from resolving
+    // `style.color` against that surface. Skipped when the value is not a
+    // recognizable theme var, or when `runReactive` is false and color is a
+    // reactive function.
+    if (!missingColor && !flatContrastReported && styleForToneCheck) {
       const colorValue = resolveStyleValue(
         styleForToneCheck.color,
         runReactive,
+        dataTone,
       );
       const step = colorValue !== null ? extractToneStep(colorValue) : null;
-      if (step !== null && step < 9) {
+      const surfaceStep = resolveToneStep({
+        surface: dataTone as ElementTone,
+        tone: "inherit",
+      });
+      if (step !== null && Math.abs(step - surfaceStep) < CONTRAST_SPAN) {
         elementDiags.push({
           rule: "color-shift-minimum",
           severity: "warning",
           category: "theme",
           path: here,
-          message: `\`style.color\` resolves to tone step ${step} — below the minimum shift-9 required for legible text on a standard surface.`,
-          hint: 'Use at least `themeColor(l, "shift-9")` for body text. Decorative / secondary text may use shift-7 or shift-8 with explicit justification.',
+          message: `\`style.color\` resolves to ramp step ${step} on this \`dataTone: "${dataTone}"\` surface (step ${surfaceStep}) — a gap of ${Math.abs(step - surfaceStep)}, below the ${CONTRAST_SPAN} steps body text needs.`,
+          hint: `Put at least ${CONTRAST_SPAN} ramp steps between the text and its surface — that is the span at which every pair clears WCAG 4.5:1 (@domphy/theme CONTRAST_SPAN, DESIGN.md §2.1). \`themeColor(l, "text")\` does it from any surface. Decorative / secondary text may sit closer with explicit justification.`,
         });
       }
     }
@@ -1589,11 +2535,13 @@ function walk(
     seen,
     tag === "foreignObject" ? null : tag,
     childInSvg,
+    ownSurface,
   );
 
   // Apply _doctorDisable and flush into the shared output.
   applyDisable(
     element._doctorDisable,
+    node._doctorDisable,
     elementDiags,
     contentDiags,
     here,

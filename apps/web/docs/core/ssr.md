@@ -49,4 +49,8 @@ new ElementNode(App).mount(host.firstElementChild as HTMLElement, domStyle)
 
 For SSR, render CSS into `<style id="domphy-style">` on the server and pass that same style element to `mount()` on the client.
 
+`generateCSS()` emits the same runtime base rule (`[hidden] { display: none !important }`) the client injects on `render()`, so a server-rendered `hidden` element that also declares a `display` stays hidden before hydration instead of flashing.
+
+`generateHTML()` doubles a leading newline inside `<pre>` and `<textarea>`: the HTML parser drops a single newline placed right after those start tags, so without the escape the server output would show `first` where the client's text node shows `\nfirst`.
+
 `mount()` binds to existing DOM — attaches reactivity and events without re-rendering. Passing the wrapper `#app` (tag ≠ generated root) is a hydration mismatch.

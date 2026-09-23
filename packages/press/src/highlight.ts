@@ -1,6 +1,12 @@
 import { type BundledLanguage, createHighlighter as createShiki } from "shiki";
 
-const LIGHT_THEME = "github-light";
+// github-light misses WCAG AA even on the white page surface press now paints
+// under code (theme.ts): its attribute tone (#e36209) measures 3.49:1 there,
+// and on the tinted surface it used to sit on the keyword (#d73a49 = 3.91:1)
+// and comment (#6a737d = 4.11:1) tones failed as well. The high-contrast
+// sibling clears 4.5:1 for every token it emits on #ffffff, as github-dark-
+// dimmed does on #000000 — pinned by tests/highlight.test.ts.
+const LIGHT_THEME = "github-light-high-contrast";
 const DARK_THEME = "github-dark-dimmed";
 
 const LANGUAGES: BundledLanguage[] = [

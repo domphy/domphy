@@ -59,6 +59,12 @@ apps/web/visual/shots-review-*/
 apps/web/playwright-report/
 packages/blocks/test-results/
 packages/blocks/playwright-report/
+packages/dnd/test-results/
+packages/dnd/playwright-report/
+packages/floating/test-results/
+packages/floating/playwright-report/
+packages/theme/test-results/
+packages/theme/playwright-report/
 
 # Local GH Actions failure dumps
 .gh-action-logs/

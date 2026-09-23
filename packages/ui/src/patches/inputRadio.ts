@@ -89,12 +89,22 @@ function inputRadio(
       },
       "&[disabled]": {
         cursor: "not-allowed",
+        opacity: 0.7,
       },
-      "&[disabled]::before, &[disabled]::after": {
-        outline: "none",
-        backgroundColor: (listener) =>
-          themeColor(listener, "shift-4", "neutral"),
+      // Same fix as inputCheckbox: the old rule filled ::before with flat grey
+      // and dropped its outline, so a disabled UNSELECTED radio rendered as a
+      // solid dot-less disc that read as selected (observed in Chromium).
+      "&[disabled]::before": {
         pointerEvents: "none",
+        outline: (listener) =>
+          `1px solid ${themeColor(listener, "border-strong", "neutral")}`,
+        backgroundColor: (listener) =>
+          themeColor(listener, "inherit", "neutral"),
+      },
+      "&[disabled]:checked::after": {
+        pointerEvents: "none",
+        backgroundColor: (listener) =>
+          themeColor(listener, "shift-8", "neutral"),
       },
     },
   };

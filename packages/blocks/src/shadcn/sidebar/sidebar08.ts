@@ -10,6 +10,7 @@ import type { DomphyElement, Listener, ReadableState } from "@domphy/core";
 import { toState } from "@domphy/core";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import { small, strong, tooltip } from "@domphy/ui";
+import { interactiveFill } from "../../shared/interactiveFill.js";
 import {
   glyphChild,
   ICON_BAR_CHART,
@@ -123,10 +124,7 @@ function renderBrandHeader(team: SidebarTeam): DomphyElement<"div"> {
           overflow: "hidden",
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": {
-            backgroundColor: (l: Listener) =>
-              themeColor(l, "shift-2", "neutral"),
-          },
+          "&:hover": interactiveFill(2),
         },
       } as unknown as DomphyElement,
     ],
@@ -225,9 +223,7 @@ function renderSecondaryNavRow(
     whiteSpace: "nowrap",
     color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
     backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-    "&:hover": {
-      backgroundColor: (l: Listener) => themeColor(l, "shift-2", "neutral"),
-    },
+    "&:hover": interactiveFill(2),
   };
 
   return {
@@ -280,7 +276,10 @@ function sidebar08(props: Sidebar08Props = {}): DomphyElement<"div"> {
     children,
   } = props;
 
-  const sidebarOpen = toState(true);
+  // Mobile drawer state. Upstream `SidebarProvider.openMobile` defaults to
+  // FALSE — starting it open rendered the off-canvas panel over the page on
+  // first paint at phone widths (measured at 375px).
+  const sidebarOpen = toState(false);
   const collapsed = toState(false);
   // Viewport-aware trigger/hotkey: mobile flips the drawer, desktop the rail.
   const toggleSidebar = makeSidebarToggle(collapsed, sidebarOpen);
@@ -412,7 +411,12 @@ function sidebar08(props: Sidebar08Props = {}): DomphyElement<"div"> {
         width: themeSpacing(72),
         transform: (l: Listener) =>
           sidebarOpen.get(l) ? "translateX(0)" : "translateX(-100%)",
-        transition: "transform 0.2s ease",
+        // `transform` alone leaves every link in the slid-out panel in the tab
+        // order (WCAG 2.4.3): measured 24-46 tabbable controls reachable in a
+        // closed drawer. `visibility` is animated so the slide-out still runs.
+        visibility: (l: Listener) =>
+          sidebarOpen.get(l) ? "visible" : "hidden",
+        transition: "transform 0.2s ease, visibility 0.2s ease",
         boxShadow: (l: Listener) =>
           `0 0 ${themeSpacing(6)} ${themeColor(l, "shift-4", "neutral")}`,
       },

@@ -1,0 +1,19 @@
+{
+  // NOT a build config — no package extends or references this. It exists
+  // solely so `domphy-doctor` (packages/doctor/src/cli.ts), which resolves
+  // TypeScript through tsx's `register()`, reads a tsconfig from the CURRENT
+  // WORKING DIRECTORY only (never from an imported file's ancestors). A scan
+  // run from the repo root therefore needs the same `paths` mapping that
+  // apps/web/tsconfig.json already carries for apps/web-rooted scans, or the
+  // 3 chart demo pages importing the docs playground's virtual specifier
+  // "geo/world.json" fail to import ("Cannot find package 'geo'").
+  "compilerOptions": {
+    "paths": {
+      "geo/world.json": ["./apps/web/docs/editor/world.geo.json"]
+    }
+  },
+  // Deliberately empty: no `include` means tsc (were anyone to run `tsc -p .`
+  // here) type-checks nothing, which is correct — every package owns its own
+  // tsconfig.json and this file is not a project root.
+  "include": []
+}

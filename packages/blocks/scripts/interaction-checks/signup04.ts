@@ -17,9 +17,9 @@ async function main() {
   const page = await mountedPage(demoUrl, "signup04");
   const block = await locate(page, "signup04");
 
-  const email = block.locator("#signup04-email");
-  const password = block.locator("#signup04-password");
-  const confirmPassword = block.locator("#signup04-confirm-password");
+  const email = block.locator('[name="signup04-email"]');
+  const password = block.locator('[name="signup04-password"]');
+  const confirmPassword = block.locator('[name="signup04-confirm-password"]');
   const submit = block.getByRole("button", { name: "Create Account" });
 
   const passwordType = await password.getAttribute("type");
@@ -49,8 +49,8 @@ async function main() {
   const emailValid = await email.evaluate(
     (element: HTMLInputElement) => element.validity.valid,
   );
-  const focusedAfterEmptySubmit = await page.evaluate(
-    () => document.activeElement?.id,
+  const focusedAfterEmptySubmit = await page.evaluate(() =>
+    document.activeElement?.getAttribute("name"),
   );
   report(
     "signup04: empty submit blocked by native required validation (focus -> Email, no Full Name field)",

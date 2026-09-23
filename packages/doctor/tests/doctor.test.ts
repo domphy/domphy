@@ -1,5 +1,7 @@
+import { ElementNode } from "@domphy/core";
 import { describe, expect, it } from "vitest";
 import { diagnose, fix, format, validate } from "../src/index";
+import { findTag } from "../src/shared";
 
 const rules = (tree: unknown, opts?: Parameters<typeof diagnose>[1]) =>
   diagnose(tree, opts).map((d) => d.rule);
@@ -26,6 +28,38 @@ describe("diagnose", () => {
     expect(d[0].rule).toBe("void-content");
     expect(d[0].severity).toBe("error");
     expect(diagnose({ input: null })).toEqual([]);
+  });
+
+  // Truth source: @domphy/core's runtime. What core renders as an element is
+  // by definition not an unknown tag, and doctor must resolve the same tag.
+  it("accepts every tag @domphy/core renders, custom elements included", () => {
+    const trees: Record<string, unknown>[] = [
+      { "my-widget": "hi" },
+      { "sl-button": "Go", onClick: () => {} },
+      { div: [{ "x-card": null }] },
+      // core resolves built-in tags before hyphenated keys
+      { "accept-charset": "utf-8", form: null },
+    ];
+    for (const tree of trees) {
+      const node = new ElementNode(tree as never);
+      expect(findTag(tree)).toBe(node.tagName);
+      expect(rules(tree)).not.toContain("unknown-tag");
+    }
+    // …and a name the production rejects (uppercase) is still a typo
+    expect(rules({ "My-Widget": "x" })).toContain("unknown-tag");
+  });
+
+  it("skips HTML content-model checks around custom elements", () => {
+    // The parser never re-parents around an unknown element, so the
+    // hydration-parity justification for invalid-nesting does not apply.
+    expect(rules({ "my-list": [{ li: "a" }] })).not.toContain(
+      "invalid-nesting",
+    );
+    expect(rules({ ul: [{ "my-item": "a" }] })).not.toContain(
+      "invalid-nesting",
+    );
+    // the built-in pairs still fire
+    expect(rules({ ul: [{ div: "a" }] })).toContain("invalid-nesting");
   });
 
   it("flags unknown/typo tags", () => {

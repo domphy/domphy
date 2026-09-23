@@ -1,4 +1,5 @@
 import type { DomphyElement } from "@domphy/core";
+import { themeSpacing } from "@domphy/theme";
 import { extend, three } from "@domphy/three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
@@ -11,7 +12,7 @@ const App: DomphyElement<"div"> = {
   style: {
     width: "100%",
     height: "420px",
-    borderRadius: "12px",
+    borderRadius: themeSpacing(3),
     overflow: "hidden",
   },
   $: [

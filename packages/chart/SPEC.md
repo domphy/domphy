@@ -919,7 +919,7 @@ Mark point/line/area
 
 ### Phase 2 typed only (not rendered)
 
-`toolbox`, `brush` — present on `ChartOption` for ECharts interop; `setOption` warns once and they have no effect.
+`brush` — present on `ChartOption` for ECharts interop; `setOption` warns once and it has no effect. `toolbox` is implemented (saveAsImage / restore / dataView / dataZoom / magicType); its `feature.brush` warns.
 
 ## Phase 3 (shipped)
 

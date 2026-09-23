@@ -162,6 +162,8 @@ const parser = createMarkdown({ math: true })
 const { body } = parser.parse("Inline $E = mc^2$ and block:\n\n$$\\int_0^\\infty e^{-x}dx = 1$$")
 ```
 
+`math: true` resolves `remark-math` through Node module resolution, so it is available on the `@domphy/press` main entry only. In a browser bundle importing from `@domphy/press/browser`, it throws — import the plugin yourself and pass it via `plugins` instead (see [Custom remark plugins](#custom-remark-plugins) below).
+
 The raw LaTeX is preserved in the element content as plain text — so a CDN-loaded KaTeX/MathJax auto-render extension can process it client-side. No bundled renderer is included.
 
 ### Custom remark plugins
@@ -206,6 +208,16 @@ const toc = []
 const slug = createUniqueSlugger(defaultSlugify)
 const body = walkMdast(tree, { highlight: myHighlighter, slug, toc })
 ```
+
+`MdastWalkOptions`:
+
+| Option | Description |
+| --- | --- |
+| `slug` | Heading-slug function — usually `createUniqueSlugger(defaultSlugify)` |
+| `toc` | Array the walker pushes one `TocEntry` into per heading |
+| `highlight` | Code-fence highlighter, `(code, info) => string \| DomphyElement` |
+| `onCustom` | Handler for nodes the walker doesn't know (e.g. remark-directive containers). Return `null` to fall back to the default |
+| `transformUrl` | Rewrites every link/image destination **after** scheme sanitization. Press uses it to prefix root-relative URLs with the site `base`; a destination that sanitization replaced with `#` is never passed through it |
 
 This is how `@domphy/press` works: it wires its own remark pipeline (custom containers, file includes) and then calls `walkMdast` to produce the Domphy tree.
 

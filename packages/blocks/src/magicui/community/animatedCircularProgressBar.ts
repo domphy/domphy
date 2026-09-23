@@ -18,6 +18,7 @@ import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { toState, type ValueOrState } from "@domphy/core";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
 import { strong } from "@domphy/ui";
+import { prefersReducedMotion } from "../reducedMotion.js";
 
 export interface AnimatedCircularProgressBarProps {
   /** Current progress value. Accepts a value or reactive state. When omitted, the
@@ -95,7 +96,6 @@ function animatedCircularProgressBar(
     ariaHidden: "true",
     // Decorative background ring with no text of its own — exempt from the
     // missing-color contract, matching meteors.ts's tail-gradient spans.
-    _doctorDisable: "missing-color",
     style: {
       stroke: (listener: Listener) =>
         themeColor(listener, "shift-3", secondaryColor),
@@ -116,7 +116,6 @@ function animatedCircularProgressBar(
     strokeWidth: String(strokeWidth),
     strokeLinecap: "round",
     ariaHidden: "true",
-    _doctorDisable: "missing-color",
     style: {
       stroke: (listener: Listener) =>
         themeColor(listener, "shift-9", primaryColor),
@@ -181,7 +180,14 @@ function animatedCircularProgressBar(
     ariaValuemax: String(max),
     ariaLabel: label,
     _onMount: (node) => {
-      if (hasExternalValue || typeof window === "undefined") return;
+      // WCAG 2.2.2: the zero-arg demo sweeps the ring forever on its own.
+      // Under reduce the bar simply holds the value it was seeded with.
+      if (
+        hasExternalValue ||
+        typeof window === "undefined" ||
+        prefersReducedMotion()
+      )
+        return;
       const timer = setInterval(() => {
         const next = value.get() + (max - min) / 10;
         value.set(next > max ? min : next);

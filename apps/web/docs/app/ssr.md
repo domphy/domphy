@@ -86,7 +86,8 @@ After hydration the router takes over: clicks on `navLink` anchors navigate clie
 ```ts
 // `redirect` is optional (undefined when no redirect occurred)
 const { stream, status, redirect } = await app.renderToStream(request.url, {
-  head: `<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">`,
+  lang: "en", // `<html lang>`, default "en"
+  head: `<meta name="viewport" content="width=device-width, initial-scale=1">`,
   bootstrap: `<script type="module" src="/client.js"></script>`,
   headers: request.headers,
 })
@@ -107,12 +108,12 @@ response.end()
 
 `renderToStream` emits a full HTML document:
 
-- **First flush** — `<!DOCTYPE html>` + `<head>` (your `head` option + shell CSS) + `<body><div id="domphy-app">` wrapping the shell. The browser paints the loading UI right away.
+- **First flush** — `<!DOCTYPE html><html lang="…">` + `<head>` (`<meta charset="utf-8">`, your `head` option, shell CSS) + `<body><div id="domphy-app">` wrapping the shell. The browser paints the loading UI right away. The charset is emitted unconditionally: the stream is UTF-8 and a response served as plain `text/html` would otherwise be decoded as windows-1252.
 - **Second flush** — the content and head arrive as `<template>` elements followed by an inline script that swaps them into place, then the hydration data and your `bootstrap` markup.
 
 `RenderToStreamOptions` adds `head` (markup for `<head>`, sent first) and `bootstrap` (markup before `</body>`, usually the client bundle `<script>`) to the `headers` option.
 
-`status`/`redirect` are decided **before** the shell flushes: middleware and static `route.redirect` can still return 307/308 (or 404/500). Loader `redirect()` cannot change them — the first byte is already committed — and streams as a client-side `location.replace` in a later chunk. Use `renderToString` when you need an HTTP redirect from a loader. Loader `notFound()`/`error` render their boundaries inline in the second flush.
+`status`/`redirect` are decided **before** the shell flushes: middleware and static `route.redirect` can still return 307/308 (or 404/500). A middleware that throws an ordinary error before the shell is answered with a 500 shell rendered by the `error` block, the same way `renderToString` answers it — `renderToStream` does not reject. Loader `redirect()` cannot change them — the first byte is already committed — and streams as a client-side `location.replace` in a later chunk. Use `renderToString` when you need an HTTP redirect from a loader. Loader `notFound()`/`error` render their boundaries inline in the second flush.
 
 On the client, hydrate the swapped root exactly as with `renderToString`:
 

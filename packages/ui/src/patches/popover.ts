@@ -11,6 +11,37 @@ import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import { elevation } from "../utils/elevation.js";
 import { createFloating, floatingPanelId } from "../utils/floating.js";
 
+// `aria-haspopup` must name the role the popup ACTUALLY has — a trigger that
+// says "dialog" while it opens a `role=menu` panel is an ARIA contract break
+// (axe `aria-allowed-attr` passes it, but a screen reader announces the wrong
+// kind of popup and readers that pre-announce "menu" say "dialog"). The
+// popover's own panel chrome is `role=dialog`, but content that already owns a
+// surface keeps its own role: `menu()` is `role=menu`, `selectList()` is
+// `role=listbox`. Only these five values are legal for aria-haspopup.
+const HASPOPUP_ROLES = new Set(["dialog", "grid", "listbox", "menu", "tree"]);
+type HaspopupRole = "dialog" | "grid" | "listbox" | "menu" | "tree";
+
+// Mirrors core's own precedence: patches merge in `$` order (later wins) and
+// the element's own keys win over all of them.
+function panelHaspopup(content: DomphyElement): HaspopupRole {
+  let role: unknown;
+  for (const patch of content.$ ?? []) {
+    const declared = (patch as { role?: unknown } | null)?.role;
+    if (typeof declared === "string") role = declared;
+  }
+  const own = (content as { role?: unknown }).role;
+  if (typeof own === "string") role = own;
+  if (typeof role !== "string") return "dialog";
+  // Aliases with no aria-haspopup value of their own.
+  if (role === "alertdialog" || role === "menubar") {
+    return role === "menubar" ? "menu" : "dialog";
+  }
+  if (role === "treegrid") return "grid";
+  // Anything else (a bare card, `command()`'s role=group) has no matching
+  // value; "dialog" is what the popover's own chrome would have given it.
+  return HASPOPUP_ROLES.has(role) ? (role as HaspopupRole) : "dialog";
+}
+
 function contentOwnsSurface(content: DomphyElement): boolean {
   const record = content as DomphyElement & { dataTone?: string };
   if (typeof record.dataTone === "string") return true;
@@ -88,7 +119,9 @@ function popover(props: {
   }
 
   const triggerPartial: PartialElement = {
-    ariaHaspopup: "dialog",
+    // Read AFTER the popoverPartial push above, so unstyled content that got
+    // the popover's own `role=dialog` chrome resolves to "dialog" too.
+    ariaHaspopup: panelHaspopup(props.content),
     ariaExpanded: (listener) => openState.get(listener),
     // Declared as a reactive attribute (listener.elementNode is the anchor) so
     // it is present from first render — before the panel's first show() — and

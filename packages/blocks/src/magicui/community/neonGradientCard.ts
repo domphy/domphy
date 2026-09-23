@@ -23,6 +23,7 @@ import type {
 import { hashString } from "@domphy/core";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
 import { heading, paragraph } from "@domphy/ui";
+import { REDUCED_MOTION_PAUSE } from "../reducedMotion.js";
 
 export interface NeonGradientCardNeonColors {
   /** First gradient hue. Defaults to `"secondary"` (a magenta/pink family in the default theme). */
@@ -95,14 +96,15 @@ function neonGradientCard(
 
   // Decorative gradient layers carry no text of their own — exempt from the
   // missing-color contract (same idiom as `borderBeam`/`shineBorder`'s ring
-  // layers in this package). Built through untyped literals, then asserted,
-  // so `_doctorDisable` (a doctor-only annotation not present in core's
-  // strict `PartialElement` type) doesn't trip the excess-property check.
+  // layers in this package).
   const glowLayer = {
     div: null,
     dataNeonGlow: "true",
     ariaHidden: "true",
-    _doctorDisable: "missing-color",
+    // `borderRadius` below derives from the caller-supplied `borderRadius`/
+    // `borderSize` number props (matches upstream's own contract), not a
+    // design-system constant.
+    _doctorDisable: "raw-spacing-value",
     // Upstream sizes the halo blur to the card's own width (offsetWidth / 3),
     // so the glow stays proportional as the card grows. Measure the parent
     // wrapper on mount (and on resize) and write the blur imperatively. The
@@ -146,6 +148,7 @@ function neonGradientCard(
       pointerEvents: "none",
       zIndex: 0,
       animation: `${animationName} ${duration}s ease-in-out infinite`,
+      ...REDUCED_MOTION_PAUSE,
       [`@keyframes ${animationName}`]: keyframes,
     } as StyleObject,
   } as DomphyElement<"div">;
@@ -153,7 +156,10 @@ function neonGradientCard(
   const frameLayer = {
     div: null,
     ariaHidden: "true",
-    _doctorDisable: "missing-color",
+    // `borderRadius` below derives from the caller-supplied `borderRadius`
+    // number prop (matches upstream's own contract), not a design-system
+    // constant.
+    _doctorDisable: "raw-spacing-value",
     style: {
       position: "absolute",
       inset: 0,
@@ -163,6 +169,7 @@ function neonGradientCard(
       pointerEvents: "none",
       zIndex: 1,
       animation: `${animationName} ${duration}s ease-in-out infinite`,
+      ...REDUCED_MOTION_PAUSE,
       [`@keyframes ${animationName}`]: keyframes,
     } as StyleObject,
   } as DomphyElement<"div">;
@@ -172,6 +179,10 @@ function neonGradientCard(
     // Upstream content surface is `bg-gray-100` (a faint gray, not pure
     // white) so the neon frame stays the brightest element.
     dataTone: "shift-1",
+    // `borderRadius` below derives from the caller-supplied `borderRadius`/
+    // `borderSize` number props (matches upstream's own contract), not a
+    // design-system constant.
+    _doctorDisable: "raw-spacing-value",
     style: {
       position: "relative",
       zIndex: 2,
@@ -191,8 +202,10 @@ function neonGradientCard(
 
   return {
     div: [glowLayer, frameLayer, contentLayer],
-    // `padding` below is a literal pixel value by design (see its own
-    // comment) — exempt from raw-spacing-value, not overlooked.
+    // `borderRadius`/`padding` below derive from the caller-supplied
+    // `borderRadius`/`borderSize` number props (matching upstream's own
+    // contract) — not design-system constants (see padding's own comment
+    // for why it stays a literal pixel band rather than themeSpacing()).
     _doctorDisable: "raw-spacing-value",
     style: {
       position: "relative",

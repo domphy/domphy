@@ -14,6 +14,7 @@ import {
   themeColor,
   themeSize,
   themeSpacing,
+  themeWeight,
 } from "@domphy/theme";
 
 /** One step entry. */
@@ -62,12 +63,12 @@ function stepConnectorStyle(
       "&:not(:last-child)::after": {
         content: '""',
         position: "absolute",
-        left: themeSpacing(3),
+        insetInlineStart: themeSpacing(3),
         top: themeSpacing(6),
         bottom: `-${themeSpacing(2)}`,
         width: "2px",
         height: "auto",
-        right: "auto",
+        insetInlineEnd: "auto",
         backgroundColor: (l: Listener) => themeColor(l, "shift-3", color),
         zIndex: "0",
       },
@@ -81,8 +82,8 @@ function stepConnectorStyle(
       content: '""',
       position: "absolute",
       top: themeSpacing(3),
-      right: `calc(50% + ${themeSpacing(3)})`,
-      left: `calc(-50% + ${themeSpacing(3)})`,
+      insetInlineEnd: `calc(50% + ${themeSpacing(3)})`,
+      insetInlineStart: `calc(-50% + ${themeSpacing(3)})`,
       height: "2px",
       backgroundColor: (l: Listener) => themeColor(l, "shift-3", color),
       zIndex: "0",
@@ -132,7 +133,7 @@ function buildStepItems(
         gap: themeSpacing(1),
         flex: vertical ? "none" : "1",
         fontSize: (l: Listener) => themeSize(l, "decrease-1"),
-        textAlign: vertical ? "left" : "center",
+        textAlign: vertical ? "start" : "center",
         "&::before": {
           content: "attr(data-step)",
           display: "flex",
@@ -142,7 +143,7 @@ function buildStepItems(
           height: themeSpacing(6),
           borderRadius: themeSpacing(999),
           fontSize: (l: Listener) => themeSize(l, "decrease-1"),
-          fontWeight: "bold",
+          fontWeight: themeWeight("bold"),
           flexShrink: "0",
           border: (l: Listener) =>
             `2px solid ${themeColor(l, "border-strong", color)}`,
@@ -174,7 +175,7 @@ function buildStepItems(
         },
         "&[data-status=active]": {
           color: (l: Listener) => themeColor(l, "shift-11", accentColor),
-          fontWeight: "bold",
+          fontWeight: themeWeight("bold"),
         },
         "&[data-status=done]": {
           color: (l: Listener) => themeColor(l, "text", color),
@@ -218,8 +219,6 @@ function steps(
   const live: StepsLive = { items, direction, color, accentColor };
 
   return {
-    // Step badge weight is design-system chrome for the progress control.
-    _doctorDisable: "inline-typography",
     // Publish current/direction/colors so descendants can read the indicator.
     _context: {
       steps: {

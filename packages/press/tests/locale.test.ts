@@ -40,7 +40,9 @@ function render(app: ReturnType<typeof pageShell>): HTMLElement {
 }
 
 function switcher(host: HTMLElement): Element {
-  const el = host.querySelector('[aria-label="Select language"]');
+  // The trigger is a <button> (focusable, so :focus-within can open the
+  // panel) whose label names the current locale.
+  const el = host.querySelector('button[aria-label^="Select language"]');
   if (!el) throw new Error("locale switcher missing");
   return el;
 }

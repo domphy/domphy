@@ -8,6 +8,8 @@ import Textarea from "../../demos/patches/Textarea.ts?raw"
 
 Styles a multi-line text input with themed border, hover, focus, invalid, and disabled states on the host `<textarea>` element. Optionally auto-resizes to fit content.
 
+**Validation styling.** Same contract as `inputText`: the automatic `:invalid` outline requires a `placeholder` that is no longer shown, so a pristine untouched `required` textarea is not painted as an error. Use `data-status="error"` / `data-status="warning"` to drive the state explicitly.
+
 ## Props
 
 | Prop | Type | Default | Description |

@@ -27,7 +27,7 @@ if (!("ResizeObserver" in globalThis)) {
 
 // See popover-rerender-repro.test.ts for why both resets are required:
 // pending 100ms show/hide timers against a shared fake clock, and the
-// fixed-id #domphy-floating overlay accumulating across mounted roots.
+// shared floating overlay accumulating across mounted roots.
 afterEach(() => {
   vi.useRealTimers();
   document.body.innerHTML = "";
@@ -45,7 +45,7 @@ function render(app: DomphyElement) {
 }
 
 function overlay(host: HTMLElement): HTMLElement | null {
-  return host.querySelector("#domphy-floating");
+  return host.querySelector("[data-domphy-floating]");
 }
 
 type Driver = {
@@ -123,7 +123,7 @@ const drivers: Driver[] = [
       $: [combobox({ content: { div: MARKER }, options: [] })],
     }),
     (host) =>
-      host.querySelector(".anchor input")!.dispatchEvent(new Event("focus")),
+      host.querySelector(".anchor input")!.dispatchEvent(new Event("click")),
   ),
   markerDriver(
     "datePicker",

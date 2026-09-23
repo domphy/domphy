@@ -39,7 +39,6 @@ function inputFile(
     style: {
       display: "inline-flex",
       alignItems: "center",
-      fontFamily: "inherit",
       fontSize: (listener) => themeSize(listener, "inherit"),
       lineHeight: "inherit",
       color: (listener) => themeColor(listener, "text", color.get(listener)),
@@ -55,7 +54,6 @@ function inputFile(
       transition: "outline-color 140ms ease, box-shadow 140ms ease",
       "&::-webkit-file-upload-button": {
         marginTop: (listener) => themeSpacing(themeDensity(listener)),
-        fontFamily: "inherit",
         fontSize: "inherit",
         border: "none",
         borderRadius: themeSpacing(1),

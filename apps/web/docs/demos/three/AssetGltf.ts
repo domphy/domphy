@@ -1,4 +1,5 @@
 import type { DomphyElement } from "@domphy/core";
+import { themeSpacing } from "@domphy/theme";
 import { loadAsset, three } from "@domphy/three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
@@ -15,7 +16,7 @@ const App: DomphyElement<"div"> = {
   style: {
     width: "100%",
     height: "420px",
-    borderRadius: "12px",
+    borderRadius: themeSpacing(3),
     overflow: "hidden",
   },
   $: [

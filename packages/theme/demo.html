@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>@domphy/theme Demo</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, sans-serif; }
+    .cell { display: inline-block; width: 24px; height: 24px; }
+  </style>
+</head>
+<body>
+  <!-- No [data-theme] anywhere above this element: its computed tokens prove
+       the themeCSS() :root fallback (light theme) works on an attribute-less
+       page. The e2e spec also flips document.documentElement's data-theme
+       attribute at runtime and re-reads this same probe to prove the flip. -->
+  <div id="theme-probe" style="width: 40px; height: 40px; background-color: var(--neutral-0); color: var(--neutral-9);"></div>
+
+  <!-- resolveToneStep() matrix: one cell per theme x surface x tone x color,
+       each tagged with data-cell so the e2e spec can look it up and compare
+       its real getComputedStyle() background against resolveThemeColor(). -->
+  <div id="matrix-root"></div>
+
+  <!-- textToneOn()/textToneOnRampEdge() label-on-fill pairs: each cell's own
+       backgroundColor is the fill, its color is the paired label tone — the
+       e2e spec measures real contrast between the two computed colors. -->
+  <div id="contrast-root"></div>
+
+  <script type="module" src="./demo-main.ts"></script>
+</body>
+</html>

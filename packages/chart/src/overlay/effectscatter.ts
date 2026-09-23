@@ -1,6 +1,15 @@
-import { seriesColor } from "../gl/color.js";
-import type { EffectScatterSeriesOption, GeoOption } from "../types.js";
-import { getRegisteredMap } from "./geomap.js";
+import { themeColor } from "@domphy/theme";
+import { cssColor } from "../gl/color.js";
+import type {
+  EffectScatterSeriesOption,
+  GeoOption,
+  LabelOption,
+} from "../types.js";
+import { applyGeoRoamTransform, getRegisteredMap } from "./geomap.js";
+
+// ECharts label defaults for a scatter-family series.
+const DEFAULT_LABEL_FONT_SIZE = 12;
+const DEFAULT_LABEL_DISTANCE = 5;
 
 function svgEl(
   tag: string,
@@ -32,6 +41,78 @@ function ensureRippleStyle(svg: SVGSVGElement): void {
 .dc-ripple { transform-box: fill-box; transform-origin: center; animation: dc-ripple var(--dc-ripple-period, 2s) ease-out infinite; }
 `;
   svg.insertBefore(style, svg.firstChild);
+}
+
+/**
+ * ECharts point label: `{a}` series name, `{b}` item name, `{c}` value.
+ * Returns null when the series asks for no label.
+ */
+function renderPointLabel(
+  option: LabelOption | undefined,
+  name: string | undefined,
+  value: number[],
+  seriesName: string,
+  seriesIndex: number,
+  cx: number,
+  cy: number,
+  radius: number,
+): SVGElement | null {
+  if (!option?.show) return null;
+  const formatter = option.formatter;
+  const displayName = name ?? "";
+  const displayValue = value.join(", ");
+  const content =
+    typeof formatter === "function"
+      ? formatter({
+          name: displayName,
+          value,
+          dataIndex: 0,
+          seriesIndex,
+          seriesName,
+        })
+      : typeof formatter === "string"
+        ? formatter
+            .replace(/\{a\}/g, seriesName)
+            .replace(/\{b\}/g, displayName)
+            .replace(/\{c\}/g, displayValue)
+        : displayName || displayValue;
+  if (content === "") return null;
+
+  const distance = option.distance ?? DEFAULT_LABEL_DISTANCE;
+  const position = option.position ?? "right";
+  let x = cx;
+  let y = cy;
+  let anchor = "middle";
+  let baseline = "middle";
+  if (position === "right") {
+    x = cx + radius + distance;
+    anchor = "start";
+  } else if (position === "left") {
+    x = cx - radius - distance;
+    anchor = "end";
+  } else if (position === "bottom") {
+    y = cy + radius + distance;
+    baseline = "hanging";
+  } else if (position === "top") {
+    y = cy - radius - distance;
+    baseline = "auto";
+  }
+
+  const element = svgEl("text", {
+    x,
+    y,
+    "font-size": option.fontSize ?? DEFAULT_LABEL_FONT_SIZE,
+    "font-weight": option.fontWeight ?? "normal",
+    fill:
+      option.color != null
+        ? cssColor(option.color, seriesIndex)
+        : themeColor(null, "shift-10", "neutral"),
+    "text-anchor": anchor,
+    "dominant-baseline": baseline,
+    "pointer-events": "none",
+  });
+  element.textContent = content;
+  return element;
 }
 
 export function renderEffectScatter(
@@ -125,7 +206,9 @@ export function renderEffectScatter(
     const s = series[si];
     if (s.name && hiddenSeries.has(s.name)) continue;
 
-    const color = seriesColor(si);
+    // ECharts precedence: itemStyle.color > series.color > palette.
+    const color = cssColor(s.itemStyle?.color ?? s.color, si);
+    const itemOpacity = s.itemStyle?.opacity;
     const period = s.rippleEffect?.period ?? 2;
     const scale = s.rippleEffect?.scale ?? 3;
     const brushType = s.rippleEffect?.brushType ?? "fill";
@@ -184,13 +267,38 @@ export function renderEffectScatter(
       pointGroup.appendChild(ripple);
 
       // Static center dot
-      pointGroup.appendChild(
-        svgEl("circle", { cx, cy, r: Math.max(2, r * 0.5), fill: color }),
+      const dot = svgEl("circle", {
+        cx,
+        cy,
+        r: Math.max(2, r * 0.5),
+        fill: color,
+      });
+      if (itemOpacity != null) dot.setAttribute("opacity", String(itemOpacity));
+      if (s.itemStyle?.borderWidth) {
+        dot.setAttribute(
+          "stroke",
+          cssColor(s.itemStyle.borderColor ?? s.itemStyle.color ?? s.color, si),
+        );
+        dot.setAttribute("stroke-width", String(s.itemStyle.borderWidth));
+      }
+      pointGroup.appendChild(dot);
+
+      const label = renderPointLabel(
+        s.label,
+        Array.isArray(item) ? undefined : item?.name,
+        value,
+        s.name ?? "",
+        si,
+        cx,
+        cy,
+        r,
       );
+      if (label) pointGroup.appendChild(label);
 
       group.appendChild(pointGroup);
     }
   }
 
   svg.appendChild(group);
+  applyGeoRoamTransform(svg);
 }

@@ -20,6 +20,7 @@ import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
 import { heading, paragraph } from "@domphy/ui";
+import { REDUCED_MOTION_PAUSE } from "../reducedMotion.js";
 
 export interface RippleProps {
   /** Diameter of the innermost ring, in px. Defaults to `210`. */
@@ -69,7 +70,7 @@ function ringElement(
     // missing-color contract (mirrors meteors.ts's streak spans). Also
     // exempt from low-opacity: this is an ambient background ring, not an
     // interactive control that needs to stay discoverable at rest.
-    _doctorDisable: ["missing-color", "low-opacity"],
+    _doctorDisable: "low-opacity",
     style: {
       position: "absolute",
       top: "50%",
@@ -93,6 +94,7 @@ function ringElement(
       boxShadow:
         "0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)",
       animation: `${animationName} 2s ease ${delaySeconds}s infinite`,
+      ...REDUCED_MOTION_PAUSE,
       [`@keyframes ${animationName}`]: PULSE_KEYFRAMES,
     } as StyleObject,
   } as DomphyElement;

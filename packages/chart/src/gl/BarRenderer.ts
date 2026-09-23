@@ -1,10 +1,19 @@
 import type { Buffer, Device, RenderPass } from "@luma.gl/core";
 import { Model } from "@luma.gl/engine";
+import { layoutBarSeries } from "../coord/barPositions.js";
+import {
+  applyItemState,
+  type ItemStateResolver,
+  NO_ITEM_STATES,
+} from "../itemStates.js";
 import type { AnyScale } from "../scale/index.js";
 import type { BarSeriesOption, ChartRect } from "../types.js";
 import type { ColorResolver } from "./color.js";
-import { hexToRgba } from "./color.js";
 import { BAR_FS, BAR_VS } from "./shaders/bar.glsl.js";
+
+// instanceRect(4) + instanceColor(4) + instanceRadius(1) — matches the
+// bufferLayout byteStride of 36 below.
+const BAR_STRIDE = 9;
 
 function setUniforms(model: Model, uniforms: Record<string, unknown>): void {
   (model as any).props.uniforms = uniforms;
@@ -66,9 +75,35 @@ export class BarRenderer {
     height: number,
     seriesOffset: number,
     color: ColorResolver,
+    states: ItemStateResolver = NO_ITEM_STATES,
   ): void {
     if (series.length === 0) return;
     const model = this.ensureModel();
+
+    // One place resolves a bar's fill: the datum's own itemStyle.color if it
+    // has one, otherwise the series colour, and then the emphasis/blur/select
+    // delta for that datum. Resolving the item colour through the pass's
+    // ColorResolver (not hexToRgba) also lets a data item carry a theme family
+    // or a var(--…) reference, like every other colour in the option.
+    const fillOf = (
+      s: BarSeriesOption,
+      item: unknown,
+      dataIndex: number,
+      seriesColorRgba: readonly number[],
+      paletteIndex: number,
+    ): readonly number[] => {
+      const itemColor = (item as { itemStyle?: { color?: unknown } } | null)
+        ?.itemStyle?.color;
+      const base = itemColor
+        ? color.rgba(itemColor, paletteIndex)
+        : seriesColorRgba;
+      return applyItemState(
+        base as [number, number, number, number],
+        states(s, dataIndex),
+        color,
+        paletteIndex,
+      );
+    };
 
     for (const b of this.instanceBuffers) b.destroy();
     this.instanceBuffers = [];
@@ -76,269 +111,69 @@ export class BarRenderer {
     const allInstances: number[] = [];
     let barCount = 0;
     const barRadius = 2;
-    const gap = 2; // px gap between bars in a group
 
-    // Group by the series' own axes first so a secondary x/y axis does not
-    // inherit the first series' scales (and so stacked/grouped bars only
-    // share a band with series on the same axes).
-    const axisGroups = new Map<string, BarSeriesOption[]>();
-    for (const s of series) {
-      const key = `${s.xAxisIndex ?? 0}\0${s.yAxisIndex ?? 0}`;
-      if (!axisGroups.has(key)) axisGroups.set(key, []);
-      axisGroups.get(key)!.push(s);
-    }
-
-    for (const axisSeries of axisGroups.values()) {
-      const firstSeries = axisSeries[0];
-      const xScale = xScales[firstSeries?.xAxisIndex ?? 0];
-      const yScale = yScales[firstSeries?.yAxisIndex ?? 0];
-      if (!xScale || !yScale) continue;
-
-      const stackGroups = new Map<string | null, BarSeriesOption[]>();
-      for (const s of axisSeries) {
-        const key = s.stack ?? null;
-        if (!stackGroups.has(key)) stackGroups.set(key, []);
-        stackGroups.get(key)!.push(s);
-      }
-
-      const grouped = stackGroups.get(null) ?? [];
-      const stacked = [...stackGroups.entries()].filter(([k]) => k !== null);
-
-      // Detect orientation: y-axis has bandwidth → horizontal bars (y=category, x=value).
-      // The grid's y-scale pixel range is intentionally reversed (bottom→top, see
-      // coord/grid.ts) so an ordinal y-scale's bandwidth() comes back negative —
-      // same quirk HeatmapRenderer.ts already guards against with Math.abs(). Without
-      // it, `> 0` is always false for horizontal bars and they silently fail to render.
-      const isHorizontal = Math.abs(yScale.bandwidth()) > 0;
-
-      if (isHorizontal) {
-        // Horizontal grouped bars
-        const bandH = Math.abs(yScale.bandwidth());
-        const groupCount = Math.max(1, grouped.length);
-        const groupBarH =
-          groupCount > 1
-            ? (bandH * 0.85 - (groupCount - 1) * gap) / groupCount
-            : bandH * 0.65;
-        const totalGroupH = groupCount * groupBarH + (groupCount - 1) * gap;
-        const baselineX = xScale.map(0);
-
-        grouped.forEach((s, groupIndex) => {
-          const barColor = color.rgba(
-            s.color,
-            seriesOffset + series.indexOf(s),
-          );
-          const data = s.data ?? [];
-          data.forEach((item, dataIndex) => {
-            const rawValue =
-              typeof item === "number"
-                ? item
-                : Array.isArray(item)
-                  ? (item[1] as number)
-                  : typeof (item as any)?.value === "number"
-                    ? (item as any).value
-                    : null;
-            if (rawValue === null) return;
-
-            const yCenter = yScale.map(dataIndex);
-            const xRight = xScale.map(rawValue);
-            const rectX = Math.min(baselineX, xRight);
-            const rectW = Math.abs(xRight - baselineX);
-            const rectY =
-              yCenter - totalGroupH / 2 + groupIndex * (groupBarH + gap);
-            const c = (item as any)?.itemStyle?.color
-              ? hexToRgba((item as any).itemStyle.color)
-              : barColor;
-            allInstances.push(
-              rectX,
-              rectY,
-              rectW,
-              groupBarH,
-              c[0],
-              c[1],
-              c[2],
-              c[3],
-              barRadius,
-            );
-            barCount++;
-          });
-        });
-
-        // Horizontal stacked bars
-        for (const [, stackSeries] of stacked) {
-          // ECharts mixed-sign stacking: positive values accumulate rightward
-          // from zero, negative values leftward — two running totals per data
-          // index, not one naive sum. Same-sign stacks behave identically to a
-          // single running total (the other total never leaves zero).
-          const stackRightsPos = new Map<number, number>();
-          const stackRightsNeg = new Map<number, number>();
-          stackSeries.forEach((s) => {
-            const barColor = color.rgba(
-              s.color,
-              seriesOffset + series.indexOf(s),
-            );
-            const data = s.data ?? [];
-            data.forEach((item, dataIndex) => {
-              const rawValue =
-                typeof item === "number"
-                  ? item
-                  : Array.isArray(item)
-                    ? (item[1] as number)
-                    : typeof (item as any)?.value === "number"
-                      ? (item as any).value
-                      : null;
-              if (rawValue === null) return;
-
-              const stackRights =
-                rawValue >= 0 ? stackRightsPos : stackRightsNeg;
-              const prevRight = stackRights.get(dataIndex) ?? 0;
-              const newRight = prevRight + rawValue;
-              stackRights.set(dataIndex, newRight);
-
-              const yCenter = yScale.map(dataIndex);
-              const barH = bandH * 0.85;
-              const xLeft = xScale.map(prevRight);
-              const xRight = xScale.map(newRight);
-              const rectX = Math.min(xLeft, xRight);
-              const rectW = Math.abs(xRight - xLeft);
-              const rectY = yCenter - barH / 2;
-              allInstances.push(
-                rectX,
-                rectY,
-                rectW,
-                barH,
-                barColor[0],
-                barColor[1],
-                barColor[2],
-                barColor[3],
-                barRadius,
-              );
-              barCount++;
-            });
-          });
-        }
-      } else {
-        // Vertical bars (original behavior)
-        const bandwidth = xScale.bandwidth();
-        const groupCount = Math.max(1, grouped.length);
-        const groupBarWidth =
-          groupCount > 1
-            ? (bandwidth * 0.85 - (groupCount - 1) * gap) / groupCount
-            : bandwidth * 0.65;
-        const totalGroupWidth =
-          groupCount * groupBarWidth + (groupCount - 1) * gap;
-        const baselineY = yScale.map(0);
-
-        grouped.forEach((s, groupIndex) => {
-          const barColor = color.rgba(
-            s.color,
-            seriesOffset + series.indexOf(s),
-          );
-          const data = s.data ?? [];
-          data.forEach((item, dataIndex) => {
-            const rawValue =
-              typeof item === "number"
-                ? item
-                : Array.isArray(item)
-                  ? (item[1] as number)
-                  : typeof (item as any)?.value === "number"
-                    ? (item as any).value
-                    : null;
-            if (rawValue === null) return;
-
-            const xArg =
-              typeof item === "number"
-                ? dataIndex
-                : Array.isArray(item)
-                  ? item[0]
-                  : dataIndex;
-            const xCenter = xScale.map(xArg as number);
-            const yTop = yScale.map(rawValue);
-            const xLeft =
-              xCenter -
-              totalGroupWidth / 2 +
-              groupIndex * (groupBarWidth + gap);
-            const rectY = Math.min(yTop, baselineY);
-            const rectH = Math.abs(baselineY - yTop);
-            const c = (item as any)?.itemStyle?.color
-              ? hexToRgba((item as any).itemStyle.color)
-              : barColor;
-            allInstances.push(
-              xLeft,
-              rectY,
-              groupBarWidth,
-              rectH,
-              c[0],
-              c[1],
-              c[2],
-              c[3],
-              barRadius,
-            );
-            barCount++;
-          });
-        });
-
-        for (const [, stackSeries] of stacked) {
-          // ECharts mixed-sign stacking: positive values accumulate upward from
-          // zero, negative values downward — two running totals per data index,
-          // not one naive sum (mirrors the horizontal path above and
-          // engine.ts's accumStackedLines).
-          const stackTopsPos = new Map<number, number>();
-          const stackTopsNeg = new Map<number, number>();
-          stackSeries.forEach((s) => {
-            const barColor = color.rgba(
-              s.color,
-              seriesOffset + series.indexOf(s),
-            );
-            const data = s.data ?? [];
-            data.forEach((item, dataIndex) => {
-              const rawValue =
-                typeof item === "number"
-                  ? item
-                  : Array.isArray(item)
-                    ? (item[1] as number)
-                    : typeof (item as any)?.value === "number"
-                      ? (item as any).value
-                      : null;
-              if (rawValue === null) return;
-
-              const stackTops = rawValue >= 0 ? stackTopsPos : stackTopsNeg;
-              const prevTop = stackTops.get(dataIndex) ?? 0;
-              const newTop = prevTop + rawValue;
-              stackTops.set(dataIndex, newTop);
-              const xArg =
-                typeof item === "number"
-                  ? dataIndex
-                  : Array.isArray(item)
-                    ? item[0]
-                    : dataIndex;
-              const xCenter = xScale.map(xArg as number);
-              const xLeft = xCenter - (bandwidth * 0.85) / 2;
-              const yTop = yScale.map(newTop);
-              const yBottom = yScale.map(prevTop);
-              const rectY = Math.min(yTop, yBottom);
-              const rectH = Math.abs(yBottom - yTop);
-              allInstances.push(
-                xLeft,
-                rectY,
-                bandwidth * 0.85,
-                rectH,
-                barColor[0],
-                barColor[1],
-                barColor[2],
-                barColor[3],
-                barRadius,
-              );
-              barCount++;
-            });
-          });
-        }
-      }
-    }
+    // Geometry (grouping/stacking, both orientations) lives in one place —
+    // coord/barPositions.ts — shared with overlay/brush.ts's hit-testing, so
+    // a brush selection can never land on a different rect than what is
+    // actually drawn here.
+    const positions = layoutBarSeries(series, xScales, yScales);
+    series.forEach((s, seriesIndex) => {
+      const rects = positions.get(seriesIndex);
+      if (!rects) return;
+      const paletteIndex = seriesOffset + seriesIndex;
+      const barColor = color.rgba(s.color, paletteIndex);
+      const data = s.data ?? [];
+      rects.forEach((rect, dataIndex) => {
+        if (!rect) return;
+        const item = data[dataIndex];
+        const c = fillOf(s, item, dataIndex, barColor, paletteIndex);
+        allInstances.push(
+          rect.x,
+          rect.y,
+          rect.width,
+          rect.height,
+          c[0],
+          c[1],
+          c[2],
+          c[3],
+          barRadius,
+        );
+        barCount++;
+      });
+    });
 
     if (barCount === 0) return;
 
+    // Drop any instance that carries a non-finite float. NaN data, and values a
+    // log scale cannot place (map() returns NaN for value <= 0), otherwise
+    // reach the vertex buffer as undefined rasterizer input. Filtering the
+    // assembled stride once covers all four push sites above.
+    let finiteCount = barCount;
+    let instanceData = allInstances;
+    if (allInstances.some((v) => !Number.isFinite(v))) {
+      // Copied element by element, never `push(...kept)`: spreading an array
+      // of a few hundred thousand floats (a large dataset carrying one NaN)
+      // exceeds the argument limit and throws RangeError.
+      const kept: number[] = [];
+      for (let base = 0; base < allInstances.length; base += BAR_STRIDE) {
+        let finite = true;
+        for (let offset = 0; offset < BAR_STRIDE; offset++) {
+          if (!Number.isFinite(allInstances[base + offset])) {
+            finite = false;
+            break;
+          }
+        }
+        if (!finite) continue;
+        for (let offset = 0; offset < BAR_STRIDE; offset++)
+          kept.push(allInstances[base + offset]);
+      }
+      instanceData = kept;
+      finiteCount = kept.length / BAR_STRIDE;
+      if (finiteCount === 0) return;
+    }
+
     const instanceBuffer = this.device.createBuffer({
-      data: new Float32Array(allInstances),
+      data: new Float32Array(instanceData),
       id: "bar-instances",
     });
     this.instanceBuffers.push(instanceBuffer);
@@ -348,7 +183,7 @@ export class BarRenderer {
       instanceData: instanceBuffer,
     });
     model.setVertexCount(6);
-    model.setInstanceCount(barCount);
+    model.setInstanceCount(finiteCount);
     setUniforms(model, { uResolution: [width, height] });
     model.draw(renderPass);
   }

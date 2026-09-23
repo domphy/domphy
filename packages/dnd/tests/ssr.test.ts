@@ -6,7 +6,12 @@
 import type { DomphyElement } from "@domphy/core";
 import { ElementNode, toState } from "@domphy/core";
 import { describe, expect, it } from "vitest";
-import { dragDrop, multiList, multiListGroup } from "../src/index";
+import {
+  dragDrop,
+  keyboardSort,
+  multiList,
+  multiListGroup,
+} from "../src/index";
 
 describe("dnd SSR (DOM-less server render)", () => {
   it("runs in a genuinely DOM-less environment", () => {
@@ -95,5 +100,31 @@ describe("dnd SSR (DOM-less server render)", () => {
     expect(() => node.generateHTML()).not.toThrow();
     // generateCSS walks the same tree — also DOM-free.
     expect(() => node.generateCSS()).not.toThrow();
+  });
+
+  it("renders keyboardSort() items server-side without touching the DOM", () => {
+    // keyboardSort appends its live region and instructions node to <body>;
+    // that has to stay behind a DOM guard, or an SSR render throws on
+    // `document`. The a11y attributes themselves must still be in the markup
+    // so the server HTML and the hydrated DOM agree.
+    const items = toState([
+      { id: 1, label: "Alpha" },
+      { id: 2, label: "Beta" },
+    ]);
+    const sortItem = keyboardSort(items);
+    const node = new ElementNode({
+      ul: (l) =>
+        items.get(l).map((item, index) => ({
+          li: item.label,
+          _key: item.id,
+          $: [sortItem(index)],
+        })),
+      $: [dragDrop(items)],
+    } as DomphyElement);
+
+    const html = node.generateHTML();
+    expect(html).toContain('tabindex="0"');
+    expect(html).toContain('aria-roledescription="sortable item"');
+    expect(html).toContain(">Alpha</li>");
   });
 });

@@ -18,16 +18,25 @@ const bg = tc("inherit");
 const bgSoft = tc("shift-1");
 const bgMute = tc("shift-2");
 const border = tc("shift-3");
-const textSoft = tc("shift-6");
+// Supplementary marks only (heading anchor glyph, code line numbers):
+// 4.12:1 on the page surface — below the AA floor by design, never used for
+// text a reader must act on. Essential chrome uses `text` (see layout.ts).
+const textSoft = tc("shift-8");
 const text = tc("shift-9");
+// Body tone for text on a shift-1/shift-2 tinted surface, where shift-9 falls
+// to 4.23:1 / 3.58:1 (measured with axe-core on the built-in theme).
+const textOnTint = tc("shift-10");
 const textStrong = tc("shift-11");
 const brand = tc("shift-9", "primary");
-// Active code-group tab sits on a shift-2 (bgMute) tinted bar, so the usual
-// shift-9 brand text falls short of WCAG AA (4.12:1 light, 3.85:1 dark on the
-// built-in primary ramp — worse on saturated generated ramps, e.g. the
-// docs site's amber brand measured 4.08:1). shift-10 clears 4.5:1 on both
-// built-in themes (5.19:1 light, 4.77:1 dark — pinned by tests/theme.test.ts).
+// Text tone is derived, not picked: the theme's contrast contract is a K=9
+// span (`text` = shift-9 on the shift-0 page surface), so text on a shift-N
+// surface needs shift-(N+9). Hence shift-10 on the shift-1 code/panel
+// surfaces and shift-11 on the shift-2 tinted ones (the active code-group
+// tab, the code-block title bar). shift-10 on shift-2 was the earlier,
+// under-corrected pair: it clears AA on the built-in ramps but measured
+// 4.32:1 on the docs site's saturated amber brand.
 const brandOnTint = tc("shift-10", "primary");
+const brandOnBar = tc("shift-11", "primary");
 
 const headerH = ts(14);
 
@@ -74,6 +83,10 @@ main a:focus:not(:focus-visible){
 .dp-skip-link{position:absolute;left:${ts(2)};top:${ts(2)};z-index:100;padding:${ts(2)} ${ts(4)};background:${bg};color:${brand};border:1px solid ${brand};border-radius:${ts(1.5)};font-weight:600;font-size:14px;text-decoration:none;transform:translateY(-200%);transition:transform .15s ease}
 .dp-skip-link:focus,.dp-skip-link:focus-visible{transform:translateY(0);outline:2px solid ${brand};outline-offset:2px}
 #main-content:focus{outline:none}
+/* Assistive-tech-only text. The GFM footnotes section labels its list with a
+   visually hidden "Footnotes" heading (mdast.ts) — without this rule that
+   heading renders as an ordinary h2 in the middle of the page. */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
 /* ---------------------------------------------- reduced motion (WCAG 2.3.3) */
 @media (prefers-reduced-motion: reduce){
@@ -130,47 +143,83 @@ main a:focus:not(:focus-visible){
 
 /* ------------------------------------------------------------ code blocks */
 .code-block{margin:${ts(4)} 0;border:1px solid ${border};border-radius:${ts(2)};overflow:hidden}
-.code-block-title{display:flex;align-items:center;padding:${ts(1.5)} ${ts(4)};background:${bgMute};border-bottom:1px solid ${border};font-size:12px;font-family:var(--dp-font-mono,ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace);color:${text}}
+.code-block-title{display:flex;align-items:center;padding:${ts(1.5)} ${ts(4)};background:${bgMute};border-bottom:1px solid ${border};font-size:12px;font-family:var(--dp-font-mono,ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace);color:${textStrong}}
 .code-block-inner{position:relative}
-.code-block pre{margin:0;padding:${ts(4)} ${ts(5)};background:${bgSoft};border:none;border-radius:0;overflow-x:auto;overflow-y:auto;max-height:32em;font-size:13.5px;line-height:1.5;font-family:var(--dp-font-mono,ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace)}
+/* The code surface is the PAGE surface, not a tint. A syntax theme's token
+   palette is calibrated against that theme's own near-white / near-black
+   background; repainting it on a tinted surface voids the calibration for
+   every token at once (github-light-high-contrast's comment tone measures
+   4.30:1 on shift-1 #ededed but 5.04:1 on shift-0 #ffffff, and github-light
+   fails three tones on either). The 1px .code-block outline plus the tinted
+   title/tab bars are what delimit the block — the same shape VitePress and
+   Docusaurus use. The color property covers what shiki leaves untokenized. */
+.code-block pre{margin:0;padding:${ts(4)} ${ts(5)};background:${bg};color:${text};border:none;border-radius:0;overflow-x:auto;overflow-y:auto;max-height:32em;font-size:13.5px;line-height:1.5;font-family:var(--dp-font-mono,ui-monospace,SFMono-Regular,"SF Mono",Menlo,monospace)}
 .code-block code{font-family:inherit;background:none;padding:0;font-size:inherit}
 .code-block .line{display:inline-block;width:100%}
 .code-block .line.highlighted{background:color-mix(in srgb,${brand} 10%,transparent)}
 .code-block .line.diff.add{background:color-mix(in srgb,${tc("shift-7", "success")} 12%,transparent)}
 .code-block .line.diff.add::before{content:"+ ";color:${tc("shift-7", "success")}}
-.code-block .line.diff.remove{background:color-mix(in srgb,${tc("shift-9", "danger")} 10%,transparent);opacity:.7}
-.code-block .line.diff.remove::before{content:"- ";color:${tc("shift-9", "danger")}}
+/* A struck-through line reads as "removed" the way GitHub's diff view does,
+   without touching opacity — the earlier opacity:.7 multiplied the token
+   color's own alpha against the tinted background, so its effective contrast
+   depended on the token (down to 2.6:1 for some). The tint + prefix + strike
+   carry the meaning at full text contrast. */
+.code-block .line.diff.remove{background:color-mix(in srgb,${tc("shift-9", "danger")} 10%,transparent);text-decoration:line-through;text-decoration-thickness:1px}
+.code-block .line.diff.remove::before{content:"- ";color:${tc("shift-9", "danger")};text-decoration:none}
 .code-block .line.highlighted.error{background:color-mix(in srgb,${tc("shift-9", "error")} 10%,transparent)}
 .code-block .line.highlighted.warning{background:color-mix(in srgb,${tc("shift-7", "warning")} 10%,transparent)}
-.code-block pre.has-focus .line:not(.focus){opacity:.4;filter:blur(.4px);transition:opacity .2s,filter .2s}
-.code-block pre.has-focus:hover .line{opacity:1;filter:none}
-.code-block .line-number{display:inline-block;min-width:2.5em;margin-right:1em;color:${textSoft};text-align:right;user-select:none;font-size:.9em}
-.code-copy-btn{position:absolute;top:${ts(2)};right:${ts(2)};padding:${ts(1)} ${ts(2)};border-radius:${ts(1.25)};border:1px solid ${border};background:${bgSoft};color:${textSoft};cursor:pointer;font-size:13px;opacity:0;transition:opacity .15s}
+/* [!code focus] dims by forcing every token span to the single "text" tone
+   (shift-9) instead of opacity: shift-9 is the theme's own K=9 contrast-span
+   token (AGENTS.md "Contrast contract" — clears WCAG AA 4.5:1 on the
+   shift-0 page surface .code-block pre paints, in every built-in role),
+   so the dimmed lines keep full text contrast. The recede reads through
+   losing the token palette (monochrome vs. syntax color), not through
+   reduced contrast. !important is required to win over shiki's own
+   per-span style="color:#..." (same technique the dark-theme override
+   below already uses). The transition lives on the always-matching
+   selector so it animates both engaging and lifting the dim; the dim
+   itself is scoped with :not(:hover):not(:focus-within) so hovering or
+   tabbing into the block (it carries tabindex=0) simply stops the
+   selector matching and the cascade falls back to shiki's original
+   per-token color — nothing to "restore" by hand. */
+.code-block pre.has-focus .line:not(.focus) span{transition:color .2s}
+.code-block pre.has-focus:not(:hover):not(:focus-within) .line:not(.focus) span{color:${text} !important}
+.code-block .line-number{display:inline-block;min-width:2.5em;margin-right:1em;color:${text};text-align:right;user-select:none;font-size:.9em}
+.code-copy-btn{position:absolute;top:${ts(2)};right:${ts(2)};padding:${ts(1)} ${ts(2)};border-radius:${ts(1.25)};border:1px solid ${border};background:${bgSoft};color:${textOnTint};cursor:pointer;font-size:13px;opacity:0;transition:opacity .15s}
 .code-block-inner:hover .code-copy-btn{opacity:1}
-.code-copy-btn:hover{background:${bgMute};color:${text}}
+/* The button is in the tab order, so it must become visible on focus too —
+   otherwise a keyboard user lands on nothing (WCAG 2.4.7 Focus Visible). */
+.code-copy-btn:focus-visible{opacity:1;outline:2px solid ${brand};outline-offset:2px}
+.code-copy-btn:hover{background:${bgMute};color:${textStrong}}
 
 /* ------------------------------------------------------------- code groups */
 .code-group{margin:${ts(4)} 0;border:1px solid ${border};border-radius:${ts(2)};overflow:hidden}
 .code-group>input[type="radio"]{position:absolute;opacity:0;pointer-events:none;width:0;height:0}
 .code-group .tabs{display:flex;gap:${ts(0.5)};padding:${ts(1.5)} ${ts(2)};background:${bgSoft};border-bottom:1px solid ${border};flex-wrap:wrap}
-/* Inactive tabs use body text tone (not muted) so contrast stays ≥4.5:1. */
-.code-group .tabs label{padding:${ts(1)} ${ts(3)};font-size:13px;font-weight:500;color:${text};border-radius:${ts(1.25)};cursor:pointer}
+/* Inactive tabs sit on the shift-1 tab bar, so they need the tint tone. */
+.code-group .tabs label{padding:${ts(1)} ${ts(3)};font-size:13px;font-weight:500;color:${textOnTint};border-radius:${ts(1.25)};cursor:pointer}
 .code-group .blocks>.code-block{display:none;margin:0;border:none;border-radius:0}
 .code-group .blocks>.code-block pre{border-radius:0}
 ${Array.from({ length: 8 }, (_, i) => `.code-group>input:nth-of-type(${i + 1}):checked~.blocks>.code-block:nth-child(${i + 1})`).join(",\n")}{display:block}
-${Array.from({ length: 8 }, (_, i) => `.code-group>input:nth-of-type(${i + 1}):checked~.tabs>label:nth-child(${i + 1})`).join(",\n")}{color:${brandOnTint};background:${bgMute}}
+${Array.from({ length: 8 }, (_, i) => `.code-group>input:nth-of-type(${i + 1}):checked~.tabs>label:nth-child(${i + 1})`).join(",\n")}{color:${brandOnBar};background:${bgMute}}
+/* The radios are the real tab controls (arrow keys switch tabs) but they are
+   0x0 and transparent, so the browser's default ring lands on nothing —
+   forward the focus ring to the label the radio drives. */
+${Array.from({ length: 8 }, (_, i) => `.code-group>input:nth-of-type(${i + 1}):focus-visible~.tabs>label:nth-child(${i + 1})`).join(",\n")}{outline:2px solid ${brand};outline-offset:2px}
 
 /* ---------------------------------------------------------- card containers */
 .custom-block.card{background:${bgSoft};border:1px solid ${border};border-radius:${ts(3)};padding:${ts(5)} ${ts(6)};margin:${ts(3)} 0}
 .custom-block.card .card-title{font-size:16px;font-weight:600;color:${textStrong};margin:0 0 ${ts(2)}}
 .custom-block.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(${ts(56)},1fr));gap:${ts(4)};margin:${ts(4)} 0}
-a.custom-block.link-card{display:block;background:${bgSoft};border:1px solid ${border};border-radius:${ts(3)};padding:${ts(5)} ${ts(6)};margin:${ts(3)} 0;transition:border-color .15s,background .15s;text-decoration:none;color:${text}}
+a.custom-block.link-card{display:block;background:${bgSoft};border:1px solid ${border};border-radius:${ts(3)};padding:${ts(5)} ${ts(6)};margin:${ts(3)} 0;transition:border-color .15s,background .15s;text-decoration:none;color:${textOnTint}}
 a.custom-block.link-card:hover{border-color:${brand};background:${bgMute};text-decoration:none}
-a.custom-block.link-card .link-card-title{font-size:16px;font-weight:600;color:${brand};margin:0 0 ${ts(2)}}
+a.custom-block.link-card .link-card-title{font-size:16px;font-weight:600;color:${brandOnTint};margin:0 0 ${ts(2)}}
 .custom-block.card-grid .custom-block.card,.custom-block.card-grid a.custom-block.link-card{margin:0}
 
 /* --------------------------------------------------------- custom blocks */
-.custom-block{margin:${ts(4)} 0;padding:${ts(3)} ${ts(4)};border-radius:${ts(2)};border:1px solid transparent;font-size:14.5px}
+/* Every variant paints a tint over the page surface, where the inherited body
+   tone measures 4.22–4.41:1 (axe-core). shift-10 clears AA on all of them. */
+.custom-block{margin:${ts(4)} 0;padding:${ts(3)} ${ts(4)};border-radius:${ts(2)};border:1px solid transparent;font-size:14.5px;color:${textOnTint}}
 .custom-block p{margin:${ts(2)} 0}
 .custom-block-title{font-weight:700;margin:0 0 ${ts(1)} !important;font-size:13px}
 .custom-block.tip,.custom-block.success{background:color-mix(in srgb,${brand} 8%,${bg});border-color:color-mix(in srgb,${brand} 28%,transparent)}
@@ -207,8 +256,10 @@ html[data-theme="dark"] .shiki{color:var(--shiki-dark,inherit) !important;backgr
 
 /* ------------------------------------------------------------------ badges */
 .dp-badge{display:inline-block;padding:2px ${ts(2)};font-size:12px;font-weight:600;border-radius:${ts(1.5)};line-height:1.7;vertical-align:middle;white-space:nowrap}
-.dp-badge-tip,.dp-badge-info{background:color-mix(in srgb,${brand} 15%,transparent);color:${brand}}
-.dp-badge-warning{background:color-mix(in srgb,${tc("shift-6", "warning")} 15%,transparent);color:${tc("shift-7", "warning")}}
-.dp-badge-danger,.dp-badge-error{background:color-mix(in srgb,${tc("shift-7", "danger")} 15%,transparent);color:${tc("shift-8", "danger")}}
+/* The 15% brand tint darkens the effective surface enough that shift-9
+   measured 4.08:1 in dark; shift-10 clears AA on both built-in themes. */
+.dp-badge-tip,.dp-badge-info{background:color-mix(in srgb,${brand} 15%,transparent);color:${brandOnTint}}
+.dp-badge-warning{background:color-mix(in srgb,${tc("shift-6", "warning")} 15%,transparent);color:${tc("shift-10", "warning")}}
+.dp-badge-danger,.dp-badge-error{background:color-mix(in srgb,${tc("shift-7", "danger")} 15%,transparent);color:${tc("shift-10", "danger")}}
 `;
 }

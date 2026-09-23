@@ -11,7 +11,6 @@
 import type { DomphyElement, Listener } from "@domphy/core";
 import { themeColor, themeSize, themeSpacing } from "@domphy/theme";
 import { card, heading, paragraph } from "@domphy/ui";
-import { fixed } from "../../shared/typography.js";
 import {
   brandBadge,
   dividerRow,
@@ -81,19 +80,21 @@ function Login03(props: Login03Props = {}): DomphyElement<"div"> {
   const logoRow: DomphyElement<"a"> = {
     a: [brandBadge(), brandName],
     href: "#",
+    // Upstream logo link is `font-medium` (500) over the whole wordmark — not
+    // bold. The theme has no weight axis and strong() is 700, which would read
+    // as a heading, so the literal stays and the rule is silenced explicitly.
+    _doctorDisable: "inline-typography",
     style: {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      // Upstream logo link is `font-medium` (500) over the whole wordmark —
-      // not bold. `strong()` would render it at 700 and read as a heading.
-      fontWeight: fixed("500"),
+      fontWeight: 500,
       gap: themeSpacing(2),
       marginBlockEnd: themeSpacing(6),
       // Reset the browser's default anchor styling (blue + underline) so the
       // wordmark reads as plain foreground text, like login02's brand row.
       color: "inherit",
-      textDecoration: fixed("none"),
+      textDecoration: "none",
     },
   };
 
@@ -118,9 +119,6 @@ function Login03(props: Login03Props = {}): DomphyElement<"div"> {
         // `paragraph()` already sets `style.color` — the doctor tool inspects
         // only this element's own inline style, not patch contributions, so
         // it can't see that and flags a false positive here.
-        // (`_doctorDisable` is a doctor-only annotation absent from core's
-        // strict element type — build through an untyped literal + cast.)
-        _doctorDisable: "missing-color",
         // Upstream CardDescription is `text-sm` (0.875rem), a step below base.
         style: {
           textAlign: "center",

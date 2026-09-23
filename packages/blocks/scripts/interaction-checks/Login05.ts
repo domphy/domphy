@@ -16,7 +16,7 @@ async function main() {
   const page = await mountedPage(demoUrl, "Login05");
   const block = await locate(page, "Login05");
 
-  const email = block.locator("#login05-email");
+  const email = block.locator('input[name="email"]');
   const submit = block.getByRole("button", { name: "Login", exact: true });
 
   // No password field on this variant at all.
@@ -42,12 +42,12 @@ async function main() {
   const emailValid = await email.evaluate(
     (element: HTMLInputElement) => element.validity.valid,
   );
-  const focusedAfterEmptySubmit = await page.evaluate(
-    () => document.activeElement?.id,
+  const focusedAfterEmptySubmit = await page.evaluate(() =>
+    document.activeElement?.getAttribute("name"),
   );
   report(
     "Login05: empty submit blocked by native required validation",
-    emailValid === false && focusedAfterEmptySubmit === "login05-email",
+    emailValid === false && focusedAfterEmptySubmit === "email",
     `email.validity.valid=${emailValid}, focused="${focusedAfterEmptySubmit}"`,
   );
 

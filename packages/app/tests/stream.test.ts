@@ -305,4 +305,44 @@ describe("renderToStream", () => {
     const body = (await collect(stream)).join("");
     expect(body).toContain("Rewrite loop detected");
   });
+
+  // HTML Standard 4.2.5.5: a document must declare its encoding inside the
+  // first 1024 bytes when the transport does not; WCAG 3.1.1 requires the
+  // page language. renderToStream emits the <html>/<head> itself, so both are
+  // its responsibility, not the caller's.
+  it("emits a charset declaration and html lang (HTML Standard 4.2.5.5, WCAG 3.1.1)", async () => {
+    const app = createApp(streamRoutes(), { history: null });
+    const first = (
+      await collect((await app.renderToStream("/slow")).stream)
+    )[0];
+    expect(first.indexOf('<meta charset="utf-8">')).toBeLessThan(1024);
+    expect(first).toContain('<html lang="en">');
+
+    const vietnamese = await app.renderToStream("/slow", { lang: "vi" });
+    expect((await collect(vietnamese.stream))[0]).toContain('<html lang="vi">');
+  });
+
+  // renderToString answers an unexpected failure with a 500 page; a streaming
+  // host must not additionally have to catch what the buffered path handles.
+  it("answers a throwing middleware with a 500 shell, like renderToString", async () => {
+    const app = createApp(streamRoutes(), {
+      history: null,
+      middleware: [
+        () => {
+          throw new Error("upstream down");
+        },
+      ],
+    });
+    const { stream, status } = await app.renderToStream("/slow");
+    expect(status).toBe(500);
+    expect((await collect(stream)).join("")).toContain("Application error");
+  });
+
+  // A path whose percent-encoding cannot be decoded matches nothing; before
+  // the matcher guarded the decode it threw URIError out of renderToStream.
+  it("answers 404 for an invalid percent-escape instead of throwing", async () => {
+    const app = createApp(streamRoutes(), { history: null });
+    const { status } = await app.renderToStream("/%E0%A4%A");
+    expect(status).toBe(404);
+  });
 });

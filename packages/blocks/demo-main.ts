@@ -9,7 +9,13 @@ import * as blocks from "./src/index.js";
 // borders, most text) resolves to nothing, leaving only elements with
 // hardcoded fills (e.g. inline SVG `fill: currentColor` glyphs) visible.
 themeApply();
-document.documentElement.setAttribute("data-theme", "light");
+// `?theme=dark` so the e2e axe/contrast lane can scan the catalog on the dark
+// surface too; the demo chrome in demo.html follows the same variables.
+const requestedTheme = new URLSearchParams(location.search).get("theme");
+document.documentElement.setAttribute(
+  "data-theme",
+  requestedTheme === "dark" ? "dark" : "light",
+);
 
 // Mounting all 173 blocks eagerly on one page exhausts the browser's WebGL
 // context budget (several blocks — globe, retroGrid, iconCloud, etc. — use
@@ -42,15 +48,31 @@ function card(name: string): HTMLElement {
   return box;
 }
 
+// Every live root, by card name, so `unmountAll()` can dispose them. A block
+// that portals an overlay into `<body>` (dialog/drawer/popover) only removes
+// that portal when its root is disposed — without this, an overlay opened by
+// an earlier card keeps floating over every later card's screenshot.
+const roots = new Map<string, ElementNode>();
+
 function mount(
   name: string,
   factory: (props?: unknown) => DomphyElement,
   box: HTMLElement,
   props?: unknown,
+  idPrefix: string = name,
 ): void {
   box.textContent = "";
   try {
-    new ElementNode(factory(props)).render(box);
+    // Every card is its own Domphy root, and each root counts its node ids
+    // from zero — so two roots rendering the same block both emit `n0`, `n1`,
+    // ... and the `aria-controls` / `for` / popover ids those blocks build
+    // from `nodeId` collide across the page. Label each root explicitly
+    // (core only auto-discriminates roots it sees as concurrently live).
+    const element = factory(props) as DomphyElement & { _idPrefix?: string };
+    element._idPrefix = idPrefix;
+    const root = new ElementNode(element);
+    root.render(box);
+    roots.set(idPrefix, root);
   } catch (error) {
     box.innerHTML = `<div class="error">ERROR: ${String(error instanceof Error ? (error.stack ?? error.message) : error)}</div>`;
     console.error(`[demo] ${name} failed:`, error);
@@ -130,6 +152,16 @@ for (const [name, factory] of entries) {
     observer.disconnect();
   };
 
+// Exposed for the demo QA script: dispose every mounted root so the next
+// screenshot starts from a page holding only the block it is about to shoot.
+// Disposing the root is what removes a block's body-portaled overlay
+// (dialog/drawer/popover) — hiding the card alone leaves the portal behind.
+(window as unknown as { unmountAll: () => void }).unmountAll = () => {
+  for (const root of roots.values()) root.remove();
+  roots.clear();
+  mounted.clear();
+};
+
 // Exposed for interaction-check scripts that need to exercise a NON-default
 // prop combination the default-props demo instance can't reach (e.g.
 // compareSlider's `autoplay`, which defaults to `false`). Mounts a fresh
@@ -151,7 +183,9 @@ for (const [name, factory] of entries) {
   const container = document.createElement("div");
   container.id = elementId;
   document.body.appendChild(container);
-  new ElementNode(factory(props)).render(container);
+  // Second live instance of a block the lazy grid may already have mounted —
+  // the exact duplicate-id case, so it gets its own id space.
+  mount(name, factory, container, props, elementId);
 };
 
 console.log(

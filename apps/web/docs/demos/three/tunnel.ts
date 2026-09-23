@@ -1,4 +1,5 @@
 import type { DomphyElement } from "@domphy/core";
+import { themeSpacing } from "@domphy/theme";
 import { three } from "@domphy/three";
 import { BackSide, CatmullRomCurve3, Vector3 } from "three";
 
@@ -55,7 +56,7 @@ const App: DomphyElement<"div"> = {
   style: {
     width: "100%",
     height: "440px",
-    borderRadius: "12px",
+    borderRadius: themeSpacing(3),
     overflow: "hidden",
   },
   $: [

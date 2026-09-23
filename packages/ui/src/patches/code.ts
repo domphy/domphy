@@ -3,13 +3,14 @@ import {
   type ThemeColor,
   themeColor,
   themeDensity,
+  themeFont,
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
 
 /**
- * Styles an inline code snippet with a subtle surface background, rounded corners,
- * and shifted tone. Apply to a `<code>` element.
+ * Styles an inline code snippet in the theme's monospace stack, with a subtle
+ * surface background, rounded corners, and shifted tone. Apply to a `<code>` element.
  *
  * @hostTag code
  * @param props.color - Surface/text color tone. Optional `ValueOrState<ThemeColor>`, default "neutral".
@@ -32,6 +33,10 @@ function code(
       alignItems: "center",
       whiteSpace: "nowrap",
       fontSize: (listener) => themeSize(listener, "inherit"),
+      // The theme owns the code stack; <code>/<kbd>/<pre> otherwise keep the
+      // UA generic "monospace" (Courier New on Windows), so a theme that swaps
+      // fontFamilies.monospace never reaches them.
+      fontFamily: themeFont("monospace"),
       color: (listener) => themeColor(listener, "text", color.get(listener)),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),

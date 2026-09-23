@@ -16,13 +16,21 @@ function createSandboxFrame(): HTMLIFrameElement {
 }
 
 /**
+ * A same-origin iframe's window. `Window` alone is not enough: lib.dom
+ * declares `console`, `Function` and friends as globals of a realm, not as
+ * members of the `Window` interface, so only the `& typeof globalThis`
+ * intersection exposes them.
+ */
+export type PlaygroundRealm = Window & typeof globalThis;
+
+/**
  * Evaluates transformed playground source in `realm` (the iframe window).
  * Caller must pass the iframe window — never the parent.
  */
 export function evaluatePlaygroundCode(
   compiled: string,
   modules: Record<string, unknown>,
-  realm: Window,
+  realm: PlaygroundRealm,
 ): unknown {
   const fn = realm.Function("__modules__", compiled);
   return fn(modules);
@@ -44,7 +52,10 @@ export function Preview(
       dom.appendChild(shadowHost);
       const iframe = createSandboxFrame();
       dom.appendChild(iframe);
-      const realm = iframe.contentWindow;
+      // Same-origin sandbox (createSandboxFrame), so this really is a full
+      // global realm — lib.dom just types contentWindow as the narrower
+      // `Window`.
+      const realm = iframe.contentWindow as PlaygroundRealm | null;
       if (!realm) {
         error.set("preview sandbox unavailable");
         return;

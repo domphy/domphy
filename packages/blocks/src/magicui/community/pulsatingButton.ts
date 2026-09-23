@@ -29,6 +29,7 @@ import type {
 import { hashString, toState } from "@domphy/core";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
 import { button } from "@domphy/ui";
+import { REDUCED_MOTION_PAUSE } from "../reducedMotion.js";
 
 export type PulsatingButtonVariant = "pulse" | "ripple";
 
@@ -110,6 +111,7 @@ function pulsatingButton(
       color: (listener: Listener) =>
         themeColor(listener, "inherit", glowFamily(listener)),
       animation: `${animationName} ${duration}ms ${easing} infinite`,
+      ...REDUCED_MOTION_PAUSE,
       [`@keyframes ${animationName}`]: keyframes,
     } as StyleObject,
   } as DomphyElement<"span">;

@@ -276,6 +276,28 @@ describe("view hooks", () => {
     host.dispatchEvent(event);
     expect(event.defaultPrevented).toBe(true);
   });
+
+  it("onDrop returning true takes the whole drop, including the preventDefault (prosemirror-view someProp('handleDrop'))", () => {
+    const { editor, host } = mount(docOf(p("a")), [], {
+      onDrop: () => true,
+    });
+    const event = new Event("drop", { bubbles: true, cancelable: true });
+    Object.defineProperty(event, "dataTransfer", {
+      value: { getData: () => "dropped" },
+    });
+    host.dispatchEvent(event);
+    expect(editor.getJSON()).toEqual(docOf(p("a")));
+    expect(event.defaultPrevented).toBe(false);
+  });
+
+  it("cancels dragover so the editable is a drop target (prosemirror-view editHandlers.dragover)", () => {
+    const { host } = mount(docOf(p("a")), []);
+    for (const type of ["dragover", "dragenter"]) {
+      const event = new Event(type, { bubbles: true, cancelable: true });
+      host.dispatchEvent(event);
+      expect(event.defaultPrevented).toBe(true);
+    }
+  });
 });
 
 describe("update event payload", () => {

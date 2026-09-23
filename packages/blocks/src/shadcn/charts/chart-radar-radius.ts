@@ -14,7 +14,6 @@
 
 import type { DomphyElement, Listener } from "@domphy/core";
 import { themeColor } from "@domphy/theme";
-import { fixed } from "../../shared/typography.js";
 import {
   type ChartTrendDirection,
   chartTrendFooter,
@@ -85,7 +84,7 @@ function renderRadiusAxisTicks(
       stroke: (l: Listener) => themeColor(l, "shift-0", "neutral"),
       strokeWidth: 3,
       paintOrder: "stroke",
-      fontSize: fixed("10"),
+      fontSize: "10",
       textAnchor: "middle",
       dominantBaseline: "middle",
       _key: `radius-tick-${rounded}`,

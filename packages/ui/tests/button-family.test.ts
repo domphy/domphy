@@ -322,7 +322,7 @@ describe("buttonGhost", () => {
 describe("buttonSwitch", () => {
   it("renders with role=switch and aria-checked=false by default", () => {
     const { host } = render({
-      button: { span: null },
+      button: [{ span: null }],
       $: [buttonSwitch()],
     } as DomphyElement);
     const el = host.querySelector("button")!;
@@ -332,7 +332,7 @@ describe("buttonSwitch", () => {
 
   it("clicking toggles aria-checked from false to true", async () => {
     const { host } = render({
-      button: { span: null },
+      button: [{ span: null }],
       $: [buttonSwitch()],
     } as DomphyElement);
     const el = host.querySelector("button")!;
@@ -344,7 +344,7 @@ describe("buttonSwitch", () => {
 
   it("clicking twice returns aria-checked to false (round-trip)", async () => {
     const { host } = render({
-      button: { span: null },
+      button: [{ span: null }],
       $: [buttonSwitch()],
     } as DomphyElement);
     const el = host.querySelector("button")!;
@@ -357,7 +357,7 @@ describe("buttonSwitch", () => {
 
   it("respects an initial checked:true prop", () => {
     const { host } = render({
-      button: { span: null },
+      button: [{ span: null }],
       $: [buttonSwitch({ checked: true })],
     } as DomphyElement);
     const el = host.querySelector("button")!;
@@ -367,7 +367,7 @@ describe("buttonSwitch", () => {
   it("external checked state drives aria-checked reactively", async () => {
     const checked = toState(false);
     const { host } = render({
-      button: { span: null },
+      button: [{ span: null }],
       $: [buttonSwitch({ checked })],
     } as DomphyElement);
     const el = host.querySelector("button")!;
@@ -381,7 +381,7 @@ describe("buttonSwitch", () => {
   it("warns when applied to a non-button tag", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     render({
-      div: [{ div: { span: null }, $: [buttonSwitch()] }],
+      div: [{ div: [{ span: null }], $: [buttonSwitch()] }],
     } as DomphyElement);
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("buttonSwitch"));
     warn.mockRestore();

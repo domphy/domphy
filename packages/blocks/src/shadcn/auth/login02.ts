@@ -11,7 +11,6 @@
 import type { DomphyElement } from "@domphy/core";
 import { themeSpacing } from "@domphy/theme";
 import { heading, paragraph } from "@domphy/ui";
-import { fixed } from "../../shared/typography.js";
 import {
   brandBadge,
   coverImage,
@@ -81,14 +80,18 @@ function Login02(props: Login02Props = {}): DomphyElement<"div"> {
   const brandRow: DomphyElement<"a"> = {
     a: [brandBadge(), brandName],
     href: "#",
+    // Upstream wordmark is `font-medium` (500). The theme has no weight axis
+    // and @domphy/ui's only weight patch is strong() at 700, which reads as a
+    // heading here — so the literal stays and the rule is silenced explicitly.
+    _doctorDisable: "inline-typography",
     style: {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
       gap: themeSpacing(2),
-      fontWeight: fixed("500"),
+      fontWeight: 500,
       color: "inherit",
-      textDecoration: fixed("none"),
+      textDecoration: "none",
       "@media (min-width: 48em)": { justifyContent: "flex-start" },
     },
   };

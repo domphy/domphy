@@ -12,6 +12,8 @@ Use `inputText` on a native `input` element. It sets `type` (default `"text"`) a
 { input: null, placeholder: "Email", $: [inputText({ type: "email" })] }
 ```
 
+**Validation styling.** The automatic `:invalid` outline only applies to an input that declares a `placeholder` and is no longer showing it — i.e. the user left invalid content behind. `:placeholder-shown` cannot match an input with no `placeholder` attribute, so without that gate a pristine untouched `required` field painted itself red on first render. For a field without a placeholder, drive the error look explicitly with `data-status="error"` (or `"warning"`).
+
 ## Props
 
 | Prop | Type | Default | Description |

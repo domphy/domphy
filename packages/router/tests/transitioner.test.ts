@@ -90,24 +90,26 @@ describe("transitioner (client event lifecycle)", () => {
     expect(router.state.resolvedLocation?.pathname).toBe("/posts/3");
   });
 
-  it("does not emit onRendered after the router is destroyed", async () => {
+  it("emits no lifecycle events when load() is called on a destroyed router", async () => {
     const { router } = createTestSetup();
     await router.load();
-    // Let the initial load's onRendered macrotasks fire before subscribing.
     await sleep(20);
 
     const events: Array<string> = [];
-    router.subscribe("onRendered", () => events.push("onRendered"));
-    // Destroy on the macrotask queued right before the transitioner's
-    // onRendered timer (scheduled just after onResolved is emitted).
-    router.subscribe("onResolved", () => {
-      setTimeout(
-        () => (router as unknown as { destroy: () => void }).destroy(),
-        0,
-      );
-    });
+    for (const type of [
+      "onLoad",
+      "onBeforeRouteMount",
+      "onResolved",
+      "onRendered",
+    ] as const) {
+      router.subscribe(type, () => events.push(type));
+    }
 
-    await router.navigate({ to: "/posts/$postId", params: { postId: "4" } });
+    (router as unknown as { destroy: () => void }).destroy();
+
+    // Both an external history push and an explicit load() must be inert.
+    router.history.push("/posts/4");
+    await router.load();
     await sleep(20);
 
     expect(events).toEqual([]);

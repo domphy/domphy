@@ -19,6 +19,7 @@ import {
     createRoute,
     createRootRoute,
     createBrowserHistory,
+    subscribeToRouterState,
 } from "@domphy/router"
 import { toState } from "@domphy/core"
 
@@ -44,13 +45,13 @@ const router = createRouter({
 await router.load()
 ```
 
-Bridge router state into Domphy reactivity with `toState`:
+Bridge router state into Domphy reactivity with `toState`. `subscribeToRouterState` publishes every write to `router.state`, including the `status: "pending"` flip that no lifecycle event can see:
 
 ```ts
 const matches = toState(router.state.matches)
 
-router.subscribe("onResolved", () => {
-    matches.set(router.state.matches)
+subscribeToRouterState(router, (state) => {
+    matches.set(state.matches)
 })
 
 const App = {
@@ -64,6 +65,8 @@ const App = {
 ## What It Includes
 
 - `createRouter` / `createRoute` / `createRootRoute` — nested route trees with full type inference
+- `linkProps(router, options)` — `href` + `onClick` for real anchors; modifier-clicks and `target="_blank"` stay native
+- `subscribeToRouterState(router, fn)` — subscribe to every router-state change (the pending/loading flip included) and mirror it into a Domphy state
 - Path params (`/posts/$postId`), wildcards, optional segments, route masking
 - Validated search params with middleware (`retainSearchParams`, `stripSearchParams`)
 - Loaders with built-in stale-while-revalidate caching, preloading, and deferred data

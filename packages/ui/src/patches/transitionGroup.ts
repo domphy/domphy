@@ -1,4 +1,5 @@
 import { ElementNode, type PartialElement } from "@domphy/core";
+import { prefersReducedMotion } from "../utils/reducedMotion.js";
 
 type RectMap = Map<string, DOMRect>;
 
@@ -47,6 +48,12 @@ function transitionGroup(
     },
     _onBeforeUpdate: (node) => {
       previousRects = new Map();
+      // A FLIP reorder is exactly the large motion prefers-reduced-motion
+      // exists for (WCAG 2.3.3 Animation from Interactions); with no captured
+      // rects _onUpdate is a no-op per item, so the reorder lands instantly —
+      // the same degradation motion() and every peer (framer-motion Reorder,
+      // React Aria, Mantine Transition) applies.
+      if (prefersReducedMotion()) return;
       node.children.items.forEach((item, index) => {
         if (!(item instanceof ElementNode)) return;
         const dom = item.domElement as HTMLElement | undefined;

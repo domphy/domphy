@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { mountBlock, openDemo } from "./helpers";
+import { mountBlock, openDemo } from "./helpers.js";
 
 test("sidebar07 accordion: Playground starts open, Models expands on click", async ({
   page,

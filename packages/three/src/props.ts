@@ -170,6 +170,25 @@ export function applyStaticProp(
   if (target?.isColor === true && isColorRepresentation(value)) {
     target.set(value);
   } else if (
+    // THREE.Layers has no `.copy` (r3f's own applyProp branches on
+    // `instanceof THREE.Layers` specifically) and no `.isLayers` flag to
+    // duck-type on, so its own method/shape stands in for one — same reason
+    // isColor/isShaderMaterial are duck-typed above: instanceof would fail
+    // against a second three.js copy (classes registered via extend()).
+    // Assigning a fresh Layers instance must overwrite the bitmask in place,
+    // not replace `object.layers`'s identity — three internals that stashed
+    // a reference to the original instance would otherwise stop matching it.
+    target !== null &&
+    typeof target === "object" &&
+    typeof target.mask === "number" &&
+    typeof target.test === "function" &&
+    typeof target.enable === "function" &&
+    value !== null &&
+    typeof value === "object" &&
+    typeof value.mask === "number"
+  ) {
+    target.mask = value.mask;
+  } else if (
     target !== null &&
     typeof target === "object" &&
     typeof target.set === "function" &&

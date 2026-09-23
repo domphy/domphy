@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 
-import { ElementNode } from "@domphy/core";
+import { ElementNode, peek } from "@domphy/core";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createI18n } from "../src/index.ts";
+import { createI18n } from "../src/index.js";
 
 const en = {
   hello: "Hello",
@@ -78,7 +78,11 @@ describe("t()", () => {
     await new Promise<void>((resolve) => queueMicrotask(resolve));
 
     expect(listener).toHaveBeenCalled();
-    expect(i18n.t(() => {}, "hello")).toBe("Xin chào");
+    // t()'s listener overload dispatches on `typeof a === "function"`, not on
+    // whether it carries a real elementNode — an empty function forces that
+    // branch without wiring a subscription, unlike peek() (which passes
+    // `undefined` and falls into the plain-key overload instead).
+    expect(i18n.t(listener as any, "hello")).toBe("Xin chào");
     expect(host.textContent).toBe("Xin chào");
 
     node.remove();
@@ -170,7 +174,7 @@ describe("currentLocale()", () => {
   it("returns the active locale", async () => {
     const i18n = makeI18n();
     await i18n.initI18n("en");
-    const locale = i18n.currentLocale(() => {});
+    const locale = peek((l) => i18n.currentLocale(l));
     expect(locale).toBe("en");
   });
 
@@ -178,7 +182,7 @@ describe("currentLocale()", () => {
     const i18n = makeI18n();
     await i18n.initI18n("en");
     await i18n.setLocale("vi");
-    const locale = i18n.currentLocale(() => {});
+    const locale = peek((l) => i18n.currentLocale(l));
     expect(locale).toBe("vi");
   });
 });
@@ -228,27 +232,165 @@ describe("detectLocale()", () => {
   });
 });
 
+describe("addLocale (on-demand locale loading)", () => {
+  // Truth source: i18next's `addResourceBundle(lng, ns, resources, deep,
+  // overwrite)` contract — a bundle added after init() becomes resolvable by
+  // t()/changeLanguage(), deep-merges into an existing bundle, and overwrites
+  // the keys it repeats. createI18n() snapshots `locales` at init, so without
+  // this an app cannot `await import()` a locale it did not ship up front.
+  it("registers a locale after init so setLocale/t/exists resolve it", async () => {
+    counter++;
+    const i18n = createI18n<"en" | "vi" | "fr", typeof en>({
+      globalKey: `__test_add_locale_${counter}__`,
+      namespace: "app",
+      locales: { en, vi: viMessages },
+      defaultLocale: "en",
+    });
+    await i18n.initI18n("en");
+
+    // Unknown before it is added: changeLanguage falls back, getLocale rejects
+    // the code because it is not in the locale set.
+    await i18n.setLocale("fr");
+    expect(i18n.getLocale()).toBe("en");
+
+    await i18n.addLocale("fr", { hello: "Bonjour", nested: { key: "Valeur" } });
+    await i18n.setLocale("fr");
+    expect(i18n.getLocale()).toBe("fr");
+    expect(i18n.t("hello")).toBe("Bonjour");
+    expect(i18n.t("nested.key")).toBe("Valeur");
+    expect(i18n.exists("hello")).toBe(true);
+  });
+
+  it("deep-merges and overwrites, per addResourceBundle(deep, overwrite)", async () => {
+    counter++;
+    const i18n = createI18n<"en" | "vi" | "fr", typeof en>({
+      globalKey: `__test_add_locale_merge_${counter}__`,
+      namespace: "app",
+      locales: { en, vi: viMessages },
+      defaultLocale: "en",
+    });
+    await i18n.initI18n("en");
+    await i18n.addLocale("fr", { hello: "Bonjour", nested: { key: "Valeur" } });
+    await i18n.addLocale("fr", { hello: "Salut" });
+    await i18n.setLocale("fr");
+    // Repeated key overwritten, untouched key kept.
+    expect(i18n.t("hello")).toBe("Salut");
+    expect(i18n.t("nested.key")).toBe("Valeur");
+  });
+
+  it("initializes first when called before initI18n", async () => {
+    counter++;
+    const i18n = createI18n<"en" | "vi" | "fr", typeof en>({
+      globalKey: `__test_add_locale_preinit_${counter}__`,
+      namespace: "app",
+      locales: { en, vi: viMessages },
+      defaultLocale: "en",
+    });
+    await i18n.addLocale("fr", { hello: "Bonjour" });
+    await i18n.setLocale("fr");
+    expect(i18n.t("hello")).toBe("Bonjour");
+  });
+
+  // Truth source: Domphy's reactivity contract — a reader that subscribed to a
+  // value re-runs when that value changes. `initI18n("fr")` with fr not yet
+  // bundled leaves i18next ALREADY on "fr" serving the fallback, so the later
+  // `setLocale("fr")` short-circuits on `instance.language === locale` and the
+  // locale state never changes. Before addLocale bumped a bundle version the
+  // static `t()` returned "Bonjour" while every mounted reactive reader was
+  // still showing "Hello" — two APIs of the same instance disagreeing.
+  it("re-renders mounted readers when the locale on screen gains its bundle", async () => {
+    counter++;
+    const i18n = createI18n<"en" | "fr", typeof en>({
+      globalKey: `__test_add_locale_rerender_${counter}__`,
+      namespace: "app",
+      locales: { en } as Record<"en" | "fr", typeof en>,
+      defaultLocale: "en",
+    });
+    await i18n.initI18n("fr");
+
+    const node = new ElementNode({ p: (l) => i18n.t(l, "hello") });
+    node.render(document.body);
+    expect(node.domElement?.textContent).toBe("Hello");
+
+    await i18n.addLocale("fr", { hello: "Bonjour" });
+    await i18n.setLocale("fr");
+    expect(i18n.t("hello")).toBe("Bonjour");
+    expect(node.domElement?.textContent).toBe("Bonjour");
+  });
+
+  // Truth source: same contract, for the partial-bundle case the README
+  // advertises (ship a placeholder, fill it in later). The locale code does not
+  // change at all here, so `localeState` can never carry the signal.
+  it("re-renders when a key arrives for the locale already active", async () => {
+    counter++;
+    const i18n = createI18n<"en", { hello: string; later: string }>({
+      globalKey: `__test_add_locale_partial_${counter}__`,
+      namespace: "app",
+      locales: { en: { hello: "Hello" } },
+      defaultLocale: "en",
+    });
+    await i18n.initI18n("en");
+
+    const node = new ElementNode({ p: (l) => i18n.t(l, "later") });
+    node.render(document.body);
+    expect(node.domElement?.textContent).toBe("later"); // key echoed back
+
+    await i18n.addLocale("en", { later: "Loaded later" });
+    expect(node.domElement?.textContent).toBe("Loaded later");
+  });
+
+  // Truth source: this package's globalThis-dedup design (module header) —
+  // Vite may bundle it once per chunk, and both instances must behave as one.
+  // Keeping the added code in the createI18n closure left the sibling instance
+  // rejecting a locale i18next had already switched to, so its getLocale()
+  // reported the default while t() returned the new locale's strings.
+  it("shares added locales with a sibling instance on the same globalKey", async () => {
+    counter++;
+    const options = {
+      globalKey: `__test_add_locale_shared_${counter}__`,
+      namespace: "app",
+      locales: { en } as Record<"en" | "fr", typeof en>,
+      defaultLocale: "en" as const,
+    };
+    const chunkA = createI18n<"en" | "fr", typeof en>({ ...options });
+    const chunkB = createI18n<"en" | "fr", typeof en>({ ...options });
+    await chunkA.initI18n("en");
+    await chunkA.addLocale("fr", { hello: "Bonjour" });
+    await chunkA.setLocale("fr");
+
+    expect(chunkB.t("hello")).toBe("Bonjour");
+    expect(chunkB.getLocale()).toBe("fr");
+  });
+});
+
 describe("interpolation escaping", () => {
-  it("escapes HTML in interpolated values by default (i18next's own safe default)", async () => {
+  // Truth source: Domphy's own render boundary. A string child is always TEXT
+  // — `ElementNode.generateHTML()` escapes it — so a translation must reach
+  // that boundary with its ORIGINAL characters. i18next escaping them first
+  // makes the boundary escape the entities again, and the reader sees the
+  // entity source (`O&#39;Brien`) instead of the name.
+  it("leaves interpolated values unescaped so Domphy's render boundary escapes them exactly once", async () => {
     const i18n = makeI18n();
     await i18n.initI18n("en");
-    expect(i18n.t("greeting", { name: "<b>Alice</b>" })).toBe(
-      "Hello, &lt;b&gt;Alice&lt;&#x2F;b&gt;!",
+    const translated = i18n.t("greeting", { name: "O'Brien & <b>Alice</b>" });
+    expect(translated).toBe("Hello, O'Brien & <b>Alice</b>!");
+    expect(new ElementNode({ p: translated }).generateHTML()).toContain(
+      "Hello, O&#39;Brien &amp; &lt;b&gt;Alice&lt;/b&gt;!",
     );
   });
 
-  it("honors an explicit interpolation.escapeValue:false override", async () => {
+  it("honors an explicit interpolation.escapeValue:true override", async () => {
     counter++;
     const i18n = createI18n<"en" | "vi", typeof en>({
       globalKey: `__test_i18n_${counter}__`,
       namespace: "app",
       locales: { en, vi: viMessages },
       defaultLocale: "en",
-      interpolation: { escapeValue: false },
+      interpolation: { escapeValue: true },
     });
     await i18n.initI18n("en");
     expect(i18n.t("greeting", { name: "<b>Alice</b>" })).toBe(
-      "Hello, <b>Alice</b>!",
+      "Hello, &lt;b&gt;Alice&lt;&#x2F;b&gt;!",
     );
   });
 });
@@ -260,7 +402,7 @@ describe("concurrent initI18n() / setLocale()", () => {
     // getLocale() (reads instance.language) and currentLocale() (reads the
     // reactive store) must agree — the race used to leave them inconsistent.
     expect(i18n.getLocale()).toBe("vi");
-    expect(i18n.currentLocale(() => {})).toBe("vi");
+    expect(peek((l) => i18n.currentLocale(l))).toBe("vi");
   });
 });
 
@@ -331,13 +473,13 @@ describe("globalKey reuse with different options", () => {
       locales: { en, vi: viMessages },
       defaultLocale: "en",
     });
-    // Same structural options, opposite XSS-escaping posture — must warn too.
+    // Same structural options, opposite escaping posture — must warn too.
     createI18n<"en" | "vi", typeof en>({
       globalKey: key,
       namespace: "app",
       locales: { en, vi: viMessages },
       defaultLocale: "en",
-      interpolation: { escapeValue: false },
+      interpolation: { escapeValue: true },
     });
 
     expect(warn).toHaveBeenCalledTimes(1);

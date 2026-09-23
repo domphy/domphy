@@ -9,10 +9,35 @@ import {
 } from "@domphy/core";
 import { themeName } from "@domphy/theme";
 import { ChartEngine } from "./engine.js";
-import type { ChartOption } from "./types.js";
+import { showChartError } from "./gl/chartError.js";
+import type {
+  BrushSelectedParams,
+  ChartOption,
+  SelectChangedParams,
+  TooltipParams,
+} from "./types.js";
+
+type ChartEvents = {
+  /**
+   * Fires with the data item under the cursor when a series element is
+   * clicked. Nothing fires for a click on empty space (ECharts semantics).
+   */
+  click?: (params: TooltipParams) => void;
+  /**
+   * Fires after a click toggles a datum's selected state, for a series with
+   * `selectedMode`. Receives the whole selection (ECharts semantics).
+   */
+  selectchanged?: (params: SelectChangedParams) => void;
+  /**
+   * Fires after a brush drag completes, for a chart with `option.brush` or
+   * `toolbox.feature.brush`. Receives the ECharts-shaped batch.
+   */
+  brushSelected?: (params: BrushSelectedParams) => void;
+};
 
 type ChartProps = {
   option: ChartOption | ReadableState<ChartOption>;
+  events?: ChartEvents;
 };
 
 /**
@@ -21,12 +46,14 @@ type ChartProps = {
  *
  * @hostTag div
  * @param option - Chart configuration object, or a reactive state wrapping one.
+ * @param events - Optional chart events; `click` receives the clicked data item.
  * @example
  * { div: null, $: [chart({ series: [{ type: "bar", data: [1, 2, 3] }], xAxis: {}, yAxis: {} })],
  *   style: { width: "600px", height: "400px" } }
  */
 function chart(
   option: ChartOption | ReadableState<ChartOption>,
+  events?: ChartEvents,
 ): PartialElement {
   return {
     style: {
@@ -42,7 +69,7 @@ function chart(
     // and _onMount would only ever fire for the first generation. behavior()
     // runs attach once for the real node and routes every later generation's
     // props into update() — see AGENTS.md "Reused-node lifecycle".
-    ...behavior<ChartProps>("chart", attachChart, { option }),
+    ...behavior<ChartProps>("chart", attachChart, { option, events }),
   };
 }
 
@@ -58,6 +85,14 @@ function attachChart(
   let width = 0;
   let height = 0;
   let rawOption = initialProps.option;
+  // The live handler is read through this box, so a later generation's
+  // closure replaces it without re-subscribing to the engine.
+  let clickHandler = initialProps.events?.click;
+  engine.on("click", (params) => clickHandler?.(params));
+  let selectChangedHandler = initialProps.events?.selectchanged;
+  engine.on("selectchanged", (params) => selectChangedHandler?.(params));
+  let brushSelectedHandler = initialProps.events?.brushSelected;
+  engine.on("brushSelected", (params) => brushSelectedHandler?.(params));
   let currentOption: ChartOption | null = null;
   let unsubscribeOption: (() => void) | null = null;
   // Tracks whether currentOption changed since the last engine.setOption().
@@ -127,14 +162,11 @@ function attachChart(
         "@domphy/chart: WebGL initialization failed — the chart cannot render.",
         error,
       );
-      if (destroyed || typeof document === "undefined") return;
-      const message = document.createElement("div");
-      message.className = "dc-chart-error";
-      message.style.cssText =
-        "position:absolute;inset:0;display:flex;align-items:center;justify-content:center;" +
-        "pointer-events:none;color:var(--neutral-8, #6b7280);font-size:12px;";
-      message.textContent = "Chart failed to initialize (WebGL unavailable).";
-      container.appendChild(message);
+      if (destroyed) return;
+      showChartError(
+        container,
+        "Chart failed to initialize (WebGL unavailable).",
+      );
     });
 
   applyProps(initialProps);
@@ -176,6 +208,9 @@ function attachChart(
 
   return {
     update(next) {
+      clickHandler = next.events?.click;
+      selectChangedHandler = next.events?.selectchanged;
+      brushSelectedHandler = next.events?.brushSelected;
       // Later generations route their option here. Skip the resubscribe +
       // re-render when the raw option reference is unchanged.
       if (next.option === rawOption) return;

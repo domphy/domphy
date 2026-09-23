@@ -1,6 +1,7 @@
 import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
 import {
   type ThemeColor,
+  textToneOn,
   themeColor,
   themeDensity,
   themeSize,
@@ -71,7 +72,6 @@ function linkButton(
         gap: (listener) => themeSpacing(themeDensity(listener) * 1),
         userSelect: "none",
         cursor: "pointer",
-        fontFamily: "inherit",
         lineHeight: "inherit",
         border: "none",
         background: "none",
@@ -83,16 +83,18 @@ function linkButton(
         // (~2.4:1 on an edge surface). Hover/active differentiate via
         // background only.
         color: (listener) => themeColor(listener, "text", color.get(listener)),
+        // Label tracks the +2 fill (textToneOn): holding it at "text" measured
+        // 3.58:1 on the hover fill (light) / 4.37:1 (dark), below WCAG AA.
         "&:hover:not([aria-disabled=true])": {
           color: (listener) =>
-            themeColor(listener, "text", color.get(listener)),
+            themeColor(listener, textToneOn(2), color.get(listener)),
           backgroundColor: (listener) =>
             themeColor(listener, "hover", color.get(listener)),
           textDecoration: "none",
         },
         "&:active:not([aria-disabled=true])": {
           color: (listener) =>
-            themeColor(listener, "text", color.get(listener)),
+            themeColor(listener, textToneOn(2), color.get(listener)),
           backgroundColor: (listener) =>
             themeColor(listener, "increase-2", color.get(listener)),
         },
@@ -118,14 +120,14 @@ function linkButton(
         console.warn(`"linkButton" primitive patch must use a tag`);
       }
     },
+    // A solid CTA paints a fixed accent fill (that IS the variant), so its
+    // backgroundColor deliberately resolves to a shifted tone rather than
+    // "inherit". Measured with diagnose(): that is the only rule the solid
+    // variant trips — the "low-contrast" and "color-shift-minimum" entries
+    // this list also carried suppressed nothing and were reported as
+    // `unused-doctor-disable`.
     ...(isSolid
-      ? {
-          _doctorDisable: [
-            "low-contrast",
-            "color-shift-minimum",
-            "tone-background-inherit",
-          ] as const,
-        }
+      ? { _doctorDisable: ["tone-background-inherit"] as const }
       : {}),
     style: {
       fontSize: (listener) => themeSize(listener, fontSize),
@@ -142,7 +144,6 @@ function linkButton(
       gap: (listener) => themeSpacing(themeDensity(listener) * 1),
       userSelect: "none",
       cursor: "pointer",
-      fontFamily: "inherit",
       lineHeight: "inherit",
       border: "none",
       outlineOffset: "-1px",

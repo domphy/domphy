@@ -18,6 +18,8 @@ The tooltip surface uses a low `elevation()` box-shadow (no outline, kept compac
 | `onDismiss` | `() => void` | — | Called when the tooltip requests close. Required to close when `open` is read-only. |
 | `placement` | `ValueOrState<Placement>` | `"top"` | Floating placement relative to the trigger element. |
 | `content` | `ValueOrState<string>` | `"Tooltip Content"` | Text content rendered inside the tooltip. |
+| `openDelay` | `number` | `100` | Hover/focus-intent delay before showing, in ms (Radix `delayDuration` parity). |
+| `closeDelay` | `number` | `100` | Delay before hiding after leave/blur, in ms. |
 
 <CodeEditor :code="Tooltip" />
 

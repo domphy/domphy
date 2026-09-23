@@ -42,6 +42,13 @@ export function createBrowserHistory(): HistoryAdapter {
     go: (delta) => window.history.go(delta),
     listen: (callback) => {
       const handler = () => {
+        // Record where the entry being LEFT was scrolled to, before `index`
+        // moves to the entry being restored. The router cannot do this itself:
+        // by the time popstate reaches it the index has already changed, and
+        // its own saveScroll() would file the outgoing offset under the
+        // incoming entry — which is why back/forward used to restore the
+        // scroll position of the page you just left.
+        scrollPositions.set(index, { x: window.scrollX, y: window.scrollY });
         index =
           (window.history.state as BrowserHistoryState | null)?.__domphyIndex ??
           0;

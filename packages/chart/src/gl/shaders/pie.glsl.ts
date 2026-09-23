@@ -31,6 +31,9 @@ in vec2 vLocalPos;
 uniform vec4 uColor;
 uniform float uStartAngle; // radians
 uniform float uEndAngle;   // radians
+// 1.0 when the slice sweeps the whole circle. Such a slice normalizes to
+// start === end, which the angular test below would read as a single ray.
+uniform float uFullTurn;
 uniform float uOuterRadius;
 uniform float uInnerRadius;
 
@@ -54,7 +57,9 @@ void main() {
   float end   = mod(uEndAngle,   PI2);
 
   bool inSector;
-  if (start <= end) {
+  if (uFullTurn > 0.5) {
+    inSector = true;
+  } else if (start <= end) {
     inSector = angle >= start && angle <= end;
   } else {
     // Sector wraps around 0

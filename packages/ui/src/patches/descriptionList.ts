@@ -4,6 +4,7 @@ import {
   themeColor,
   themeSize,
   themeSpacing,
+  themeWeight,
 } from "@domphy/theme";
 
 /**
@@ -26,8 +27,6 @@ function descriptionList(
         console.warn(`"descriptionList" primitive patch must use dl tag`);
       }
     },
-    // Term weight is design-system chrome for description lists.
-    _doctorDisable: "inline-typography",
     style: {
       display: "grid",
       gridTemplateColumns: `minmax(${themeSpacing(24)}, max-content) 1fr`,
@@ -35,7 +34,7 @@ function descriptionList(
       margin: 0,
       "& dt": {
         margin: 0,
-        fontWeight: 600,
+        fontWeight: themeWeight("semibold"),
         fontSize: (listener) => themeSize(listener, "inherit"),
         color: (listener) =>
           themeColor(listener, "shift-10", color.get(listener)),

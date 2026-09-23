@@ -27,23 +27,33 @@ describe("sidebar06", () => {
 
   it("renders one dropdown-trigger button per top-level nav item, none open by default", () => {
     const { host } = render(sidebar06() as DomphyElement);
+    // Each row's dropdown content is a `menu()` (role=menu), so WAI-ARIA 1.2
+    // requires the trigger's aria-haspopup to name that same role ("menu"),
+    // not the popover chrome's default "dialog".
     const triggers = host.querySelectorAll(
-      'aside nav button[aria-haspopup="dialog"]',
+      'aside nav button[aria-haspopup="menu"]',
     );
     expect(triggers.length).toBe(4);
     triggers.forEach((trigger) => {
       expect(trigger.getAttribute("aria-expanded")).toBe("false");
+      expect(trigger.getAttribute("aria-controls")).toBeTruthy();
     });
   });
 
-  it("clicking a nav row's trigger flips aria-expanded to true", async () => {
+  it("clicking a nav row's trigger flips aria-expanded to true and opens a panel whose role matches aria-haspopup (WAI-ARIA 1.2)", async () => {
     const { host } = render(sidebar06() as DomphyElement);
     const trigger = host.querySelector(
-      'aside nav button[aria-haspopup="dialog"]',
+      'aside nav button[aria-haspopup="menu"]',
     ) as HTMLButtonElement;
     trigger.click();
     await new Promise((r) => setTimeout(r, 150));
     expect(trigger.getAttribute("aria-expanded")).toBe("true");
+    const panel = document.getElementById(
+      trigger.getAttribute("aria-controls") as string,
+    );
+    expect(panel?.getAttribute("role")).toBe(
+      trigger.getAttribute("aria-haspopup"),
+    );
   });
 
   it("renders the opt-in card and footer by default", () => {
@@ -78,7 +88,7 @@ describe("sidebar06", () => {
       }) as DomphyElement,
     );
     expect(
-      host.querySelectorAll('aside nav button[aria-haspopup="dialog"]').length,
+      host.querySelectorAll('aside nav button[aria-haspopup="menu"]').length,
     ).toBe(1);
     expect(host.textContent).toContain("Custom");
   });

@@ -41,7 +41,7 @@ Domphy has no router primitive by design — routing is a state problem, and sta
 import { type DomphyElement, toState } from "@domphy/core"
 import {
     createRouter, createRoute, createRootRoute, createMemoryHistory,
-    type AnyRouteMatch,
+    subscribeToRouterState, type AnyRouteMatch,
 } from "@domphy/router"
 
 const rootRoute = createRootRoute()
@@ -61,7 +61,7 @@ function syncRouterState() {
     matches.set(router.state.matches)
     pathname.set(router.state.location.pathname)
 }
-router.subscribe("onResolved", syncRouterState)
+subscribeToRouterState(router, syncRouterState)
 await router.load()
 syncRouterState()
 ```
@@ -80,18 +80,18 @@ const App: DomphyElement<"main"> = {
 
 ## Links
 
-Render real `<a>` elements with real hrefs, but intercept the click so navigation stays client-side:
+Render real `<a>` elements with real hrefs, but intercept the click so navigation stays client-side. `linkProps` builds both halves:
 
 ```ts
+import { linkProps } from "@domphy/router"
+
 const link = (to: string, label: string): DomphyElement<"a"> => ({
     a: label,
-    href: router.buildLocation({ to }).href,
-    onClick: (e) => {
-        e.preventDefault()
-        router.navigate({ to })
-    },
+    ...linkProps(router, { to }),
 })
 ```
+
+Modifier-clicks, non-primary buttons and `target="_blank"` are left to the browser, so "open in new tab" keeps working.
 
 See [Navigation](./navigation) for active links, history types, and blocking.
 

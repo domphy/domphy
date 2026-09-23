@@ -68,6 +68,17 @@ release() // unsubscribe
 
 The router manages scrolling like Next.js: scroll to top after navigation, scroll to the `#hash` element when present, and restore the saved position on back/forward. Pass `scroll: false` to `navigate`/`push`/`navLink` to opt out.
 
+Scroll positions are stored per history entry. The position of the entry you are *leaving* is recorded before the router hears about the navigation (on `popstate` for back/forward, at transition start otherwise), and the pending render is flushed before the offset is applied — otherwise the browser clamps it to the height of the page still on screen.
+
+## Route Announcement and Focus
+
+A client navigation replaces the page without a document load, so the router does what the load would have done (the Next.js route announcer / SvelteKit equivalent):
+
+- the new `document.title` is written into a visually hidden `aria-live="assertive"` region (`#domphy-route-announcer`, appended to `<body>`), so screen readers announce the page;
+- focus moves to the `#hash` target when the URL has one, otherwise to `<body>`, so the next <kbd>Tab</kbd> restarts the tab order at the top of the new page instead of continuing from the link that was clicked.
+
+Neither happens on the initial render (a real document load already did it), nor for `scroll: false` transitions (a background stale-while-revalidate re-render, an explicit `router.refresh()`), nor when only the query string changed. That last one matters for a page that syncs a filter or a search box into `?q=`: it navigates on every keystroke, and moving focus there would pull it out of the field being typed into — a change of context on input, [WCAG 3.2.2](https://www.w3.org/WAI/WCAG22/Understanding/on-input.html). A URL with a `#hash` always focuses its target, as a document load would.
+
 ## History Modes
 
 By default the router binds to the browser history. For tests, embedded demos or custom hosts, pass a memory history:

@@ -169,6 +169,40 @@ from a single brand color, with no manual tuning."
 
 ### 3.1 Why a rational warp
 
+**Lightness is no longer set by this warp, for single- or multi-anchor ramps
+alike.** Every ramp is instead sampled at a *constrained* luminance ladder:
+`solveConstrainedLadder()` in `Generator.ts` finds the closest sequence (in
+log-contrast space) to the closed-form geometric ladder `Y_i + 0.05 = 1.05 ·
+21^(-i/(N-1))` that still satisfies (a) strict light-to-dark monotonicity,
+(b) the near-white/near-black edges pinned exactly, and (c) `(Y_hi + 0.05) ≥
+4.5 · (Y_lo + 0.05)` for every pair `K = ⌈0.501·(N-1)⌉` steps apart (with a
+small measured margin over 4.5 to survive 8-bit hex quantization — see
+`WCAG_QUANTIZATION_MARGIN` in `Generator.ts`). Contrast is a function of
+relative luminance alone, while Oklab `L` is not — so no fixed warp, however
+well fitted, can hold a hue-independent WCAG span; an independent
+4096-color sRGB sweep against the warp-only approach measured 22.78% AA
+failures, worst case 3.22:1 at `#00ff00`; against the CONSTRAINED ladder it
+is 0%, single- or multi-anchor. Each anchor is additionally folded into that
+solve as a target at its nearest step, pulling the ramp toward the anchor's
+own real luminance instead of the pure geometric ladder there. A SINGLE
+anchor's pin is a soft objective term: the solve gets as close to it as the
+hard edges and WCAG floor allow, but never violates either —
+`generateTheme()`'s single-anchor path therefore never throws, whatever hue
+is passed in. Multiple anchors are pinned exactly (hard constraints): the
+caller is asserting precise waypoints, so an incompatible placement — either
+a monotonic-order conflict, or two waypoints (or a waypoint and an edge)
+closer together than a full `K`-step AA window allows — throws, naming the
+offending pair, rather than silently breaking the pin or the guarantee.
+`solveConstrainedLadder()` is Dykstra's alternating-projection algorithm
+(Boyle & Dykstra, 1986): every constraint here is a halfspace (or, for a
+fixed point, a point) touching one or two ramp steps, so each projection is
+closed-form and the whole solve needs no external QP dependency. Measured
+over a 12-anchor set spanning saturated primaries and pale pastels, pinning
+drops max ΔE2000 (nearest step vs. input hex) from 2.28 to 1.16, with most
+anchors round-tripping exactly. The rational warp described below still
+shapes hue and chroma for every ramp; only the lightness ladder is now
+solved rather than sampled directly.
+
 Sampling a straight line between two Oklab anchors at evenly-spaced
 parameter values does **not** put the WCAG 4.5:1 contrast pair at the
 analytically ideal span `K_ideal` from §2.1 — lightness does not vary
@@ -239,7 +273,9 @@ breaks this relationship fails CI, not a design review.
 4. For each of the `N` output steps, compute its position in the anchor
    polyline (linear between neighboring anchor indices), then `warp` that
    sampling parameter once. Each user hex is pinned onto its nearest
-   output step so mid-anchors round-trip exactly.
+   output step so mid-anchors round-trip exactly whenever that is compatible
+   with the ramp's monotonic/WCAG contract (§3.1); an incompatible waypoint
+   placement throws instead.
 5. Interpolate: `L` linearly per Oklab segment; `a`/`b` (the two chroma
    channels) through the same **monotone cubic spline** as §2.3, evaluated
    across *all* anchors at once — a smooth single-peak chroma trajectory,

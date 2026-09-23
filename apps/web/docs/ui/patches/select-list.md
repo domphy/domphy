@@ -8,6 +8,8 @@ import SelectList from "../../demos/patches/SelectList.ts?raw"
 
 Use `selectList` on a `div` container and `selectItem` on each child `div`. The container manages shared selection state via context — `selectItem` reads it automatically without any prop wiring.
 
+The container is `role="listbox"` and each item `role="option"`. It follows the WAI-ARIA APG [Listbox](https://www.w3.org/WAI/ARIA/apg/patterns/listbox/) keyboard model: the listbox itself is the single tab stop (`tabindex="0"`), ArrowDown/ArrowUp move focus between enabled options, Home/End jump to the first/last, and Enter or Space chooses the focused option. Disabled options (`aria-disabled="true"` or `disabled`) are skipped.
+
 ## Props
 
 | Prop | Type | Default | Description |

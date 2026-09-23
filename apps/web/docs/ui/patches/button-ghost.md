@@ -8,6 +8,8 @@ import ButtonGhost from "../../demos/patches/ButtonGhost.ts?raw"
 
 A transparent button with no border or background — suitable for icon actions, inline controls, and delete/close triggers.
 
+The control is `width: fit-content`, matching `button()` — `display: inline-flex` alone is blockified by a flex or grid parent, so inside a `stack()` the ghost button stretched to the full column while the outline button next to it did not, although `button({ variant: "ghost" })` documents the two as visually identical.
+
 ## Props
 
 | Prop | Type | Default | Description |

@@ -272,3 +272,65 @@ describe("fence-aware preprocessing", () => {
     expect(html).not.toContain(":tada:");
   });
 });
+
+describe("renderDoc base", () => {
+  // Walks the plain element tree — no DOM needed; press emits destinations as
+  // the `href` / `src` keys of the objects walkMdast returns.
+  function collect(node: unknown, key: string, out: string[]): void {
+    if (Array.isArray(node)) {
+      for (const child of node) collect(child, key, out);
+      return;
+    }
+    if (!node || typeof node !== "object") return;
+    const record = node as Record<string, unknown>;
+    if (typeof record[key] === "string") out.push(record[key] as string);
+    for (const value of Object.values(record)) collect(value, key, out);
+  }
+  const hrefs = (body: unknown[]): string[] => {
+    const out: string[] = [];
+    collect(body, "href", out);
+    return out;
+  };
+
+  // Truth source: the deployment contract behind VitePress's `withBase` — on a
+  // site served from "/docs/", a root-relative destination written in Markdown
+  // resolves against the ORIGIN, not the base, so it must be emitted prefixed
+  // or every in-content link and image 404s. External URLs, anchors and
+  // relative paths are left alone (same rule as the layout's nav hrefs).
+  it("prefixes root-relative markdown links and images with the site base", async () => {
+    const source = [
+      "[in](/guide/start)",
+      "[already](/docs/guide/start)",
+      "[rel](./other)",
+      "[anchor](#section)",
+      "[ext](https://example.com/guide/)",
+      "![img](/logo.png)",
+    ].join("\n\n");
+    const { body } = await renderDoc(source, { ...opts, base: "/docs/" });
+    expect(hrefs(body)).toEqual([
+      "/docs/guide/start",
+      "/docs/guide/start",
+      "./other",
+      "#section",
+      "https://example.com/guide/",
+    ]);
+    const sources: string[] = [];
+    collect(body, "src", sources);
+    expect(sources).toEqual(["/docs/logo.png"]);
+  });
+
+  it("leaves destinations untouched on a root deployment", async () => {
+    const { body } = await renderDoc("[in](/guide/start)", opts);
+    expect(hrefs(body)).toEqual(["/guide/start"]);
+  });
+
+  // A javascript: destination is replaced by "#" before prefixing; turning
+  // that into "/docs/#" would resurrect it as a real navigation target.
+  it("does not prefix a neutralized destination", async () => {
+    const { body } = await renderDoc("[x](javascript:alert(1))", {
+      ...opts,
+      base: "/docs/",
+    });
+    expect(hrefs(body)).toEqual(["#"]);
+  });
+});

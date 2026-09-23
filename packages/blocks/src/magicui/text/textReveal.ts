@@ -30,6 +30,7 @@ import {
   themeFluidSpacing,
   themeSpacing,
 } from "@domphy/theme";
+import { prefersReducedMotion } from "../reducedMotion.js";
 
 export interface TextRevealProps {
   /** Text content to reveal, split into words on whitespace. Defaults to a short demo paragraph. */
@@ -101,8 +102,15 @@ function textReveal(props: TextRevealProps = {}): DomphyElement<"div"> {
 
   const paragraphTypography: StyleObject = {
     margin: 0,
+    // Fluid display size with no theme equivalent: the type scale is 8 FIXED
+    // steps topping out at 3.0625rem, with no viewport-relative tier, so a
+    // scroll-scrubbed reveal headline that has to grow with the viewport can
+    // only be expressed as a clamp. Both <p> hosts below carry
+    // `_doctorDisable: "inline-typography"` for it.
     fontSize: () => themeFluidSpacing(6, 12),
-    fontWeight: () => "700",
+    // `bold` is the identical face to 700 (measured equal advance widths in
+    // Chromium), written as the cascade keyword rather than a numeric step.
+    fontWeight: "bold",
     // Fallback resting color for the paragraph itself — the background
     // layer overrides this with its own muted tone below, and the
     // foreground layer's per-word spans override it with their own
@@ -132,17 +140,25 @@ function textReveal(props: TextRevealProps = {}): DomphyElement<"div"> {
               {
                 p: text,
                 ariaHidden: "true",
+                // Fluid `fontSize` from paragraphTypography — see its comment.
+                _doctorDisable: "inline-typography",
                 style: {
                   ...paragraphTypography,
                   position: "absolute",
                   inset: 0,
                   opacity: RESTING_LAYER_OPACITY,
+                  // Decorative ghost layer, not a control — also keeps it
+                  // from intercepting clicks/selection meant for the
+                  // foreground word layer stacked on top of it.
+                  pointerEvents: "none",
                   color: (listener: Listener) =>
                     themeColor(listener, "shift-6", mutedColor),
                 },
               },
               {
                 p: foregroundWords,
+                // Fluid `fontSize` from paragraphTypography — see its comment.
+                _doctorDisable: "inline-typography",
                 style: { ...paragraphTypography, position: "relative" },
               },
             ],
@@ -172,6 +188,15 @@ function textReveal(props: TextRevealProps = {}): DomphyElement<"div"> {
         typeof window.requestAnimationFrame !== "function"
       )
         return;
+      // The reveal is scroll-scrubbed, so an unread word sits at opacity 0.2
+      // — axe `color-contrast` measures 1.17:1 against a light surface.
+      // Under reduce the paragraph is presented fully revealed and the scroll
+      // listeners are never attached (WCAG 2.3.3, and the text is legible
+      // from the first paint rather than only after the user scrolls).
+      if (prefersReducedMotion()) {
+        progress.set(1);
+        return;
+      }
       const element = node.domElement as HTMLElement;
       let frameHandle: number | null = null;
 

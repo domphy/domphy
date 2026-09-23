@@ -1,6 +1,7 @@
 import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
 import {
   type ThemeColor,
+  textToneOn,
   themeColor,
   themeDensity,
   themeSize,
@@ -24,7 +25,7 @@ const PADDING_STEPS: Record<ButtonSize, number> = {
  * @param props.color - Text color tone. Optional `ValueOrState<ThemeColor>`, defaults to `"neutral"`.
  * @param props.size - Button size preset. Optional `"small" | "medium" | "large"`, defaults to `"medium"`.
  * @example { button: "×", $: [buttonGhost()] }
- * @example { button: { span: null, $: [icon({ name: "trash" })] }, $: [buttonGhost({ color: "error" })] }
+ * @example { button: [{ span: "🗑", $: [icon()] }], $: [buttonGhost({ color: "error" })] }
  */
 function buttonGhost(
   props: { color?: ValueOrState<ThemeColor>; size?: ButtonSize } = {},
@@ -50,12 +51,17 @@ function buttonGhost(
         themeSpacing(themeDensity(listener) * padding),
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
       display: "inline-flex",
+      // Same as button(): without it a flex/grid parent stretches the control
+      // to the full column. Measured in Chromium inside a `stack()`: an
+      // outline button was 88px wide and the ghost button next to it 1232px,
+      // although `button({ variant: "ghost" })` documents the two as visually
+      // identical.
+      width: "fit-content",
       justifyContent: "center",
       alignItems: "center",
       gap: (listener) => themeSpacing(themeDensity(listener) * 1),
       userSelect: "none",
       cursor: "pointer",
-      fontFamily: "inherit",
       lineHeight: "inherit",
       border: "none",
       background: "none",
@@ -69,13 +75,18 @@ function buttonGhost(
       // rests at full foreground; hover/active keep the same text color and
       // differentiate via background only.
       color: (listener) => themeColor(listener, "text", color.get(listener)),
+      // Hover/active paint a fill 2 steps off the surface, so the label moves
+      // with it (textToneOn) — a fixed "text" label measured 3.58:1 on the
+      // hover fill (light) / 4.37:1 (dark), below WCAG AA.
       "&:hover:not([disabled]):not([aria-busy=true])": {
-        color: (listener) => themeColor(listener, "text", color.get(listener)),
+        color: (listener) =>
+          themeColor(listener, textToneOn(2), color.get(listener)),
         backgroundColor: (listener) =>
           themeColor(listener, "hover", color.get(listener)),
       },
       "&:active:not([disabled]):not([aria-busy=true])": {
-        color: (listener) => themeColor(listener, "text", color.get(listener)),
+        color: (listener) =>
+          themeColor(listener, textToneOn(2), color.get(listener)),
         backgroundColor: (listener) =>
           themeColor(listener, "increase-2", color.get(listener)),
       },

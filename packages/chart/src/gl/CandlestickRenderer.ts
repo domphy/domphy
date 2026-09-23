@@ -1,8 +1,13 @@
 import type { Buffer, Device, RenderPass } from "@luma.gl/core";
 import { Model } from "@luma.gl/engine";
+import {
+  applyItemState,
+  type ItemStateResolver,
+  NO_ITEM_STATES,
+} from "../itemStates.js";
 import type { AnyScale } from "../scale/index.js";
 import type { CandlestickSeriesOption } from "../types.js";
-import type { ColorResolver } from "./color.js";
+import type { ColorResolver, Rgba } from "./color.js";
 import { BAR_FS, BAR_VS } from "./shaders/bar.glsl.js";
 import { AREA_FS, AREA_VS } from "./shaders/line.glsl.js";
 
@@ -85,6 +90,7 @@ export class CandlestickRenderer {
     height: number,
     _seriesOffset: number,
     color: ColorResolver,
+    states: ItemStateResolver = NO_ITEM_STATES,
   ): void {
     if (series.length === 0) return;
     const bodyModel = this.ensureBodyModel();
@@ -107,11 +113,15 @@ export class CandlestickRenderer {
       const bandwidth = xScale.bandwidth() * 0.7;
       const data = s.data ?? [];
       const bodyInstances: number[] = [];
-      const upWickVerts: number[] = [];
-      const downWickVerts: number[] = [];
+      // Grouped by resolved colour, not by up/down: with no active state this
+      // collapses to exactly the up/down pair the batching had before (one
+      // draw call each), and a datum under emphasis/select — a distinct
+      // colour — gets its own group without a shader/attribute rewrite for
+      // per-vertex colour.
+      const wickGroups = new Map<string, { color: Rgba; verts: number[] }>();
       let bodyCount = 0;
 
-      data.forEach((item, index) => {
+      data.forEach((item, dataIndex) => {
         const raw = Array.isArray(item) ? item : (item as any)?.value;
         if (!raw || raw.length < 4) return;
         const [open, close, low, high] = raw as [
@@ -121,9 +131,15 @@ export class CandlestickRenderer {
           number,
         ];
         const isUp = close >= open;
-        const color = isUp ? upColor : downColor;
+        const paletteIndex = isUp ? 1 : 4;
+        const itemColor = applyItemState(
+          isUp ? upColor : downColor,
+          states(s, dataIndex),
+          color,
+          paletteIndex,
+        );
 
-        const xCenter = xScale.map(index);
+        const xCenter = xScale.map(dataIndex);
         const yOpen = yScale.map(open);
         const yClose = yScale.map(close);
         const yLow = yScale.map(low);
@@ -136,30 +152,34 @@ export class CandlestickRenderer {
           rectY,
           bandwidth,
           rectH,
-          color[0],
-          color[1],
-          color[2],
-          color[3],
+          itemColor[0],
+          itemColor[1],
+          itemColor[2],
+          itemColor[3],
           0,
         );
         bodyCount++;
 
         const hw = 0.5;
-        const wickVerts = isUp ? upWickVerts : downWickVerts;
-        wickVerts.push(
-          xCenter - hw,
-          yHigh,
-          xCenter + hw,
-          yHigh,
-          xCenter - hw,
-          yLow,
-          xCenter + hw,
-          yHigh,
-          xCenter + hw,
-          yLow,
-          xCenter - hw,
-          yLow,
-        );
+        const key = itemColor.join(",");
+        if (!wickGroups.has(key))
+          wickGroups.set(key, { color: itemColor, verts: [] });
+        wickGroups
+          .get(key)!
+          .verts.push(
+            xCenter - hw,
+            yHigh,
+            xCenter + hw,
+            yHigh,
+            xCenter - hw,
+            yLow,
+            xCenter + hw,
+            yHigh,
+            xCenter + hw,
+            yLow,
+            xCenter - hw,
+            yLow,
+          );
       });
 
       if (bodyCount > 0) {
@@ -178,10 +198,7 @@ export class CandlestickRenderer {
         bodyModel.draw(renderPass);
       }
 
-      for (const [verts, wickColor] of [
-        [upWickVerts, upColor],
-        [downWickVerts, downColor],
-      ] as const) {
+      for (const { color: wickColor, verts } of wickGroups.values()) {
         if (verts.length > 0) {
           const buffer = this.device.createBuffer({
             data: new Float32Array(verts),

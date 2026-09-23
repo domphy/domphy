@@ -332,3 +332,48 @@ describe("shared machinery", () => {
     expect(withError.summary.error).toBe(1);
   });
 });
+
+describe("invalid-child", () => {
+  // Truth source: the reconciler itself. `normalizeChildren` throws
+  // "scene children must be description objects keyed by tag" on exactly
+  // these values — reproduced in Chromium against the shape this package's
+  // own quickstart doc shipped, `{ meshStandardMaterial: { color: "orange" } }`.
+  it("flags props written as the tag's value (the child ends up being a string)", () => {
+    const issues = diagnose({
+      scene: [
+        {
+          mesh: [
+            { boxGeometry: null },
+            { meshStandardMaterial: { color: "orange" } },
+          ],
+        },
+      ],
+    });
+
+    const invalid = issues.filter((issue) => issue.rule === "invalid-child");
+    expect(invalid).toHaveLength(1);
+    expect(invalid[0].severity).toBe("error");
+    expect(invalid[0].path).toBe("scene > mesh > meshStandardMaterial > color");
+    expect(invalid[0].message).toContain('"orange"');
+  });
+
+  it("flags a nested array that was never spread", () => {
+    const issues = diagnose({
+      scene: [{ group: [[{ mesh: null }]] }],
+    });
+
+    const invalid = issues.filter((issue) => issue.rule === "invalid-child");
+    expect(invalid).toHaveLength(1);
+    expect(invalid[0].hint).toContain("Spread it");
+  });
+
+  it("leaves the grammar's falsy opt-out alone", () => {
+    const issues = diagnose({
+      scene: [{ mesh: null }, null, undefined, false],
+    } as any);
+
+    expect(issues.filter((issue) => issue.rule === "invalid-child")).toEqual(
+      [],
+    );
+  });
+});

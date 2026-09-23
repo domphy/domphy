@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { mountBlock, openDemo } from "./helpers";
+import { mountBlock, openDemo } from "./helpers.js";
 
 test("Login01: password is masked and empty submit hits native required", async ({
   page,

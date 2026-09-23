@@ -60,7 +60,9 @@ export type {
   Bar3DSeriesOption,
   BarSeriesOption,
   BoxplotSeriesOption,
+  BrushArea,
   BrushOption,
+  BrushSelectedParams,
   CalendarOption,
   CandlestickSeriesOption,
   ChartOption,
@@ -137,6 +139,8 @@ export type {
   SankeySeriesOption,
   Scatter3DSeriesOption,
   ScatterSeriesOption,
+  // Tooltip
+  SelectChangedParams,
   SeriesOption,
   SplitAreaOption,
   SplitLineOption,
@@ -148,7 +152,6 @@ export type {
   TitleOption,
   ToolboxOption,
   TooltipOption,
-  // Tooltip
   TooltipParams,
   TransformOption,
   // Treemap

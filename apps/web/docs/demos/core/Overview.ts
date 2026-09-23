@@ -16,6 +16,8 @@ const App: DomphyElement<"div"> = {
     },
     {
       button: "Increment",
+      // Without it a <button> defaults to type="submit" and posts any enclosing form.
+      type: "button",
       onClick: () => count.set(count.get() + 1),
       style: {
         paddingBlock: themeSpacing(2),

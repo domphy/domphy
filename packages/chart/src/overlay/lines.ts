@@ -1,6 +1,6 @@
 import { cssColor } from "../gl/color.js";
 import type { GeoOption, LinesSeriesOption } from "../types.js";
-import { getRegisteredMap } from "./geomap.js";
+import { applyGeoRoamTransform, getRegisteredMap } from "./geomap.js";
 
 function svgEl(
   tag: string,
@@ -201,9 +201,11 @@ export function renderLines(
 
   for (let si = 0; si < linesSeries.length; si++) {
     const s = linesSeries[si];
-    const baseColor = cssColor(s.color, si);
-    const lineWidth = s.lineStyle?.width ?? 1;
-    const opacity = s.lineStyle?.opacity ?? 0.6;
+    // ECharts precedence for a line's paint: item.lineStyle > series.lineStyle
+    // > series.color > palette. series.lineStyle.color used to be dropped.
+    const baseColor = cssColor(s.lineStyle?.color ?? s.color, si);
+    const seriesWidth = s.lineStyle?.width ?? 1;
+    const seriesOpacity = s.lineStyle?.opacity ?? 0.6;
     const showEffect = s.effect?.show ?? false;
     const effectSize = s.effect?.symbolSize ?? 5;
     const effectColor = s.effect?.color ?? baseColor;
@@ -234,11 +236,15 @@ export function renderLines(
         [x2, y2] = [to[0], to[1]];
       }
 
-      // Cubic bezier: control points arc upward
+      // ECharts `lines`: lineStyle.curveness is the quadratic control point's
+      // offset perpendicular to the chord, as a fraction of the chord length;
+      // 0 (its default) is a straight line. The per-item lineStyle wins.
+      const curveness =
+        item.lineStyle?.curveness ?? s.lineStyle?.curveness ?? 0;
       const midX = (x1 + x2) / 2;
       const midY = (y1 + y2) / 2;
       const dist = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
-      const arcHeight = dist * 0.3;
+      const arcHeight = dist * curveness;
       const dx = y2 - y1,
         dy = -(x2 - x1);
       const len = Math.sqrt(dx * dx + dy * dy) || 1;
@@ -246,15 +252,22 @@ export function renderLines(
       const cpY = midY + (dy / len) * arcHeight;
 
       const pathId = `dc-lines-path-${si}-${Math.random().toString(36).slice(2, 8)}`;
-      const d = `M${x1},${y1} Q${cpX},${cpY} ${x2},${y2}`;
+      const d =
+        curveness === 0
+          ? `M${x1},${y1} L${x2},${y2}`
+          : `M${x1},${y1} Q${cpX},${cpY} ${x2},${y2}`;
 
+      const strokeColor =
+        item.lineStyle?.color != null
+          ? cssColor(item.lineStyle.color, si)
+          : baseColor;
       const path = svgEl("path", {
         id: pathId,
         d,
         fill: "none",
-        stroke: baseColor,
-        "stroke-width": lineWidth,
-        opacity,
+        stroke: strokeColor,
+        "stroke-width": item.lineStyle?.width ?? seriesWidth,
+        opacity: item.lineStyle?.opacity ?? seriesOpacity,
       });
       group.appendChild(path);
 
@@ -290,4 +303,5 @@ export function renderLines(
   }
 
   svg.appendChild(group);
+  applyGeoRoamTransform(svg);
 }

@@ -184,7 +184,10 @@ describe("selectBox keyboard / focus", () => {
 
     const box = host.querySelector("div[tabindex='0']") as HTMLElement | null;
     expect(box).not.toBeNull();
-    expect(box!.getAttribute("role")).toBe("button");
+    // WAI-ARIA APG "Select-Only Combobox": a non-editable trigger owning a
+    // listbox is role=combobox (role=button would make its subtree
+    // presentational and swallow the removable tag buttons).
+    expect(box!.getAttribute("role")).toBe("combobox");
     expect(box!.getAttribute("aria-haspopup")).toBe("listbox");
     box!.focus();
     expect(document.activeElement).toBe(box);
@@ -367,9 +370,9 @@ describe("combobox keyboard / focus", () => {
     input!.focus();
     expect(document.activeElement).toBe(input);
 
-    // Opening: click host / focus path used by combobox anchor.
-    const anchor = host.firstElementChild as HTMLElement;
-    anchor.click();
+    // Opening: click on the input. NOT focus — an open-on-focus combobox can
+    // never be dismissed with Escape once Escape returns focus to the input.
+    input!.click();
     flushSync();
     vi.runAllTimers();
     expect(open.get()).toBe(true);

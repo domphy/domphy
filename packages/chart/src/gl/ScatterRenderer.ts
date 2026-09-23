@@ -1,5 +1,10 @@
 import type { Buffer, Device, RenderPass } from "@luma.gl/core";
 import { Model } from "@luma.gl/engine";
+import {
+  applyItemState,
+  type ItemStateResolver,
+  NO_ITEM_STATES,
+} from "../itemStates.js";
 import type { AnyScale } from "../scale/index.js";
 import type { ChartRect, ScatterSeriesOption } from "../types.js";
 import type { ColorResolver } from "./color.js";
@@ -58,6 +63,7 @@ export class ScatterRenderer {
     height: number,
     seriesOffset: number,
     color: ColorResolver,
+    states: ItemStateResolver = NO_ITEM_STATES,
   ): void {
     if (series.length === 0) return;
     const model = this.ensureModel();
@@ -75,7 +81,8 @@ export class ScatterRenderer {
       const yScale = yScales[s.yAxisIndex ?? 0];
       if (!xScale || !yScale) continue;
 
-      const baseColor = color.rgba(s.color, seriesOffset + index);
+      const paletteIndex = seriesOffset + index;
+      const baseColor = color.rgba(s.color, paletteIndex);
       const defaultRadius =
         typeof s.symbolSize === "number" ? s.symbolSize / 2 : 5;
       const data = s.data ?? [];
@@ -111,12 +118,34 @@ export class ScatterRenderer {
         if (typeof s.symbolSize === "function")
           radius = (s.symbolSize as any)(item, { dataIndex: di }) / 2;
 
-        allInstances.push(
-          xScale.map(xVal),
-          yScale.map(yVal),
-          radius,
-          ...baseColor,
+        const px = xScale.map(xVal);
+        const py = yScale.map(yVal);
+        // Skip null/NaN data and values a log scale cannot place (map() returns
+        // NaN for value <= 0). A NaN instance position/radius otherwise reaches
+        // the vertex buffer as undefined rasterizer input.
+        if (
+          !Number.isFinite(px) ||
+          !Number.isFinite(py) ||
+          !Number.isFinite(radius)
+        )
+          continue;
+
+        // A point may carry its own itemStyle.color (ECharts data-item style),
+        // and the hover/blur/select state scales the symbol as well as tinting
+        // it — `emphasis.scale` is the reason a hovered point reads as picked.
+        const itemColor = (item as { itemStyle?: { color?: unknown } } | null)
+          ?.itemStyle?.color;
+        const pointColor = itemColor
+          ? color.rgba(itemColor, paletteIndex)
+          : baseColor;
+        const state = states(s, di);
+        const finalColor = applyItemState(
+          pointColor,
+          state,
+          color,
+          paletteIndex,
         );
+        allInstances.push(px, py, radius * state.scale, ...finalColor);
         pointCount++;
       }
     }

@@ -40,22 +40,30 @@ location.pathname // "/posts/42"
 
 ## The Domphy Link Pattern
 
-A real anchor with a real href, click intercepted for client-side navigation:
+`linkProps(router, options)` returns the `href` + `onClick` pair for an anchor that navigates through the router. Spread it into an `{ a: ... }` element:
 
 ```ts
 import type { DomphyElement } from "@domphy/core"
+import { linkProps } from "@domphy/router"
 
 const link = (to: string, label: string): DomphyElement<"a"> => ({
     a: label,
-    href: router.buildLocation({ to }).href,
-    onClick: (e) => {
-        e.preventDefault()
-        router.navigate({ to })
-    },
+    ...linkProps(router, { to }),
 })
 ```
 
-This keeps middle-click, copy-link, and crawlers working, because the `href` is genuine.
+The `href` is genuine, so copy-link, crawlers and "open in new tab" all work. The click handler deliberately does **not** intercept when the browser should handle the click itself:
+
+| Left alone | Why |
+|---|---|
+| Ctrl / Cmd / Shift / Alt click | opens in a new tab/window, or downloads |
+| Any non-primary button | middle-click paste/new-tab, context menu |
+| `target` other than `_self` | the anchor targets another browsing context |
+| An already `preventDefault()`ed event | an outer handler already claimed the click |
+
+Everything else is intercepted with `preventDefault()` and routed client-side. Hand-rolling `onClick: (e) => { e.preventDefault(); router.navigate({ to }) }` silently breaks the first three rows.
+
+`linkProps` accepts the full `NavigateOptions` set (`params`, `search`, `hash`, `from`, `mask`, `replace`, …) plus `target` and `disabled`. A masked destination shows the masked href while navigating to the real one. A `to` written as an absolute URL (`https://…`, `mailto:…`) renders as a plain external link with no click interception. If its protocol is outside `router.protocolAllowlist`, the link renders inert — no `href`, no `onClick`, plus `role="link"` and `ariaDisabled: true` — which is exactly what `disabled: true` returns.
 
 ## Active Links
 
@@ -63,18 +71,15 @@ Bridge the current pathname into a state, then mark the active link with a data 
 
 ```ts
 import { toState } from "@domphy/core"
+import { linkProps } from "@domphy/router"
 
 const pathname = toState(router.state.location.pathname)
 router.subscribe("onResolved", () => pathname.set(router.state.location.pathname))
 
 const navLink = (to: string, label: string): DomphyElement<"a"> => ({
     a: label,
-    href: router.buildLocation({ to }).href,
+    ...linkProps(router, { to }),
     dataActive: (l) => (pathname.get(l) === to ? "true" : "false"),
-    onClick: (e) => {
-        e.preventDefault()
-        router.navigate({ to })
-    },
     style: {
         '&[data-active="true"]': { textDecoration: "underline" },
     },
@@ -131,6 +136,24 @@ A navigation called with `ignoreBlocker: true` bypasses blockers.
 | `onBeforeNavigate` | Navigation accepted, before anything loads |
 | `onBeforeLoad` | Location committed, loaders about to run |
 | `onLoad` | Loaders running for the new matches |
-| `onResolved` | Navigation fully settled — **the one to bridge UI state from** |
+| `onResolved` | Navigation fully settled |
 
 Each event carries `fromLocation`, `toLocation`, and `pathChanged` / `hrefChanged` flags. Two more events exist for framework adapters (`onBeforeRouteMount`, `onRendered`) — plain Domphy apps rarely need them.
+
+## Bridging Router State
+
+Events report *milestones*, not every state change: none of them fires at the moment `status` flips to `"pending"` — `onBeforeLoad` is emitted while the status is still `"idle"` and `onLoad` only after the loaders settle. Bridge from the state store instead, which publishes every write:
+
+```ts
+import { toState } from "@domphy/core"
+import { subscribeToRouterState } from "@domphy/router"
+
+const state = toState(router.state)
+const unsubscribe = subscribeToRouterState(router, (next) => state.set(next))
+
+const Spinner: DomphyElement<"div"> = {
+    div: (l) => (state.get(l).isLoading ? [{ p: "Loading..." }] : null),
+}
+```
+
+`state.isLoading` is `status === "pending"`. On the server the stores are non-reactive and cannot change during a render, so `subscribeToRouterState` is a no-op there and returns a no-op unsubscribe.

@@ -83,9 +83,6 @@ const option: ChartOption = {
       data: heatmapData,
       label: { show: false },
       itemStyle: { borderColor: "#fff", borderWidth: 0.5 },
-      emphasis: {
-        itemStyle: { shadowBlur: 10, shadowColor: "rgba(0,0,0,0.5)" },
-      },
     },
   ],
 };

@@ -1,10 +1,12 @@
 import { toState } from "@domphy/core";
 import * as THREE from "three";
+import { FrameClock } from "./clock.js";
 import { advance, invalidate, registerFrameCallback } from "./loop.js";
 import type {
   CreatedRootState,
   Dpr,
   FrameCallback,
+  Listener,
   RendererLike,
   SizeState,
   ThreeOptions,
@@ -28,6 +30,12 @@ export interface RootStateConfig
   canvas: HTMLCanvasElement;
   gl: RendererLike;
 }
+
+// Reference default (renderer.tsx's `dpr = [1, 2]`): render at the screen's
+// own pixel ratio, capped at 2 so a 3x phone doesn't pay for 9x the fragments.
+// A hard `1` — what this package shipped before 0.3.3 — renders every scene at
+// CSS resolution, i.e. visibly soft on every HiDPI display.
+export const DEFAULT_DPR: Dpr = [1, 2];
 
 // Port of core/utils.tsx's calculateDpr: resolves the Dpr option (a plain
 // ratio, or a [min, max] range clamped around the real device pixel ratio)
@@ -79,18 +87,23 @@ function createCamera(config: RootStateConfig): any {
   return camera;
 }
 
+// Shared scratch vectors for `viewport()` (reference parity: store.ts keeps
+// the same two per store). Every read is synchronous, so one pair is enough.
+const viewportCameraPosition = new THREE.Vector3();
+const viewportTarget = new THREE.Vector3();
+
 export function createRootState(config: RootStateConfig): CreatedRootState {
   const scene = new THREE.Scene();
   const camera = createCamera(config);
   const raycaster = new THREE.Raycaster();
   const pointer = new THREE.Vector2();
-  const clock = new THREE.Clock();
+  const clock = new FrameClock();
   clock.start();
 
   const size = toState<SizeState>({
     width: 0,
     height: 0,
-    dpr: calculateDpr(config.dpr ?? 1),
+    dpr: calculateDpr(config.dpr ?? DEFAULT_DPR),
   });
 
   const root: CreatedRootState = {
@@ -105,6 +118,47 @@ export function createRootState(config: RootStateConfig): CreatedRootState {
     size,
     onPointerMissed: config.onPointerMissed,
 
+    // Port of store.ts's `getCurrentViewport` — the same frustum math, minus
+    // the zustand-driven `state.viewport` struct: Domphy already has the
+    // reactive source (`size`), so this reads it through the caller's listener
+    // instead of mirroring it into a second piece of state.
+    viewport(listener?: Listener | null, camera = root.camera, target?: any) {
+      const size = root.size.get(listener ?? undefined);
+      const aspect = size.width / size.height;
+
+      if (target === undefined) viewportTarget.set(0, 0, 0);
+      else if (target.isVector3) viewportTarget.copy(target);
+      else viewportTarget.set(...(target as [number, number, number]));
+
+      const distance = camera
+        .getWorldPosition(viewportCameraPosition)
+        .distanceTo(viewportTarget);
+
+      if (camera.isOrthographicCamera) {
+        return {
+          width: size.width / camera.zoom,
+          height: size.height / camera.zoom,
+          aspect,
+          distance,
+          factor: 1,
+          dpr: size.dpr,
+        };
+      }
+
+      // Vertical fov is in degrees; the visible height at `distance` is
+      // 2 * tan(fov / 2) * distance, and the width follows the aspect ratio.
+      const fov = (camera.fov * Math.PI) / 180;
+      const height = 2 * Math.tan(fov / 2) * distance;
+      const width = height * aspect;
+      return {
+        width,
+        height,
+        aspect,
+        distance,
+        factor: size.width / width,
+        dpr: size.dpr,
+      };
+    },
     invalidate(frames?: number) {
       invalidate(root, frames);
     },

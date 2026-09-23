@@ -82,10 +82,24 @@ option.set({ series: [{ type: "line", data: [4, 5, 6] }] })  // triggers re-rend
 | `lines` | flow map arcs with optional `effect` animation |
 | `effectScatter` | scatter with SVG ripple animation |
 | `pictorialBar` | bar with symbol shapes; `symbol`, `symbolRepeat` |
+| `custom` | `renderItem(params, api)` — cartesian2d/none only, see [Series reference](https://domphy.com/docs/chart/series#custom-series-renderitem) |
 
-> **Not implemented (typed for ECharts interop only):** `custom` series
-> (`renderItem`), `toolbox`, and `brush`. Passing them logs a console warning
-> and has no render effect — pre-normalize data or wait for a future release.
+`brush` (`rect`/`lineX`/`lineY` drag-select + `brushSelected` event +
+`inBrush`/`outOfBrush` dimming, on scatter/line incl. stacked/bar/candlestick)
+and `toolbox.feature.brush` are implemented — see
+[Brush](https://domphy.com/docs/chart/axes#brush).
+
+> **Not implemented (typed for ECharts interop only):** a `brush.brushType`/
+> `toolbox.feature.brush.type` of `"polygon"`, and a `custom` series with
+> `coordinateSystem: "polar"`/`"geo"`. Passing them logs a console warning and
+> has no render effect.
+> `emphasis`/`blur`/`select` are implemented for line/bar/scatter/pie/radar/
+> heatmap/candlestick/gauge/boxplot/funnel, with real per-shape mouse
+> hover/click hit-testing (heatmap cell, candlestick/boxplot body+wick box,
+> radar polygon, funnel trapezoid, gauge progress arc) on all ten, plus
+> legend hover/focus for whole-series highlighting.
+> Individual option keys that are typed but not rendered are listed in full
+> in [vs ECharts](https://domphy.com/docs/chart/vs-echarts).
 
 **3D (SVG perspective projection):**
 
@@ -95,6 +109,16 @@ option.set({ series: [{ type: "line", data: [4, 5, 6] }] })  // triggers re-rend
 | `bar3D` | `data: [x,y,z][]`, `barSize` |
 | `line3D` | `data: [x,y,z][]`, `lineWidth` |
 | `surface3D` | structured grid, `shapeW`/`shapeH`, `wireframe` |
+
+## Interaction & accessibility
+
+Tooltips, the axis pointer and the dataZoom slider work with mouse, touch and pen. `chart()` takes an optional `click` handler that reports the data item under the cursor (nothing fires on empty space, as in ECharts):
+
+```ts
+$: [chart(option, { click: (params) => console.log(params.seriesName, params.value) })]
+```
+
+The overlay SVG carries `role="img"` and an `aria-label` derived from the title or the rendered series; legend items are WAI-ARIA APG toggle buttons (focusable, `aria-pressed`, <kbd>Enter</kbd>/<kbd>Space</kbd>, visible focus ring). WebGL context loss is recovered automatically.
 
 ## ChartEngine (advanced)
 

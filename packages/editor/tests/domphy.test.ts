@@ -27,6 +27,23 @@ function flush(): Promise<void> {
   return new Promise<void>((resolve) => queueMicrotask(resolve));
 }
 
+/**
+ * Domphy writes reactive styles straight into the CSSOM, and jsdom's
+ * `getComputedStyle` only reads a `<style>` element's TEXT — so the live value
+ * has to come off the rule itself.
+ */
+function ruleValue(element: HTMLElement, property: string): string {
+  const selector = `.${element.className.split(" ")[0]}`;
+  for (const sheet of Array.from(document.styleSheets)) {
+    for (const rule of Array.from(sheet.cssRules)) {
+      if ((rule as CSSStyleRule).selectorText === selector) {
+        return (rule as CSSStyleRule).style.getPropertyValue(property);
+      }
+    }
+  }
+  return "";
+}
+
 const editors: EditorInstance[] = [];
 
 function makeEditor(content = "<p>hello</p>"): EditorInstance {
@@ -259,6 +276,75 @@ describe("bubbleMenu", () => {
     expect(document.body.querySelector("[role='toolbar']")).not.toBeNull();
     editor.destroy();
     expect(document.body.querySelector("[role='toolbar']")).toBeNull();
+  });
+
+  it("keeps the menu open when the blur's relatedTarget is inside it (tiptap BubbleMenuPlugin.blurHandler)", async () => {
+    const editor = makeEditor();
+    const { host } = mount({
+      div: null,
+      $: [
+        editorContent(editor),
+        bubbleMenu(editor, { children: { button: "B" } }),
+      ],
+    } as DomphyElement);
+    const editable = (host.querySelector("[contenteditable]") ??
+      host) as HTMLElement;
+    editor.commands.setTextSelection({ from: 1, to: 3 });
+    await flush();
+    const toolbar = document.body.querySelector(
+      "[role='toolbar']",
+    ) as HTMLElement;
+    const menuButton = toolbar.querySelector("button") as HTMLElement;
+
+    // Tab out of the editor INTO the menu: hiding here is what makes the
+    // toolbar unreachable by keyboard, because the browser lands on nothing.
+    editable.dispatchEvent(
+      new FocusEvent("blur", { relatedTarget: menuButton }),
+    );
+    await flush();
+    expect(ruleValue(toolbar, "visibility")).toBe("visible");
+
+    // Blur to anything else still dismisses.
+    editable.dispatchEvent(
+      new FocusEvent("blur", { relatedTarget: document.body }),
+    );
+    await flush();
+    expect(ruleValue(toolbar, "visibility")).toBe("hidden");
+  });
+
+  it("Escape inside the menu hides it and returns focus to the editor (WAI-ARIA APG: non-modal overlays are dismissible and restore focus)", async () => {
+    const editor = makeEditor();
+    const { host } = mount({
+      div: null,
+      $: [
+        editorContent(editor),
+        bubbleMenu(editor, { children: { button: "B" } }),
+      ],
+    } as DomphyElement);
+    const editable = (host.querySelector("[contenteditable]") ??
+      host) as HTMLElement;
+    editor.commands.setTextSelection({ from: 1, to: 3 });
+    await flush();
+    const toolbar = document.body.querySelector(
+      "[role='toolbar']",
+    ) as HTMLElement;
+    const menuButton = toolbar.querySelector("button") as HTMLElement;
+
+    const focused = vi.spyOn(editable, "focus");
+    menuButton.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Escape", bubbles: true }),
+    );
+    await flush();
+    expect(ruleValue(toolbar, "visibility")).toBe("hidden");
+    expect(focused).toHaveBeenCalled();
+
+    // Refocusing must not re-open it — only a new selection does.
+    editor.handleFocus(new FocusEvent("focus"));
+    await flush();
+    expect(ruleValue(toolbar, "visibility")).toBe("hidden");
+    editor.commands.setTextSelection({ from: 1, to: 4 });
+    await flush();
+    expect(ruleValue(toolbar, "visibility")).toBe("visible");
   });
 });
 

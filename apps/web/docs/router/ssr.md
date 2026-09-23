@@ -16,7 +16,7 @@ import { hydrate, json, mergeHeaders } from "@domphy/router/ssr/client"
 
 The simplest reliable approach skips the streaming pipeline: run the router per request, render with Domphy SSR, and serialize what you need yourself.
 
-Server — one router per request, memory history at the request URL:
+Server — one router per request, memory history at the request URL, and **`isServer: true`**:
 
 ```ts
 import { createRouter, createMemoryHistory } from "@domphy/router"
@@ -26,12 +26,19 @@ async function renderPage(requestUrl: string) {
     const router = createRouter({
         routeTree,
         history: createMemoryHistory({ initialEntries: [requestUrl] }),
+        isServer: true,
     })
 
     await router.load() // matches + loaders, server-side
 
-    if (router.state.redirect) {
-        return { redirect: router.state.redirect.options.href, status: 307 }
+    // A server load reports its outcome on `router._serverResult`: either a
+    // redirect to send back, or a render with the status code to use.
+    const result = router._serverResult
+    if (result?.type === "redirect") {
+        return {
+            redirect: result.redirect.headers.get("Location"),
+            status: result.redirect.status,
+        }
     }
 
     syncRouterState() // seed the bridge states so generateHTML sees the data
@@ -46,7 +53,7 @@ async function renderPage(requestUrl: string) {
     }))
 
     return {
-        status: router.state.statusCode, // 200, or 404 when a match was notFound
+        status: result?.status ?? 200, // 200, or 404 when a match was notFound
         body: `<!doctype html>
 <html>
 <head><style id="domphy-style">${css}</style></head>
@@ -59,6 +66,10 @@ async function renderPage(requestUrl: string) {
     }
 }
 ```
+
+`isServer: true` is not optional in this manual pattern. It routes `load()` through the server pipeline, which reports redirects via `_serverResult` instead of committing them to history. A router left in client mode runs the client pipeline, which tries to *navigate* to the redirect target — and a server history ignores navigation, so a redirecting route loads forever.
+
+(In a Node/Deno/Bun/workerd process the router infers this anyway — `isServer` defaults to `typeof document === "undefined"` — so the option matters when a `document` exists, such as a jsdom-based test or SSR harness. `createRequestHandler` does not rely on the inference: it owns the server history, so it forces `isServer: true` onto the router it is given.)
 
 Client — same route tree, browser history, mount instead of render:
 

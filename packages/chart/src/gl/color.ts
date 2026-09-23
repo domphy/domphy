@@ -113,9 +113,10 @@ export function cssColor(src: unknown, fallbackIndex: number): string {
 export interface ColorResolver {
   // SVG/HTML paint string (var(--…) reference or concrete CSS color).
   css(src: unknown, fallbackIndex: number): string;
-  // Concrete float RGBA for WebGL uniforms. Never throws — unresolvable
-  // sources (e.g. a bare family name where a hex was expected, an unknown
-  // keyword) fall back to the series palette color at fallbackIndex.
+  // Concrete float RGBA for WebGL uniforms. Accepts "#hex", "rgb()/rgba()",
+  // "var(--…)" and a bare ThemeFamily name. Never throws — anything else (an
+  // unknown CSS keyword, an invalid hex, a gradient object) falls back to the
+  // series palette color at fallbackIndex.
   rgba(src: unknown, fallbackIndex: number, alpha?: number): Rgba;
 }
 

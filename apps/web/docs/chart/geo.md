@@ -74,10 +74,12 @@ const option: ChartOption = {
     map: "world",
     center: [105, 16], // [lng, lat] — centers on Southeast Asia
     zoom: 4,
-    roam: false,       // interactive pan/zoom not yet supported
+    roam: true,        // drag to pan, wheel to zoom
+    scaleLimit: { min: 1, max: 8 },
     itemStyle: {
-      areaColor: "#e6e6e6",
-      borderColor: "#999",
+      areaColor: "neutral",   // ThemeFamily, "#hex" or "rgb()"
+      borderColor: "border",
+      borderWidth: 0.5,
     },
   },
   series: [
@@ -116,8 +118,9 @@ const option: ChartOption = {
 | `map` | `string` | Map name — must be registered first via `registerMap` |
 | `center` | `[number, number]` | `[longitude, latitude]` of the center point |
 | `zoom` | `number` | Zoom multiplier — `1` fits the map to the container |
-| `roam` | `boolean` | Interactive pan/zoom — not yet supported, keep `false` |
-| `itemStyle` | `object` | Style for each region polygon |
+| `roam` | `boolean \| "scale" \| "move"` | Interactive pan/zoom: drag to pan, wheel to zoom about the cursor. `"scale"` = wheel only, `"move"` = drag only |
+| `scaleLimit` | `{ min?, max? }` | Roam zoom bounds. Unbounded when omitted |
+| `itemStyle` | `object` | `areaColor` / `borderColor` / `borderWidth` / `opacity` for each region polygon. Also accepted per region (`geo.regions[]`) and per map data item |
 | `label` | `object` | Region label display options |
 
 ## Map series (choropleth)
@@ -142,9 +145,6 @@ const option: ChartOption = {
         { name: "Germany", value: 140 },
         { name: "Brazil", value: 210 },
       ],
-      emphasis: {
-        itemStyle: { areaColor: "#ffd700" },
-      },
     },
   ],
   visualMap: {

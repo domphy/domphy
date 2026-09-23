@@ -36,23 +36,54 @@ can be assigned there directly.
 Passing more than one color pins each as a fixed waypoint (e.g. an existing
 brand color that must land at a specific position), still connected by the
 same interpolation. Waypoints keep the caller-supplied order (not sorted by
-lightness) and each input hex appears unchanged on the ramp.
+lightness) — but that order must already be compatible with the waypoints'
+own real luminance (a later-position waypoint darker than an earlier one is a
+direct contradiction of the ramp's monotonic contract); an incompatible order
+throws, naming the offending pair.
 
 ## What "optimized" means
 
-The generator does not sample the anchor colors' Oklab path at even
-intervals — it bends the sampling curve so that, once sliced into `N`
-discrete steps, the WCAG 4.5:1 contrast span lands as close as possible to
-the analytically-derived ideal span (`K_ideal = ⌈0.501 × (N-1)⌉` — 9 for an
-18-step ramp). Validated against 600 synthetic base colors (weighted toward
-green/cyan hues, where perceptual uniformity is hardest): ~95.9% of
-generated ramps need zero manual accessibility correction, ~88.5% hit the
-ideal span exactly.
+**Hue and chroma** come from the anchor colors' Oklab path, bent by a
+rational warp curve (the `P`/`Q` fit described in `DESIGN.md`).
 
-For the full derivation — the warp/unwarp rational function, why Oklab
-instead of CIELAB for this step, and how it connects to the five quality
-metrics `Ramp` measures — see **[`DESIGN.md`](https://github.com/domphy/domphy/blob/main/DESIGN.md)**
-at the repo root.
+**Lightness** is not taken from that curve. Every ramp — single- or
+multi-anchor — is re-sampled at a *constrained luminance ladder*: the
+closest sequence (in log-contrast space) to the unconstrained closed-form
+ladder
+
+```
+Y_i + 0.05 = 1.05 · r^i        r = 21^(-1/(N-1))
+```
+
+that still satisfies strict light-to-dark monotonicity, the near-white/
+near-black edges, and `(Y_hi + 0.05) >= 4.5 * (Y_lo + 0.05)` for every pair of
+steps `K = ⌈0.501 × (N-1)⌉` apart — 9 at `N = 18`, matching the unconstrained
+ladder's own `r^-K` identity (5.01:1). **Every** anchor placement, single- or
+multi-anchor, therefore clears WCAG AA 4.5:1 on every `shift-N`/`shift-N+K`
+pair — this is what makes `themeColor(l, "text")` on a `shift-0` surface a
+guarantee rather than a statistic.
+
+Each anchor is additionally pinned toward its own real luminance at its
+nearest step (a single anchor's pin is a strong preference the solve can
+still move if the WCAG floor requires it; 2+ anchors are pinned exactly,
+since the caller is asserting precise waypoints — infeasible waypoint
+placements throw instead of silently breaking the pin or the guarantee).
+Measured over a 12-anchor set spanning saturated primaries and pale pastels,
+this recovers exact round-trip fidelity for most anchors and keeps max
+ΔE2000 (nearest-step vs. input hex) at 1.16, down from 2.28 before this pin
+existed.
+
+A fixed warp in Oklab `L` alone cannot hold the WCAG span across hues: WCAG
+contrast is a function of relative luminance `Y` alone, and Oklab `L` is not
+a function of `Y`. Measured over a 4096-color sweep of the sRGB cube, the
+warp-only sampling missed the `K = 9` AA contract for **22.78%** of ramps
+(worst pair 3.22:1, base `#00ff00`); with the constrained ladder it is 0%,
+including for multi-anchor ramps.
+
+For the Oklab warp derivation, why Oklab instead of CIELAB for the hue path,
+the constrained-ladder solve, and the five quality metrics `Ramp` measures,
+see **[`DESIGN.md`](https://github.com/domphy/domphy/blob/main/DESIGN.md)**
+§3 at the repo root.
 
 ## Building a full theme
 

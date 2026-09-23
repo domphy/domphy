@@ -11,8 +11,6 @@ const App: DomphyElement<"div"> = {
     {
       hr: null,
       $: [horizontalRule()],
-      // Decorative divider, no text content — missing-color has nothing to color.
-      _doctorDisable: "missing-color",
     },
     {
       p: "Section B content",
@@ -21,8 +19,6 @@ const App: DomphyElement<"div"> = {
     {
       hr: null,
       $: [horizontalRule({ color: "primary" })],
-      // Decorative divider, no text content — missing-color has nothing to color.
-      _doctorDisable: "missing-color",
     },
     {
       p: "Section C content",

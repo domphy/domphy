@@ -3,12 +3,12 @@
 import type { DomphyElement } from "@domphy/core";
 import { ElementNode } from "@domphy/core";
 import { afterEach, describe, expect, it } from "vitest";
+import { iconCloud } from "../../../src/magicui/core/iconCloud.ts";
 import {
   easeOutCubic,
   focusRotationForPoint,
-  iconCloud,
   rotatePoint,
-} from "../../../src/magicui/core/iconCloud.ts";
+} from "../../../src/magicui/core/iconCloudMath.ts";
 
 // jsdom has no real 2D canvas backend (no `canvas` npm package installed), so
 // `getContext("2d")` resolves to `null` and iconCloud()'s own guard bails out

@@ -1,5 +1,10 @@
 import type { Buffer, Device, RenderPass } from "@luma.gl/core";
 import { Model } from "@luma.gl/engine";
+import {
+  applyItemState,
+  type ItemStateResolver,
+  NO_ITEM_STATES,
+} from "../itemStates.js";
 import type { AnyScale } from "../scale/index.js";
 import type { ChartRect, LineSeriesOption } from "../types.js";
 import type { ColorResolver, Rgba } from "./color.js";
@@ -152,7 +157,17 @@ export class LineRenderer {
         if (!series.connectNulls) points.push([NaN, NaN]);
         continue;
       }
-      points.push([xScale.map(xVal), yScale.map(yVal)]);
+      const px = xScale.map(xVal);
+      const py = yScale.map(yVal);
+      // A finite datum can still map to a non-finite pixel: a log scale
+      // returns NaN for value <= 0 (ECharts semantics, see scale/log.ts).
+      // The gap tests below only look at x, so a NaN y used to reach the
+      // vertex buffer and corrupt the whole strip — treat it as a gap.
+      if (!Number.isFinite(px) || !Number.isFinite(py)) {
+        if (!series.connectNulls) points.push([NaN, NaN]);
+        continue;
+      }
+      points.push([px, py]);
     }
 
     const smooth = series.smooth;
@@ -265,6 +280,7 @@ export class LineRenderer {
     baselines: (number[] | undefined)[] | undefined,
     // Per-pass theme-aware color resolver (see gl/color.ts createColorResolver).
     color: ColorResolver,
+    states: ItemStateResolver = NO_ITEM_STATES,
   ): void {
     const lineModel = this.ensureLineModel();
     const areaModel = this.ensureAreaModel();
@@ -278,7 +294,16 @@ export class LineRenderer {
       const yScale = yScales[s.yAxisIndex ?? 0];
       if (!xScale || !yScale) continue;
 
-      const resolvedColor: Rgba = color.rgba(s.color, seriesOffset + index);
+      // A line's stroke and its area fill are one element, so the state is
+      // resolved for the series as a whole (dataIndex -1) and folded into the
+      // colour every downstream fill derives from — stroke, flat area and
+      // gradient endpoints alike.
+      const resolvedColor: Rgba = applyItemState(
+        color.rgba(s.color, seriesOffset + index),
+        states(s, -1),
+        color,
+        seriesOffset + index,
+      );
       const lineAlpha = s.lineStyle?.opacity ?? 1;
       const lineColor: Rgba = [
         resolvedColor[0],

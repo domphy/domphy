@@ -36,7 +36,17 @@ type FloatingProps = {
   // (not just the anchor) must keep it open, so the pointer can travel from
   // trigger to panel without the debounced hide() firing first.
   keepOpenOnContentHover: boolean;
+  // Hover-intent debounce, in ms. Configurable per consumer (Radix Tooltip
+  // parity: `delayDuration`) instead of the single fixed value every floating
+  // consumer used to share.
+  openDelay: number;
+  closeDelay: number;
 };
+
+// The previous fixed debounce, kept as the default when a consumer does not
+// pass its own delay — INHERITED from the pre-existing behavior this file
+// hard-coded before openDelay/closeDelay became configurable.
+const FLOATING_DEFAULT_DELAY_MS = 100;
 
 // The panel id every floating component gets, derived deterministically from
 // the ANCHOR's nodeId (stable across generations — a reused node keeps its
@@ -46,6 +56,45 @@ type FloatingProps = {
 // mutable variable that a fresh generation would lose.
 function floatingPanelId(kind: string, node: ElementNode): string {
   return `domphy-${kind}-${node.nodeId}`;
+}
+
+// The overlay container every floating panel portals into. Marked with a data
+// ATTRIBUTE, not an id: there is one container per app root and one more per
+// open <dialog>, so a document can legitimately hold several at once and a
+// fixed `id="domphy-floating"` made every one after the first a duplicate id —
+// invalid HTML, and `document.getElementById`/`querySelector("#…")` silently
+// resolved to whichever happened to come first in document order. Every lookup
+// below is `:scope >` scoped to one parent anyway, so uniqueness was never
+// what the selector needed.
+const OVERLAY_ATTRIBUTE = "data-domphy-floating";
+const OVERLAY_SELECTOR = `:scope > [${OVERLAY_ATTRIBUTE}]`;
+// Stamped on every floating panel element with its `kind` ("tooltip",
+// "popover", "menu", ...) so hasOpenFloatingPanel can tell a hover tooltip
+// apart from a layer the user is actually inside.
+const OVERLAY_KIND_ATTRIBUTE = "data-domphy-floating-kind";
+
+/**
+ * True while a popover/select/datePicker panel is mounted inside this
+ * `<dialog>` (they portal into the dialog's own overlay container, see
+ * `_portal`). A hover-only tooltip does NOT count: Radix's DismissableLayer
+ * and React Aria's overlay stack both treat a hover tooltip as decoration,
+ * not a layer the user is "inside" — it never consumes a Dismiss keypress.
+ * Before this exclusion, a tooltip left open by a lingering hover cost the
+ * dialog's Escape an extra press before it closed.
+ *
+ * Escape must dismiss only the TOP layer — Radix's DismissableLayer and React
+ * Aria's overlay stack both stop at the innermost open layer. The browser
+ * fires the dialog's `cancel` event for the same keypress that the panel's own
+ * dismiss handler sees, so a modal dialog with an open dropdown closed
+ * entirely on one Escape. The panel's `hide()` is debounced, so it is still
+ * mounted when `cancel` arrives; the next Escape closes the dialog.
+ */
+function hasOpenFloatingPanel(dialogElement: Element): boolean {
+  const overlay = dialogElement.querySelector(OVERLAY_SELECTOR);
+  if (!overlay) return false;
+  return Array.from(overlay.children).some(
+    (child) => child.getAttribute(OVERLAY_KIND_ATTRIBUTE) !== "tooltip",
+  );
 }
 
 type FloatingInstance = BehaviorInstance<FloatingProps> & {
@@ -76,8 +125,15 @@ function attachFloating(
   node: ElementNode,
   initialProps: FloatingProps,
 ): FloatingInstance {
-  let { openState, onDismiss, placement, content, keepOpenOnContentHover } =
-    initialProps;
+  let {
+    openState,
+    onDismiss,
+    placement,
+    content,
+    keepOpenOnContentHover,
+    openDelay,
+    closeDelay,
+  } = initialProps;
   const { kind } = initialProps;
   const behaviorKey = `floating:${kind}`;
 
@@ -102,8 +158,19 @@ function attachFloating(
     // portaled as a DOM sibling of the anchor, so a keydown on a focused
     // element within the panel (menu item, calendar cell, footer button)
     // never bubbles to the anchor's own Escape handler.
+    //
+    // Top-layer gated, like the document-level handler below. A nested
+    // popover's TRIGGER is an ordinary element inside the outer panel, so an
+    // Escape pressed there bubbles into this handler on the OUTER panel:
+    // measured in Chromium, `outer trigger -> click -> inner trigger ->
+    // Escape` removed BOTH panels at once and returned focus two levels, to
+    // the outer trigger. Only the innermost open layer dismisses, and it
+    // stops the event so no ancestor panel sees the same keypress.
     onKeyDown: (event) => {
-      if ((event as KeyboardEvent).key === "Escape") hide();
+      if ((event as KeyboardEvent).key !== "Escape") return;
+      if (!isTopLayer()) return;
+      event.stopPropagation();
+      hide();
     },
     onMouseEnter: () => keepOpenOnContentHover && show(),
     onMouseLeave: () => keepOpenOnContentHover && hide(),
@@ -114,6 +181,7 @@ function attachFloating(
       // its own bookkeeping — never removes it. A consumer-declared id on the
       // content element wins.
       if (!floating.id) floating.id = panelId;
+      floating.setAttribute(OVERLAY_KIND_ATTRIBUTE, kind);
       // Propagate data-theme from the trigger's ancestor so floating content
       // inherits CSS variable scope. Stamped on the PANEL, not the shared
       // overlay: the one overlay serves every floating component under the
@@ -135,10 +203,10 @@ function attachFloating(
       // shares the top layer.
       const dialogHost = reference.closest("dialog");
       if (dialogHost) {
-        let overlay = dialogHost.querySelector(":scope > #domphy-floating");
+        let overlay = dialogHost.querySelector(OVERLAY_SELECTOR);
         if (!overlay) {
           overlay = dialogHost.ownerDocument.createElement("div");
-          overlay.id = "domphy-floating";
+          overlay.setAttribute(OVERLAY_ATTRIBUTE, "");
           Object.assign((overlay as HTMLElement).style, {
             position: "fixed",
             inset: "0",
@@ -149,11 +217,22 @@ function attachFloating(
         }
         return overlay;
       }
-      let overlay = rNode.domElement!.querySelector(`#domphy-floating`);
+      // `:scope >` is load-bearing. The in-dialog branch above creates a
+      // SECOND overlay container inside the <dialog>. A plain descendant
+      // `querySelector("[data-domphy-floating]")` returns the first match in
+      // document order — the dialog's copy — so
+      // once any popover/tooltip/select had been opened inside a modal
+      // dialog, every later floating panel in the whole app was portaled
+      // into that dialog. Measured: with the dialog closed (display:none,
+      // set by dialog.ts's finalizeClose) the panel reported
+      // aria-expanded="true" and visibility:visible while its items had a
+      // 0x0 rect and could not take focus. The root's own overlay is always
+      // inserted as a DIRECT child of the root, so scoping is exact.
+      let overlay = rNode.domElement!.querySelector(OVERLAY_SELECTOR);
       if (!overlay) {
         const overlayEle: DomphyElement<"div"> = {
           div: [],
-          id: `domphy-floating`,
+          [OVERLAY_ATTRIBUTE]: "",
           style: {
             position: "fixed",
             inset: 0,
@@ -184,10 +263,25 @@ function attachFloating(
     // from a panel descendant (a selectBox/combobox option, a datePicker day
     // cell) never reaches the anchor's registration. Registering the same
     // instance on the panel lets panel-originated events resolve it via
-    // `node.getBehavior(behaviorKey)` — the documented walk-up pattern. No
-    // teardown wiring here: the instance's lifetime is owned by the anchor
-    // (destroy there), the registration simply dies with the panel node.
+    // `node.getBehavior(behaviorKey)` — the documented walk-up pattern. The
+    // registration must be withdrawn again before the panel node is removed
+    // (see detachPanel): its lifetime is owned by the ANCHOR, not the panel.
     floatingNode._behaviorInstances.set(behaviorKey, instance);
+  };
+
+  // ElementNode teardown DESTROYS every instance in the removed node's
+  // `_behaviorInstances` (BeforeRemove hook + _dispose). The panel carries a
+  // registration of the ANCHOR's instance, so removing the panel used to
+  // destroy the anchor's behavior with it: measured in Chromium, after the
+  // FIRST close of any popover/menu/select/tooltip the document-level
+  // outside-click and Escape listeners were gone, and the component could
+  // then only be closed by clicking its own trigger again. Withdraw the
+  // borrowed registration first so only the panel's own state dies with it.
+  const detachPanel = () => {
+    if (!floatingNode) return;
+    floatingNode._behaviorInstances.delete(behaviorKey);
+    floatingNode.remove();
+    floatingNode = null;
   };
 
   const instantShow = () => {
@@ -231,6 +325,34 @@ function attachFloating(
       writeOpen(openState, true);
     }
   };
+  // True only while the panel itself owns the focus. Shadow-root aware:
+  // `document.activeElement` reports the shadow HOST for focus inside a shadow
+  // tree, so `floating.contains(...)` would say false for a panel rendered in
+  // one — ask the panel's own root instead.
+  const focusIsInsidePanel = (): boolean => {
+    if (!floating) return false;
+    const root = floating.getRootNode() as Document | ShadowRoot;
+    const active = (root as DocumentOrShadowRoot).activeElement;
+    return !!active && floating.contains(active);
+  };
+
+  // The anchor is not always the focusable element: combobox anchors its panel
+  // to the WRAPPER div and the tab stop is the `<input>` inside it, so a bare
+  // reference.focus() was a no-op there and focus still ended on <body>
+  // (measured). Fall back to the anchor's first tab stop.
+  const focusReference = (): void => {
+    if (!reference) return;
+    reference.focus?.();
+    const root = reference.getRootNode() as Document | ShadowRoot;
+    const active = (root as DocumentOrShadowRoot).activeElement;
+    if (active && reference.contains(active)) return;
+    reference
+      .querySelector<HTMLElement>(
+        'input, button, select, textarea, a[href], [tabindex]:not([tabindex="-1"])',
+      )
+      ?.focus?.();
+  };
+
   // Fully unmounts (not just CSS-hides) the panel — mirrors show()'s own
   // insert-on-demand: a closed floating component holds no DOM/listeners.
   // ensureMounted() re-inserts a fresh panel node next time show() runs.
@@ -238,21 +360,30 @@ function attachFloating(
   const instantHide = () => {
     cleanup?.();
     cleanup = null;
-    if (floatingNode) {
-      floatingNode.remove();
-      floatingNode = null;
-    }
+    // WCAG 2.4.3 Focus Order: removing the panel while it holds the focus
+    // drops the caret to <body> and strands a keyboard user at the top of the
+    // document (measured: selectBox trigger -> ArrowDown -> Escape left
+    // document.activeElement === BODY). Radix DismissableLayer and React Aria
+    // both return focus to the trigger. The containment test IS the
+    // "don't steal focus" guard Radix gets from its pointer/focus-outside
+    // tracking: if the dismissal happened because the user clicked or tabbed
+    // to something else, the focus already left the panel and we leave it
+    // alone. With nested panels only the innermost one contains the focus, so
+    // Escape returns focus exactly one level.
+    const restoreFocus = focusIsInsidePanel();
+    detachPanel();
     floating = null;
     mounted = false;
+    if (restoreFocus) focusReference();
     dismissOpen(openState, onDismiss);
   };
   const show = () => {
     timer && clearTimeout(timer);
-    timer = setTimeout(instantShow, 100);
+    timer = setTimeout(instantShow, openDelay);
   };
   const hide = () => {
     timer && clearTimeout(timer);
-    timer = setTimeout(instantHide, 100);
+    timer = setTimeout(instantHide, closeDelay);
   };
 
   const handleOutside = (event: MouseEvent) => {
@@ -271,8 +402,24 @@ function attachFloating(
   // shadow root still reach it). Idempotent alongside the trigger/panel-level
   // Escape handlers: hide() is debounced and re-arming it on an
   // already-closed panel is a no-op.
+  // ...but only for the TOP layer. Panels portal as siblings of one another in
+  // the shared overlay container in mount order, so the last element
+  // child is the innermost open layer — the same stack Radix's DismissableLayer
+  // keeps. Without this, a document-level Escape closed every open panel at
+  // once: measured with a popover opened from inside another popover, one
+  // Escape removed both, and because the outer's hide() ran first it tore out
+  // the inner's trigger, so the restored focus landed on a detached element and
+  // fell through to <body>. The panel's own `onKeyDown` above still closes
+  // whichever layer actually holds the focus.
+  const isTopLayer = () =>
+    !!floating && floating.parentElement?.lastElementChild === floating;
   const handleEscape = (event: Event) => {
-    if ((event as KeyboardEvent).key === "Escape" && openState.get()) hide();
+    if (
+      (event as KeyboardEvent).key === "Escape" &&
+      openState.get() &&
+      isTopLayer()
+    )
+      hide();
   };
   const escapeTarget: EventTarget | null =
     rootNode.domElement?.ownerDocument ?? rootNode.domElement ?? null;
@@ -325,6 +472,8 @@ function attachFloating(
       placement = props.placement;
       content = props.content;
       keepOpenOnContentHover = props.keepOpenOnContentHover;
+      openDelay = props.openDelay;
+      closeDelay = props.closeDelay;
       wireContent(content);
       stampPanelBehavior(content);
       // Reflect the new generation's declared content into the already-
@@ -347,8 +496,7 @@ function attachFloating(
       timer = null;
       cleanup?.();
       cleanup = null;
-      floatingNode?.remove();
-      floatingNode = null;
+      detachPanel();
       floating = null;
       mounted = false;
       release();
@@ -371,6 +519,9 @@ function createFloating(props: {
   placement: State<Placement>;
   content: DomphyElement;
   keepOpenOnContentHover?: boolean;
+  // Hover-intent debounce, in ms. Defaults to FLOATING_DEFAULT_DELAY_MS.
+  openDelay?: number;
+  closeDelay?: number;
 }) {
   const { kind, placement, onDismiss } = props;
   const openState = asOpenState(props.open);
@@ -402,10 +553,12 @@ function createFloating(props: {
       placement,
       content: props.content,
       keepOpenOnContentHover: !!props.keepOpenOnContentHover,
+      openDelay: props.openDelay ?? FLOATING_DEFAULT_DELAY_MS,
+      closeDelay: props.closeDelay ?? FLOATING_DEFAULT_DELAY_MS,
     }),
   };
 
-  return { show, hide, anchorPartial };
+  return { show, hide, anchorPartial, openState };
 }
 
-export { createFloating, floatingPanelId };
+export { createFloating, floatingPanelId, hasOpenFloatingPanel };

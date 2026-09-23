@@ -10,7 +10,9 @@ Use `combobox` on a `div` element. It displays selected values as removable tags
 
 `combobox` gives the dropdown panel a default surface (background, `"border-strong"` outline, density-scaled radius, medium `elevation()` shadow) so it's usable without the caller styling `content` itself — `selectList`/`selectItem` (or any custom content) render on top of that surface.
 
-The default filter input is `role="combobox"` with `aria-expanded`, `aria-controls` (the floating list id), and `aria-haspopup="listbox"`. Typed filter text is kept — the input is not forced back to `""`.
+The default filter input is `role="combobox"` with `aria-expanded`, `aria-controls` (the floating list id), `aria-haspopup="listbox"` and `aria-autocomplete="list"` — the WAI-ARIA APG [Combobox with List Autocomplete](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/) pattern. Typed filter text is kept — the input is not forced back to `""`.
+
+Keyboard: ArrowDown from the input opens the popup (if closed) and moves focus to its first `[role=option]`; ArrowUp moves to the last. Once focus is inside a `selectList` panel its own listbox keyboard model takes over (arrows, Home/End, Enter/Space). Escape dismisses the popup from anywhere and returns focus to the input. The popup opens on click, on typing and on ArrowDown — not on plain focus, which would make Escape un-dismissable.
 
 ## Props
 

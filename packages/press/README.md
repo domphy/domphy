@@ -8,7 +8,7 @@ A VitePress-baseline static documentation site framework built on `@domphy/app`,
 
 - **VitePress-compatible Markdown** — containers (tip/warning/danger/info), code-group tabs, `<<<` file imports, `!!!include(path)!!!` file includes, GFM task lists, mark/sub/sup, emoji shortcodes
 - **Shiki syntax highlighting** — line highlighting, diff annotations, focus groups, copy button
-- **Automatic dark mode** — via `themeCSS()` + `pressCSS()` CSS vars; no flash of unstyled content
+- **Automatic dark mode** — via `themeCSS()` + `pressCSS()` CSS vars; follows `prefers-color-scheme` until the visitor picks a theme, then remembers it; applied before first paint, so no flash
 - **Built-in local search** — client-side JSON index, no server required, fetched lazily on first search intent
 - **Full navigation** — top nav, sidebar with collapsible groups and badges, TOC aside, prev/next links
 - **Extras** — announcement bar, social links, edit link, last-updated (from git), reading time, heading anchors, mermaid diagrams, i18n locale routing
@@ -80,6 +80,6 @@ import { startDevServer } from "@domphy/press"
 const { server, notify } = startDevServer(outDir, 3000)
 ```
 
-The `./browser` subpath exports the client-side island runtime (search widget, layout shells) for Vite/browser bundles — no Node.js built-ins.
+The `./browser` subpath exports the client-side island runtime (search widget, layout shells) and the full Markdown pipeline (`parseMarkdown`/`markdownToDomphy`/`createMarkdown`/`walkMdast`/…) for Vite/browser bundles — no Node.js built-ins. The only main-entry-exclusive markdown behaviour is `createMarkdown({ math: true })`, which resolves the optional `remark-math` peer via Node; in the browser pass the plugin explicitly through `plugins`.
 
 See the [full docs](https://domphy.com/docs/press/) for configuration reference, Markdown features, routing, search, i18n, and deployment guides.

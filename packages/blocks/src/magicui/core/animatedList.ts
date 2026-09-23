@@ -25,6 +25,7 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { motion, small, strong, transitionGroup } from "@domphy/ui";
+import { prefersReducedMotion } from "../reducedMotion.js";
 
 export interface AnimatedListItem {
   /** Emoji or short glyph rendered inside the colored badge square. */
@@ -123,8 +124,21 @@ function attachAnimatedList(
     }, props.intervalDelay);
   };
 
-  pushNext();
-  startTimer();
+  if (prefersReducedMotion()) {
+    // WCAG 2.2.2: the once-through reveal drips one card per `intervalDelay`
+    // for as long as `items` lasts (50 seconds with the zero-arg demo feed).
+    // Under reduce the feed is presented already filled — `maxItems` cards,
+    // the number the container is sized to show — and the timer never starts.
+    for (
+      let index = 0;
+      index < Math.min(props.maxItems, props.items.length);
+      index += 1
+    )
+      pushNext();
+  } else {
+    pushNext();
+    startTimer();
+  }
 
   return {
     visibleEntries,

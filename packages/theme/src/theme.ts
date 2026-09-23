@@ -8,14 +8,34 @@ import type { PartialThemeInput, ThemeInput, ThemeVars } from "./types.js";
 const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v));
 
 // Custom-token keys may contain CSS-illegal characters (e.g. "radius/sm/lg").
-// Map every illegal char to "_" so the declared property name and the var()
-// reference always agree and stay valid CSS.
-const escapeKey = (k: string): string => k.replace(/[^a-zA-Z0-9_-]/g, "_");
+// [a-zA-Z0-9-] pass through unchanged (hyphen is both a legal CSS ident char
+// and extremely common in real token names — "sans-serif", "border-radius"
+// — escaping it would mangle those for no reason). Everything else,
+// INCLUDING a literal "_", is escaped as `_<hex charcode>_`: "_" has to be
+// escaped too so it can be reserved as the escape delimiter — otherwise a
+// literal "_" in one key could imitate part of another key's escape
+// sequence. That makes the mapping injective (collision-free): the only way
+// a "_" appears in the output is this escape, so decoding is unambiguous and
+// two distinct keys can never collapse onto the same escaped string. (The
+// prior version mapped every illegal char to a bare "_" with no positional
+// info, so "radius/sm" and "radius sm" both produced "radius_sm".)
+const escapeKey = (k: string): string =>
+  k.replace(/[^a-zA-Z0-9-]/g, (c) => `_${c.charCodeAt(0).toString(16)}_`);
 
 const themes: Record<string, ThemeInput> = {
   light: clone(light),
   dark: createDark(light),
 };
+
+// Every explicit setTheme("dark", …) payload, accumulated. "dark" is a
+// DERIVATION of "light" (createDark reverses each ramp), so it has to be
+// rebuilt whenever "light" changes: without this,
+// setTheme("light", generateTheme({ primary: brand })) left "dark" on the
+// stock blue ramp, and a role registered only on "light" was missing from
+// "dark" entirely (themeColor(..., role) threw there). Replaying the
+// overrides on top of the rebuild keeps deliberate dark-only customization
+// regardless of call order.
+const darkOverrides: PartialThemeInput = {};
 
 // Number of tone steps in every color ramp. The tone model (shift-N /
 // increase-N / decrease-N, edge anchors, contrast rules) is baked around this
@@ -32,6 +52,16 @@ const FONT_SIZE_STEPS = 8;
 // Number of entries in the densities scale (themeDensity spans
 // increase/decrease 0–4 — see ElementDensities in density.ts).
 const DENSITY_STEPS = 5;
+
+// ThemeInput keys holding a NAMED token record (not a positional scale like
+// fontSizes) → the CSS custom-property prefix they emit. The prefix is the CSS
+// property the token feeds (--fontWeight-medium: 500), so a declaration in
+// devtools and the token that produced it read the same.
+const NAMED_TOKEN_PREFIX: Record<string, string> = {
+  fontFamilies: "fontFamily",
+  fontWeights: "fontWeight",
+  letterSpacings: "letterSpacing",
+};
 
 // Memo caches. themeVars() depends only on the theme STRUCTURE (color names,
 // tone steps, custom keys) — it emits `var(--…)` references, never resolved
@@ -79,6 +109,29 @@ function validateTheme(partial: PartialThemeInput): void {
       );
     }
     partial.fontSizes.forEach((v, i) => assertCssSafe(v!, `fontSizes[${i}]`));
+  }
+  // fontFamilies / fontWeights / letterSpacings are named records whose values
+  // are interpolated straight into the <style> block, same as colors. They are
+  // merged (deepMerge never deletes), so a partial can only add or replace a
+  // name — the built-in names stay resolvable.
+  for (const key of [
+    "fontFamilies",
+    "fontWeights",
+    "letterSpacings",
+  ] as const) {
+    if (!(key in partial)) continue;
+    const group = partial[key]!;
+    if (typeof group !== "object" || group === null || Array.isArray(group)) {
+      throw new Error(`${key} must be an object of non-empty strings`);
+    }
+    for (const name in group) {
+      const value = group[name];
+      if (typeof value !== "string" || value.length === 0) {
+        throw new Error(`${key}.${name} must be a non-empty string`);
+      }
+      assertCssSafe(name, `${key} name "${name}"`);
+      assertCssSafe(value, `${key}.${name}`);
+    }
   }
   if (partial.densities) {
     if (
@@ -199,6 +252,12 @@ function deepMerge(target: any, source: any): void {
     ) {
       target[key] ??= {};
       deepMerge(target[key], source[key]);
+    } else if (Array.isArray(source[key])) {
+      // Shallow clone: a ramp/densities array registered via setTheme() must
+      // not stay aliased to the caller's array — mutating the caller's array
+      // afterwards would silently mutate the registered theme. Elements are
+      // always primitives (hex strings, numbers), so a shallow copy suffices.
+      target[key] = [...source[key]];
     } else {
       target[key] = source[key];
     }
@@ -207,11 +266,46 @@ function deepMerge(target: any, source: any): void {
 
 // --- Builders (pure functions) ---
 
-function buildThemeCSS(name: string, input: ThemeInput): string {
+// A theme name is interpolated RAW into a quoted attribute selector in
+// buildThemeCSS() (`[data-theme="${name}"]`), not through escapeKey() — a
+// theme name has no collision-safety requirement of its own (setTheme()
+// already keys `themes` by the exact string). A bare `"`, with none of
+// assertCssSafe()'s existing ";"/"}"/"</style" chars, is still enough to
+// close that quoted value early and start a fresh selector (e.g.
+// `x"],script{color:red`) that rides the theme block's own trailing "}" to
+// close itself. Checked once here and called from BOTH setTheme() (so a bad
+// name is rejected before it ever enters the registry) and buildThemeCSS()
+// (defense in depth against a registry mutated some other way).
+function assertThemeNameSafe(name: string): void {
   assertCssSafe(name, "theme name");
+  if (name.includes('"')) {
+    throw new Error(
+      'theme name contains a double-quote (") character — it is interpolated into a [data-theme="…"] attribute selector',
+    );
+  }
+}
+
+function buildThemeCSS(name: string, input: ThemeInput): string {
+  assertThemeNameSafe(name);
   const styles: Record<string, string | number> = {};
   const toneSteps = colorSteps(input);
-  const safeName = escapeKey(name);
+
+  // Native UI — scrollbars, form controls, the date/color pickers, spellcheck
+  // underlines — follows `color-scheme`, never our custom properties: without
+  // it a dark theme still renders white scrollbars and white <input> internals.
+  // Derived from `direction`, not hard-coded per name: a theme that DARKENS
+  // away from its edge is light-based, one that LIGHTENS is dark-based, which
+  // is exactly how createDark() flips it. Emitted here (not from JS) so SSR
+  // output is already correct — no flash before hydration.
+  styles["color-scheme"] = input.direction === "lighten" ? "dark" : "light";
+
+  // The document's own font stack. Without it a page that only calls
+  // themeApply() inherits the UA default, which is a serif — AGENTS.md's
+  // "theme owns the font stack" rule has nowhere to hold otherwise, and every
+  // patch would have to restate fontFamily to escape Times New Roman.
+  // Declared on the themed root so it inherits and any element/patch rule wins.
+  const rootFamily = input.fontFamilies?.["sans-serif"];
+  if (rootFamily) styles["font-family"] = rootFamily;
 
   for (const key in input) {
     const value = input[key as keyof ThemeInput];
@@ -227,6 +321,11 @@ function buildThemeCSS(name: string, input: ThemeInput): string {
       [...Array(FONT_SIZE_STEPS).keys()].forEach(
         (i) => (styles[`--fontSize-${i}`] = input.fontSizes[i]),
       );
+    } else if (NAMED_TOKEN_PREFIX[key]) {
+      const group = value as Record<string, string>;
+      for (const name in group) {
+        styles[`--${NAMED_TOKEN_PREFIX[key]}-${escapeKey(name)}`] = group[name];
+      }
     } else if (key === "custom") {
       if (value && typeof value === "object") {
         for (const k in value as Record<string, string>) {
@@ -243,7 +342,23 @@ function buildThemeCSS(name: string, input: ThemeInput): string {
   for (const prop in styles) {
     text += `  ${prop}: ${styles[prop]};\n`;
   }
-  return `[data-theme="${safeName}"] {\n${text}}`;
+  // "light" is the registry's base theme — createDark() derives from it,
+  // setTheme() seeds every new theme from clone(light), themeVars() reads it,
+  // and themeName() returns "light" when no [data-theme] ancestor exists. The
+  // JS resolver therefore already falls back to light; without the :root
+  // selector the CSS side did NOT, so a page that never sets data-theme
+  // resolved every var(--…) to nothing and rendered unstyled with no error.
+  // Peers put the default tokens on :root the same way (Tailwind v4 @theme,
+  // MUI CssVarsProvider, Radix Colors, Open Props) and override via a
+  // class/attribute. `:root` and `[data-theme="…"]` have identical
+  // specificity (0,1,0), and themeCSS() emits light first (insertion order of
+  // `themes`), so any later [data-theme] block still wins on <html> itself.
+  // Proven in a real browser by packages/theme/e2e/tokens.spec.ts.
+  const selector =
+    name === "light"
+      ? `:root,\n[data-theme="light"]`
+      : `[data-theme="${name}"]`;
+  return `${selector} {\n${text}}`;
 }
 
 // --- Public API ---
@@ -254,10 +369,12 @@ export function getTheme(name: string): ThemeInput {
 }
 
 export function setTheme(name: string, input: PartialThemeInput): void {
-  assertCssSafe(name, "theme name");
+  assertThemeNameSafe(name);
   validateTheme(input);
   if (!themes[name]) themes[name] = clone(light);
   deepMerge(themes[name], input);
+  if (name === "dark") deepMerge(darkOverrides, input);
+  if (name === "light" || name === "dark") rebuildDark();
   // Structure/values may have changed → drop memoized derivations.
   _themeVarsCache = null;
   _themeTokensCache.clear();
@@ -268,9 +385,20 @@ function createDark(source: ThemeInput): ThemeInput {
   dark.direction = "lighten";
   for (const name in dark.colors) {
     dark.colors[name].reverse();
-    dark.baseTones[name] = dark.colors[name].length - 1 - dark.baseTones[name];
+    // A role registered without a baseTones entry stays without one, so
+    // requireBaseTone() throws its actionable message instead of indexing the
+    // ramp with NaN (length - 1 - undefined).
+    if (typeof dark.baseTones[name] === "number") {
+      dark.baseTones[name] =
+        dark.colors[name].length - 1 - dark.baseTones[name];
+    }
   }
   return dark;
+}
+
+function rebuildDark(): void {
+  themes.dark = createDark(themes.light);
+  deepMerge(themes.dark, darkOverrides);
 }
 
 export function themeTokens(name: string): Record<string, any> {
@@ -293,6 +421,8 @@ export function themeTokens(name: string): Record<string, any> {
       }
     } else if (key === "fontSizes") {
       tokens.fontSizes = input.fontSizes;
+    } else if (NAMED_TOKEN_PREFIX[key]) {
+      tokens[key] = { ...(value as Record<string, string>) };
     } else if (key === "densities") {
       tokens.densities = input.densities;
     } else if (key === "custom") {
@@ -332,6 +462,13 @@ export function themeVars(): ThemeVars {
       theme.fontSizes = [...Array(FONT_SIZE_STEPS).keys()].map(
         (i) => `var(--fontSize-${i})`,
       );
+    } else if (NAMED_TOKEN_PREFIX[key]) {
+      const references: Record<string, string> = {};
+      for (const name in value as Record<string, string>) {
+        references[name] =
+          `var(--${NAMED_TOKEN_PREFIX[key]}-${escapeKey(name)})`;
+      }
+      (theme as Record<string, unknown>)[key] = references;
     } else if (key === "custom") {
       theme.custom = {} as Record<string, string>;
       if (value && typeof value === "object") {
@@ -347,10 +484,27 @@ export function themeVars(): ThemeVars {
   return theme;
 }
 
+// Standard form-control font reset (the same rule normalize.css/modern-normalize
+// ship): Chromium/Firefox/Safari default <button>/<input>/<select>/<textarea>/
+// <optgroup> to the UA form-control font stack (Chromium: Arial), not the
+// inherited document font. Without this, every themed form-control patch had
+// to restate `fontFamily: "inherit"` itself to escape it — root-fixed here so
+// those per-patch overrides (17 declarations across 14 @domphy/ui patches)
+// become removable: a patch's own per-node style class still outranks this
+// bare-tag rule by specificity, so a patch that DOES want to override font
+// still can. Theme-independent (not tied to light/dark), so it is emitted
+// once, outside the per-theme selector blocks.
+const FORM_CONTROL_FONT_RESET =
+  "button,input,select,textarea,optgroup{font:inherit}";
+
+// The `:root` (attribute-less page) fallback this relies on, and the 504/504
+// resolveToneStep matrix, are proven against real Chromium by
+// packages/theme/e2e/tokens.spec.ts (`pnpm --filter @domphy/theme test:e2e`).
 export function themeCSS(): string {
-  return Object.entries(themes)
+  const themeBlocks = Object.entries(themes)
     .map(([name, input]) => buildThemeCSS(name, input))
     .join("\n");
+  return `${themeBlocks}\n${FORM_CONTROL_FONT_RESET}`;
 }
 
 export function themeApply(el?: HTMLStyleElement): void {
@@ -446,9 +600,23 @@ export function applySystemTheme(
   const target = targetEl ?? document.documentElement;
   const { persist = true, storageKey = "dp-theme" } = options;
 
+  // Touching window.localStorage THROWS (not returns null) when storage is
+  // partitioned or blocked: a sandboxed <iframe> without allow-same-origin,
+  // Chrome's "block third-party cookies", Safari private mode quota. Domphy
+  // ships inside embedded web views where that is normal, and an uncaught
+  // SecurityError here would take down app startup over a preference. Fall
+  // back to the OS preference instead.
+  const readStored = (): string | null => {
+    try {
+      return localStorage.getItem(storageKey);
+    } catch {
+      return null;
+    }
+  };
+
   const resolve = (): "light" | "dark" => {
     if (persist) {
-      const saved = localStorage.getItem(storageKey);
+      const saved = readStored();
       if (saved === "light" || saved === "dark") return saved;
     }
     return window.matchMedia("(prefers-color-scheme: dark)").matches
@@ -461,7 +629,7 @@ export function applySystemTheme(
   const mql = window.matchMedia("(prefers-color-scheme: dark)");
   const handler = (event: MediaQueryListEvent) => {
     // Only follow the OS change when there is no user-saved preference.
-    if (!persist || !localStorage.getItem(storageKey)) {
+    if (!persist || !readStored()) {
       target.setAttribute("data-theme", event.matches ? "dark" : "light");
     }
   };

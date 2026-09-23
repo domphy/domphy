@@ -1,12 +1,21 @@
 import type { Device } from "@luma.gl/core";
+import {
+  layoutBarSeries,
+  layoutCandlestickSeries,
+} from "./coord/barPositions.js";
 import type { ZoomWindow } from "./coord/grid.js";
 import { resolveGrid } from "./coord/grid.js";
 import { applyDatasetToSeries, fillCategoryAxes } from "./dataset/transform.js";
 import { BarRenderer } from "./gl/BarRenderer.js";
 import { CandlestickRenderer } from "./gl/CandlestickRenderer.js";
-import { createColorResolver, seriesColor } from "./gl/color.js";
+import {
+  createColorResolver,
+  cssColor,
+  seriesColor,
+  seriesPaletteFamily,
+} from "./gl/color.js";
 import { getDevice, releaseDevice } from "./gl/device.js";
-import { GaugeRenderer } from "./gl/GaugeRenderer.js";
+import { computeGaugeArcs, GaugeRenderer } from "./gl/GaugeRenderer.js";
 import { HeatmapRenderer } from "./gl/HeatmapRenderer.js";
 import { LineRenderer } from "./gl/LineRenderer.js";
 import {
@@ -14,16 +23,45 @@ import {
   computePieSlices,
   PieRenderer,
 } from "./gl/PieRenderer.js";
-import { RadarRenderer } from "./gl/RadarRenderer.js";
+import {
+  computeRadarPolygons,
+  pointInPolygon,
+  RadarRenderer,
+} from "./gl/RadarRenderer.js";
 import { renderGrid3D } from "./gl/Renderer3D.js";
 import { ScatterRenderer } from "./gl/ScatterRenderer.js";
+import {
+  createBrushStates,
+  createItemStates,
+  type ItemStateResolver,
+  itemStatesEnabled,
+  NO_ITEM_STATES,
+  selectedModeOf,
+  selectionKey,
+} from "./itemStates.js";
 import { renderMarksToSvg } from "./marks/index.js";
 import { renderAxes, renderAxisPointer } from "./overlay/axes.js";
-import { renderBoxplot } from "./overlay/boxplot.js";
+import { computeBoxplotLayout, renderBoxplot } from "./overlay/boxplot.js";
+import type {
+  BrushController,
+  BrushSelectedParams,
+  BrushSeriesPoints,
+  BrushSeriesRects,
+} from "./overlay/brush.js";
+import { renderBrush } from "./overlay/brush.js";
 import { renderCalendar } from "./overlay/calendar.js";
-import { setupDataZoom, setupInsideZoom } from "./overlay/datazoom.js";
+import { renderCustom } from "./overlay/custom.js";
+import {
+  reserveDataZoomSpace,
+  setupDataZoom,
+  setupInsideZoom,
+} from "./overlay/datazoom.js";
 import { renderEffectScatter } from "./overlay/effectscatter.js";
-import { renderFunnel } from "./overlay/funnel.js";
+import {
+  computeFunnelLayout,
+  pointInFunnelTrapezoid,
+  renderFunnel,
+} from "./overlay/funnel.js";
 import { renderGeoMap } from "./overlay/geomap.js";
 import { renderGraph } from "./overlay/graph.js";
 import { renderSeriesLabels, renderSeriesSymbols } from "./overlay/labels.js";
@@ -34,14 +72,18 @@ import { renderPictorialBar } from "./overlay/pictorialbar.js";
 import { renderSankey } from "./overlay/sankey.js";
 import { renderThemeRiver } from "./overlay/themeriver.js";
 import { renderTitle } from "./overlay/title.js";
+import { renderToolbox } from "./overlay/toolbox.js";
 import { createTooltip } from "./overlay/tooltip.js";
 import { renderTreemap } from "./overlay/treemap.js";
-import { renderVisualMap } from "./overlay/visualmap.js";
+import { renderVisualMap, visualMapForSeries } from "./overlay/visualmap.js";
 import type {
   AxisOption,
   Bar3DSeriesOption,
+  BarSeriesOption,
   BoxplotSeriesOption,
   ChartOption,
+  ChartRect,
+  CustomSeriesOption,
   EffectScatterSeriesOption,
   FunnelSeriesOption,
   GraphSeriesOption,
@@ -53,6 +95,7 @@ import type {
   PictorialBarSeriesOption,
   SankeySeriesOption,
   Scatter3DSeriesOption,
+  SelectChangedParams,
   SeriesOption,
   Surface3DSeriesOption,
   ThemeRiverSeriesOption,
@@ -240,7 +283,7 @@ function hitTestCartesianItem(
         dataIndex,
         data: item,
         value: xy.yVal,
-        color: seriesColor(globalIdx),
+        color: cssColor(s.color, globalIdx),
         percent: undefined,
       };
     }
@@ -268,6 +311,29 @@ function defaultTooltipTrigger(series: SeriesOption[]): "item" | "axis" {
       s.type === "pictorialBar",
   );
   return pieLike && !cartesian ? "item" : "axis";
+}
+
+// Accessible name for the chart's overlay SVG (role="img"). Title first — it
+// is what a sighted reader sees — then a plain description of what is drawn.
+function chartAccessibleName(option: ChartOption): string {
+  const titles = Array.isArray(option.title)
+    ? option.title
+    : option.title
+      ? [option.title]
+      : [];
+  const titleText = titles
+    .map((t) => [t.text, t.subtext].filter(Boolean).join(" — "))
+    .filter(Boolean)
+    .join(", ");
+  if (titleText) return titleText;
+
+  const series = option.series ?? [];
+  if (series.length === 0) return "Empty chart";
+  const types = [...new Set(series.map((s) => s.type ?? "chart"))].join(", ");
+  const names = series.map((s) => s.name).filter(Boolean);
+  return names.length > 0
+    ? `${types} chart: ${names.join(", ")}`
+    : `${types} chart`;
 }
 
 function seriesNameSetKey(series: SeriesOption[]): string {
@@ -348,13 +414,255 @@ function hitTestScatter(
           dataIndex: di,
           data: item,
           value: [xVal, yVal],
-          color: seriesColor(globalIdx),
+          color: cssColor(s.color, globalIdx),
           percent: undefined,
         };
       }
     }
   }
   return nearest;
+}
+
+// Item-trigger hit-test for heatmap: a rect per cell, same bandwidth math
+// HeatmapRenderer.ts draws from (bw/bh — see its render()).
+function hitTestHeatmapItem(
+  series: any[],
+  mx: number,
+  my: number,
+  xScales: any[],
+  yScales: any[],
+  allSeries: SeriesOption[],
+): TooltipParams | null {
+  for (const s of series) {
+    if (s.type !== "heatmap") continue;
+    if (
+      s.coordinateSystem !== undefined &&
+      s.coordinateSystem !== "cartesian2d"
+    )
+      continue;
+    const xScale = xScales[s.xAxisIndex ?? 0];
+    const yScale = yScales[s.yAxisIndex ?? 0];
+    if (!xScale || !yScale) continue;
+    const halfW = (xScale.bandwidth() || 20) / 2;
+    const halfH =
+      (Math.abs(yScale.bandwidth ? yScale.bandwidth() : 20) || 20) / 2;
+    const data: [number, number, number][] = s.data ?? [];
+    const globalIdx = allSeries.indexOf(s);
+    for (let di = 0; di < data.length; di++) {
+      const [xVal, yVal, value] = data[di];
+      if (!Number.isFinite(value)) continue;
+      const px = xScale.map(xVal);
+      const py = yScale.map(yVal);
+      if (Math.abs(mx - px) > halfW || Math.abs(my - py) > halfH) continue;
+      return {
+        componentType: "series",
+        seriesType: "heatmap",
+        seriesIndex: globalIdx,
+        seriesName: s.name ?? "",
+        name: `${xVal}, ${yVal}`,
+        dataIndex: di,
+        data: data[di],
+        value,
+        color: cssColor(s.color, globalIdx),
+        percent: undefined,
+      };
+    }
+  }
+  return null;
+}
+
+// Item-trigger hit-test for candlestick: the same body+wick bounding box
+// coord/barPositions.ts#layoutCandlestickSeries() derives for the renderer
+// and for brush hit-testing — one geometry source, three consumers.
+function hitTestCandlestickItem(
+  series: any[],
+  mx: number,
+  my: number,
+  xScales: any[],
+  yScales: any[],
+  allSeries: SeriesOption[],
+): TooltipParams | null {
+  const candleSeries = series.filter((s) => s.type === "candlestick");
+  if (candleSeries.length === 0) return null;
+  const positions = layoutCandlestickSeries(candleSeries, xScales, yScales);
+  for (let localIdx = 0; localIdx < candleSeries.length; localIdx++) {
+    const s = candleSeries[localIdx];
+    const rects = positions.get(localIdx);
+    if (!rects) continue;
+    const globalIdx = allSeries.indexOf(s);
+    const data = s.data ?? [];
+    for (let di = 0; di < rects.length; di++) {
+      const rect = rects[di];
+      if (!rect) continue;
+      if (
+        mx < rect.x ||
+        mx > rect.x + rect.width ||
+        my < rect.y ||
+        my > rect.y + rect.height
+      )
+        continue;
+      return {
+        componentType: "series",
+        seriesType: "candlestick",
+        seriesIndex: globalIdx,
+        seriesName: s.name ?? "",
+        name: String(di),
+        dataIndex: di,
+        data: data[di],
+        value: data[di],
+        color: cssColor(s.color, globalIdx),
+        percent: undefined,
+      };
+    }
+  }
+  return null;
+}
+
+// Item-trigger hit-test for boxplot: the whole box+whisker bounding extent,
+// the same geometry overlay/boxplot.ts#computeBoxplotLayout() draws from.
+function hitTestBoxplotItem(
+  series: any[],
+  mx: number,
+  my: number,
+  xScales: any[],
+  yScales: any[],
+  allSeries: SeriesOption[],
+  hiddenSeries: ReadonlySet<string>,
+): TooltipParams | null {
+  const boxSeries = series.filter((s) => s.type === "boxplot");
+  if (boxSeries.length === 0) return null;
+  const boxes = computeBoxplotLayout(boxSeries, xScales, yScales, hiddenSeries);
+  for (const box of boxes) {
+    if (mx < box.xLeft || mx > box.xRight || my < box.yTop || my > box.yBottom)
+      continue;
+    const s = boxSeries[box.seriesIndex];
+    const globalIdx = allSeries.indexOf(s);
+    const item = (s.data ?? [])[box.dataIndex];
+    return {
+      componentType: "series",
+      seriesType: "boxplot",
+      seriesIndex: globalIdx,
+      seriesName: s.name ?? "",
+      name: String(box.dataIndex),
+      dataIndex: box.dataIndex,
+      data: item,
+      value: item,
+      color: seriesColor(box.seriesIndex),
+      percent: undefined,
+    };
+  }
+  return null;
+}
+
+// Item-trigger hit-test for radar: point-in-polygon per shape, the same
+// polygon RadarRenderer.ts#computeRadarPolygons() draws from.
+function hitTestRadarItem(
+  series: any[],
+  mx: number,
+  my: number,
+  width: number,
+  height: number,
+  allSeries: SeriesOption[],
+  radars: any[],
+): TooltipParams | null {
+  const radarSeries = series.filter((s) => s.type === "radar");
+  if (radarSeries.length === 0) return null;
+  const layouts = computeRadarPolygons(radarSeries, radars, width, height);
+  for (const layout of layouts) {
+    if (!pointInPolygon(mx, my, layout.polygon)) continue;
+    const s = radarSeries[layout.seriesIndex];
+    const globalIdx = allSeries.indexOf(s);
+    const item = (s.data ?? [])[layout.dataIndex];
+    return {
+      componentType: "series",
+      seriesType: "radar",
+      seriesIndex: globalIdx,
+      seriesName: s.name ?? "",
+      name: (item as any)?.name ?? String(layout.dataIndex),
+      dataIndex: layout.dataIndex,
+      data: item,
+      value: (item as any)?.value,
+      color: cssColor(s.color, globalIdx + layout.dataIndex),
+      percent: undefined,
+    };
+  }
+  return null;
+}
+
+// Item-trigger hit-test for funnel: point-in-trapezoid per slice, the same
+// trapezoid overlay/funnel.ts#computeFunnelLayout() draws from.
+function hitTestFunnelItem(
+  series: any[],
+  mx: number,
+  my: number,
+  width: number,
+  height: number,
+  allSeries: SeriesOption[],
+  hiddenSeries: ReadonlySet<string>,
+): TooltipParams | null {
+  const funnelSeries = series.filter((s) => s.type === "funnel");
+  if (funnelSeries.length === 0) return null;
+  const slices = computeFunnelLayout(funnelSeries, width, height, hiddenSeries);
+  for (const slice of slices) {
+    if (!pointInFunnelTrapezoid(mx, my, slice)) continue;
+    const s = funnelSeries[slice.seriesIndex];
+    const globalIdx = allSeries.indexOf(s);
+    return {
+      componentType: "series",
+      seriesType: "funnel",
+      seriesIndex: globalIdx,
+      seriesName: s.name ?? "",
+      name: slice.item.name ?? String(slice.dataIndex),
+      dataIndex: slice.dataIndex,
+      data: slice.item,
+      value: slice.item.value,
+      color: slice.color,
+      percent: undefined,
+    };
+  }
+  return null;
+}
+
+// Item-trigger hit-test for gauge: annulus + angular-sweep test against the
+// progress arc, the same geometry GaugeRenderer.ts#computeGaugeArcs() draws
+// from. Reuses angleInPieSlice's direction-agnostic sweep test (PieRenderer.ts)
+// with the cursor angle computed in gauge's own convention (screen y flipped).
+function hitTestGaugeItem(
+  series: any[],
+  mx: number,
+  my: number,
+  width: number,
+  height: number,
+  allSeries: SeriesOption[],
+): TooltipParams | null {
+  const gaugeSeries = series.filter((s) => s.type === "gauge");
+  if (gaugeSeries.length === 0) return null;
+  const arcs = computeGaugeArcs(gaugeSeries, width, height);
+  // Later items are drawn on top (GaugeRenderer.ts's forEach order), so
+  // prefer the last matching arc — it is the one actually visible.
+  for (let i = arcs.length - 1; i >= 0; i--) {
+    const arc = arcs[i];
+    const dist = Math.hypot(mx - arc.cx, my - arc.cy);
+    if (dist < arc.innerRadius || dist > arc.radius) continue;
+    const cursor = Math.atan2(-(my - arc.cy), mx - arc.cx);
+    if (!angleInPieSlice(cursor, arc.startRad, arc.progressEndRad)) continue;
+    const s = gaugeSeries[arc.seriesIndex];
+    const globalIdx = allSeries.indexOf(s);
+    const item = (s.data ?? [])[arc.dataIndex];
+    return {
+      componentType: "series",
+      seriesType: "gauge",
+      seriesIndex: globalIdx,
+      seriesName: s.name ?? "",
+      name: (item as any)?.name ?? String(arc.dataIndex),
+      dataIndex: arc.dataIndex,
+      data: item,
+      value: arc.value,
+      color: cssColor(s.color, globalIdx + arc.dataIndex),
+      percent: undefined,
+    };
+  }
+  return null;
 }
 
 /** Series types with a real renderer path in this engine. */
@@ -382,6 +690,7 @@ const IMPLEMENTED_SERIES_TYPES = new Set([
   "bar3D",
   "line3D",
   "surface3D",
+  "custom",
 ]);
 
 /**
@@ -398,15 +707,37 @@ function warnOnce(message: string): void {
   console.warn(message);
 }
 
+/**
+ * Series-level keys that ask for a VISIBLE behavior and get nothing: measured
+ * by grepping every declared key of every *SeriesOption in types.ts for a read
+ * in src/ (`node scripts/inert-keys.mjs`). Keys that only affect paint order,
+ * timing or a performance hint — `z`/`zlevel`/`silent`/`animation*`/
+ * `progressive*`/`large*` — are left out on purpose: they would fire on almost
+ * every pasted ECharts option without telling the user anything about what
+ * they see. Every unimplemented key also carries a `@deprecated` marker in
+ * types.ts, and the full measured list is in docs/chart/vs-echarts.md.
+ * `emphasis`/`blur`/`select` left this table when itemStates.ts landed.
+ */
+const UNSUPPORTED_SERIES_KEYS = [
+  "labelLine",
+  "labelLayout",
+  "clip",
+  "endLabel",
+  "showBackground",
+  "backgroundStyle",
+  "realtimeSort",
+  "avoidLabelOverlap",
+  "dimensions",
+  "seriesLayoutBy",
+] as const;
+
 function warnUnsupportedChartOption(option: ChartOption): void {
-  if (option.toolbox != null) {
+  // rect/lineX/lineY are implemented (see mountBrush()/overlay/brush.ts);
+  // polygon (freehand area) is not — hit-testing an arbitrary path is a
+  // materially different, unimplemented problem from a rect/line range.
+  if (option.brush?.brushType === "polygon") {
     warnOnce(
-      "@domphy/chart: option.toolbox is typed for ECharts interop but is not implemented yet; it has no effect.",
-    );
-  }
-  if (option.brush != null) {
-    warnOnce(
-      "@domphy/chart: option.brush is typed for ECharts interop but is not implemented yet; it has no effect.",
+      "@domphy/chart: option.brush's brushType 'polygon' is not implemented — only 'rect'/'lineX'/'lineY' are; it has no effect.",
     );
   }
   const polarSeries = (
@@ -462,6 +793,13 @@ function warnUnsupportedChartOption(option: ChartOption): void {
         `@domphy/chart: series type "${type}" is not implemented; the series is ignored. Supported: ${[...IMPLEMENTED_SERIES_TYPES].join(", ")}.`,
       );
     }
+    for (const key of UNSUPPORTED_SERIES_KEYS) {
+      if ((entry as unknown as Record<string, unknown>)[key] != null) {
+        warnOnce(
+          `@domphy/chart: series.${key} is typed for ECharts interop but is not rendered; it has no effect.`,
+        );
+      }
+    }
   }
 }
 
@@ -487,6 +825,30 @@ export class ChartEngine {
 
   private tooltipCtrl: ReturnType<typeof createTooltip> | null = null;
   private tooltipCleanup: (() => void) | null = null;
+  private toolboxCleanup: (() => void) | null = null;
+  private brushCleanup: (() => void) | null = null;
+  private brushController: BrushController | null = null;
+  private brushSelectedHandlers = new Set<
+    (params: BrushSelectedParams) => void
+  >();
+  // The last computed brush selection, for inBrush/outOfBrush dimming on the
+  // next render() — updated from renderBrush's onSelect callback, which
+  // fires synchronously on every commit/clear (see mountBrush()).
+  private brushSelectedKeys: Set<string> = new Set();
+  private brushedSeriesIndices: Set<number> = new Set();
+  private brushHasAreas = false;
+  // The option as the user passed it. The toolbox's magicType/dataView render
+  // a derived option through applyOption(), and "restore" must come back to
+  // this one, not to whatever the toolbox last applied.
+  private originalOption: ChartOption | null = null;
+  private applyingDerivedOption = false;
+  private lastGridRect: ChartRect | null = null;
+  private contextLossCleanup: (() => void) | null = null;
+  private clickHandlers = new Set<(params: TooltipParams) => void>();
+  private selectChangedHandlers = new Set<
+    (params: SelectChangedParams) => void
+  >();
+  private contextLost = false;
   private destroyed = false;
 
   // Interactive state
@@ -503,6 +865,23 @@ export class ChartEngine {
     update: (xAxisIndex: number, state: ZoomWindow) => void;
   } | null = null;
   private dataZoomKey = "";
+
+  // ─── Interaction states (emphasis / blur / select) ────────────────────────
+  // Off unless a series actually declares emphasis/blur/select/selectedMode:
+  // tracking hover means re-rendering when the hovered datum changes, and an
+  // ECharts option that says nothing about emphasis should cost nothing.
+  private itemStatesOn = false;
+  private hoverItem: { seriesIndex: number; dataIndex: number } | null = null;
+  private legendFocusIndex: number | null = null;
+  private selectedItems = new Set<string>();
+  private stateRenderQueued = false;
+  // The legend highlight that the last render() actually painted. render()
+  // rebuilds the legend DOM, which makes the browser replay blur/focus (and
+  // pointerout/pointerover) on the replacement nodes; those callbacks net out
+  // to the state already on screen, so without this they would schedule an
+  // endless render loop. Measured in Chromium before the guard: focusing one
+  // legend item drove 200+ renders and froze the page.
+  private paintedFocusIndex: number | null = null;
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -533,6 +912,86 @@ export class ChartEngine {
       "position:absolute;top:0;left:0;pointer-events:none;overflow:visible;";
     container.appendChild(svg);
     this.overlaysvg = svg;
+
+    this.bindContextLoss();
+  }
+
+  // A WebGL context is not permanent: the browser drops it on a GPU reset, on
+  // tab backgrounding under memory pressure, and once a page exceeds the
+  // per-page context limit (~16 in Chrome — reachable with a dashboard of
+  // charts). Without this the canvas stays blank forever. The default action
+  // of `webglcontextlost` makes the loss permanent, so it must be prevented
+  // for the browser to fire `webglcontextrestored` at all.
+  private bindContextLoss(): void {
+    const onLost = (event: Event) => {
+      // Preventing the default is what lets the browser fire
+      // `webglcontextrestored` at all; without it the loss is permanent.
+      event.preventDefault();
+      this.contextLost = true;
+      // Every GPU resource died with the context. The renderer wrappers hold
+      // dangling Buffer/Model handles, so drop them — calling destroy() on
+      // them would just replay invalid GL calls against the dead context.
+      this.barRenderer = null;
+      this.lineRenderer = null;
+      this.scatterRenderer = null;
+      this.pieRenderer = null;
+      this.radarRenderer = null;
+      this.heatmapRenderer = null;
+      this.candlestickRenderer = null;
+      this.gaugeRenderer = null;
+    };
+    const onRestored = () => {
+      if (this.destroyed || !this.device) return;
+      // This listener is registered in the constructor, i.e. before luma.gl's
+      // own — and the browser runs them in registration order. Rebuilding
+      // Models here synchronously would compile them against the context luma
+      // has not re-adopted yet ("useProgram: object does not belong to this
+      // context"). Yield one task so luma's handler lands first.
+      setTimeout(() => this.restoreAfterContextLoss(), 0);
+    };
+    this.canvas.addEventListener("webglcontextlost", onLost);
+    this.canvas.addEventListener("webglcontextrestored", onRestored);
+    this.contextLossCleanup = () => {
+      this.canvas.removeEventListener("webglcontextlost", onLost);
+      this.canvas.removeEventListener("webglcontextrestored", onRestored);
+    };
+  }
+
+  private restoreAfterContextLoss(): void {
+    if (this.destroyed) return;
+    // Rebuilding Models on the old Device is not enough: luma.gl caches every
+    // compiled RenderPipeline on the Device (PipelineFactory lives in the
+    // device's module data), so a Model built after the loss gets handed the
+    // pre-loss program and the driver rejects it with "useProgram: object does
+    // not belong to this context". A new canvas gives a new context, a new
+    // Device and therefore an empty pipeline cache — verified in Chromium via
+    // WEBGL_lose_context.
+    const deadCanvas = this.canvas;
+    const canvas = document.createElement("canvas");
+    canvas.style.cssText = deadCanvas.style.cssText;
+    canvas.setAttribute("aria-hidden", "true");
+    deadCanvas.replaceWith(canvas);
+    this.canvas = canvas;
+    releaseDevice(deadCanvas);
+    this.device = null;
+    // Re-arm loss handling on the canvas that is actually live now.
+    this.contextLossCleanup?.();
+    this.bindContextLoss();
+
+    getDevice(canvas)
+      .then((device) => {
+        if (this.destroyed) return;
+        this.contextLost = false;
+        this.finishInit(device);
+        this.setSize(this.width, this.height);
+        this.render();
+      })
+      .catch((error: unknown) => {
+        console.error(
+          "@domphy/chart: WebGL context was restored but the device could not be re-created.",
+          error,
+        );
+      });
   }
 
   async init(): Promise<void> {
@@ -571,11 +1030,16 @@ export class ChartEngine {
     this.backsvg.setAttribute("height", String(height));
     this.overlaysvg.setAttribute("width", String(width));
     this.overlaysvg.setAttribute("height", String(height));
+    if (this.brushCleanup) this.mountBrush();
+    if (this.toolboxCleanup) this.mountToolbox();
   }
 
   setOption(option: ChartOption): void {
     // A node removed before async init resolves must not revive the engine.
     if (this.destroyed) return;
+    // Only a real user call re-baselines "restore"; an option the toolbox
+    // derived (magicType, dataView edit) must not become the restore target.
+    if (!this.applyingDerivedOption) this.originalOption = option;
     // ECharts allows `series` as a single object; every render path below
     // iterates it as an array, so normalize once up front instead of crashing
     // on `.filter` later.
@@ -590,6 +1054,16 @@ export class ChartEngine {
     // "working" enterprise charts.
     warnUnsupportedChartOption(preparedOption);
 
+    // Interaction states are opt-in: a series must declare emphasis, blur,
+    // select or selectedMode. Hover tracking re-renders the chart whenever the
+    // hovered datum changes, so an option that never asks for emphasis pays
+    // nothing for it.
+    this.itemStatesOn = itemStatesEnabled(preparedOption.series ?? []);
+    // A new option means new data indices; a stale hover or selection would
+    // paint the wrong datum.
+    this.hoverItem = null;
+    this.legendFocusIndex = null;
+
     // Reset zoom on every option replace. Legend toggles persist unless the
     // set of series names actually changed (a data-only refresh must not
     // un-hide what the user just clicked).
@@ -598,6 +1072,10 @@ export class ChartEngine {
     const nameKey = seriesNameSetKey(preparedOption.series ?? []);
     if (nameKey !== this.seriesNameKey) {
       this.hiddenSeries = new Set();
+      // Selection is keyed by (seriesIndex, dataIndex); a different set of
+      // series is a different index space, so keeping it would highlight
+      // unrelated data. A data-only refresh keeps the user's selection.
+      this.selectedItems.clear();
       this.seriesNameKey = nameKey;
 
       // Seed legend toggles from `legend.selected` (ECharts semantics: a name
@@ -637,8 +1115,17 @@ export class ChartEngine {
         : [];
     for (const dz of dataZooms) {
       if (dz.type === "inside") continue;
-      const xIndex = typeof dz.xAxisIndex === "number" ? dz.xAxisIndex : 0;
-      this.xZoomMap.set(xIndex, { start: dz.start ?? 0, end: dz.end ?? 100 });
+      // ECharts: a dataZoom with a yAxisIndex and no xAxisIndex controls the
+      // y axis instead (ChartView.js's axisIndicesMap). A component with
+      // neither set defaults to x (this build's pre-existing behavior).
+      const window = { start: dz.start ?? 0, end: dz.end ?? 100 };
+      if (dz.yAxisIndex !== undefined && dz.xAxisIndex === undefined) {
+        const yIndex = typeof dz.yAxisIndex === "number" ? dz.yAxisIndex : 0;
+        this.yZoomMap.set(yIndex, window);
+      } else {
+        const xIndex = typeof dz.xAxisIndex === "number" ? dz.xAxisIndex : 0;
+        this.xZoomMap.set(xIndex, window);
+      }
     }
 
     // Tooltip
@@ -648,22 +1135,327 @@ export class ChartEngine {
       this.tooltipCtrl.destroy();
       this.tooltipCtrl = null;
     }
+    const tooltipOption = {
+      ...(normalizedOption.tooltip ?? {}),
+      trigger:
+        normalizedOption.tooltip?.trigger ??
+        defaultTooltipTrigger(preparedOption.series ?? []),
+    };
     if (normalizedOption.tooltip?.show !== false) {
-      const tooltipOption = {
-        ...(normalizedOption.tooltip ?? {}),
-        trigger:
-          normalizedOption.tooltip?.trigger ??
-          defaultTooltipTrigger(preparedOption.series ?? []),
-      };
       this.tooltipCtrl = createTooltip(this.container, tooltipOption);
-      this.bindTooltipEvents({ ...preparedOption, tooltip: tooltipOption });
     }
+    // Bound unconditionally: `on("click")` must work with tooltip.show: false
+    // too. Without a tooltip controller the move handler returns immediately,
+    // and the click handler returns immediately while nothing is subscribed,
+    // so no hit-testing happens for a chart nobody is listening to.
+    this.bindTooltipEvents({ ...preparedOption, tooltip: tooltipOption });
 
     this.render();
+    this.mountBrush();
+    this.mountToolbox();
+  }
+
+  // The toolbox snapshots width/height/plot-rect per mount, so it is rebuilt
+  // after every option change and every resize.
+  private mountToolbox(): void {
+    this.toolboxCleanup?.();
+    this.toolboxCleanup = null;
+    const toolbox = this.option?.toolbox;
+    if (!toolbox) return;
+    const xAxisCount = Math.max(
+      1,
+      Array.isArray(this.option?.xAxis) ? this.option.xAxis.length : 1,
+    );
+    const yAxisCount = Math.max(
+      1,
+      Array.isArray(this.option?.yAxis) ? this.option.yAxis.length : 1,
+    );
+    this.toolboxCleanup = renderToolbox(toolbox, {
+      container: this.container,
+      canvas: this.canvas,
+      svgLayers: [this.backsvg, this.overlaysvg],
+      width: this.width,
+      height: this.height,
+      getOriginalOption: () => this.originalOption ?? this.option ?? {},
+      getCurrentOption: () => this.option ?? {},
+      applyOption: (option) => {
+        this.applyingDerivedOption = true;
+        try {
+          this.setOption(option);
+        } finally {
+          this.applyingDerivedOption = false;
+        }
+      },
+      restore: () => {
+        this.hiddenSeries = new Set();
+        this.seriesNameKey = "";
+        this.xZoomMap = new Map();
+        this.yZoomMap = new Map();
+        if (this.originalOption) this.setOption(this.originalOption);
+      },
+      getPlotRect: () => this.lastGridRect,
+      // `window === null` resets both axes (the toolbox "back" button);
+      // otherwise only the axis kind present in `window` is replaced — a
+      // y-only drag (x disabled via xAxisIndex:'none') must not clear an
+      // existing x zoom, and vice versa.
+      setZoomWindow: (window) => {
+        if (window === null) {
+          this.xZoomMap = new Map();
+          this.yZoomMap = new Map();
+        } else {
+          if (window.x) {
+            this.xZoomMap = new Map();
+            for (let xIndex = 0; xIndex < xAxisCount; xIndex++) {
+              this.xZoomMap.set(xIndex, window.x);
+            }
+          }
+          if (window.y) {
+            this.yZoomMap = new Map();
+            for (let yIndex = 0; yIndex < yAxisCount; yIndex++) {
+              this.yZoomMap.set(yIndex, window.y);
+            }
+          }
+        }
+        this.render();
+      },
+      brush: this.brushController
+        ? {
+            setActiveType: (type) => this.brushController?.setActiveType(type),
+            getActiveType: () => this.brushController?.getActiveType() ?? null,
+            toggleKeep: () => this.brushController?.toggleKeep() ?? false,
+            clear: () => this.brushController?.clear(),
+          }
+        : undefined,
+    });
+  }
+
+  // Pixel position of every datum of every point-shaped hit-testable series
+  // (scatter, line), for brush area containment. Scoped to coordinateSystem
+  // "cartesian2d" (the default). A stacked line series is routed through the
+  // SAME accumStackedLines() the actual LineRenderer render call uses, so
+  // its hit-tested position is the cumulative one it is actually drawn at,
+  // not its own raw datum.
+  private brushSeriesPoints(): BrushSeriesPoints[] {
+    const option = this.option;
+    if (!option) return [];
+    const allSeries = option.series ?? [];
+    const grids = Array.isArray(option.grid)
+      ? option.grid
+      : option.grid
+        ? [option.grid]
+        : [{}];
+    const xAxes = Array.isArray(option.xAxis)
+      ? option.xAxis
+      : option.xAxis
+        ? [option.xAxis]
+        : [{}];
+    const yAxes = Array.isArray(option.yAxis)
+      ? option.yAxis
+      : option.yAxis
+        ? [option.yAxis]
+        : [{}];
+    const { xScales, yScales } = resolveGrid(
+      grids as any,
+      xAxes as any,
+      yAxes as any,
+      allSeries.filter((s) => !s.name || !this.hiddenSeries.has(s.name)),
+      this.width,
+      this.height,
+      this.xZoomMap,
+      this.yZoomMap,
+    );
+    // Cumulative data for stacked line series, keyed by their position in
+    // `allSeries` — same accumulator engine.ts's own render() feeds
+    // LineRenderer with.
+    const stackedLineDataBySeriesIndex = new Map<number, unknown[]>();
+    const lineIndices: number[] = [];
+    allSeries.forEach((s, index) => {
+      if (s.type === "line") lineIndices.push(index);
+    });
+    if (lineIndices.length > 0) {
+      const { series: stacked } = accumStackedLines(
+        lineIndices.map((index) => allSeries[index] as LineSeriesOption),
+      );
+      stacked.forEach((s, localIndex) => {
+        stackedLineDataBySeriesIndex.set(lineIndices[localIndex], s.data ?? []);
+      });
+    }
+    const result: BrushSeriesPoints[] = [];
+    allSeries.forEach((s, seriesIndex) => {
+      if (s.name && this.hiddenSeries.has(s.name)) return;
+      if (s.type !== "scatter" && s.type !== "line") return;
+      const coordinateSystem = (s as any).coordinateSystem;
+      if (coordinateSystem !== undefined && coordinateSystem !== "cartesian2d")
+        return;
+      const xAxisIndex = (s as any).xAxisIndex ?? 0;
+      const yAxisIndex = (s as any).yAxisIndex ?? 0;
+      const xScale = xScales[xAxisIndex];
+      const yScale = yScales[yAxisIndex];
+      if (!xScale || !yScale) return;
+      // Mirrors coord/grid.ts's scalarValueDim: a horizontal chart (category
+      // y axis, non-category x axis) reads a scalar datum as the x value
+      // with the item's own index as y; every other layout reads it as y.
+      const scalarIsX =
+        yAxes[yAxisIndex]?.type === "category" &&
+        xAxes[xAxisIndex]?.type !== "category";
+      const data =
+        s.type === "line"
+          ? (stackedLineDataBySeriesIndex.get(seriesIndex) ?? s.data ?? [])
+          : (s.data ?? []);
+      const points = data.map((item: unknown, index: number) => {
+        const raw = Array.isArray(item)
+          ? item
+          : typeof item === "object" && item !== null
+            ? (item as { value?: unknown }).value
+            : item;
+        let xVal: number;
+        let yVal: number;
+        if (Array.isArray(raw)) {
+          xVal = Number(raw[0]);
+          yVal = Number(raw[1]);
+        } else if (scalarIsX) {
+          xVal = Number(raw);
+          yVal = index;
+        } else {
+          xVal = index;
+          yVal = Number(raw);
+        }
+        if (!Number.isFinite(xVal) || !Number.isFinite(yVal)) return null;
+        return [xScale.map(xVal), yScale.map(yVal)] as const;
+      });
+      result.push({ seriesIndex, points });
+    });
+    return result;
+  }
+
+  // Rendered rect of every datum of every box-shaped hit-testable series
+  // (bar, candlestick), for brush area OVERLAP (not point containment — see
+  // overlay/brush.ts's rectInArea). coord/barPositions.ts is the single
+  // source of truth both gl/BarRenderer.ts and this share, so a bar's brush
+  // hit box can never disagree with where it is actually drawn.
+  private brushSeriesRects(): BrushSeriesRects[] {
+    const option = this.option;
+    if (!option) return [];
+    const allSeries = option.series ?? [];
+    const grids = Array.isArray(option.grid)
+      ? option.grid
+      : option.grid
+        ? [option.grid]
+        : [{}];
+    const xAxes = Array.isArray(option.xAxis)
+      ? option.xAxis
+      : option.xAxis
+        ? [option.xAxis]
+        : [{}];
+    const yAxes = Array.isArray(option.yAxis)
+      ? option.yAxis
+      : option.yAxis
+        ? [option.yAxis]
+        : [{}];
+    const visibleSeries = allSeries.filter(
+      (s) => !s.name || !this.hiddenSeries.has(s.name),
+    );
+    const { xScales, yScales } = resolveGrid(
+      grids as any,
+      xAxes as any,
+      yAxes as any,
+      visibleSeries,
+      this.width,
+      this.height,
+      this.xZoomMap,
+      this.yZoomMap,
+    );
+
+    const result: BrushSeriesRects[] = [];
+
+    const barIndices: number[] = [];
+    allSeries.forEach((s, index) => {
+      if (s.type === "bar" && (!s.name || !this.hiddenSeries.has(s.name))) {
+        barIndices.push(index);
+      }
+    });
+    if (barIndices.length > 0) {
+      const barPositions = layoutBarSeries(
+        barIndices.map((index) => allSeries[index] as BarSeriesOption),
+        xScales,
+        yScales,
+      );
+      barIndices.forEach((seriesIndex, localIndex) => {
+        const rects = barPositions.get(localIndex);
+        if (rects) result.push({ seriesIndex, rects });
+      });
+    }
+
+    const candlestickIndices: number[] = [];
+    allSeries.forEach((s, index) => {
+      if (
+        s.type === "candlestick" &&
+        (!s.name || !this.hiddenSeries.has(s.name))
+      ) {
+        candlestickIndices.push(index);
+      }
+    });
+    if (candlestickIndices.length > 0) {
+      const candlePositions = layoutCandlestickSeries(
+        candlestickIndices.map((index) => allSeries[index] as any),
+        xScales,
+        yScales,
+      );
+      candlestickIndices.forEach((seriesIndex, localIndex) => {
+        const rects = candlePositions.get(localIndex);
+        if (rects) result.push({ seriesIndex, rects });
+      });
+    }
+
+    return result;
+  }
+
+  // Brush is driven by `option.brush` OR a standalone `toolbox.feature.brush`
+  // (ECharts allows the toolbox button to work without an explicit `brush`
+  // component, using its defaults) — this mirrors that by falling back to
+  // an empty BrushOption when only the toolbox feature is configured.
+  private mountBrush(): void {
+    this.brushCleanup?.();
+    this.brushCleanup = null;
+    this.brushController = null;
+    const brushOption = this.option?.brush;
+    const toolboxBrush = this.option?.toolbox?.feature?.brush;
+    if (!brushOption && !toolboxBrush) return;
+    const controller = renderBrush(brushOption, {
+      container: this.container,
+      svg: this.overlaysvg,
+      getPlotRect: () => this.lastGridRect,
+      getSeriesPoints: () => this.brushSeriesPoints(),
+      getSeriesRects: () => this.brushSeriesRects(),
+      onSelect: (params) => {
+        const entry = params.batch[0];
+        this.brushHasAreas = entry.areas.length > 0;
+        this.brushSelectedKeys = new Set();
+        this.brushedSeriesIndices = new Set();
+        for (const { seriesIndex, dataIndex } of entry.selected) {
+          if (dataIndex.length === 0) continue;
+          this.brushedSeriesIndices.add(seriesIndex);
+          for (const index of dataIndex) {
+            this.brushSelectedKeys.add(selectionKey(seriesIndex, index));
+          }
+        }
+        // Re-render so inBrush/outOfBrush dimming (see render()'s
+        // brushStates) reflects the new selection.
+        this.render();
+        for (const handler of [...this.brushSelectedHandlers]) handler(params);
+      },
+    });
+    this.brushController = controller;
+    this.brushCleanup = () => {
+      controller.destroy();
+      this.brushController = null;
+    };
   }
 
   render(): void {
     if (!this.device || !this.option || this.destroyed) return;
+    // Drawing into a lost context only logs GL errors until it is restored.
+    if (this.contextLost) return;
     const { option, width, height } = this;
     if (!width || !height) return;
 
@@ -683,7 +1475,7 @@ export class ChartEngine {
       : option.yAxis
         ? [option.yAxis]
         : [{ type: "value" as const }];
-    const grids = Array.isArray(option.grid)
+    const rawGrids = Array.isArray(option.grid)
       ? option.grid
       : option.grid
         ? [option.grid]
@@ -704,6 +1496,10 @@ export class ChartEngine {
         ? [option.visualMap]
         : [];
 
+    // A slider dataZoom is laid out against the canvas bottom; without this
+    // it is drawn straight over the x axis tick labels.
+    const grids = reserveDataZoomSpace(rawGrids, dataZooms);
+
     const grid = resolveGrid(
       grids,
       xAxes,
@@ -714,6 +1510,7 @@ export class ChartEngine {
       this.xZoomMap,
       this.yZoomMap,
     );
+    this.lastGridRect = grid.gridRect;
 
     // Only render Cartesian axes when there are series that use them.
     // A series bound to a non-cartesian coordinate system (calendar heatmap,
@@ -732,6 +1529,7 @@ export class ChartEngine {
       "effectScatter",
       "pictorialBar",
       "lines",
+      "custom",
     ]);
     const hasCartesian = series.some((s) => {
       if (!cartesianTypes.has(s.type ?? "")) return false;
@@ -773,6 +1571,14 @@ export class ChartEngine {
       : option.title
         ? [option.title]
         : [];
+
+    // WCAG 1.1.1: the chart is a meaningful image, but its pixels live on an
+    // aria-hidden canvas, so without a name here a screen reader announces
+    // nothing at all. ECharts solves this with its `aria` component; the same
+    // idea, minus the option surface: the title if there is one, otherwise the
+    // series types and names actually rendered.
+    this.overlaysvg.setAttribute("role", "img");
+    this.overlaysvg.setAttribute("aria-label", chartAccessibleName(option));
     if (titles.length === 0)
       this.overlaysvg
         .querySelectorAll(".dc-title")
@@ -818,8 +1624,56 @@ export class ChartEngine {
           }
           this.render();
         },
+        undefined,
+        (name) => {
+          if (!this.itemStatesOn) return;
+          const next =
+            name == null ? null : allSeries.findIndex((s) => s.name === name);
+          const resolved = next == null || next < 0 ? null : next;
+          if (resolved === this.legendFocusIndex) return;
+          this.legendFocusIndex = resolved;
+          // Deferred: this fires from a focus/blur handler that a render() may
+          // itself have triggered (the legend is rebuilt every pass and focus
+          // is handed back to the replacement node). Re-entering render() from
+          // inside render() would paint a half-built overlay, and a blur
+          // immediately followed by a focus coalesces into one pass here.
+          this.scheduleStateRender();
+        },
       );
     }
+
+    // ECharts assigns a palette color by the series' index in `option.series`.
+    // The WebGL renderers instead counted positions inside their own
+    // type-filtered, visibility-filtered slice plus a running offset, so the
+    // palette shifted whenever series types were interleaved or a legend item
+    // was toggled off — the remaining bars repainted in the hidden series'
+    // color while the legend swatch (which does index by option order) kept
+    // the old one. Pin each series' color to its option index up front;
+    // renderers then resolve an explicit color and their fallback index never
+    // applies. `s.color` set by the caller always wins.
+    const paletteIndex = new Map<SeriesOption, number>(
+      allSeries.map((s, index) => [s, index] as const),
+    );
+    // Emphasis/blur/select is resolved per (series, dataIndex). The renderers
+    // are handed CLONES (the palette pass below and the line stacking pass both
+    // spread the option), so every clone is registered against its original's
+    // index; the resolver reads this map when a renderer calls it, which is
+    // always after the clones exist. Computed here (before the SVG-only
+    // series below) so radar/gauge/boxplot/funnel can read it too, not just
+    // the WebGL-rendered types.
+    const stateIndexOf = new Map<object, number>(
+      allSeries.map((s, index) => [s as object, index] as const),
+    );
+    this.paintedFocusIndex = this.legendFocusIndex;
+    const itemStates: ItemStateResolver = this.itemStatesOn
+      ? createItemStates({
+          series: allSeries,
+          hover: this.hoverItem,
+          focusSeriesIndex: this.legendFocusIndex,
+          selected: this.selectedItems,
+          indexOf: stateIndexOf,
+        })
+      : NO_ITEM_STATES;
 
     for (const radarDef of radars) {
       this.radarRenderer?.renderGridToSvg(
@@ -838,6 +1692,7 @@ export class ChartEngine {
         width,
         height,
         colorResolver,
+        itemStates,
       );
     }
 
@@ -852,6 +1707,7 @@ export class ChartEngine {
         grid.xScales,
         grid.yScales,
         this.hiddenSeries,
+        itemStates,
       );
     }
 
@@ -865,6 +1721,7 @@ export class ChartEngine {
         width,
         height,
         this.hiddenSeries,
+        itemStates,
       );
     }
 
@@ -1032,6 +1889,23 @@ export class ChartEngine {
       );
     }
 
+    // Custom (renderItem)
+    const customSeries = series.filter(
+      (s): s is CustomSeriesOption => s.type === "custom",
+    );
+    if (customSeries.length > 0) {
+      renderCustom(
+        this.overlaysvg,
+        customSeries,
+        grid.xScales,
+        grid.yScales,
+        grid.gridRect,
+        width,
+        height,
+        this.hiddenSeries,
+      );
+    }
+
     // 3D charts
     const grid3Ds = Array.isArray(option.grid3D)
       ? option.grid3D
@@ -1084,6 +1958,7 @@ export class ChartEngine {
         surface3DSeries,
         width,
         height,
+        colorResolver,
       );
     }
 
@@ -1099,7 +1974,39 @@ export class ChartEngine {
 
     let seriesOffset = 0;
 
-    const barSeries = series.filter((s): s is any => s.type === "bar");
+    // inBrush/outOfBrush — see overlay/brush.ts + itemStates.ts's
+    // createBrushStates(). Only bar/line/scatter/candlestick are
+    // brush-hit-tested (see brushSeriesPoints()/brushSeriesRects()), so only
+    // those fall back to it; every other series type keeps `itemStates`
+    // unchanged even while a brush area is drawn.
+    const brushStates: ItemStateResolver = createBrushStates({
+      option: this.option?.brush,
+      hasAreas: this.brushHasAreas,
+      selectedKeys: this.brushSelectedKeys,
+      brushedSeriesIndices: this.brushedSeriesIndices,
+      seriesIndexOf: (s) =>
+        stateIndexOf.get(s as object) ?? allSeries.indexOf(s as SeriesOption),
+    });
+    // bar/line/scatter/candlestick (the only brush-hit-tested types) switch
+    // to brush dimming while an area is drawn; every other series type is
+    // unaffected.
+    const cartesianStates: ItemStateResolver = this.brushHasAreas
+      ? brushStates
+      : itemStates;
+    const withPaletteColor = <T extends SeriesOption>(list: T[]): T[] =>
+      list.map((s) => {
+        if ((s as { color?: unknown }).color) return s;
+        const clone = {
+          ...s,
+          color: seriesPaletteFamily(paletteIndex.get(s) ?? 0),
+        } as T;
+        stateIndexOf.set(clone as object, stateIndexOf.get(s as object) ?? -1);
+        return clone;
+      });
+
+    const barSeries = withPaletteColor(
+      series.filter((s): s is any => s.type === "bar"),
+    );
     if (barSeries.length > 0 && this.barRenderer) {
       this.barRenderer.render(
         renderPass,
@@ -1111,14 +2018,23 @@ export class ChartEngine {
         height,
         seriesOffset,
         colorResolver,
+        cartesianStates,
       );
       seriesOffset += barSeries.length;
     }
 
-    const lineSeries = series.filter((s): s is any => s.type === "line");
+    const lineSeries = withPaletteColor(
+      series.filter((s): s is any => s.type === "line"),
+    );
     if (lineSeries.length > 0 && this.lineRenderer) {
       const { series: stackedLineSeries, baselines: lineBaselines } =
         accumStackedLines(lineSeries);
+      stackedLineSeries.forEach((clone, index) => {
+        stateIndexOf.set(
+          clone as object,
+          stateIndexOf.get(lineSeries[index] as object) ?? -1,
+        );
+      });
       this.lineRenderer.render(
         renderPass,
         stackedLineSeries,
@@ -1130,11 +2046,14 @@ export class ChartEngine {
         seriesOffset,
         lineBaselines,
         colorResolver,
+        cartesianStates,
       );
       seriesOffset += lineSeries.length;
     }
 
-    const scatterSeries = series.filter((s): s is any => s.type === "scatter");
+    const scatterSeries = withPaletteColor(
+      series.filter((s): s is any => s.type === "scatter"),
+    );
     if (scatterSeries.length > 0 && this.scatterRenderer) {
       this.scatterRenderer.render(
         renderPass,
@@ -1146,6 +2065,7 @@ export class ChartEngine {
         height,
         seriesOffset,
         colorResolver,
+        cartesianStates,
       );
       seriesOffset += scatterSeries.length;
     }
@@ -1161,11 +2081,14 @@ export class ChartEngine {
         seriesOffset,
         colorResolver,
         this.hiddenSeries,
+        itemStates,
       );
       seriesOffset += pieSeries.length;
     }
 
-    const radarSeries = series.filter((s): s is any => s.type === "radar");
+    const radarSeries = withPaletteColor(
+      series.filter((s): s is any => s.type === "radar"),
+    );
     if (radarSeries.length > 0 && this.radarRenderer) {
       this.radarRenderer.render(
         renderPass,
@@ -1175,6 +2098,7 @@ export class ChartEngine {
         height,
         seriesOffset,
         colorResolver,
+        itemStates,
       );
       seriesOffset += radarSeries.length;
     }
@@ -1188,12 +2112,18 @@ export class ChartEngine {
         grid.yScales,
         width,
         height,
+        heatmapSeries.map((s) =>
+          visualMapForSeries(visualMaps, allSeries.indexOf(s)),
+        ),
+        colorResolver,
+        itemStates,
+        seriesOffset,
       );
       seriesOffset += heatmapSeries.length;
     }
 
-    const candleSeries = series.filter(
-      (s): s is any => s.type === "candlestick",
+    const candleSeries = withPaletteColor(
+      series.filter((s): s is any => s.type === "candlestick"),
     );
     if (candleSeries.length > 0 && this.candlestickRenderer) {
       this.candlestickRenderer.render(
@@ -1205,6 +2135,7 @@ export class ChartEngine {
         height,
         seriesOffset,
         colorResolver,
+        cartesianStates,
       );
       seriesOffset += candleSeries.length;
     }
@@ -1220,10 +2151,19 @@ export class ChartEngine {
       width,
       height,
       hiddenSeries: this.hiddenSeries,
+      states: itemStates,
     };
 
-    // Line data-point symbols (below labels so labels render on top)
-    renderSeriesSymbols(this.overlaysvg, svgOpts);
+    // Line data-point symbols (below labels so labels render on top).
+    // renderSeriesSymbols() only ever iterates `type === "line"` series (see
+    // its own filter), so it is safe to hand it `cartesianStates` here — the
+    // same brush-aware resolver bar/line/scatter/candlestick already render
+    // with — without the blanket-`itemStates` risk `svgOpts` carries for the
+    // OTHER series types renderSeriesLabels below still serves generically.
+    renderSeriesSymbols(this.overlaysvg, {
+      ...svgOpts,
+      states: cartesianStates,
+    });
 
     // Series labels (rendered after WebGL so they appear on top)
     renderSeriesLabels(this.overlaysvg, svgOpts);
@@ -1337,17 +2277,145 @@ export class ChartEngine {
       : option.yAxis
         ? [option.yAxis]
         : [{}];
-    const grids = Array.isArray(option.grid)
-      ? option.grid
-      : option.grid
-        ? [option.grid]
-        : [{}];
+    const radars = Array.isArray(option.radar)
+      ? option.radar
+      : option.radar
+        ? [option.radar]
+        : [];
+    // Same reservation render() applies — hit-testing must read the plot rect
+    // the series were actually drawn into, or every tooltip is offset by the
+    // slider's band.
+    const grids = reserveDataZoomSpace(
+      Array.isArray(option.grid)
+        ? option.grid
+        : option.grid
+          ? [option.grid]
+          : [{}],
+      Array.isArray(option.dataZoom)
+        ? option.dataZoom
+        : option.dataZoom
+          ? [option.dataZoom]
+          : [],
+    );
+
+    // One hit-test drives both the tooltip and the emphasis/blur states, so a
+    // hovered datum can never be highlighted in one and missed in the other.
+    const itemHitAt = (mx: number, my: number): TooltipParams | null => {
+      const series = allSeries.filter(
+        (s) => !s.name || !this.hiddenSeries.has(s.name),
+      );
+      const pieHit = hitTestPie(
+        series,
+        mx,
+        my,
+        this.width,
+        this.height,
+        allSeries,
+        this.hiddenSeries,
+      );
+      if (pieHit) return pieHit;
+      // Radar/gauge/funnel are self-contained coordinate systems (no x/y
+      // axis, not clipped to the cartesian grid rect below), same as pie.
+      const radarHit = hitTestRadarItem(
+        series,
+        mx,
+        my,
+        this.width,
+        this.height,
+        allSeries,
+        radars,
+      );
+      if (radarHit) return radarHit;
+      const gaugeHit = hitTestGaugeItem(
+        series,
+        mx,
+        my,
+        this.width,
+        this.height,
+        allSeries,
+      );
+      if (gaugeHit) return gaugeHit;
+      const funnelHit = hitTestFunnelItem(
+        series,
+        mx,
+        my,
+        this.width,
+        this.height,
+        allSeries,
+        this.hiddenSeries,
+      );
+      if (funnelHit) return funnelHit;
+      const { gridRect, xScales, yScales } = resolveGrid(
+        grids as any,
+        xAxes as any,
+        yAxes as any,
+        series,
+        this.width,
+        this.height,
+        this.xZoomMap,
+        this.yZoomMap,
+      );
+      if (
+        mx < gridRect.x ||
+        mx > gridRect.x + gridRect.width ||
+        my < gridRect.y ||
+        my > gridRect.y + gridRect.height
+      )
+        return null;
+      return (
+        hitTestScatter(series, mx, my, xScales, yScales, allSeries) ??
+        hitTestCartesianItem(series, mx, my, xScales, yScales, allSeries) ??
+        hitTestHeatmapItem(series, mx, my, xScales, yScales, allSeries) ??
+        hitTestCandlestickItem(series, mx, my, xScales, yScales, allSeries) ??
+        hitTestBoxplotItem(
+          series,
+          mx,
+          my,
+          xScales,
+          yScales,
+          allSeries,
+          this.hiddenSeries,
+        )
+      );
+    };
+
+    // Emphasis follows the pointer whatever the tooltip's trigger is (ECharts
+    // highlights on hover even with trigger "axis" or "none"). Re-render only
+    // when the hovered datum actually changes — a pointermove inside the same
+    // bar must not redraw the chart.
+    const setHover = (
+      next: { seriesIndex: number; dataIndex: number } | null,
+    ) => {
+      if (!this.itemStatesOn) return;
+      const current = this.hoverItem;
+      const same =
+        current === next ||
+        (current != null &&
+          next != null &&
+          current.seriesIndex === next.seriesIndex &&
+          current.dataIndex === next.dataIndex);
+      if (same) return;
+      this.hoverItem = next;
+      this.render();
+    };
 
     const onMove = (event: MouseEvent) => {
       if (!this.option || !this.tooltipCtrl) return;
       const rect = this.container.getBoundingClientRect();
       const mx = event.clientX - rect.left;
       const my = event.clientY - rect.top;
+
+      if (this.itemStatesOn) {
+        const stateHit = itemHitAt(mx, my);
+        setHover(
+          stateHit
+            ? {
+                seriesIndex: stateHit.seriesIndex,
+                dataIndex: stateHit.dataIndex,
+              }
+            : null,
+        );
+      }
 
       const series = allSeries.filter(
         (s) => !s.name || !this.hiddenSeries.has(s.name),
@@ -1411,6 +2479,22 @@ export class ChartEngine {
             s.type === "boxplot"
           )
             continue;
+          // A heatmap has TWO axes of data (x and y), so "nearest x" below —
+          // built for one-value-per-x series like bar/line — picks an
+          // arbitrary cell in the right column but the wrong row. Precise
+          // cell rect test instead (same geometry HeatmapRenderer.ts paints).
+          if (s.type === "heatmap") {
+            const heatmapHit = hitTestHeatmapItem(
+              [s],
+              mx,
+              my,
+              xScales,
+              yScales,
+              allSeries,
+            );
+            if (heatmapHit) params.push(heatmapHit);
+            continue;
+          }
           const data = (s as any).data ?? [];
 
           let closestIndex = 0;
@@ -1455,7 +2539,7 @@ export class ChartEngine {
             dataIndex: closestIndex,
             data: item,
             value,
-            color: seriesColor(globalIdx),
+            color: cssColor((s as { color?: unknown }).color, globalIdx),
             percent: undefined,
           });
         }
@@ -1468,13 +2552,13 @@ export class ChartEngine {
           option.tooltip?.axisPointer?.type ?? "line",
         );
       } else if (trigger === "item") {
-        // Pie is handled above (before the grid-rect clip). Remaining
-        // item hits: scatter, then bar/line.
+        // Pie is handled above (before the grid-rect clip). The rest reuses
+        // itemHitAt() — the SAME hit-test that drives hover-emphasis and
+        // click-select — so a tooltip can never show for a datum that
+        // hover/click missed, or vice versa.
         renderAxisPointer(this.overlaysvg, null, null, gridRect);
 
-        const hit =
-          hitTestScatter(series, mx, my, xScales, yScales, allSeries) ??
-          hitTestCartesianItem(series, mx, my, xScales, yScales, allSeries);
+        const hit = itemHitAt(mx, my);
         if (hit) params.push(hit);
       }
 
@@ -1488,6 +2572,7 @@ export class ChartEngine {
 
     const onLeave = () => {
       this.tooltipCtrl?.update({ visible: false, x: 0, y: 0, params: [] });
+      setHover(null);
       const series = allSeries.filter(
         (s) => !s.name || !this.hiddenSeries.has(s.name),
       );
@@ -1504,24 +2589,226 @@ export class ChartEngine {
       renderAxisPointer(this.overlaysvg, null, null, grid.gridRect);
     };
 
+    // ECharts `chart.on("click")`: the handler receives the data item under
+    // the cursor and nothing fires on empty space. Item-level hit-testing is
+    // used whatever the tooltip's trigger is, because a click identifies one
+    // datum — the axis-trigger row set is a hover affordance, not a selection.
+    const onClick = (event: MouseEvent) => {
+      const handlers = this.clickHandlers;
+      if (!this.option) return;
+      if (handlers.size === 0 && !this.itemStatesOn) return;
+      const rect = this.container.getBoundingClientRect();
+      const mx = event.clientX - rect.left;
+      const my = event.clientY - rect.top;
+      const hit = itemHitAt(mx, my);
+      if (!hit) return;
+      this.toggleSelection(hit.seriesIndex, hit.dataIndex);
+      for (const handler of [...handlers]) handler(hit);
+    };
+
     this.container.style.pointerEvents = "all";
     this.overlaysvg.style.pointerEvents = "none";
-    this.container.addEventListener("mousemove", onMove);
-    this.container.addEventListener("mouseleave", onLeave);
+    this.container.addEventListener("click", onClick);
+    // Pointer events, not mouse events: touch and pen input produce
+    // pointermove/pointerdown but never mousemove, so a touch device used to
+    // get no tooltip and no axis pointer at all. pointerdown covers the tap
+    // case (a touch pointer emits no move before contact).
+    this.container.addEventListener("pointermove", onMove);
+    this.container.addEventListener("pointerdown", onMove);
+    this.container.addEventListener("pointerleave", onLeave);
+    this.container.addEventListener("pointercancel", onLeave);
 
     this.tooltipCleanup = () => {
-      this.container.removeEventListener("mousemove", onMove);
-      this.container.removeEventListener("mouseleave", onLeave);
+      this.container.removeEventListener("pointermove", onMove);
+      this.container.removeEventListener("pointerdown", onMove);
+      this.container.removeEventListener("pointerleave", onLeave);
+      this.container.removeEventListener("pointercancel", onLeave);
+      this.container.removeEventListener("click", onClick);
     };
+  }
+
+  /**
+   * ECharts `selectedMode`: a click toggles the datum's `select` state.
+   * "single" keeps one selected datum per series, "multiple" toggles freely,
+   * "series" selects every datum of the series at once, `false` (the default)
+   * disables selection. Emits `selectchanged` when the set actually changed.
+   */
+  private scheduleStateRender(): void {
+    if (this.stateRenderQueued || this.destroyed) return;
+    this.stateRenderQueued = true;
+    const run = () => {
+      this.stateRenderQueued = false;
+      if (this.destroyed) return;
+      // The churn a rebuild caused cancelled itself out — nothing to repaint.
+      if (this.legendFocusIndex === this.paintedFocusIndex) return;
+      this.render();
+    };
+    if (typeof queueMicrotask === "function") queueMicrotask(run);
+    else setTimeout(run, 0);
+  }
+
+  private toggleSelection(seriesIndex: number, dataIndex: number): void {
+    const allSeries = this.option?.series ?? [];
+    const target = allSeries[seriesIndex];
+    const mode = selectedModeOf(target);
+    if (!mode || dataIndex < 0) return;
+
+    const key = selectionKey(seriesIndex, dataIndex);
+    const wasSelected = this.selectedItems.has(key);
+    const dropSeries = () => {
+      for (const existing of [...this.selectedItems]) {
+        if (existing.startsWith(`${seriesIndex}:`))
+          this.selectedItems.delete(existing);
+      }
+    };
+
+    if (mode === "series") {
+      const count = ((target as { data?: unknown[] }).data ?? []).length;
+      if (wasSelected) dropSeries();
+      else
+        for (let index = 0; index < count; index++)
+          this.selectedItems.add(selectionKey(seriesIndex, index));
+    } else if (mode === "single") {
+      dropSeries();
+      if (!wasSelected) this.selectedItems.add(key);
+    } else if (wasSelected) {
+      this.selectedItems.delete(key);
+    } else {
+      this.selectedItems.add(key);
+    }
+
+    this.emitSelectChanged(wasSelected ? "unselect" : "select");
+    this.render();
+  }
+
+  private emitSelectChanged(
+    fromAction: SelectChangedParams["fromAction"],
+  ): void {
+    if (this.selectChangedHandlers.size === 0) return;
+    const grouped = new Map<number, number[]>();
+    for (const key of this.selectedItems) {
+      const [rawSeries, rawData] = key.split(":");
+      const seriesIndex = Number(rawSeries);
+      if (!grouped.has(seriesIndex)) grouped.set(seriesIndex, []);
+      grouped.get(seriesIndex)!.push(Number(rawData));
+    }
+    const params: SelectChangedParams = {
+      type: "selectchanged",
+      fromAction,
+      isFromClick: true,
+      selected: [...grouped.entries()]
+        .map(([seriesIndex, dataIndex]) => ({
+          seriesIndex,
+          dataIndex: dataIndex.sort((a, b) => a - b),
+        }))
+        .sort((a, b) => a.seriesIndex - b.seriesIndex),
+    };
+    for (const handler of [...this.selectChangedHandlers]) handler(params);
+  }
+
+  /** The currently selected data, grouped by series — ECharts' getSelected. */
+  getSelectedDataIndices(): { seriesIndex: number; dataIndex: number[] }[] {
+    const grouped = new Map<number, number[]>();
+    for (const key of this.selectedItems) {
+      const [rawSeries, rawData] = key.split(":");
+      const seriesIndex = Number(rawSeries);
+      if (!grouped.has(seriesIndex)) grouped.set(seriesIndex, []);
+      grouped.get(seriesIndex)!.push(Number(rawData));
+    }
+    return [...grouped.entries()]
+      .map(([seriesIndex, dataIndex]) => ({
+        seriesIndex,
+        dataIndex: dataIndex.sort((a, b) => a - b),
+      }))
+      .sort((a, b) => a.seriesIndex - b.seriesIndex);
+  }
+
+  /**
+   * Subscribe to a chart event. ECharts-compatible shape: `click` receives the
+   * params of the data item under the cursor (nothing fires when the click
+   * lands on empty space); `selectchanged` receives the whole selection after
+   * a `selectedMode` toggle; `brushSelected` receives the ECharts-shaped
+   * batch after a brush area is drawn (see `option.brush`). Returns an
+   * unsubscribe function; `off()` with the same handler works too.
+   */
+  on(event: "click", handler: (params: TooltipParams) => void): () => void;
+  on(
+    event: "selectchanged",
+    handler: (params: SelectChangedParams) => void,
+  ): () => void;
+  on(
+    event: "brushSelected",
+    handler: (params: BrushSelectedParams) => void,
+  ): () => void;
+  on(
+    event: "click" | "selectchanged" | "brushSelected",
+    handler: ((params: TooltipParams) => void) &
+      ((params: SelectChangedParams) => void) &
+      ((params: BrushSelectedParams) => void),
+  ): () => void {
+    if (event === "selectchanged") {
+      this.selectChangedHandlers.add(handler);
+      return () => this.selectChangedHandlers.delete(handler);
+    }
+    if (event === "brushSelected") {
+      this.brushSelectedHandlers.add(handler);
+      return () => this.brushSelectedHandlers.delete(handler);
+    }
+    if (event !== "click") return () => {};
+    this.clickHandlers.add(handler);
+    return () => this.clickHandlers.delete(handler);
+  }
+
+  off(event: "click", handler?: (params: TooltipParams) => void): void;
+  off(
+    event: "selectchanged",
+    handler?: (params: SelectChangedParams) => void,
+  ): void;
+  off(
+    event: "brushSelected",
+    handler?: (params: BrushSelectedParams) => void,
+  ): void;
+  off(
+    event: "click" | "selectchanged" | "brushSelected",
+    handler?: ((params: TooltipParams) => void) &
+      ((params: SelectChangedParams) => void) &
+      ((params: BrushSelectedParams) => void),
+  ): void {
+    if (event === "selectchanged") {
+      if (handler) this.selectChangedHandlers.delete(handler);
+      else this.selectChangedHandlers.clear();
+      return;
+    }
+    if (event === "brushSelected") {
+      if (handler) this.brushSelectedHandlers.delete(handler);
+      else this.brushSelectedHandlers.clear();
+      return;
+    }
+    if (event !== "click") return;
+    if (handler) this.clickHandlers.delete(handler);
+    else this.clickHandlers.clear();
   }
 
   destroy(): void {
     this.destroyed = true;
+    this.clickHandlers.clear();
+    this.selectChangedHandlers.clear();
+    this.contextLossCleanup?.();
+    this.contextLossCleanup = null;
     this.tooltipCleanup?.();
     this.tooltipCleanup = null;
+    this.toolboxCleanup?.();
+    this.toolboxCleanup = null;
+    this.brushCleanup?.();
+    this.brushCleanup = null;
+    this.brushSelectedHandlers.clear();
     this.dataZoomCleanup?.();
+    this.dataZoomCleanup = null;
     this.insideZoomCleanup?.();
+    this.insideZoomCleanup = null;
+    this.dataZoomSliders = null;
     this.tooltipCtrl?.destroy();
+    this.tooltipCtrl = null;
     this.barRenderer?.destroy();
     this.lineRenderer?.destroy();
     this.scatterRenderer?.destroy();

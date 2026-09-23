@@ -1,6 +1,6 @@
 {
   "name": "@domphy/dnd",
-  "version": "0.18.6",
+  "version": "0.19.0",
   "description": "Domphy Drag & Drop - reactive adapter for the framework-agnostic @formkit/drag-and-drop engine",
   "type": "module",
   "sideEffects": false,
@@ -24,7 +24,9 @@
     "pack": "tsup && npm pack",
     "prepublishOnly": "node ../../scripts/guard-pnpm-publish.mjs && npm run build",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "keywords": [
     "domphy",
@@ -48,9 +50,11 @@
   },
   "devDependencies": {
     "@domphy/core": "workspace:*",
+    "@playwright/test": "^1.62.1",
     "@types/node": "^26.1.2",
     "tsup": "^8.5.0",
     "typescript": "^5.8.3",
+    "vite": "^6.0.0",
     "vitest": "^4.0.18"
   },
   "files": [

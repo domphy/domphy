@@ -6,6 +6,33 @@ Packages are versioned independently — each package has its own version number
 
 ---
 
+## Enterprise-grade audit-fix wave — 2026-09-23
+
+~40-agent audit-fix wave across every package: real defects, a11y gaps, SSR/hydration breaks, leaks/teardown, security, type/export errors, docs-vs-code drift, and table-stakes features peers ship as standard. Full findings in each package's CHANGELOG; cross-cutting notes below.
+
+- `@domphy/core` [0.22.0] (custom elements/web components; CSS rule de-duplication + content-hashed style classes; **BREAKING: `resetNodeIds()` removed** — use `_idPrefix` on a root element instead; runaway-reactive-loop guard; SSR/sanitizer fixes)
+- `@domphy/theme` [0.23.0] (`generateRamp`/`generateTheme` now guarantee WCAG AA contrast for any hue — generated ramp hex values change; `themeCSS()` emits `light` on `:root` + `color-scheme`; `setTheme("light")` re-derives `"dark"`; new `resolveToneStep`, `themeWeight`, `themeLetterSpacing`, font-family tokens)
+- `@domphy/ui` [0.22.0] (**BREAKING: floating-panel root lookup is now `:scope > [data-domphy-floating]`**, was `#domphy-floating` — a panel opened inside a `<dialog>` no longer mounts inside it; overlay Escape/focus/roving-tabindex fixes; placeholder/field-value contrast; `splitterHandle` gains `label`)
+- `@domphy/doctor` [0.20.0] (new rule `descendant-color-override`, 23 built-in rules; custom-element support; rules now analyze `$`-patch-composed elements; CLI: optional `jsdom`/`canvas` DOM install, streamed reports, exit-code hardening)
+- `@domphy/three` [0.4.0] (**BREAKING: `dpr` defaults to `[1, 2]`, renderer `alpha`/`powerPreference` defaults added** — an unset background is now transparent, not opaque black; new `fallback`, `root.viewport()`, `invalid-child` diagnose rule; contextual scene-callback typing)
+- `@domphy/chart` [0.4.0] (**BREAKING: bar band 0.65→0.80 of slot, `lines` default curveness 0, geo palette from the theme ramp** — matches ECharts defaults; `emphasis`/`blur`/`select`/`selectedMode` for line/bar/scatter/pie; toolbox; geo `roam`; 449 typed-but-unimplemented keys now marked `@deprecated` in the shipped types)
+- `@domphy/router` [0.19.0] (**BREAKING: re-synced to `@tanstack/router-core` 1.171.32 — see `UPSTREAM.md` for the 7-member `router.stores` removal + 3 renames**; new `linkProps`, `subscribeToRouterState`; a destroyed router's transitioner now actually stops)
+- `@domphy/i18n` [0.20.0] (**BREAKING: `interpolation.escapeValue` now defaults to `false`** — Domphy already escapes at the render boundary, matching react-i18next's posture; new `addLocale`; `i18next` moved to the 26.3.6 security-fixed line)
+- `@domphy/app` [0.19.0] (scroll restoration actually restores; route announcement + focus reset on navigation; malformed percent-escapes answer 404 not 500; redirect-header/CSP-nonce/error-message hardening; new `RenderToStreamOptions.lang`)
+- `@domphy/dnd` [0.19.0] (new `keyboardSort`/`keyboardSortGroup` — closes the WCAG 2.2 SC 2.5.7/2.1.1 gap in the vendored FormKit engine)
+- `@domphy/press` [0.24.0] (`@domphy/press/browser` now ships the full Markdown pipeline; `base`-relative Markdown links/images; search/theme/serve fixes)
+- `@domphy/query` [0.19.0], `@domphy/virtual` [0.18.4], `@domphy/form` [0.18.4] (vendored cores resynced to upstream; `dist/*.global.js` iife builds no longer throw on a bare `<script>` `process` read; `@domphy/query` gains `dehydrateQuery` + 5 types)
+- `@domphy/floating` [0.18.5] (a caller `platform` override now extends the default instead of replacing it; `connect()` no longer double-positions)
+- `@domphy/editor` [0.3.0] (drag/drop handling; `bubbleMenu()` keyboard-reachable APG toolbar; table row/column commands honour colspan/rowspan)
+- `@domphy/blocks` [0.2.4] (shadcn mobile-drawer state, a11y and contrast fixes; Magic UI reduced-motion + animation-correctness fixes — no public API change)
+- `@domphy/mcp` [0.19.6] (tools advertise `ToolAnnotations`; `domphy_list_packages` excludes private packages)
+- `create-domphy` [0.18.10] (pins core 0.22.0 / theme 0.23.0 / ui 0.22.0; CLI UX)
+- `@domphy/table` — unchanged (no shipped-file diff; `SOURCES.md` added documenting the table-core 8.x pin)
+
+**Repo-wide:** `KNOWN_DEBT.md` (two-way `// ledger:<id>` marker enforcement via `scripts/known-debt.test.mjs`); real-`tsc` `typecheck` script on every package, wired into CI; `AGENTS.md`/`DESIGN.md`/`.stable-audit/` synced to the shipped behavior above.
+
+---
+
 ## Patch — 2026-09-10 (evening)
 
 - `@domphy/ui` [0.21.5] — overlay `open` accepts `Computed` + `onDismiss`; `stack`/`row` `density: false` structural gap; `heading({ size })`; textarea autoResize remeasures when unhidden.

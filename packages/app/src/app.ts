@@ -14,10 +14,12 @@ export interface RenderToStringOptions {
 }
 
 export interface RenderToStreamOptions extends RenderToStringOptions {
-  /** Extra HTML for `<head>` (charset, viewport, fonts, a CSS link…), sent in the first flush. */
+  /** Extra HTML for `<head>` (viewport, fonts, a CSS link…), sent in the first flush. */
   head?: string;
   /** Markup appended before `</body>`, typically the client bundle `<script>` that calls `hydrate()`. */
   bootstrap?: string;
+  /** `lang` attribute of the emitted `<html>`. Defaults to `"en"`. */
+  lang?: string;
 }
 
 export interface StreamResult {
@@ -61,6 +63,15 @@ export interface SSRResult {
 
 const HYDRATION_GLOBAL = "__DOMPHY_APP_DATA__";
 
+// Node-id prefix for the shell root a streamed response flushes first (see
+// renderToStream). Short because every generated id carries it. The shell is
+// always fully replaced by STREAM_SWAP_SCRIPT before hydrate() ever runs (the
+// swap script ships in the same chunk as the bootstrap script that calls
+// hydrate(), and runs first), so its ids never need to match anything and
+// just need to differ textually from the content root's — which is why it is
+// the only root pinned to a non-"" prefix.
+const SHELL_ID_PREFIX = "s";
+
 /**
  * ` nonce="…"` attribute when `configure({ cspNonce })` is set, else "".
  * Stamped on every Domphy-injected inline `<style>`/`<script>` in SSR and
@@ -68,8 +79,16 @@ const HYDRATION_GLOBAL = "__DOMPHY_APP_DATA__";
  * markup (`options.head`, `options.bootstrap`) is the caller's own concern.
  */
 function nonceAttr(): string {
-  const nonce = getConfig().cspNonce;
+  // Base64 alphabet only: a nonce derived per request from an untrusted source
+  // must not be able to close the attribute and add its own (e.g. `onload=`).
+  const nonce = (getConfig().cspNonce ?? "").replace(/[^A-Za-z0-9+/=_-]/g, "");
   return nonce ? ` nonce="${nonce}"` : "";
+}
+
+/** Attribute-safe `<html lang>` value; same reasoning as `nonceAttr`. */
+function langAttr(lang: string): string {
+  const value = lang.replace(/[^A-Za-z0-9-]/g, "");
+  return value ? ` lang="${value}"` : "";
 }
 
 /**
@@ -118,7 +137,17 @@ export class DomphyApp {
       this.router.cache.seed(seeded as Record<string, unknown>);
     }
     await this.router.start();
-    this.node = new ElementNode(this.element());
+    const router = this.router;
+    // The same pinned prefix renderToString() used, so the ids this tree
+    // computes are the ones already in the server markup however many other
+    // roots the page has mounted. Written as a literal rather than spread over
+    // element(), which would widen the descriptor union and lose the tag
+    // discrimination.
+    this.node = new ElementNode({
+      div: (listener) => [router.tree.get(listener)],
+      _idPrefix: "",
+      style: { display: "contents" },
+    });
     this.node.mount(target, style);
     return this.node;
   }
@@ -146,8 +175,18 @@ export class DomphyApp {
 
     const status = serverRouter.state.get("status");
     const redirect = serverRouter.lastRedirect;
+    // Node ids come from this root's own counter, so this response's ids do
+    // not depend on what else the process is rendering, and `hydrate()` builds
+    // one root the same way and computes the same ids.
+    // Pinned, and NOT redundant. An unlabelled root is auto-discriminated by
+    // how many roots are already live in the document, which is what stops two
+    // client-mounted apps from sharing ids — but it means an unlabelled root
+    // would take a different prefix on a page that already has one. This pair
+    // has to agree with each other above all else, so both ends state the same
+    // prefix instead of relying on being first. hydrate() pins the same "".
     const node = new ElementNode({
       div: [serverRouter.tree.get()],
+      _idPrefix: "",
       style: { display: "contents" },
     });
 
@@ -212,20 +251,51 @@ export class DomphyApp {
         await serverRouter.renderStream(requestUrl));
     } catch (error) {
       // renderStream() already converts RedirectSignal/NotFoundSignal into a
-      // graceful result; only an unexpected error reaches here, so the
-      // per-request router still needs releasing before it propagates.
-      serverRouter.destroy();
-      throw error;
+      // graceful result, so only an unexpected failure (a throwing middleware,
+      // say) reaches here — before the shell flushed, which means the status
+      // can still be 500. renderToString answers the same failure with a 500
+      // error page; a streaming host must not have to catch it separately.
+      const failure = error instanceof Error ? error : new Error(String(error));
+      shell = serverRouter.renderError(failure);
+      status = 500;
+      redirect = null;
+      rest = Promise.resolve({
+        content: serverRouter.renderError(failure),
+        data: {},
+        head: "",
+      });
     }
 
     const encoder = new TextEncoder();
+    // The shell and the content are two roots that both number from n0, so
+    // without distinct prefixes their ids would collide textually in the
+    // response. `_idPrefix` is the case for it — the same thing React asks
+    // for with `identifierPrefix` when a page hosts more than one app.
+    //
+    // The content root is pinned to "" — the SAME prefix renderToString() and
+    // hydrate() pin — not SHELL_ID_PREFIX. STREAM_SWAP_SCRIPT fully replaces
+    // #domphy-app's children with the content root's markup (`replaceChildren`,
+    // not append) before the bootstrap script that calls hydrate() ever runs,
+    // so by the time hydrate() reads the DOM, every id in it came from the
+    // content root, not the shell. Pinning content to "" makes hydrate()'s
+    // freshly-built tree compute the exact same ids as what's already in the
+    // DOM — the same guarantee renderToString()/hydrate() give each other.
+    // The shell keeps SHELL_ID_PREFIX: nothing ever hydrates against it (it is
+    // discarded by the swap), it only has to not collide with the content
+    // root's ids while both are momentarily present in the raw response text.
     const shellNode = new ElementNode({
       div: [shell],
+      _idPrefix: SHELL_ID_PREFIX,
       style: { display: "contents" },
     });
     const nonce = nonceAttr();
+    // The stream is UTF-8 encoded, so the charset is declared unconditionally
+    // and first: without it a response served as plain `text/html` is decoded
+    // as windows-1252 and every non-ASCII character mojibakes. A caller that
+    // also declares one is harmless — the first declaration wins.
     const open =
-      `<!DOCTYPE html><html><head>${options.head ?? ""}` +
+      `<!DOCTYPE html><html${langAttr(options.lang ?? "en")}><head>` +
+      `<meta charset="utf-8">${options.head ?? ""}` +
       `<style id="domphy-style"${nonce}>${shellNode.generateCSS()}</style>` +
       `</head><body><div id="domphy-app">${shellNode.generateHTML()}</div>`;
     const bootstrap = options.bootstrap ?? "";
@@ -235,8 +305,12 @@ export class DomphyApp {
         controller.enqueue(encoder.encode(open));
         try {
           const { content, data, head } = await rest;
+          // "" — see the id-prefix comment above shellNode: this is the root
+          // hydrate() rebuilds against once the swap script replaces the
+          // shell with this markup.
           const contentNode = new ElementNode({
             div: [content],
+            _idPrefix: "",
             style: { display: "contents" },
           });
           const chunk =
@@ -265,6 +339,7 @@ export class DomphyApp {
             error instanceof Error ? error : new Error(String(error));
           const errorNode = new ElementNode({
             div: [serverRouter.renderError(failure)],
+            _idPrefix: "",
             style: { display: "contents" },
           });
           const chunk =

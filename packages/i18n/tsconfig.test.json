@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "declaration": false,
+    "noEmit": true,
+    // Promise.withResolvers (ES2024) is used only in a Node-environment test
+    // (Node 22, which the CI/dev toolchain requires, ships it) — never in
+    // shipped src, which stays on the base tsconfig's lib.
+    "lib": ["ES2024", "DOM", "DOM.Iterable"]
+  },
+  "include": ["src/**/*", "tests/**/*"]
+}

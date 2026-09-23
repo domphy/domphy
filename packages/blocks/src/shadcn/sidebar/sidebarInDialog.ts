@@ -23,6 +23,7 @@ import {
   small,
   strong,
 } from "@domphy/ui";
+import { interactiveFill } from "../../shared/interactiveFill.js";
 
 /** One row in the settings category list. */
 interface SettingsCategory {
@@ -171,10 +172,7 @@ function categoryRow(
           transition: "background-color 100ms ease",
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": {
-            backgroundColor: (l: Listener) =>
-              themeColor(l, "shift-2", "neutral"),
-          },
+          "&:hover": interactiveFill(2),
           "&[aria-current=true]": {
             backgroundColor: (l: Listener) =>
               themeColor(l, "shift-3", "neutral"),
@@ -290,10 +288,7 @@ function sidebarInDialog(
           borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": {
-            backgroundColor: (l: Listener) =>
-              themeColor(l, "shift-2", "neutral"),
-          },
+          "&:hover": interactiveFill(2),
         },
       } as unknown as DomphyElement,
     ],

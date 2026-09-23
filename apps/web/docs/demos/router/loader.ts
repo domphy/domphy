@@ -5,6 +5,7 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
+  subscribeToRouterState,
 } from "@domphy/router";
 import { themeSpacing } from "@domphy/theme";
 import {
@@ -42,24 +43,43 @@ const routeTree = rootRoute.addChildren([indexRoute, postRoute]);
 const router = createRouter({
   routeTree,
   history: createMemoryHistory({ initialEntries: ["/"] }),
+  // How long a load may run before the spinner appears. Lowered from the
+  // router's own 1000ms default so a single jsonplaceholder fetch still shows
+  // it; a cache hit settles well under this, so revisits never flash.
+  defaultPendingMs: 150,
 });
 
 // --- Bridge: router state -> Domphy states ---
+// `subscribeToRouterState` publishes every write to the router's state store,
+// including the `status: "pending"` flip at the start of a load. Lifecycle
+// events cannot see that flip — `onBeforeLoad` fires while the status is still
+// "idle" and `onLoad` only after the loaders settle — so this is what the
+// spinner reads.
 const matches = toState<Array<AnyRouteMatch>>([]);
 const pathname = toState<string | number>("/");
+const loading = toState(false);
 
-// While a loader runs, the upcoming matches live in the pending pool with
-// status "pending"; prefer them so the spinner state is observable.
+// `isLoading` flips for every load, including one served straight from the
+// cache. Waiting out `defaultPendingMs` before showing the spinner is what
+// upstream's `pendingMs` does for a `pendingComponent` — without it a cached
+// revisit flashes the spinner for a frame.
+let pendingTimer: ReturnType<typeof setTimeout> | undefined;
+
 function syncRouterState() {
-  const pendingMatches = router.stores.pendingMatches.get();
-  matches.set(
-    pendingMatches.length > 0 ? [...pendingMatches] : [...router.state.matches],
-  );
+  matches.set([...router.state.matches]);
   pathname.set(router.state.location.pathname);
+  if (router.state.isLoading) {
+    pendingTimer ??= setTimeout(
+      () => loading.set(true),
+      router.options.defaultPendingMs,
+    );
+  } else {
+    clearTimeout(pendingTimer);
+    pendingTimer = undefined;
+    loading.set(false);
+  }
 }
-router.subscribe("onBeforeLoad", syncRouterState);
-router.subscribe("onLoad", syncRouterState);
-router.subscribe("onResolved", syncRouterState);
+subscribeToRouterState(router, syncRouterState);
 router.load().then(syncRouterState);
 
 // --- Pages ---
@@ -68,7 +88,7 @@ function IndexPage(): DomphyElement<"div"> {
     div: [
       { h4: "Route loaders", $: [heading()] },
       {
-        p: "Open a post: its loader fetches from jsonplaceholder while the match reports a pending status. Revisit it within 30 seconds and the cached loader data renders with no spinner.",
+        p: 'Open a post: the spinner runs while its loader fetches from jsonplaceholder, and the post renders once the loader settles. Revisit it within 30 seconds and the cached loader data renders straight away — the "Loader ran at" timestamp does not change.',
         $: [paragraph()],
       },
     ],
@@ -119,10 +139,11 @@ function navigationItem(label: string, postId?: string): MenuItem {
     label,
     key: postId ? `/posts/${postId}` : "/",
     onClick: () => {
-      const navigation = postId
-        ? router.navigate({ to: "/posts/$postId", params: { postId } })
-        : router.navigate({ to: "/" });
-      navigation.then(syncRouterState);
+      if (postId) {
+        router.navigate({ to: "/posts/$postId", params: { postId } });
+      } else {
+        router.navigate({ to: "/" });
+      }
     },
   };
 }
@@ -145,17 +166,14 @@ const App: DomphyElement<"div"> = {
       ],
       // menu() stacks items in a column by default; a row reads as a nav bar.
       style: { flexDirection: "row" },
-      // Text color is set by the menuitem buttons the menu() patch renders —
-      // the outer container itself carries no text.
-      _doctorDisable: "missing-color",
     },
     {
       div: (l) => {
+        if (loading.get(l)) return [LoadingPage()];
         const postMatch = matches
           .get(l)
           .find((match) => match.routeId === postRoute.id);
         if (!postMatch) return [IndexPage()];
-        if (postMatch.status === "pending") return [LoadingPage()];
         if (postMatch.status === "error") return [ErrorPage(postMatch)];
         return [PostPage(postMatch)];
       },

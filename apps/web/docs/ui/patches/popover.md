@@ -8,7 +8,7 @@ import Popover from "../../demos/patches/Popover.ts?raw"
 
 Apply the `popover` patch to any trigger element (typically a `button`). It attaches a floating content panel anchored to the trigger, positioned via `@domphy/floating`. The content is rendered into a fixed overlay layer. Hover-mode popovers dismiss when the trigger loses focus (blur); click-mode popovers ignore focus.
 
-The patch wires accessibility automatically: `aria-haspopup="dialog"`, `aria-expanded`, `aria-controls`, and focus/blur dismissal.
+The patch wires accessibility automatically: `aria-haspopup`, `aria-expanded`, `aria-controls`, and focus/blur dismissal. `aria-haspopup` names the role the panel actually has — `"dialog"` for the popover's own chrome, but `"menu"` when the content is a `menu()`, `"listbox"` for a `selectList()`, and likewise for `tree`/`grid` — because a trigger that announces the wrong kind of popup is an ARIA contract break.
 
 When `openOn` is `"hover"`, the popover also opens on focus and closes on blur. When `openOn` is `"click"`, focus has no effect.
 

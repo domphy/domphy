@@ -109,7 +109,7 @@ No extra config is needed. The `threshold` option controls how far into a cell t
 
 ## Adjusting the Sort Threshold
 
-By default a sort triggers when the cursor crosses 50 % of a target item. Tighten this for compact items or grids:
+FormKit's default `threshold` is `{ horizontal: 0, vertical: 0 }` — the swap fires as soon as the cursor enters the target. Raise it to make the swap wait until the cursor is further into the target, which reads better on compact items and grids:
 
 ```ts
 dragDrop(cards, {

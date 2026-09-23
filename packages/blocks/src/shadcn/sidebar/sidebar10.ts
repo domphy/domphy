@@ -10,6 +10,7 @@ import type { DomphyElement, Listener, State } from "@domphy/core";
 import { rawHtml, toState } from "@domphy/core";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
 import { buttonGhost, icon, popover, small } from "@domphy/ui";
+import { interactiveFill } from "../../shared/interactiveFill.js";
 import {
   emojiGlyph,
   ICON_BAR_CHART,
@@ -28,11 +29,13 @@ import {
   ICON_SPARKLE,
   ICON_TRASH,
   interactiveRowStyle,
+  makeSidebarToggle,
   renderPlainNavRow,
   renderTeamSwitcher,
   type SidebarBreadcrumbItem,
   type SidebarNavMainItem,
   type SidebarTeam,
+  sidebarBackdrop,
   sidebarBreadcrumb,
   sidebarIcon,
   sidebarMainContent,
@@ -246,10 +249,7 @@ function favoriteRow(
           borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": {
-            backgroundColor: (l: Listener) =>
-              themeColor(l, "shift-2", "neutral"),
-          },
+          "&:hover": interactiveFill(2),
           "&:hover [data-slot=row-more], &:focus-within [data-slot=row-more]": {
             display: "inline-flex",
           },
@@ -374,10 +374,7 @@ function workspaceNode(
           borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 1),
           color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
           backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
-          "&:hover": {
-            backgroundColor: (l: Listener) =>
-              themeColor(l, "shift-2", "neutral"),
-          },
+          "&:hover": interactiveFill(2),
           "&:hover [data-slot=chevron-toggle], &:focus-within [data-slot=chevron-toggle]":
             { display: "inline-flex" },
           "&:hover [data-slot=row-add], &:focus-within [data-slot=row-add]": {
@@ -411,10 +408,7 @@ function workspaceNode(
                 color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
                 backgroundColor: (l: Listener) =>
                   themeColor(l, "inherit", "neutral"),
-                "&:hover": {
-                  backgroundColor: (l: Listener) =>
-                    themeColor(l, "shift-2", "neutral"),
-                },
+                "&:hover": interactiveFill(2),
               },
             } as unknown as DomphyElement,
           ],
@@ -657,6 +651,15 @@ function sidebar10(props: Sidebar10Props = {}): DomphyElement<"div"> {
   } = props;
 
   const collapsed = toState(false);
+  // Desktop rail state and the mobile off-canvas drawer are separate, the way
+  // upstream `SidebarProvider` keeps `open` and `openMobile` apart — measured
+  // at 375px, one shared flag left the 256px panel inline over the content
+  // with its own toggle pushed off screen. Each flag is only read at its own
+  // breakpoint: `makeSidebarToggle` reads the viewport and flips only the one
+  // that is live, so opening the mobile drawer does not also collapse the
+  // desktop rail (which would hide every row label inside the open drawer).
+  const mobileOpen = toState(false);
+  const toggleSidebar = makeSidebarToggle(collapsed, mobileOpen);
   const favoritesShowMore = useShowMore(favorites, favoritesVisibleCount);
   const workspacesShowMore = useShowMore(workspaces, workspacesVisibleCount);
 
@@ -800,7 +803,7 @@ function sidebar10(props: Sidebar10Props = {}): DomphyElement<"div"> {
       {
         div: null,
         ariaHidden: "true",
-        onClick: () => collapsed.set(!collapsed.get()),
+        onClick: toggleSidebar,
         style: {
           position: "absolute",
           insetBlock: "0",
@@ -823,13 +826,28 @@ function sidebar10(props: Sidebar10Props = {}): DomphyElement<"div"> {
         `1px solid ${themeColor(l, "shift-3", "neutral")}`,
       color: (l: Listener) => themeColor(l, "shift-9", "neutral"),
       backgroundColor: (l: Listener) => themeColor(l, "inherit", "neutral"),
+      // Below the family's mobile breakpoint the panel leaves the flow and
+      // slides in over the content, like every other sidebar variant here.
+      "@media (max-width: 768px)": {
+        position: "fixed",
+        insetBlock: "0",
+        insetInlineStart: "0",
+        zIndex: "15",
+        width: themeSpacing(64),
+        transform: (l: Listener) =>
+          mobileOpen.get(l) ? "translateX(0)" : "translateX(-100%)",
+        // `transform` alone leaves every link in the slid-out panel in the tab
+        // order (WCAG 2.4.3). `visibility` is animated so the slide still runs.
+        visibility: (l: Listener) => (mobileOpen.get(l) ? "visible" : "hidden"),
+        transition: "transform 0.2s ease, visibility 0.2s ease",
+      },
     },
   } as unknown as DomphyElement<"aside">;
 
   const mainElement: DomphyElement<"main"> = {
     main: [
       mainHeader({
-        onToggle: () => collapsed.set(!collapsed.get()),
+        onToggle: toggleSidebar,
         breadcrumbItems,
       }),
       sidebarMainContent(children ?? [centeredBox(false), centeredBox(true)]),
@@ -847,7 +865,13 @@ function sidebar10(props: Sidebar10Props = {}): DomphyElement<"div"> {
   } as unknown as DomphyElement<"main">;
 
   return {
-    div: [asideElement, mainElement],
+    // The mobile drawer is a modal overlay, so it gets the family's dimming
+    // backdrop — which also carries the Escape-to-dismiss listener.
+    div: [
+      asideElement,
+      mainElement,
+      sidebarBackdrop(mobileOpen, () => mobileOpen.set(false)),
+    ],
     dataTone: "shift-0",
     style: {
       display: "flex",

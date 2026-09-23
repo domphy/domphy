@@ -1,5 +1,6 @@
 import {
   type DomphyElement,
+  type ElementNode,
   type PartialElement,
   toState,
   type ValueOrState,
@@ -11,6 +12,40 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { enabledOptionsIn } from "../utils/optionList.js";
+
+// WAI-ARIA APG Listbox keyboard model: Down/Up move to the next/previous
+// option, Home/End to the first/last, Enter/Space choose the focused option.
+// Focus IS the highlight here (options carry tabindex=-1), matching the
+// selectBox typeahead which already moves focus between options.
+function onListboxKey(event: Event, node: ElementNode): void {
+  const key = (event as KeyboardEvent).key;
+  const host = node.domElement as HTMLElement | null;
+  if (!host) return;
+  const options = enabledOptionsIn(host);
+  if (!options.length) return;
+  const active = host.ownerDocument.activeElement as HTMLElement | null;
+  const current = active ? options.indexOf(active) : -1;
+
+  if (key === "Enter" || key === " ") {
+    if (current === -1) return;
+    event.preventDefault();
+    options[current]!.click();
+    return;
+  }
+
+  let next: number;
+  if (key === "ArrowDown") next = Math.min(options.length - 1, current + 1);
+  else if (key === "ArrowUp") next = current <= 0 ? 0 : current - 1;
+  else if (key === "Home") next = 0;
+  else if (key === "End") next = options.length - 1;
+  else return;
+
+  event.preventDefault();
+  const target = options[next]!;
+  target.focus();
+  target.scrollIntoView?.({ block: "nearest" });
+}
 
 /**
  * Container for a list of `selectItem`s that owns the selection state. It exposes a `select`
@@ -65,11 +100,19 @@ function selectList(
     role: "listbox",
     ariaLabel: "Options",
     ariaMultiselectable: multiple ? "true" : undefined,
-    _context: {
-      select: {
-        value: state,
-        multiple,
-      },
+    // Without a tab stop the whole listbox was keyboard-unreachable: its
+    // options are tabindex=-1 by design (roving focus), so Tab skipped the
+    // entire widget. APG's listbox example puts tabindex=0 on the container.
+    tabindex: 0,
+    onKeyDown: onListboxKey,
+    // Published from _onSchedule (runs once per node), NOT as a declared
+    // `_context`: ElementNode.patch re-merges `element._context` on every
+    // re-render, and merging a freshly-built State into the live one
+    // overwrote its value and its notifier's listeners — an uncontrolled
+    // selection silently snapped back to the initial value whenever a
+    // reactive ancestor re-rendered. Same fix as segmented/toggleGroup.
+    _onSchedule: (node) => {
+      node.setContext("select", { value: state, multiple });
     },
     _onInit: (node) => {
       if (node.tagName !== "div") {

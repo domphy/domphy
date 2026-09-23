@@ -20,23 +20,15 @@ const App: DomphyElement<"div"> = {
     {
       img: null,
       src: chart,
-      alt: "Sales trend chart",
-      $: [image()],
-      // Decorative image placeholder background, no text content — "missing-color"
-      // would otherwise ask for a color that has nothing to apply to.
-      _doctorDisable: "missing-color",
+      $: [image({ alt: "Sales trend chart" })],
     },
     {
       img: null,
       src: chart,
-      alt: "Sales trend chart secondary",
-      $: [image({ color: "primary" })],
+      $: [image({ alt: "Sales trend chart secondary", color: "primary" })],
       style: {
         maxWidth: themeSpacing(56),
       },
-      // Decorative image placeholder background, no text content — "missing-color"
-      // would otherwise ask for a color that has nothing to apply to.
-      _doctorDisable: "missing-color",
     },
   ],
   style: {

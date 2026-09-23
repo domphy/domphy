@@ -8,10 +8,10 @@
     "exportKind": "default"
   },
   {
-    "name": "default",
+    "name": "Demo",
     "kind": "block",
     "file": "apps/web/docs/demos/blocks/scrollProgress.ts",
-    "signature": "default: DomphyElement",
+    "signature": "Demo: DomphyElement<\"div\">",
     "jsdoc": "",
     "exportKind": "default"
   },

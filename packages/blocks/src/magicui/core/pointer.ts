@@ -20,6 +20,7 @@ import type {
 import { hashString } from "@domphy/core";
 import { themeColor, themeSpacing } from "@domphy/theme";
 import { paragraph, strong } from "@domphy/ui";
+import { REDUCED_MOTION_PAUSE } from "../reducedMotion.js";
 
 export interface PointerOffset {
   x: number;
@@ -58,7 +59,6 @@ function defaultCursorGlyph(): DomphyElement<"span"> {
   return {
     span: null,
     ariaHidden: "true",
-    _doctorDisable: "missing-color",
     style: {
       display: "block",
       boxSizing: "border-box",
@@ -69,6 +69,7 @@ function defaultCursorGlyph(): DomphyElement<"span"> {
       border: (listener: Listener) =>
         `${themeSpacing(1.5)} solid ${themeColor(listener, "shift-9", "primary")}`,
       animation: `${GLYPH_LOOP_ANIMATION_NAME} 1.1s ease-in-out infinite`,
+      ...REDUCED_MOTION_PAUSE,
       [`@keyframes ${GLYPH_LOOP_ANIMATION_NAME}`]: GLYPH_LOOP_KEYFRAMES,
     },
   } as DomphyElement<"span">;

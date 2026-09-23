@@ -15,9 +15,6 @@ const App: DomphyElement<"div"> = {
         },
       })),
       $: [scrollArea()],
-      // Text color is set by the item divs the map above renders —
-      // this outer scroll container itself carries no text.
-      _doctorDisable: "missing-color",
       style: {
         maxHeight: themeSpacing(48),
         outline: (l) => `1px solid ${themeColor(l, "shift-3")}`,

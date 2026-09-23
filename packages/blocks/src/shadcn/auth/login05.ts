@@ -12,7 +12,6 @@
 import type { DomphyElement, Listener } from "@domphy/core";
 import { themeColor, themeSize, themeSpacing } from "@domphy/theme";
 import { link } from "@domphy/ui";
-import { fixed } from "../../shared/typography.js";
 import {
   brandBadge,
   dividerRow,
@@ -135,7 +134,7 @@ function Login05(props: Login05Props = {}): DomphyElement<"div"> {
         style: {
           margin: 0,
           fontSize: (listener: Listener) => themeSize(listener, "increase-1"),
-          fontWeight: fixed(700),
+          fontWeight: "bold",
           color: (listener: Listener) =>
             themeColor(listener, "shift-11", "neutral"),
         },

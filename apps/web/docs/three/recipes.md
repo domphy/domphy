@@ -27,7 +27,7 @@ The same recipe applies to any other `three/addons` helper (`TransformControls`,
 
 ## Injectable renderer
 
-`three()`'s `createRenderer?: (canvas) => RendererLike` option replaces the default `new THREE.WebGLRenderer({ canvas, antialias: true, ...gl })` entirely — only `render()`/`setSize()` are required, everything else (`setPixelRatio`, `dispose`, `domElement`, `shadowMap`, `toneMapping`, `outputColorSpace`) is optional:
+`three()`'s `createRenderer?: (canvas) => RendererLike` option replaces the default `new THREE.WebGLRenderer({ canvas, powerPreference: "high-performance", antialias: true, alpha: true, ...gl })` entirely — only `render()`/`setSize()` are required, everything else (`setPixelRatio`, `dispose`, `domElement`, `shadowMap`, `toneMapping`, `outputColorSpace`) is optional. For ordinary constructor options, pass `gl` instead; `createRenderer` is for a different renderer object altogether:
 
 <CodeEditor :code="CustomRenderer" />
 

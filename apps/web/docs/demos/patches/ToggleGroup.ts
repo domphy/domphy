@@ -18,9 +18,6 @@ const App: DomphyElement<"div"> = {
           ],
         }),
       ],
-      // Text color is set by the toggle buttons the toggleGroup() patch
-      // renders — the outer group container itself carries no text.
-      _doctorDisable: "missing-color",
     },
     {
       div: null,
@@ -36,9 +33,6 @@ const App: DomphyElement<"div"> = {
           ],
         }),
       ],
-      // Text color is set by the toggle buttons the toggleGroup() patch
-      // renders — the outer group container itself carries no text.
-      _doctorDisable: "missing-color",
     },
     {
       div: null,
@@ -52,9 +46,6 @@ const App: DomphyElement<"div"> = {
           ],
         }),
       ],
-      // Text color is set by the toggle buttons the toggleGroup() patch
-      // renders — the outer group container itself carries no text.
-      _doctorDisable: "missing-color",
     },
   ],
   style: {

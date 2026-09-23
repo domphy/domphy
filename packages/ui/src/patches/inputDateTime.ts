@@ -42,7 +42,6 @@ function inputDateTime(
       }
     },
     style: {
-      fontFamily: "inherit",
       fontSize: (listener) => themeSize(listener, "inherit"),
       lineHeight: "inherit",
       color: (listener) => themeColor(listener, "text", color.get(listener)),

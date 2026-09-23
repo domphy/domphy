@@ -1,11 +1,13 @@
 /**
- * Code-group active-tab contrast guarantee.
+ * Contrast of every self-contained foreground/background pair pressCSS emits.
  *
- * The checked code-group tab is brand-colored text on the shift-2 (bgMute)
- * tinted tab bar. shift-9 primary on shift-2 measures below WCAG AA on the
- * built-in ramps (and worse on saturated generated ramps — the docs site's
- * amber brand hit 4.08:1), so the default emits shift-10. This pins both the
- * emitted token and the resolved-color math on the built-in themes.
+ * Truth source: WCAG 2.1 SC 1.4.3 — normal text needs 4.5:1. The tokens are
+ * read OUT of the generated stylesheet and resolved through @domphy/theme, so
+ * this fails when a pairing actually becomes illegible rather than when a
+ * token name changes. Rules that only declare `color` inherit their surface
+ * from an ancestor and cannot be judged statically (the browser axe pass in
+ * the audit covers those); rules whose background is a `color-mix()` tint have
+ * no resolvable hex either. Both are skipped here, by construction.
  */
 
 import { resolveThemeColor } from "@domphy/theme";
@@ -36,51 +38,55 @@ function contrastRatio(a: string, b: string): number {
   return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
 }
 
-describe("code-group active tab contrast", () => {
-  it("emits shift-10 primary text on the shift-2 tinted bar", () => {
-    const css = pressCSS();
-    expect(css).toContain(":checked~.tabs>label");
-    // The checked-tab rule (8 comma-joined selectors) must pair the deeper
-    // brand step with bgMute.
-    const rule = css.match(/[^{]*:checked~\.tabs>label[^{]*\{[^}]*\}/);
-    expect(rule, "checked-tab rule not found").not.toBeNull();
-    expect(rule![0]).toContain("color:var(--primary-10)");
-    expect(rule![0]).toContain("background:var(--neutral-2)");
+interface TokenPair {
+  selector: string;
+  foreground: { color: string; tone: string };
+  background: { color: string; tone: string };
+}
+
+const TOKEN = String.raw`var\(--([a-z]+)-(\d+)\)`;
+
+/** Rules that declare BOTH a plain token colour and a plain token surface. */
+function selfContainedPairs(css: string): TokenPair[] {
+  const pairs: TokenPair[] = [];
+  for (const rule of css.matchAll(/([^{}]+)\{([^{}]+)\}/g)) {
+    const [, selector, body] = rule;
+    const foreground = body.match(new RegExp(`(?:^|;)color:${TOKEN}`));
+    const background = body.match(
+      new RegExp(`(?:^|;)background(?:-color)?:${TOKEN}`),
+    );
+    if (!foreground || !background) continue;
+    pairs.push({
+      selector: selector.trim().split("\n").join(" ").slice(0, 80),
+      foreground: { color: foreground[1], tone: `shift-${foreground[2]}` },
+      background: { color: background[1], tone: `shift-${background[2]}` },
+    });
+  }
+  return pairs;
+}
+
+describe("pressCSS foreground/background pairs", () => {
+  const pairs = selfContainedPairs(pressCSS());
+
+  it("finds the self-contained pairs to judge", () => {
+    expect(pairs.length).toBeGreaterThan(3);
   });
 
   for (const theme of ["light", "dark"]) {
-    it(`${theme}: shift-10 primary on shift-2 clears WCAG AA 4.5:1`, () => {
-      const fg = resolveThemeColor({
-        theme,
-        tone: "shift-10",
-        color: "primary",
-      });
-      const bg = resolveThemeColor({
-        theme,
-        tone: "shift-2",
-        color: "neutral",
-      });
-      expect(contrastRatio(fg, bg)).toBeGreaterThanOrEqual(4.5);
+    it(`${theme}: every pair clears WCAG AA 4.5:1`, () => {
+      const failing = pairs
+        .map((pair) => ({
+          selector: pair.selector,
+          ratio: contrastRatio(
+            resolveThemeColor({ theme, ...pair.foreground }),
+            resolveThemeColor({ theme, ...pair.background }),
+          ),
+        }))
+        .filter(({ ratio }) => ratio < 4.5)
+        .map(({ selector, ratio }) => `${selector} = ${ratio.toFixed(2)}:1`);
+      expect(failing).toEqual([]);
     });
   }
-
-  it("documents why shift-9 was not enough (regression boundary)", () => {
-    // If a future ramp change makes shift-9 pass, the tab tone can be
-    // revisited — until then this failing pair is the reason for shift-10.
-    for (const theme of ["light", "dark"]) {
-      const fg = resolveThemeColor({
-        theme,
-        tone: "shift-9",
-        color: "primary",
-      });
-      const bg = resolveThemeColor({
-        theme,
-        tone: "shift-2",
-        color: "neutral",
-      });
-      expect(contrastRatio(fg, bg)).toBeLessThan(4.5);
-    }
-  });
 });
 
 /**

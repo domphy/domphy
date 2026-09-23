@@ -44,7 +44,7 @@ import { rawHtml } from "@domphy/core"
 { div: rawHtml("<b>Bold</b>") }   // -> a real <b> element
 ```
 
-Only ever wrap markup you control (a Markdown renderer's output, a syntax highlighter, a generated SVG). `rawHtml()` still strips `<script>` elements, `on*` handler attributes and `javascript:` URLs, but that is defense in depth — it is not a full sanitizer, and it cannot make untrusted input safe.
+Only ever wrap markup you control (a Markdown renderer's output, a syntax highlighter, a generated SVG). `rawHtml()` still strips `<script>` elements, `on*` handler attributes, `javascript:` URLs, `<iframe srcdoc>`, `<meta http-equiv=refresh>`, `<base>` and SVG animations that re-target a handler or URL attribute — but that is defense in depth, not a full sanitizer, and it cannot make untrusted input safe.
 
 `rawHtml()` accepts a single-root **or multi-root** HTML string. Every parsed root is inserted as a sibling; `domText` stays the first root (the slot anchor). `children.move()` / `children.swap()` / removal treat those roots as one child group, so identity stays stable.
 
@@ -65,16 +65,21 @@ A reactive child may return either form, and switching between them rebuilds the
 
 ## Empty string
 
-An empty string `""` is stored as a zero-width space (`U+200B`) so the DOM node still exists.
+An empty string `""` is kept as a real but empty DOM text node, so the slot stays available for a later reactive update. It contributes nothing to the element's text content or accessible name.
+
+SSR is the one place that needs a mark: an empty text node serializes to nothing, so the parser would hand back no node and the child would lose its hydration slot. `generateHTML()` therefore emits a **comment** anchor, which survives the round trip and — unlike a printable placeholder — stays out of the accessibility tree. The first reactive update replaces it with a text node in place.
 
 ```ts
-{ div: "" }  // renders as &#8203;
+{ div: "" }            // client: <div></div> with one empty text node
+                       // SSR:    <div><!----></div>
 ```
+
+Raw-text elements (`textarea`, `title`, `script`, `style`) get no anchor — a comment there would be literal characters, and inside a `<textarea>` it would be the control's value. `mount()` materializes those slots during hydration instead.
 
 ## `generateHTML()`
 
 Returns the text content as an HTML string, escaped unless the node came from `rawHtml()`. Used for SSR.
 
 ```ts
-node.generateHTML()  // "Hello World" or "&#8203;" for empty string
+node.generateHTML()  // "Hello World", or "<!---->" for an empty string
 ```

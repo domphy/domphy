@@ -228,6 +228,45 @@ const light: ThemeInput = {
     "2.4375rem",
     "3.0625rem",
   ],
+  // System stacks: every platform's own UI face, no webfont request, no FOUT.
+  // buildThemeCSS() puts "sans-serif" on the themed root, so a page that only
+  // calls themeApply() inherits it everywhere — without this the document is
+  // left on the UA default, which is a SERIF (measured: Times New Roman in
+  // Chromium 141 on a bare themeApply() page).
+  //
+  // Chrome 88 floor: `system-ui` is Chrome 56+; `ui-monospace` is Safari-only
+  // and simply skipped by engines that do not know it, which is why the
+  // concrete faces follow it.
+  fontFamilies: {
+    "sans-serif":
+      'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji"',
+    monospace:
+      'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
+  },
+  // The CSS numeric weights that carry a standard name, 300–900. Names follow
+  // the OpenType/CSS weight class vocabulary that Tailwind and Radix Themes
+  // both ship, so a stack swapped in via setTheme() (a variable font with a
+  // narrower weight axis, say) remaps in one place instead of at 60 call sites.
+  fontWeights: {
+    light: "300",
+    regular: "400",
+    medium: "500",
+    semibold: "600",
+    bold: "700",
+    extrabold: "800",
+    black: "900",
+  },
+  // Optical tracking, em-relative so it rides the size scale. Steps match
+  // Tailwind's tracking-* scale (the values measured across this repo's own
+  // display text — -0.03em … 0.05em — all round to one of them).
+  letterSpacings: {
+    tighter: "-0.05em",
+    tight: "-0.025em",
+    normal: "normal",
+    wide: "0.025em",
+    wider: "0.05em",
+    widest: "0.1em",
+  },
   densities: [0.75, 1, 1.5, 2, 2.5],
   darkBias: 1,
   custom: {},

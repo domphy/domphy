@@ -15,8 +15,8 @@ async function main() {
   const page = await mountedPage(demoUrl, "Login02");
   const block = await locate(page, "Login02");
 
-  const email = block.locator("#login02-email");
-  const password = block.locator("#login02-password");
+  const email = block.locator('input[name="email"]');
+  const password = block.locator('input[name="password"]');
   const submit = block.getByRole("button", { name: "Login", exact: true });
 
   const passwordType = await password.getAttribute("type");
@@ -30,12 +30,12 @@ async function main() {
   const emailValid = await email.evaluate(
     (element: HTMLInputElement) => element.validity.valid,
   );
-  const focusedAfterEmptySubmit = await page.evaluate(
-    () => document.activeElement?.id,
+  const focusedAfterEmptySubmit = await page.evaluate(() =>
+    document.activeElement?.getAttribute("name"),
   );
   report(
     "Login02: empty submit blocked by native required validation",
-    emailValid === false && focusedAfterEmptySubmit === "login02-email",
+    emailValid === false && focusedAfterEmptySubmit === "email",
     `email.validity.valid=${emailValid}, focused="${focusedAfterEmptySubmit}"`,
   );
 
@@ -51,15 +51,15 @@ async function main() {
     };
   });
   await page.keyboard.press("Tab");
-  const focusedAfterSecondTab = await page.evaluate(
-    () => document.activeElement?.id,
+  const focusedAfterSecondTab = await page.evaluate(() =>
+    document.activeElement?.getAttribute("name"),
   );
   report(
     "Login02: tab order is email -> forgot-password link (real href) -> password",
     forgotLinkFocus.tag === "A" &&
       forgotLinkFocus.text === "Forgot your password?" &&
       !!forgotLinkFocus.href &&
-      focusedAfterSecondTab === "login02-password",
+      focusedAfterSecondTab === "password",
     `forgotLink=${JSON.stringify(forgotLinkFocus)}, thenFocused="${focusedAfterSecondTab}"`,
   );
 

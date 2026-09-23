@@ -13,7 +13,7 @@ import {
  * @hostTag ol
  * @param props - Optional configuration.
  * @param props.color - Color tone for the list text. Defaults to `"neutral"`.
- * @example { ol: "", $: [orderedList()], children: [{ li: "First" }] }
+ * @example { ol: [{ li: "First" }, { li: "Second" }], $: [orderedList()] }
  */
 function orderedList(
   props: { color?: ValueOrState<ThemeColor> } = {},
@@ -32,7 +32,7 @@ function orderedList(
       color: (listener) => themeColor(listener, "text", color.get(listener)),
       marginTop: 0,
       marginBottom: 0,
-      paddingLeft: themeSpacing(3),
+      paddingInlineStart: themeSpacing(3),
       listStyleType: "decimal",
       listStylePosition: "outside",
     },

@@ -6,7 +6,7 @@ import Keyboard from "../../demos/patches/Keyboard.ts?raw"
 
 # Keyboard
 
-Renders keyboard-key styling (themed background, border and padding). Apply to a `<kbd>`.
+Renders keyboard-key styling (the theme's monospace stack, themed background, border and padding). Apply to a `<kbd>`.
 
 ## Props
 

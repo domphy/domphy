@@ -39,11 +39,49 @@ import type { ReadableState, ValueListener } from "./State.js";
 const REACTION_QUEUE: Set<() => void> = new Set();
 let reactionDrainScheduled = false;
 
+// Runaway-loop guard, ported from Vue 3 `runtime-core/src/scheduler.ts`
+// (`checkRecursiveUpdates`, `const RECURSION_LIMIT = 100`): count how many
+// times the SAME job re-runs inside one flush and skip it past the limit, so a
+// reactive effect mutating its own dependencies reports instead of hanging.
+//
+// The boundary is the only part that had to be re-derived. Vue's `seen` map
+// lives exactly one `flushJobs()` call, which works there because a job that
+// queues another job is drained by that same loop. Here a reaction's write
+// leaves through a Notifier microtask, so a cross-effect cycle (A reads a /
+// writes b, B reads b / writes a) is spread over a SEPARATE `drainReactions()`
+// per iteration — a per-call map would count 1 every time and never trip.
+// The equivalent boundary is "until the whole reactive system settles": no
+// pending notifier flushes AND an empty reaction queue. That is also what keeps
+// a user loop of `set()` + `flushSync()` from tripping — each iteration settles
+// before the next one starts, so the counter restarts from zero.
+const RECURSION_LIMIT = 100;
+let recursionCounts: Map<() => void, number> | null = null;
+
 function scheduleReaction(job: () => void): void {
   REACTION_QUEUE.add(job);
   if (reactionDrainScheduled) return;
   reactionDrainScheduled = true;
   _microtask(drainReactions);
+}
+
+// Unlike Vue's, this check is NOT DEV-only: skipping the job is what breaks the
+// cycle, and a production build that instead spins microtasks forever locks the
+// page up with no diagnostic at all.
+function isRunawayJob(job: () => void): boolean {
+  if (!recursionCounts) recursionCounts = new Map();
+  const counts = recursionCounts;
+  const count = counts.get(job) || 0;
+  if (count > RECURSION_LIMIT) {
+    if (count === RECURSION_LIMIT + 1) {
+      counts.set(job, count + 1);
+      console.error(
+        `[Domphy] Maximum recursive updates exceeded (${RECURSION_LIMIT}). A reactive effect is mutating a dependency it also reads — directly, or in a cycle with another effect (A writes what B reads and vice versa). The effect has been stopped for this flush; look for a \`set()\` inside an \`effect\`/\`computed\`/\`watch\` body that feeds back into its own source.`,
+      );
+    }
+    return true;
+  }
+  counts.set(job, count + 1);
+  return false;
 }
 
 function drainReactions(): void {
@@ -54,6 +92,7 @@ function drainReactions(): void {
     const jobs = [...REACTION_QUEUE];
     REACTION_QUEUE.clear();
     for (const job of jobs) {
+      if (isRunawayJob(job)) continue;
       try {
         job();
       } catch (e) {
@@ -61,6 +100,8 @@ function drainReactions(): void {
       }
     }
   }
+  // Whole system settled — start the next flush's counters from zero.
+  if (!hasPendingNotifiers()) recursionCounts = null;
 }
 
 // Synchronously flush all pending reactivity: state-change notifications (DOM
@@ -200,8 +241,44 @@ export function effectScope(): EffectScopeHandle {
 // it whenever any tracked dependency changes. Returns a `dispose()` that releases
 // all current subscriptions. Each run re-collects dependencies, so reads no
 // longer reached (e.g. behind a branch) are dropped.
-export function effect(fn: () => void): () => void {
+//
+// `fn` may RETURN a cleanup function (the Svelte 5 `$effect` / Preact-signals
+// `effect` contract, equivalent to Solid's `onCleanup`): it runs right before
+// the next re-run and once on dispose, so per-run resources (a timer, a DOM
+// listener, a subscription) are released instead of accumulating one per
+// dependency change.
+//
+// Reactive resources created INSIDE `fn` (a nested `effect`/`computed`/
+// `effectScope`) are owned by that run and disposed before the next one —
+// without this a nested effect accumulated one live instance per outer re-run.
+// biome-ignore lint/suspicious/noConfusingVoidType: the void arm is what lets an ordinary `() => { … }` body stay assignable; `undefined` in its place rejects every existing caller (TS2345).
+export function effect(fn: () => void | (() => void)): () => void {
   let disposed = false;
+  // Cleanup returned by the current run, and the scope owning whatever
+  // reactive resources that run created.
+  let cleanup: (() => void) | null = null;
+  let runScope: EffectScope | null = null;
+
+  const releaseRun = (): void => {
+    const previousCleanup = cleanup;
+    const previousScope = runScope;
+    cleanup = null;
+    runScope = null;
+    if (previousCleanup) {
+      try {
+        previousCleanup();
+      } catch (error) {
+        console.error("[Domphy] Uncaught error in effect cleanup:", error);
+      }
+    }
+    if (previousScope) {
+      try {
+        previousScope.stop();
+      } catch (error) {
+        console.error("[Domphy] Uncaught error in effect teardown:", error);
+      }
+    }
+  };
   // `running` guards against an effect whose `fn` writes a state it also reads,
   // which would otherwise re-enter `run` mid-run.
   let running = false;
@@ -221,11 +298,17 @@ export function effect(fn: () => void): () => void {
   const run = (): void => {
     if (disposed || running) return;
     running = true;
+    // Release the previous run's cleanup + owned resources BEFORE re-running,
+    // matching Solid/Svelte ordering.
+    releaseRun();
     // Drop the previous run's dependencies so only deps read on THIS run remain
     // subscribed (stale-dep collection).
     collector.reset();
+    const scope = new EffectScope();
+    runScope = scope;
     try {
-      runWithCollector(collector, fn);
+      const result = runWithCollector(collector, () => scope.run(fn));
+      if (typeof result === "function") cleanup = result;
     } finally {
       running = false;
     }
@@ -234,8 +317,10 @@ export function effect(fn: () => void): () => void {
   const dispose = (): void => {
     if (disposed) return;
     disposed = true;
+    releaseRun();
     collector.reset();
     REACTION_QUEUE.delete(job);
+    recursionCounts?.delete(job);
   };
 
   registerDisposer(dispose);
@@ -271,7 +356,7 @@ export interface Computed<T> {
 // Lazy + cached derived value. `fn` is evaluated on first read and the result is
 // cached; it re-evaluates ONLY after a tracked dependency changes (a dirty flag),
 // never on every read. When a dependency changes, the computed recomputes and, if
-// the new value differs by `===` from the cached one, notifies its own
+// the new value differs by `Object.is` from the cached one, notifies its own
 // downstream listeners; an identical value short-circuits (no downstream churn).
 export function computed<T>(fn: () => T): Computed<T> {
   // The computed publishes its own changes through a private Notifier (the same
@@ -340,7 +425,9 @@ export function computed<T>(fn: () => T): Computed<T> {
     const had = hasValue;
     recompute();
     // Equality short-circuit: an unchanged value must not notify downstream.
-    if (had && cachedValue === previous) return;
+    // `Object.is`, not `===`, so the rule matches `State.set()` — with `===` a
+    // computed resolving to NaN notified downstream on every dependency write.
+    if (had && Object.is(cachedValue, previous)) return;
     notifier.notify(EVENT, cachedValue);
   };
 
@@ -452,7 +539,11 @@ export function watch<T>(
     const newValue = typeof source === "function" ? source() : source.get();
 
     if (!firstRun || options?.immediate) {
-      callback(newValue, oldValue);
+      // Only the SOURCE is tracked — reads inside the callback must not become
+      // watcher dependencies (Vue 3 `watch` semantics). Without this, a
+      // callback that reads any other state re-fired the watcher on that
+      // state's writes, with `newValue === oldValue`.
+      untrack(() => callback(newValue, oldValue));
     }
 
     oldValue = newValue;

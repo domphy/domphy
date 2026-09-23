@@ -285,7 +285,7 @@ describe("M14: floating overlay portals into the open dialog", () => {
     } as DomphyElement);
     const dlg = host.querySelector("dialog")!;
     expect(dlg.textContent ?? "").toContain("IN_DIALOG_PANEL");
-    expect(dlg.querySelector("#domphy-floating")).not.toBeNull();
+    expect(dlg.querySelector("[data-domphy-floating]")).not.toBeNull();
   });
 });
 
@@ -457,7 +457,7 @@ describe("M19: selectBox aria-controls; datePicker aria-expanded/aria-controls",
       div: null,
       $: [selectBox({ options: [], content: { div: "list" } })],
     } as DomphyElement);
-    const box = host.querySelector("[role=button]")!;
+    const box = host.querySelector("[role=combobox]")!;
     expect(box.getAttribute("aria-controls")).toMatch(/^domphy-selectBox-/);
   });
 

@@ -50,9 +50,52 @@ export class StyleProperty {
     this.set(value);
   }
 
-  _domUpdate(): void {
+  // Whether this declaration's value comes from a reactive function, i.e. can
+  // still change after the rule was inserted.
+  isReactive(): boolean {
+    return this._fn != null;
+  }
+
+  // The node's scope class is a hash of its rule text, shared with every other
+  // node that resolves to the same style — so a write that would CHANGE that
+  // text has to take this node out of the shared scope first, or the new value
+  // reaches every node wearing that class. A write of the value already in the
+  // rule changes nothing and keeps the sharing; that is the common case, since
+  // `mount()` activating a reactive property re-writes the value the rule was
+  // built from.
+  //
+  // The comparison is against the property's own PREVIOUS tracked value, not
+  // a readback from the live CSSOM rule. A readback goes through the engine's
+  // shorthand/value serializer, which does not always agree with itself: jsdom
+  // normalizes a value inserted via `insertRule` (a full rule of text, parsed
+  // once) differently from one written via `CSSStyleDeclaration.setProperty`
+  // on a probe element — `border: none` came back `""` from the former and
+  // `"medium"` from the latter, so every checkbox's `border` declaration
+  // detached on its first activation even though nothing had actually
+  // changed. Comparing the two plain JS values this class already holds sides
+  // steps the serializer entirely: it only reports a change when the
+  // reactive function's OWN result differs, which is the only thing that was
+  // ever supposed to trigger a detach.
+  private _detachIfChanging(previousValue: StyleValue): boolean {
+    const node = this.parentRule?.parentNode;
+    if (!node?._scopeShared || !node.scopeClass) return false;
+    if (!this.parentRule?.domRule) return false;
+    if (String(previousValue) === String(this.value)) return false;
+    node._detachStyleScope();
+    return true;
+  }
+
+  // `previousValue` is what this property held before the caller changed it;
+  // defaulting to the current value makes an unchanged call (e.g. the very
+  // first write, before anything could be shared yet) compare equal and skip
+  // the detach check, same as passing no previous value at all.
+  _domUpdate(previousValue: StyleValue = this.value): void {
     if (!this.parentRule) return;
-    const domRule = this.parentRule.domRule;
+    let domRule = this.parentRule.domRule;
+
+    if (this._detachIfChanging(previousValue)) {
+      domRule = this.parentRule.domRule;
+    }
 
     if (domRule && (domRule as CSSStyleRule).style) {
       const style: CSSStyleDeclaration = (domRule as CSSStyleRule).style;
@@ -79,8 +122,9 @@ export class StyleProperty {
   private _bind(fn: (listener: Listener) => string | number): void {
     const listener = (() => {
       if (!this.parentRule || this.parentRule.parentNode?._disposed) return;
+      const previousValue = this.value;
       this.value = fn(listener);
-      this._domUpdate();
+      this._domUpdate(previousValue);
     }) as unknown as Listener;
 
     listener.onSubscribe = (release: () => void) => {
@@ -98,11 +142,13 @@ export class StyleProperty {
   // this, so those one-shot trees do not leak State listeners.
   activate(): void {
     if (!this._fn || this._bound) return;
+    const previousValue = this.value;
     this._bind(this._fn);
-    this._domUpdate();
+    this._domUpdate(previousValue);
   }
 
   set(value: StyleValue): void {
+    const previousValue = this.value;
     // Drop any previous reactive subscription(s) before (re)binding.
     if (this._releases.length) {
       for (const release of this._releases) release();
@@ -136,17 +182,28 @@ export class StyleProperty {
       this.value = value;
     }
 
-    this._domUpdate();
+    this._domUpdate(previousValue);
   }
 
   remove(): void {
     if (!this.parentRule) return;
 
     if (this.parentRule.domRule instanceof CSSStyleRule) {
-      const domStyle = this.parentRule.domRule.style;
-      domStyle.removeProperty(this.cssName);
+      // Dropping a declaration changes the rule text — same scope rule as
+      // _domUpdate above.
+      const node = this.parentRule.parentNode;
+      if (
+        node?._scopeShared &&
+        node.scopeClass &&
+        this.parentRule.domRule.style.getPropertyValue(this.cssName)
+      ) {
+        node._detachStyleScope();
+      }
+      const ownRule = this.parentRule.domRule as CSSStyleRule | null;
+      const domStyle = ownRule?.style;
+      domStyle?.removeProperty(this.cssName);
 
-      if (PrefixCSS[this.name]) {
+      if (domStyle && PrefixCSS[this.name]) {
         PrefixCSS[this.name].forEach((prefix) => {
           domStyle.removeProperty(`-${prefix}-${this.cssName}`);
         });

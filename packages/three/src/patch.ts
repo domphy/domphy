@@ -10,8 +10,9 @@ import { createEvents } from "./events.js";
 import { registerRoot, unregisterRoot } from "./loop.js";
 import { applyProps } from "./props.js";
 import { disposeInstanceProperties, reconcileChildren } from "./reconciler.js";
-import { createRootState } from "./rootState.js";
+import { createRootState, DEFAULT_DPR } from "./rootState.js";
 import type {
+  Dpr,
   RendererLike,
   RootState,
   SceneChildren,
@@ -176,13 +177,23 @@ function three(
       canvas.style.height = "100%";
       canvas.style.display = "block";
       canvas.style.touchAction = "none";
+      // Canvas fallback content is the only accessible representation a 3D
+      // scene has (r3f's `fallback` prop) — assistive technology reads it as
+      // the canvas's accessible name, the way `alt` names an image.
+      if (initialOptions.fallback) canvas.textContent = initialOptions.fallback;
       container.appendChild(canvas);
 
       const gl: RendererLike = initialOptions.createRenderer
         ? initialOptions.createRenderer(canvas)
         : new THREE.WebGLRenderer({
             canvas,
+            // Reference defaults (renderer.tsx's `defaultProps`): ask for the
+            // discrete GPU on dual-GPU machines, and keep the canvas
+            // transparent so an unset scene background shows the page through
+            // instead of three's opaque black.
+            powerPreference: "high-performance",
             antialias: true,
+            alpha: true,
             ...initialOptions.gl,
           });
 
@@ -248,9 +259,37 @@ function three(
       });
       resizeObserver.observe(container);
 
+      // `dpr` resolves against the LIVE devicePixelRatio (rootState.ts's
+      // calculateDpr), which changes when the window moves to a screen of a
+      // different density or the user zooms the browser. Neither fires a
+      // resize on a fixed-size host, so without this the canvas keeps its
+      // stale backing-store scale and goes soft. A `(resolution: Ndppx)` media
+      // query is the only event a browser gives for the change, and it only
+      // matches the one ratio, so the watcher re-arms itself on every change.
+      let dprOption: Dpr = initialOptions.dpr ?? DEFAULT_DPR;
+      let dprQuery: MediaQueryList | null = null;
+      const handleDprChange = (): void => {
+        const { width, height } = root.size.get();
+        root.setSize(width, height, dprOption);
+        watchDpr();
+      };
+      function watchDpr(): void {
+        if (typeof window === "undefined" || !window.matchMedia) return;
+        dprQuery?.removeEventListener("change", handleDprChange);
+        dprQuery = window.matchMedia(
+          `(resolution: ${window.devicePixelRatio}dppx)`,
+        );
+        dprQuery.addEventListener("change", handleDprChange);
+      }
+      watchDpr();
+
       const events =
         initialOptions.events === false ? null : createEvents(root);
-      events?.connect(canvas);
+      events?.connect(
+        canvas,
+        initialOptions.eventSource,
+        initialOptions.eventPrefix,
+      );
 
       // Reactive `scene` function (SceneFunction) → own release-before-rebind
       // listener driving reconcileChildren, mirroring reconciler.ts's own
@@ -313,6 +352,7 @@ function three(
         (root.gl as any).forceContextLoss?.();
         root.gl.dispose?.();
         resizeObserver.disconnect();
+        dprQuery?.removeEventListener("change", handleDprChange);
         for (const release of cameraNode.releases.splice(0)) release();
         for (const release of raycasterNode.releases.splice(0)) release();
         for (const release of optionReleases.splice(0)) release();
@@ -346,6 +386,7 @@ function three(
             // the caller actually passed one, not on every unrelated
             // options change.
             if (next.dpr !== undefined) {
+              dprOption = next.dpr;
               const currentSize = root.size.get();
               root.setSize(currentSize.width, currentSize.height, next.dpr);
             }

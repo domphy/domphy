@@ -1,12 +1,12 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { templateFiles } from "../src/templates.ts";
+import { templateFiles } from "../src/templates.js";
 import {
   CORE_VERSION,
   THEME_VERSION,
   UI_VERSION,
-} from "../src/versions.generated.ts";
+} from "../src/versions.generated.js";
 
 const REPO_ROOT = resolve(__dirname, "../../..");
 

@@ -1,6 +1,6 @@
 {
   "name": "@domphy/app",
-  "version": "0.18.5",
+  "version": "0.19.0",
   "description": "Domphy App - a port of the Next.js App Router feature set for Domphy: routing, nested layouts, navigation, data loading, metadata, middleware, SSR and API routes",
   "type": "module",
   "sideEffects": false,
@@ -24,7 +24,8 @@
     "pack": "tsup && npm pack",
     "prepublishOnly": "node ../../scripts/guard-pnpm-publish.mjs && npm run build",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "keywords": [
     "domphy",

@@ -8,6 +8,8 @@ import Accordion from "../../demos/patches/Accordion.ts?raw"
 
 Use `accordion` on a container of `<details>` elements to build a bordered accordion. In `type: "single"` mode (default), opening one item automatically closes all siblings. Pair with `details` patches on the child `<details>` elements.
 
+Keyboard: Tab reaches every `<summary>` header. ArrowUp/ArrowDown move focus to the previous/next header (wrapping), and Home/End jump to the first/last — the WAI-ARIA APG accordion pattern's optional header navigation, in both `single` and `multiple` mode.
+
 ## Props
 
 | Prop | Type | Default | Description |

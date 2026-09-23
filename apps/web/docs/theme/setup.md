@@ -33,14 +33,27 @@ That is mainly useful for Shadow DOM or isolated preview roots.
 
 ## Choose The Active Theme
 
-Set `dataTheme` on any root element.
+`light` is the default — `themeApply()` emits it on `:root` as well as `[data-theme="light"]`, so a page that sets nothing renders the light theme rather than an unstyled one. Set `dataTheme` on any root element to pick a different theme (or to scope one to a subtree).
 
 ```ts
 { div: [App], dataTheme: "light" }
 { div: [App], dataTheme: "dark" }
 ```
 
-`light` and `dark` are built in. `dark` is derived **once at module init** from `light` (each ramp reversed, each `baseTones` index mirrored, `direction: "lighten"`). `setTheme` does not repeat that step.
+`light` and `dark` are built in. `dark` is **derived** from `light` — each ramp reversed, each `baseTones` index mirrored, `direction: "lighten"` — and that derivation is **re-run on every `setTheme("light", …)`**, so a brand palette applied to `light` shows up in `dark` automatically:
+
+```ts
+setTheme("light", generateTheme({ primary: "#ff6600" }))
+// getTheme("dark").colors.primary is now the reversed orange ramp — not the stock blue
+```
+
+Anything you set explicitly on `dark` is replayed on top of each rebuild, in any call order, so dark-only overrides are never lost:
+
+```ts
+setTheme("dark", { colors: { primary: myHandTunedDarkRamp } })
+setTheme("light", generateTheme({ primary: "#ff6600" }))
+// dark.primary is still myHandTunedDarkRamp; every other role followed light
+```
 
 `dataTheme` can appear at any nesting level. Descendants inside that subtree resolve colors from the nearest theme root.
 
@@ -120,14 +133,16 @@ const GoldBadge = {
 
 Ramps must be 18 steps (`TONE_STEPS`). On a `direction: "darken"` theme, index 0 is lightest and 17 is darkest.
 
-`setTheme` does **not** reverse into `"dark"` and does **not** create a dark sibling for `"brand"`. The built-in `"dark"` pair was reversed from `"light"` once at module init (`createDark` is private, not exported). To use the family in dark mode, register it on `"dark"` yourself:
+Registering the family on `"light"` is enough for dark mode too: `setTheme("light", …)` re-runs the `light → dark` derivation, so `"brand-gold"` lands on `"dark"` as `[...gold].reverse()` with `baseTones` mirrored to `17 - 9`. Override it only if you want a *different* dark ramp than the reverse:
 
 ```ts
 setTheme("dark", {
-  colors: { "brand-gold": [...gold].reverse() },
-  baseTones: { "brand-gold": 17 - 9 },
+  colors: { "brand-gold": myHandTunedDarkGold },
+  baseTones: { "brand-gold": 8 },
 })
 ```
+
+Custom theme **names** are not derived — `setTheme` creates no dark sibling for `"brand"`. Register `"brand-dark"` yourself if you need one.
 
 Then activate a named theme when you have one:
 

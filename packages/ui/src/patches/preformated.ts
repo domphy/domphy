@@ -3,12 +3,14 @@ import {
   type ThemeColor,
   themeColor,
   themeDensity,
+  themeFont,
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
 
 /**
- * Styles a preformatted text block: inherited font size, themed foreground/background,
+ * Styles a preformatted text block: inherited font size, the theme's monospace
+ * stack, themed foreground/background,
  * no border, density-scaled padding and rounded corners.
  *
  * @hostTag pre
@@ -30,6 +32,10 @@ function preformated(
     },
     style: {
       fontSize: (listener) => themeSize(listener, "inherit"),
+      // The theme owns the code stack; <code>/<kbd>/<pre> otherwise keep the
+      // UA generic "monospace" (Courier New on Windows), so a theme that swaps
+      // fontFamilies.monospace never reaches them.
+      fontFamily: themeFont("monospace"),
       color: (listener) => themeColor(listener, "text", color.get(listener)),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),

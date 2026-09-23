@@ -185,16 +185,12 @@ function lens(props: LensProps = {}): DomphyElement<"div"> {
     } as StyleObject,
   };
 
-  // `_doctorDisable` is a doctor-only annotation not present in core's strict
-  // `PartialElement` type — build through an untyped literal, then assert, so
-  // the excess-property check doesn't fire (mirrors dock.ts's separator()).
   // This overlay is a decorative, aria-hidden magnified duplicate with no
   // text of its own, so it is exempt from the missing-color contract.
   const overlayElement = {
     div: [scaleWrapperElement],
     dataLensOverlay: "true",
     ariaHidden: "true",
-    _doctorDisable: "missing-color",
     style: {
       position: "absolute",
       insetBlockStart: 0,

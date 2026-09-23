@@ -157,11 +157,15 @@ export function createFloating(
     // per update call so middleware can de-dupe expensive ancestor lookups
     // within the same computation without leaking between calls.
     const cache = new Map<ReferenceElement, Array<Element>>();
-    const mergedOptions = {platform, ...config};
-    const platformWithCache = {...mergedOptions.platform, _c: cache};
+    // Same merge order as `computePosition` in dom/index.ts: the default
+    // platform first, the caller's overrides on top. Spreading only
+    // `config.platform` would drop every default method the caller did not
+    // re-supply, so a one-method override (the usual `{isRTL}` case) left
+    // `computePosition` without `getElementRects` and rejected.
+    const platformWithCache = {...platform, ...config.platform, _c: cache};
 
     computePositionCore(reference, floating, {
-      ...mergedOptions,
+      ...config,
       platform: platformWithCache,
     })
       .then((result) => {
@@ -198,7 +202,9 @@ export function createFloating(
       cleanupAutoUpdate?.();
       currentReference = reference;
       currentFloating = floating;
-      runUpdate();
+      // autoUpdate() calls `update()` synchronously before returning, so it
+      // performs the initial positioning pass itself — an explicit runUpdate()
+      // here would only double every connect().
       cleanupAutoUpdate = autoUpdate(
         reference,
         floating,

@@ -33,6 +33,7 @@ import type { DomphyElement, Listener, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
 import { heading, paragraph } from "@domphy/ui";
+import { REDUCED_MOTION_PAUSE } from "../reducedMotion.js";
 
 export interface RetroGridProps {
   /** Floor tilt, in degrees. Defaults to `65`. */
@@ -112,7 +113,6 @@ function retroGrid(props: RetroGridProps = {}): DomphyElement<"div"> {
     div: null,
     ariaHidden: "true",
     // Decorative background-image plane, no text of its own.
-    _doctorDisable: "missing-color",
     style: {
       position: "absolute",
       top: 0,
@@ -128,6 +128,7 @@ function retroGrid(props: RetroGridProps = {}): DomphyElement<"div"> {
         ),
       backgroundSize: `${cellSize}px ${cellSize}px`,
       animation: `${scrollAnimationName} 15s linear infinite`,
+      ...REDUCED_MOTION_PAUSE,
       [`@keyframes ${scrollAnimationName}`]: scrollKeyframes,
       "@media (prefers-color-scheme: dark)": {
         backgroundImage: (listener: Listener) =>
@@ -136,9 +137,6 @@ function retroGrid(props: RetroGridProps = {}): DomphyElement<"div"> {
             cellSize,
           ),
       },
-      "@media (prefers-reduced-motion: reduce)": {
-        animationPlayState: "paused",
-      },
     } as StyleObject,
   } as DomphyElement;
 
@@ -146,7 +144,6 @@ function retroGrid(props: RetroGridProps = {}): DomphyElement<"div"> {
     div: null,
     ariaHidden: "true",
     // Decorative fade overlay, no text of its own.
-    _doctorDisable: "missing-color",
     style: {
       position: "absolute",
       inset: 0,

@@ -8,6 +8,10 @@
     "strict": true,
     "skipLibCheck": true,
     "paths": {
+      // Virtual specifier of the docs playground (docs/editor/Modules.ts maps the
+      // exact string "geo/world.json"). tsx reads tsconfig from CWD only, so this
+      // resolves for domphy-doctor / tsx only when run with cwd = apps/web.
+      "geo/world.json": ["./docs/editor/world.geo.json"],
       "@domphy/core": ["../../packages/core/src"],
       "@domphy/core/*": ["../../packages/core/src/*"],
       "@domphy/theme": ["../../packages/theme/src"],

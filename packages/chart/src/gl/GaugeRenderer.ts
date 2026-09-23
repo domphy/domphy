@@ -1,6 +1,83 @@
 import { themeColor } from "@domphy/theme";
+import {
+  applyItemState,
+  type ItemStateResolver,
+  NO_ITEM_STATES,
+} from "../itemStates.js";
 import type { GaugeSeriesOption } from "../types.js";
 import type { ColorResolver } from "./color.js";
+
+export interface GaugeArcLayout {
+  seriesIndex: number;
+  dataIndex: number;
+  cx: number;
+  cy: number;
+  radius: number;
+  innerRadius: number;
+  /** Math convention (CCW, y flipped: screen y = cy - r*sin(angle)). */
+  startRad: number;
+  progressEndRad: number;
+  value: number;
+}
+
+// Geometry only — the progress arc's annulus + angular sweep per data item.
+// renderToSvg() below draws from this; hitTestGaugeItem() in engine.ts
+// annulus+angle tests against the SAME output, so a hover/click can never
+// land on a different arc than what is actually drawn here.
+export function computeGaugeArcs(
+  series: GaugeSeriesOption[],
+  width: number,
+  height: number,
+): GaugeArcLayout[] {
+  const result: GaugeArcLayout[] = [];
+  for (let si = 0; si < series.length; si++) {
+    const s = series[si];
+    const minSize = Math.min(width, height);
+    const cx =
+      typeof s.center?.[0] === "number"
+        ? s.center[0]
+        : (parseFloat(String(s.center?.[0] ?? "50%")) / 100) * width;
+    const cy =
+      typeof s.center?.[1] === "number"
+        ? s.center[1]
+        : (parseFloat(String(s.center?.[1] ?? "50%")) / 100) * height;
+    const radius =
+      typeof s.radius === "number"
+        ? s.radius
+        : (parseFloat(String(s.radius ?? "75%")) / 100) * (minSize / 2);
+    const innerRadius = radius - (s.progress?.width ?? 18);
+    const minVal = s.min ?? 0;
+    const maxVal = s.max ?? 100;
+    const toRad = (deg: number) => (deg * Math.PI) / 180;
+    const startRad = toRad(s.startAngle ?? 225);
+    const endRad = toRad(s.endAngle ?? -45);
+    const totalAngle = endRad - startRad;
+
+    const data = s.data ?? [{ value: 0 }];
+    data.forEach((item, di) => {
+      const value =
+        typeof item === "object"
+          ? ((item as any).value ?? 0)
+          : (item as number);
+      const fraction = Math.max(
+        0,
+        Math.min(1, (value - minVal) / (maxVal - minVal)),
+      );
+      result.push({
+        seriesIndex: si,
+        dataIndex: di,
+        cx,
+        cy,
+        radius,
+        innerRadius,
+        startRad,
+        progressEndRad: startRad + totalAngle * fraction,
+        value,
+      });
+    });
+  }
+  return result;
+}
 
 export class GaugeRenderer {
   renderToSvg(
@@ -9,6 +86,7 @@ export class GaugeRenderer {
     width: number,
     height: number,
     color: ColorResolver,
+    states: ItemStateResolver = NO_ITEM_STATES,
   ): void {
     const old = svg.querySelector(".dc-gauge");
     if (old) old.remove();
@@ -61,20 +139,25 @@ export class GaugeRenderer {
       trackEl.setAttribute("fill", trackColor);
       group.appendChild(trackEl);
 
-      // Progress arc per data item
+      // Progress arc per data item — geometry (fraction, sweep) shared with
+      // engine.ts's hitTestGaugeItem() via computeGaugeArcs() above, so a
+      // hover/click can never land on a different arc than this paints.
       const data = s.data ?? [{ value: 0 }];
+      const arcs = computeGaugeArcs([s], width, height);
       data.forEach((item, di) => {
         const value =
           typeof item === "object"
             ? ((item as any).value ?? 0)
             : (item as number);
-        const fraction = Math.max(
-          0,
-          Math.min(1, (value - minVal) / (maxVal - minVal)),
-        );
-        const progressEndRad = startRad + totalAngle * fraction;
+        const progressEndRad = arcs[di].progressEndRad;
 
-        const progressColor = color.rgba(s.color, si + di);
+        const paletteIndex = si + di;
+        const progressColor = applyItemState(
+          color.rgba(s.color, paletteIndex),
+          states(s, di),
+          color,
+          paletteIndex,
+        );
         const progressHex = `rgba(${progressColor.map((v, i) => (i < 3 ? Math.round(v * 255) : v)).join(",")})`;
 
         const progressPath = describeArc(

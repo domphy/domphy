@@ -232,6 +232,54 @@ describe("link", () => {
     node.remove();
     expect(listenerCount(color)).toBe(0);
   });
+
+  // WAI-ARIA APG (custom widget contract, https://www.w3.org/WAI/ARIA/apg/):
+  // an element made operable via a role + script must be focusable
+  // (tabindex) and support activation via Enter/Space, the same as a native
+  // <a href> supports natively. An <a> with no href is NOT natively
+  // focusable, so link() must add both itself.
+  it("adds role=link and tabIndex=0 when the host has no href", () => {
+    const { host } = render({
+      div: [{ a: "Go", $: [link()] }],
+    } as DomphyElement);
+    const el = host.querySelector("a")!;
+    expect(el.getAttribute("role")).toBe("link");
+    expect(el.tabIndex).toBe(0);
+  });
+
+  it("Enter/Space activate a no-href link via a click (WAI-ARIA APG link pattern)", () => {
+    const onClick = vi.fn();
+    const { host } = render({
+      div: [{ a: "Go", onClick, $: [link()] }],
+    } as DomphyElement);
+    const el = host.querySelector("a")!;
+    el.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+    );
+    el.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true }));
+    expect(onClick).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not add role/tabIndex when the host has a real href (already natively focusable)", () => {
+    const { host } = render({
+      div: [{ a: "Home", href: "/", $: [link()] }],
+    } as DomphyElement);
+    const el = host.querySelector("a")!;
+    expect(el.getAttribute("role")).toBeNull();
+    expect(el.getAttribute("tabindex")).toBeNull();
+  });
+
+  it("a real href is not double-activated by the Enter handler (no synthetic second click)", () => {
+    const onClick = vi.fn();
+    const { host } = render({
+      div: [{ a: "Home", href: "/", onClick, $: [link()] }],
+    } as DomphyElement);
+    const el = host.querySelector("a")!;
+    el.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+    );
+    expect(onClick).not.toHaveBeenCalled();
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -542,7 +590,7 @@ describe("horizontalRule", () => {
 
   it("does not warn on an hr tag", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    render({ div: [{ hr: "", $: [horizontalRule()] }] } as DomphyElement);
+    render({ div: [{ hr: null, $: [horizontalRule()] }] } as DomphyElement);
     expect(warn).not.toHaveBeenCalled();
     warn.mockRestore();
   });
@@ -550,7 +598,7 @@ describe("horizontalRule", () => {
   it("releases color state listener on removal", () => {
     const color = toState<"neutral" | "primary">("neutral", "hrColor");
     const { node } = render({
-      div: [{ hr: "", $: [horizontalRule({ color })] }],
+      div: [{ hr: null, $: [horizontalRule({ color })] }],
     } as DomphyElement);
     expect(listenerCount(color)).toBeGreaterThanOrEqual(1);
     node.remove();
@@ -623,23 +671,48 @@ describe("icon", () => {
 describe("image", () => {
   it("warns when applied to a non-img tag", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    render({ div: [{ div: null, $: [image()] }] } as DomphyElement);
+    render({
+      div: [{ div: null, $: [image({ decorative: true })] }],
+    } as DomphyElement);
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("image"));
     warn.mockRestore();
   });
 
-  it("renders the img element with src and alt attributes", () => {
+  it("forwards the alt prop onto the host as the native alt attribute (WCAG 1.1.1)", () => {
     render({
-      div: [{ img: null, src: "photo.jpg", alt: "A photo", $: [image()] }],
+      div: [{ img: null, src: "photo.jpg", $: [image({ alt: "A photo" })] }],
     } as DomphyElement);
     const el = document.querySelector("img");
     expect(el?.getAttribute("src")).toBe("photo.jpg");
     expect(el?.getAttribute("alt")).toBe("A photo");
   });
 
+  it('decorative: true renders alt="" (assistive tech skips it)', () => {
+    render({
+      div: [{ img: null, src: "photo.jpg", $: [image({ decorative: true })] }],
+    } as DomphyElement);
+    const el = document.querySelector("img");
+    expect(el?.getAttribute("alt")).toBe("");
+  });
+
+  it("a native alt on the host still wins over the patch's (Domphy's native-over-patch merge)", () => {
+    render({
+      div: [
+        {
+          img: null,
+          src: "photo.jpg",
+          alt: "Host-declared alt",
+          $: [image({ alt: "Patch-declared alt" })],
+        },
+      ],
+    } as DomphyElement);
+    const el = document.querySelector("img");
+    expect(el?.getAttribute("alt")).toBe("Host-declared alt");
+  });
+
   it("sets data-tone=shift-2 on the element", () => {
     render({
-      div: [{ img: null, src: "photo.jpg", alt: "photo", $: [image()] }],
+      div: [{ img: null, src: "photo.jpg", $: [image({ alt: "photo" })] }],
     } as DomphyElement);
     const el = document.querySelector("img");
     expect(el?.dataset.tone).toBe("shift-2");
@@ -649,7 +722,11 @@ describe("image", () => {
     const color = toState<"neutral" | "primary">("neutral", "imgColor");
     const { node } = render({
       div: [
-        { img: null, src: "photo.jpg", alt: "photo", $: [image({ color })] },
+        {
+          img: null,
+          src: "photo.jpg",
+          $: [image({ alt: "photo", color })],
+        },
       ],
     } as DomphyElement);
     expect(listenerCount(color)).toBeGreaterThanOrEqual(1);

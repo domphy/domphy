@@ -105,10 +105,12 @@ const App: DomphyElement<"div"> = {
                 marginTop: 0,
                 marginBottom: themeSpacing(2),
               },
-              "& small": {
-                display: "block",
-                color: (l) => themeColor(l, "shift-8"),
-              },
+              // Layout only. A `color` here would be specificity (0,1,1)
+              // against small()'s own (0,1,0) class and silently win:
+              // measured shift-8 -> var(--neutral-9) #707070 on the card's
+              // #ededed = 4.22:1 (axe), where the patch's shift-10 gives
+              // 6.27:1. Leave the tone to the patch.
+              "& small": { display: "block" },
             },
           },
         ],

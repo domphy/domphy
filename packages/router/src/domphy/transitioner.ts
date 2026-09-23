@@ -1,19 +1,15 @@
-// Port of @tanstack/react-router's Transitioner.tsx without React:
-// store subscriptions replace useStore, plain locals replace useState/
-// usePrevious. Responsible for reloading on history changes and for the
-// onLoad / onBeforeRouteMount / onResolved / onRendered event lifecycle.
-import { batch } from '@tanstack/store'
-import { getLocationChangeInfo } from '../router'
+// Headless replacement for @tanstack/react-router's Transitioner.tsx.
+//
+// As of @tanstack/router-core 1.171.32 the core emits the whole lifecycle
+// (onLoad / onBeforeRouteMount / onResolved / onRendered) itself from
+// load-client.ts. What it asks a framework adapter for is `startTransition`:
+// apply the commit, then resolve `true` once the UI has actually rendered
+// those matches (core only emits `onRendered` when it resolves `true`; the
+// core default resolves `false`). This module supplies that, plus the two
+// other jobs upstream's component did: reloading on history changes and
+// correcting the initial URL to its canonical form.
 import { trimPathRight } from '../path'
-import type { Readable } from '@tanstack/store'
 import type { AnyRouter } from '../router'
-
-// On the client, getStoreFactory builds the stores from @tanstack/store
-// atoms, which are subscribable. The core store interfaces don't carry
-// subscribe (see stores.ts), hence the local cast.
-function asReadable<TValue>(store: { get: () => TValue }): Readable<TValue> {
-  return store as Readable<TValue>
-}
 
 export interface TransitionerHandle {
   cleanup: () => void
@@ -23,95 +19,39 @@ export interface TransitionerHandle {
 }
 
 export function setupTransitioner(router: AnyRouter): TransitionerHandle {
-  let isTransitioning = false
-  // onRendered is emitted from a macrotask; track pending timers so cleanup()
-  // can cancel them instead of emitting after the router was destroyed.
-  const onRenderedTimeouts = new Set<ReturnType<typeof setTimeout>>()
+  let cleanedUp = false
+  // "Rendered" is signalled from a macrotask; track pending timers so
+  // cleanup() can cancel them instead of resolving after teardown.
+  const renderTimeouts = new Set<ReturnType<typeof setTimeout>>()
 
-  let previousIsLoading = router.stores.isLoading.get()
-  let previousIsPagePending =
-    previousIsLoading || router.stores.hasPending.get()
-  let previousIsAnyPending = previousIsPagePending || isTransitioning
-
-  const update = () => {
-    const isLoading = router.stores.isLoading.get()
-    const isPagePending = isLoading || router.stores.hasPending.get()
-    const isAnyPending = isPagePending || isTransitioning
-
-    // The router was loading and now it's not
-    if (previousIsLoading && !isLoading) {
-      router.emit({
-        type: 'onLoad', // When the new URL has committed, when the new matches have been loaded into state.matches
-        ...getLocationChangeInfo(
-          router.stores.location.get(),
-          router.stores.resolvedLocation.get(),
-        ),
-      })
+  router.startTransition = async (fn) => {
+    if (cleanedUp) {
+      return false
     }
-
-    if (previousIsPagePending && !isPagePending) {
-      router.emit({
-        type: 'onBeforeRouteMount',
-        ...getLocationChangeInfo(
-          router.stores.location.get(),
-          router.stores.resolvedLocation.get(),
-        ),
-      })
-    }
-
-    if (previousIsAnyPending && !isAnyPending) {
-      const changeInfo = getLocationChangeInfo(
-        router.stores.location.get(),
-        router.stores.resolvedLocation.get(),
-      )
-      router.emit({
-        type: 'onResolved',
-        ...changeInfo,
-      })
-
-      batch(() => {
-        router.stores.status.set('idle')
-        router.stores.resolvedLocation.set(router.stores.location.get())
-      })
-
-      // Upstream emits onRendered from its Match component after the UI
-      // commits. The headless equivalent: emit on the next macrotask, after
-      // onResolved subscribers have mirrored router state into Domphy
-      // states and the DOM has updated. Scroll restoration relies on this.
-      const timeout = setTimeout(() => {
-        onRenderedTimeouts.delete(timeout)
-        router.emit({
-          type: 'onRendered',
-          ...changeInfo,
-        })
-      }, 0)
-      onRenderedTimeouts.add(timeout)
-    }
-
-    previousIsLoading = isLoading
-    previousIsPagePending = isPagePending
-    previousIsAnyPending = isAnyPending
-  }
-
-  router.startTransition = (fn) => {
-    isTransitioning = true
-    update()
     fn()
-    isTransitioning = false
-    update()
+    // Domphy has no render phase to await: subscribers mirror router state
+    // into Domphy states synchronously from the store writes `fn()` performs,
+    // and the DOM is updated by the end of the current task. Yielding one
+    // macrotask is the headless equivalent of "the UI has committed" — which
+    // is what onRendered (and therefore scroll restoration) relies on.
+    await new Promise<void>((resolve) => {
+      const timeout = setTimeout(() => {
+        renderTimeouts.delete(timeout)
+        resolve()
+      }, 0)
+      renderTimeouts.add(timeout)
+    })
+    return !cleanedUp
   }
-
-  const subscriptions = [
-    asReadable(router.stores.isLoading).subscribe(update),
-    asReadable(router.stores.hasPending).subscribe(update),
-  ]
 
   // Reload the route matches whenever the history changes (back/forward,
   // pushes from navigate, external history.push calls).
   let unsubscribeHistory = router.history.subscribe(router.load)
 
   // Check if the current URL matches the canonical form and correct it
-  // (e.g. missing default search params).
+  // (e.g. missing default search params). `ignoreBlocker: true` as upstream:
+  // this is a normalization of the URL the app was opened at, not a user
+  // navigation, so a registered blocker must not be able to veto it.
   const nextLocation = router.buildLocation({
     to: router.latestLocation.pathname,
     search: true,
@@ -124,19 +64,24 @@ export function setupTransitioner(router: AnyRouter): TransitionerHandle {
     trimPathRight(router.latestLocation.publicHref) !==
     trimPathRight(nextLocation.publicHref)
   ) {
-    router.commitLocation({ ...nextLocation, replace: true })
+    router.commitLocation({
+      ...nextLocation,
+      replace: true,
+      ignoreBlocker: true,
+    })
   }
 
   return {
     cleanup: () => {
-      for (const subscription of subscriptions) {
-        subscription.unsubscribe()
+      if (cleanedUp) {
+        return
       }
+      cleanedUp = true
       unsubscribeHistory()
-      for (const timeout of onRenderedTimeouts) {
+      for (const timeout of renderTimeouts) {
         clearTimeout(timeout)
       }
-      onRenderedTimeouts.clear()
+      renderTimeouts.clear()
     },
     rebindHistory: () => {
       unsubscribeHistory()

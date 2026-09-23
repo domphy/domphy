@@ -27,6 +27,7 @@ import type { DomphyElement, StyleObject } from "@domphy/core";
 import type { ThemeColor } from "@domphy/theme";
 import { themeColor, themeSpacing } from "@domphy/theme";
 import { heading, paragraph } from "@domphy/ui";
+import { REDUCED_MOTION_PAUSE } from "../reducedMotion.js";
 
 export interface BorderBeamProps {
   /** Diameter of the traveling comet in pixels; also the corner radius of its orbit path. Defaults to `50` (upstream `size`). */
@@ -95,13 +96,12 @@ function borderBeam(props: BorderBeamProps = {}): DomphyElement<"div"> {
   };
 
   // The comet: a small square riding a rounded-rect `offset-path`, painted with
-  // a bright-head → transparent-tail gradient. `_doctorDisable`/`ariaHidden`
-  // mirror `rainbowButton.ts`' glow layer — it is a themed, decorative surface
-  // with no text of its own, so the `missing-color` rule is a false positive.
+  // a bright-head → transparent-tail gradient. `ariaHidden` mirrors
+  // `rainbowButton.ts`' glow layer — a themed, decorative surface with no text
+  // of its own, which the `missing-color` rule exempts.
   const cometBox = {
     div: null,
     ariaHidden: "true",
-    _doctorDisable: "missing-color",
     style: {
       position: "absolute",
       width: `${size}px`,
@@ -114,6 +114,7 @@ function borderBeam(props: BorderBeamProps = {}): DomphyElement<"div"> {
           colorTo,
         )}, transparent)`,
       animation: `${animationName} ${duration}s linear infinite`,
+      ...REDUCED_MOTION_PAUSE,
       // Negative delay = immediate phase offset (upstream `delay: -delay`).
       animationDelay: `${-delay}s`,
       [`@keyframes ${animationName}`]: keyframes,
@@ -153,6 +154,10 @@ function borderBeam(props: BorderBeamProps = {}): DomphyElement<"div"> {
       } as DomphyElement,
       beamOverlay,
     ],
+    // `borderRadius` is a caller-supplied number prop (matches upstream's own
+    // contract), not a design-system constant — the theme scale has no lever
+    // for an arbitrary caller pixel value.
+    _doctorDisable: "raw-spacing-value",
     style: {
       position: "relative",
       overflow: "hidden",

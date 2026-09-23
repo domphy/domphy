@@ -4,6 +4,7 @@ import {
   type PartialElement,
   type State,
 } from "@domphy/core";
+import { prefersReducedMotion } from "../utils/reducedMotion.js";
 
 /**
  * One keyframe. Shorthands `x`/`y` (px), `scale`, `rotate` (deg) compose into a
@@ -85,36 +86,6 @@ function toOptions(
   };
 }
 
-/**
- * Animation primitive driven by the Web Animations API. Runs an enter
- * animation on mount (`initial` -> `animate`), re-animates whenever `animate`
- * is a `State` that changes, and plays the `exit` keyframe before removal.
- * Has no host-tag restriction; apply to any element you want to animate.
- *
- * Later generations route a fresh `animate`/`exit`/`transition` into the same
- * `behavior()` instance via `update()`, so a reused node is not stuck on
- * generation-1 keyframes.
- *
- * @param props - Optional configuration (see {@link MotionProps}).
- * @param props.initial - Starting keyframe applied before the enter animation.
- * @param props.animate - Target keyframe, or a `State` to re-animate on change.
- * @param props.exit - Keyframe animated to before the element is removed.
- * @param props.transition - Timing options.
- * @param props.transition.duration - Duration in ms. Defaults to `300`.
- * @param props.transition.delay - Delay in ms. Defaults to `0`.
- * @param props.transition.easing - CSS easing. Defaults to `"ease"`.
- * @param props.transition.iterations - Number of iterations. Defaults to `1`.
- * @example { div: "Hello", $: [motion({ initial: { opacity: 0 }, animate: { opacity: 1 } })] }
- */
-function prefersReducedMotion(): boolean {
-  if (typeof matchMedia !== "function") return false;
-  try {
-    return matchMedia("(prefers-reduced-motion: reduce)").matches;
-  } catch {
-    return false;
-  }
-}
-
 function attachMotion(
   node: { domElement?: HTMLElement | null },
   initial: MotionProps,
@@ -178,6 +149,27 @@ function attachMotion(
   };
 }
 
+/**
+ * Animation primitive driven by the Web Animations API. Runs an enter
+ * animation on mount (`initial` -> `animate`), re-animates whenever `animate`
+ * is a `State` that changes, and plays the `exit` keyframe before removal.
+ * Has no host-tag restriction; apply to any element you want to animate.
+ *
+ * Later generations route a fresh `animate`/`exit`/`transition` into the same
+ * `behavior()` instance via `update()`, so a reused node is not stuck on
+ * generation-1 keyframes.
+ *
+ * @param props - Optional configuration (see {@link MotionProps}).
+ * @param props.initial - Starting keyframe applied before the enter animation.
+ * @param props.animate - Target keyframe, or a `State` to re-animate on change.
+ * @param props.exit - Keyframe animated to before the element is removed.
+ * @param props.transition - Timing options.
+ * @param props.transition.duration - Duration in ms. Defaults to `300`.
+ * @param props.transition.delay - Delay in ms. Defaults to `0`.
+ * @param props.transition.easing - CSS easing. Defaults to `"ease"`.
+ * @param props.transition.iterations - Number of iterations. Defaults to `1`.
+ * @example { div: "Hello", $: [motion({ initial: { opacity: 0 }, animate: { opacity: 1 } })] }
+ */
 function motion(props: MotionProps = {}): PartialElement {
   return {
     ...behavior<MotionProps>(

@@ -18,6 +18,7 @@ import { hashString } from "@domphy/core";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
 import { heading, paragraph } from "@domphy/ui";
 import { demoContentScrimStyle } from "../../shared/demoContentScrim.js";
+import { REDUCED_MOTION_PAUSE } from "../reducedMotion.js";
 
 export interface LightRaysProps {
   /** Number of rays. Defaults to `7`. */
@@ -56,7 +57,6 @@ function glowBlob(
     ariaHidden: "true",
     // Decorative ambient glow with no text of its own — exempt from the
     // missing-color contract (mirrors meteors()/dottedMap() in this package).
-    _doctorDisable: "missing-color",
     style: {
       position: "absolute",
       inset: 0,
@@ -133,7 +133,6 @@ function lightRays(props: LightRaysProps = {}): DomphyElement<"div"> {
         ariaHidden: "true",
         // Decorative light beam with no text of its own — exempt from the
         // missing-color contract.
-        _doctorDisable: "missing-color",
         style: {
           position: "absolute",
           // Upstream ray: `-top-[12%]` starts above the frame; `-translate-x-1/2`
@@ -152,6 +151,7 @@ function lightRays(props: LightRaysProps = {}): DomphyElement<"div"> {
           backgroundImage: (listener) =>
             `linear-gradient(to bottom, ${themeColor(listener, "shift-11", color)} 0%, transparent 100%)`,
           animation: `${opacityAnimationName} ${totalCycleSeconds.toFixed(2)}s ease-in-out ${delaySeconds.toFixed(2)}s infinite, ${rotateAnimationName} ${totalCycleSeconds.toFixed(2)}s ease-in-out ${delaySeconds.toFixed(2)}s infinite`,
+          ...REDUCED_MOTION_PAUSE,
           [`@keyframes ${opacityAnimationName}`]: opacityKeyframes,
           [`@keyframes ${rotateAnimationName}`]: rotateKeyframes,
         } as StyleObject,

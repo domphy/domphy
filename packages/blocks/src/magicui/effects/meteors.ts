@@ -20,6 +20,7 @@ import type { DomphyElement, StyleObject } from "@domphy/core";
 import { hashString } from "@domphy/core";
 import { type ThemeColor, themeColor, themeSpacing } from "@domphy/theme";
 import { heading, paragraph } from "@domphy/ui";
+import { REDUCED_MOTION_PAUSE } from "../reducedMotion.js";
 
 export interface MeteorsProps {
   /** Number of meteors rendered. Defaults to `20`. */
@@ -99,7 +100,6 @@ function meteors(props: MeteorsProps = {}): DomphyElement<"div"> {
         // Also exempt from tone-background-inherit: a meteor's glow is
         // intentionally a fixed bright accent, not a surface that should track
         // the ambient dataTone context.
-        _doctorDisable: ["missing-color", "tone-background-inherit"],
         style: {
           position: "absolute",
           top: "-5%",
@@ -119,6 +119,7 @@ function meteors(props: MeteorsProps = {}): DomphyElement<"div"> {
           // streak with a faint outline, not a glowing halo.
           boxShadow: "0 0 0 1px #ffffff10",
           animation: `${animationName} ${durationSeconds}s linear ${delaySeconds}s infinite`,
+          ...REDUCED_MOTION_PAUSE,
           "&::before": {
             content: `""`,
             position: "absolute",

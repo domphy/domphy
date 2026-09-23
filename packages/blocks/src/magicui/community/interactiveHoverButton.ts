@@ -22,8 +22,9 @@ import {
   themeColor,
   themeSize,
   themeSpacing,
+  themeWeight,
 } from "@domphy/theme";
-import { fixed } from "../../shared/typography.js";
+import { focusRing } from "@domphy/ui";
 
 export interface InteractiveHoverButtonProps {
   /** Button label. Defaults to `"Get Started"`. */
@@ -78,7 +79,6 @@ function accentDot(color: ThemeColor): DomphyElement<"span"> {
     // from tone-background-inherit: the dot is intentionally a fixed bright
     // accent (it floods the button on hover), not a surface that should
     // track the ambient dataTone context.
-    _doctorDisable: ["missing-color", "tone-background-inherit"],
     style: {
       flexShrink: 0,
       width: themeSpacing(2),
@@ -172,16 +172,17 @@ function interactiveHoverButton(
       justifyContent: "center",
       cursor: props.disabled ? "not-allowed" : "pointer",
       fontSize: (listener: Listener) => themeSize(listener, "inherit"),
-      // Upstream `font-semibold`.
-      fontWeight: fixed(600),
+      // Upstream `font-semibold` (weight 600).
+      fontWeight: themeWeight("semibold"),
       // Upstream `p-2 px-6`: 8px block / 24px inline == themeSpacing(2)/themeSpacing(6).
       paddingBlock: themeSpacing(2),
       paddingInline: themeSpacing(6),
-      // A radius far beyond any realistic box half-height forces a full
-      // pill shape — the browser clamps it to the shape's own geometry (not
-      // tracked by the raw-spacing-value doctor rule, which only checks
-      // margin/padding/gap props). Same trick `rainbowButton.ts` uses.
-      borderRadius: "999px",
+      // DERIVED: any radius past half of the tallest realistic control's
+      // height forces the browser's own border-radius clamp into a full
+      // pill; themeSpacing(1000) (250em, 4000px at the theme's 16px root) is
+      // comfortably past that for any real button, so the exact number
+      // carries no meaning beyond "large".
+      borderRadius: themeSpacing(1000),
       // Upstream's chrome is neutral, not accent-tinted: a plain `border`
       // (theme `--border` gray) and default `--foreground` text on the
       // `bg-background` surface. Only the dot + hover overlay carry the accent
@@ -189,6 +190,15 @@ function interactiveHoverButton(
       outline: (listener: Listener) =>
         `1px solid ${themeColor(listener, "shift-4", "neutral")}`,
       outlineOffset: "-1px",
+      // WCAG 2.4.7: this control paints a STATIC `outline` as its border
+      // (the house convention over `border`), which replaces the UA's own
+      // `:focus-visible` outline — so focused and resting looked byte-identical
+      // (verified by tabbing to it in Chromium and comparing the computed
+      // `outline`/`box-shadow`). The shared ring composes on top of the
+      // existing outline instead of fighting it.
+      "&:focus-visible": {
+        boxShadow: (listener: Listener) => focusRing(listener, "neutral"),
+      },
       backgroundColor: (listener: Listener) =>
         themeColor(listener, "inherit", "neutral"),
       color: (listener: Listener) => themeColor(listener, "shift-9", "neutral"),

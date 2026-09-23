@@ -165,15 +165,14 @@ function placeholderThumbnail(alt: string): DomphyElement<"div"> {
  * scale feedback.
  */
 function playButton(): DomphyElement<"div"> {
-  // `_doctorDisable`d for `missing-color` (decorative, no text) and
-  // `tone-background-inherit` (intentionally a fixed primary tint / gradient,
-  // not a surface tracking the ambient dataTone) — the same exemption
-  // meteors / interactiveHoverButton's accent fills take.
+  // `_doctorDisable`d for `missing-color`: both circles carry themed fills
+  // (gradient / frosted veil) but hold only the decorative play glyph, so
+  // there is no text whose color must follow the tone context.
   const innerButton = {
     div: [playGlyph()],
     dataHvdInner: "true",
     ariaHidden: "true",
-    _doctorDisable: ["missing-color", "tone-background-inherit"],
+    _doctorDisable: "missing-color",
     style: {
       position: "relative",
       display: "flex",
@@ -199,7 +198,7 @@ function playButton(): DomphyElement<"div"> {
   const frostCircle = {
     div: [innerButton],
     ariaHidden: "true",
-    _doctorDisable: ["missing-color", "tone-background-inherit"],
+    _doctorDisable: "missing-color",
     style: {
       display: "flex",
       alignItems: "center",
@@ -254,15 +253,14 @@ function heroVideoDialog(
   const open = toState(false);
 
   // Upstream thumbnail `img`: `w-full rounded-md border shadow-lg`, dimmed to
-  // `brightness-[0.8]` on group-hover. `_doctorDisable`d for `missing-color`
-  // — a decorative image with a themed border but no text of its own.
+  // `brightness-[0.8]` on group-hover. A decorative image with a themed
+  // border but no text of its own, which missing-color exempts.
   const thumbnail: DomphyElement = props.thumbnailSrc
     ? ({
         img: null,
         src: props.thumbnailSrc,
         alt: thumbnailAlt,
         dataHvdThumb: "true",
-        _doctorDisable: "missing-color",
         style: {
           width: "100%",
           display: "block",
@@ -280,15 +278,14 @@ function heroVideoDialog(
 
   // Upstream close button: positioned ABOVE the video (`-top-16 right-0`),
   // `rounded-full p-2 ring-1 backdrop-blur-md`, `bg-neutral-900/50 text-white`
-  // in light and `dark:bg-neutral-100/50 dark:text-black`. `_doctorDisable`d
-  // for `tone-background-inherit` — a fixed translucent chrome tint, not an
-  // ambient surface.
+  // in light and `dark:bg-neutral-100/50 dark:text-black` — a fixed
+  // translucent chrome tint, not an ambient surface. It is painted with
+  // color-mix(), which tone-background-inherit does not read as a tone step.
   const closeButton = {
     button: [closeGlyph()],
     type: "button",
     ariaLabel: "Close video",
     onClick: () => open.set(false),
-    _doctorDisable: "tone-background-inherit",
     style: {
       position: "absolute",
       insetBlockStart: themeSpacing(-16),

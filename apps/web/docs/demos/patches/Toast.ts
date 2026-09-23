@@ -8,13 +8,13 @@ const App: DomphyElement<"div"> = {
       button: "Show Toast",
       $: [button()],
       onClick: (_e, node) => {
-        const toastEle = {
+        const toastElement = {
           div: "Saved successfully",
           $: [toast({ position: "bottom-right" })],
         };
         const toastNode = node
           .getRoot()
-          .children.insert(toastEle) as ElementNode;
+          .children.insert(toastElement) as ElementNode;
         setTimeout(() => toastNode.remove(), 3000);
       },
     },
