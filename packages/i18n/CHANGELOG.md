@@ -1,5 +1,9 @@
 # @domphy/i18n Changelog
 
+## 0.20.1
+
+- Republish of 0.20.0 with no code change: the 0.20.0 tarball was published with raw `workspace:` dependency specifiers (published with `npm publish` instead of `pnpm publish`), so it could not be installed outside this monorepo. 0.20.0 is deprecated on npm.
+
 ## 0.20.0
 
 - **BREAKING: `interpolation.escapeValue` now defaults to `false`.** Domphy is the escaping boundary — a string child is always rendered as TEXT and SSR escapes it — so i18next escaping on top rendered entity source (`O&#39;Brien`, `1&#x2F;2&#x2F;2026`) on screen instead of the real character. Same default react-i18next ships (React also escapes at render). Pass `true` when a translation is handed to something other than Domphy that parses HTML (`rawHtml()`, third-party `innerHTML`). The store-fingerprint mismatch warning now includes `escapeValue`, so two `createI18n()` calls sharing a `globalKey` with opposite postures still warn instead of silently sharing a store.

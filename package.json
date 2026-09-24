@@ -39,7 +39,8 @@
     "publish:editor": "cd packages/editor && pnpm publish --access public --no-git-checks",
     "publish:create-domphy": "cd packages/create-domphy && pnpm publish --access public --no-git-checks",
     "bench": "pnpm --filter bench bench",
-    "bench:dry": "pnpm --filter bench bench:dry"
+    "bench:dry": "pnpm --filter bench bench:dry",
+    "publish:all": "node scripts/publish-all.mjs"
   },
   "repository": "git+https://github.com/domphy/domphy.git",
   "keywords": [

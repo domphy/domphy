@@ -1,5 +1,9 @@
 # @domphy/press Changelog
 
+## 0.24.1
+
+- Republish of 0.24.0 with no code change: the 0.24.0 tarball was published with raw `workspace:` dependency specifiers (published with `npm publish` instead of `pnpm publish`), so it could not be installed outside this monorepo. 0.24.0 is deprecated on npm.
+
 ## 0.24.0
 - fix(build): root-relative links and images written in Markdown are prefixed with `config.base` (new `RenderDocOptions.base`, `MdastWalkOptions.transformUrl`). On a `base: "/docs/"` deploy every in-content link previously 404'd — only nav/sidebar hrefs were prefixed.
 - fix(serve): `startServer`/`startDevServer` take the site `base` and serve at that prefix; `domphy-press preview`/`dev` read it from the config. A sub-path build used to 404 on every request locally.

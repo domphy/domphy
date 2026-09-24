@@ -1,5 +1,9 @@
 # @domphy/editor Changelog
 
+## 0.3.1
+
+- Republish of 0.3.0 with no code change: the 0.3.0 tarball was published with raw `workspace:` dependency specifiers (published with `npm publish` instead of `pnpm publish`), so it could not be installed outside this monorepo. 0.3.0 is deprecated on npm.
+
 ## 0.3.0
 
 - **Paste of `text/plain` is no longer parsed as HTML.** Clipboard text is inserted as literal text, split into one block per line as an open slice (the first and last line merge into the block holding the caret), verbatim inside a `code` textblock. Pasting `<b>x</b>` as plain text used to produce real bold markup.

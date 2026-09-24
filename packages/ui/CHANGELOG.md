@@ -1,5 +1,9 @@
 # @domphy/ui Changelog
 
+## 0.22.1
+
+- Republish of 0.22.0 with no code change: the 0.22.0 tarball was published with raw `workspace:` dependency specifiers (published with `npm publish` instead of `pnpm publish`), so it could not be installed outside this monorepo. 0.22.0 is deprecated on npm.
+
 ## 0.22.0
 
 - fix(overlays): a floating panel opened outside a `<dialog>` no longer mounts inside it. Panels opened *within* a dialog portal into the dialog's own overlay container (top-layer sharing), which used the same `id="domphy-floating"` as the app-level one, so the root's descendant lookup matched the dialog's copy first: after one in-dialog dropdown, every later popover/tooltip/select in the app was mounted inside a closed, `display:none` dialog — `aria-expanded="true"` with a 0x0, unfocusable panel. The container is now marked with a `data-domphy-floating` **attribute** (a document can legitimately hold several, so a fixed `id` was duplicate-id invalid HTML) and the root lookup is `:scope > [data-domphy-floating]`.

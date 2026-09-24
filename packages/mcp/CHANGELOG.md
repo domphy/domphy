@@ -1,5 +1,9 @@
 # @domphy/mcp
 
+## 0.19.7
+
+- Republish of 0.19.6 with no code change: the 0.19.6 tarball was published with raw `workspace:` dependency specifiers (published with `npm publish` instead of `pnpm publish`), so it could not be installed outside this monorepo. 0.19.6 is deprecated on npm.
+
 ## 0.19.6
 
 - All 10 tools advertise MCP `ToolAnnotations` (`readOnlyHint`, `title`, per-tool `openWorldHint`), so hint-aware clients can auto-approve them.

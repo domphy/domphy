@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.19.1
+
+- Republish of 0.19.0 with no code change: the 0.19.0 tarball was published with raw `workspace:` dependency specifiers (published with `npm publish` instead of `pnpm publish`), so it could not be installed outside this monorepo. 0.19.0 is deprecated on npm.
+
 ## 0.19.0
 
 - **Scroll restoration on back/forward actually restores.** The outgoing offset was filed under the entry being *restored* (popstate moves the index before the router hears about it), and the offset was applied before the new tree was laid out, so the browser clamped it. The history adapter now records the outgoing entry itself and the router flushes the pending render first.

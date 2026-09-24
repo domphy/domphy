@@ -1,5 +1,9 @@
 # @domphy/three Changelog
 
+## 0.4.1
+
+- Republish of 0.4.0 with no code change: the 0.4.0 tarball was published with raw `workspace:` dependency specifiers (published with `npm publish` instead of `pnpm publish`), so it could not be installed outside this monorepo. 0.4.0 is deprecated on npm.
+
 ## 0.4.0
 
 - **`dpr` defaults to `[1, 2]`** (was a hard `1`), matching the reference default — scenes were rendering at CSS resolution and looked soft on every HiDPI display. It is also re-resolved when `devicePixelRatio` changes (browser zoom, moving the window to another screen), which fires no resize on a fixed-size host.

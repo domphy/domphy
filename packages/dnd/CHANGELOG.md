@@ -1,5 +1,9 @@
 # @domphy/dnd
 
+## 0.19.1
+
+- Republish of 0.19.0 with no code change: the 0.19.0 tarball was published with raw `workspace:` dependency specifiers (published with `npm publish` instead of `pnpm publish`), so it could not be installed outside this monorepo. 0.19.0 is deprecated on npm.
+
 ## 0.19.0
 
 - `keyboardSort(state, options?)` / `keyboardSortGroup(states, options?)`: keyboard-operable reorder for a list the pointer engine cannot reach. Space/Enter picks up and drops, arrows move, Home/End jump to the ends, Escape restores the original order; left/right move between lists in a group. Items get `tabindex="0"`, `aria-roledescription`, `aria-describedby` instructions and `data-grabbed`, focus follows the moved item, and every step is announced through a visually-hidden `aria-live="assertive"` region. Closes the WCAG 2.2 SC 2.5.7 / SC 2.1.1 gap left by FormKit's empty `handleNodeKeydown` stub. SSR-safe (the live region is DOM-guarded).

@@ -1,5 +1,9 @@
 # @domphy/theme Changelog
 
+## 0.23.1
+
+- Republish of 0.23.0 with no code change: the 0.23.0 tarball was published with raw `workspace:` dependency specifiers (published with `npm publish` instead of `pnpm publish`), so it could not be installed outside this monorepo. 0.23.0 is deprecated on npm.
+
 ## 0.23.0
 
 - **`generateRamp`/`generateTheme` now guarantee WCAG AA contrast for any hue.** Single-anchor ramp lightness is sampled at a closed-form luminance ladder (`Y + 0.05` geometric, `r = 21^(-1/(N-1))`) instead of taken from the Oklab warp, so every pair 9 steps apart contrasts at 5.01:1 and every pair 8 apart at 4.19:1 — `K_ideal = 9` is now exact for every base color. A 4096-color sweep of the sRGB cube previously failed the AA contract for 22.78% of ramps (worst 3.22:1 at `#00ff00`); it is now 0%. Hue and chroma still follow the warp curve, and base-color fidelity improved as a side effect (max ΔE2000 from the input hex to its nearest step, over a 12-anchor set: 2.70 → 2.28). **Generated ramp hex values change** — regenerate any theme baked from `generateTheme`. Multi-anchor ramps keep the previous warp-only sampling (pinned waypoints fix those steps' luminance) and carry no contrast guarantee.

@@ -1,5 +1,9 @@
 # @domphy/form
 
+## 0.18.5
+
+- Republish of 0.18.4 with no code change: the 0.18.4 tarball was published with raw `workspace:` dependency specifiers (published with `npm publish` instead of `pnpm publish`), so it could not be installed outside this monorepo. 0.18.4 is deprecated on npm.
+
 ## 0.18.4
 
 - Vendored core resynced to `@tanstack/form-core@1.33.5` (from 1.33.3). Upstream adopted the `deleteField` path-boundary fix this port carried as deviation #7, so that hunk is byte-identical again and the deviation is retired; no behavior change (the two spellings are equivalent).

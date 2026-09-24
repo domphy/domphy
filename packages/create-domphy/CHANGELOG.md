@@ -1,5 +1,9 @@
 # create-domphy Changelog
 
+## 0.18.11
+
+- Republish: the scaffolded project now pins the republished `@domphy/theme` / `@domphy/ui` versions. No other change.
+
 ## 0.18.10
 
 - Pin scaffolded `@domphy/core` / `theme` / `ui` to 0.22.0 / 0.23.0 / 0.22.0.

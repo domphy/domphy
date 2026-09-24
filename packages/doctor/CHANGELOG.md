@@ -1,5 +1,9 @@
 # @domphy/doctor
 
+## 0.20.1
+
+- Republish of 0.20.0 with no code change: the 0.20.0 tarball was published with raw `workspace:` dependency specifiers (published with `npm publish` instead of `pnpm publish`), so it could not be installed outside this monorepo. 0.20.0 is deprecated on npm.
+
 ## 0.20.0
 
 - **doctor (CLI): new `--merge-patches` flag.** A `$`-patch factory (`button()`, `card()`, …) returns a tagless `PartialElement` — walked by default as a plain container object, so its own `style` is never actually checked (a reactive style callback found that way is just a leaf, not a factory to invoke). `--merge-patches` recognizes a tagless object carrying a `style` object or its own `$` array and synthesizes `{ [hostTag]: null, $: [patch] }` around it, `hostTag` read from the JSDoc `@hostTag <tag>` line `packages/ui/src/patches/*.ts` already carries above each factory (falling back to `"div"`). Scanning `packages/ui/src/patches` with it now finds real issues the default walk could not see at all.

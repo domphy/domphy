@@ -1,5 +1,9 @@
 # @domphy/query Changelog
 
+## 0.19.1
+
+- Republish of 0.19.0 with no code change: the 0.19.0 tarball was published with raw `workspace:` dependency specifiers (published with `npm publish` instead of `pnpm publish`), so it could not be installed outside this monorepo. 0.19.0 is deprecated on npm.
+
 ## 0.19.0
 
 - Vendored core resynced to `@tanstack/query-core@5.103.2` (from 5.101.4); all 23 upstream files are byte-identical again, still with zero deviations. Upstream deleted `src/thenable.ts` (the retryer uses a plain `Promise` + status flag, `hydration` a local `tryResolveSync`) and removed `experimental_prefetchInRender` / `QueryObserverResult.promise` — neither was referenced by the Domphy adapter, its tests or the docs. Behavior gained: `fetchOptimistic` resolves early when an external cache write lands before the in-flight fetch; `QueriesObserver` de-duplicates `trackProp` fan-out per notify and skips `combine` when none is supplied; server / `enabled: false` / invalid-timeout guards for the stale timer and the refetch interval are unified. Additive exports: `dehydrateQuery`, and the types `FocusManager`, `OnlineManager`, `TimeoutManager`, `MutationCacheConfig`, `QueryCacheConfig`.

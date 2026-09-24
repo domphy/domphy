@@ -1,5 +1,9 @@
 # @domphy/blocks Changelog
 
+## 0.2.5
+
+- Republish of 0.2.4 with no code change: the 0.2.4 tarball was published with raw `workspace:` dependency specifiers (published with `npm publish` instead of `pnpm publish`), so it could not be installed outside this monorepo. 0.2.4 is deprecated on npm.
+
 ## 0.2.4
 
 shadcn family — mobile drawer, keyboard reachability and on-fill label contrast,
