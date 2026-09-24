@@ -1,8 +1,30 @@
 import type { RawHTML } from "@domphy/core";
 import type { Root } from "mdast";
 import type { Plugin } from "unified";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createMarkdown } from "../../src/index";
+
+// remark-math is an optional peer: whether it resolves depends on the install
+// (pnpm may auto-install optional peers). The absent case is simulated by
+// making the loader's require of "remark-math" fail, independent of the install.
+const missingRemarkMath = vi.hoisted(() => ({ active: false }));
+vi.mock("node:module", async (importOriginal) => {
+  const original = await importOriginal<typeof import("node:module")>();
+  return {
+    ...original,
+    createRequire: (from: string | URL) => {
+      const real = original.createRequire(from);
+      return Object.assign((id: string) => {
+        if (missingRemarkMath.active && id === "remark-math") {
+          throw Object.assign(new Error("Cannot find module 'remark-math'"), {
+            code: "MODULE_NOT_FOUND",
+          });
+        }
+        return real(id);
+      }, real);
+    },
+  };
+});
 
 /** Narrows an unknown element to a record for assertion ergonomics. */
 function asRecord(value: unknown): Record<string, unknown> {
@@ -121,8 +143,9 @@ describe("createMarkdown task list support (remark-gfm built-in)", () => {
 
 describe("createMarkdown math option", () => {
   it("throws the honest install hint when remark-math is absent", () => {
-    // remark-math is an optional peer and is NOT installed in this workspace,
-    // so math:true must fail with the install hint. The hint must be the only
+    missingRemarkMath.active = true;
+    // With remark-math unresolvable, math:true must fail with the install hint.
+    // The hint must be the only
     // error surfaced — never the tsup ESM shim's "Dynamic require of
     // 'remark-math' is not supported" (the pure-ESM regression this guards).
     expect(() => createMarkdown({ math: true })).toThrowError(
@@ -131,6 +154,7 @@ describe("createMarkdown math option", () => {
     expect(() => createMarkdown({ math: true })).not.toThrowError(
       /Dynamic require/,
     );
+    missingRemarkMath.active = false;
   });
 });
 
