@@ -2,6 +2,7 @@
 
 ## 0.20.1
 
+- CLI: yield one macrotask before exiting so an unhandled rejection left by a scanned module is reported (exit 2) instead of racing the final process.exit — exited 0 on Linux.
 - Republish of 0.20.0 with no code change: the 0.20.0 tarball was published with raw `workspace:` dependency specifiers (published with `npm publish` instead of `pnpm publish`), so it could not be installed outside this monorepo. 0.20.0 is deprecated on npm.
 
 ## 0.20.0

@@ -824,6 +824,11 @@ async function main(): Promise<void> {
     );
   }
 
+  // Node reports an unhandled rejection only after the microtask queue drains;
+  // exiting synchronously here raced it (lost on Linux CI), so yield one
+  // macrotask first to let the "unhandledRejection" handler above run.
+  await new Promise((resolve) => setImmediate(resolve));
+
   // A file that failed to import or an input path that was not found means
   // part of the codebase went unanalyzed — that must not exit 0.
   process.exit(totalErrors > 0 || failed > 0 || notFound > 0 ? 1 : 0);
