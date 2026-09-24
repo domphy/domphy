@@ -35,11 +35,12 @@ jobs:
       - name: Biome check
         run: pnpm check
 
-      - name: Typecheck
-        run: pnpm typecheck
-
       - name: Build
         run: pnpm -r build
+
+      # After Build: packages resolve their workspace deps through dist/*.d.ts.
+      - name: Typecheck
+        run: pnpm typecheck
 
       # Test
       #
