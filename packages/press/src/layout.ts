@@ -1017,6 +1017,10 @@ function sidebar(ctx: LayoutContext): DomphyElement {
 
 // --- TOC aside ----------------------------------------------------------
 
+/** Below this width the shell grid has no aside column (sidebar + content
+ *  only), so the aside hides with it. */
+const ASIDE_COLUMN_MEDIA = "@media (max-width: 1200px)";
+
 function tocAside(ctx: LayoutContext): DomphyElement | null {
   if (ctx.frontmatter.aside === false) return null;
   const [minLevel, maxLevel] = ctx.config.themeConfig.outline?.level ?? [2, 3];
@@ -1459,7 +1463,17 @@ export function pageShell(ctx: LayoutContext): DomphyElement {
     ...(sidebarEl ? [sidebarEl] : []),
     { main, id: "main-content", tabindex: -1, style: mainStyle },
   ];
-  if (showAside) shellChildren.push(asideEl!);
+  // The grid drops the aside column at ASIDE_COLUMN_MEDIA; an aside still
+  // mounted there would wrap into a new row below the whole page, so it hides
+  // with its column.
+  if (showAside)
+    shellChildren.push({
+      ...asideEl!,
+      style: {
+        ...((asideEl!.style as Record<string, unknown> | undefined) ?? {}),
+        [ASIDE_COLUMN_MEDIA]: { display: "none" },
+      },
+    } as DomphyElement);
 
   const headerEl = resolveSlot(ctx, "header", header);
   const bar = announcementBar(ctx.config);
@@ -1502,7 +1516,7 @@ export function pageShell(ctx: LayoutContext): DomphyElement {
           alignItems: "start",
           maxWidth: wide ? "none" : "1440px",
           margin: "0 auto",
-          "@media (max-width: 1200px)": showSidebar
+          [ASIDE_COLUMN_MEDIA]: showSidebar
             ? { gridTemplateColumns: `${sidebarW} minmax(0,1fr)` }
             : {},
           // minmax(0,1fr), not bare 1fr: a bare 1fr is minmax(auto,1fr),

@@ -180,6 +180,27 @@ describe("pageShell aside:false keeps sidebar and expands content", () => {
     );
   });
 
+  it("hides the TOC aside where the grid drops its column", () => {
+    const grid = shellGrid({
+      frontmatter: {},
+      toc: [
+        { level: 2, text: "Section", slug: "section" },
+        { level: 2, text: "Other", slug: "other" },
+      ],
+    });
+    const children = grid.div as any[];
+    const tocAside = children.find((child: any) => child?.aside !== undefined);
+    expect(tocAside).toBeTruthy();
+    const media = Object.keys(grid.style).find(
+      (key) =>
+        key.startsWith("@media") &&
+        String(grid.style[key]?.gridTemplateColumns ?? "").split(" ").length <
+          3,
+    );
+    expect(media).toBeTruthy();
+    expect(tocAside.style[media as string]).toEqual({ display: "none" });
+  });
+
   it("does not cap prose max-width when aside is hidden and sidebar is shown", () => {
     const grid = shellGrid({
       frontmatter: { aside: false },

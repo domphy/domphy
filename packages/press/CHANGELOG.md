@@ -1,5 +1,9 @@
 # @domphy/press Changelog
 
+## 0.24.2
+
+- fix(layout): the page aside (the default "On this page" TOC or a custom `aside` slot) hides at ≤1200px, where the shell grid drops the aside column. It used to stay mounted and wrap into a new grid row below the whole page — measured on a 480px phone at 70 007px down a docs page.
+
 ## 0.24.1
 
 - Republish of 0.24.0 with no code change: the 0.24.0 tarball was published with raw `workspace:` dependency specifiers (published with `npm publish` instead of `pnpm publish`), so it could not be installed outside this monorepo. 0.24.0 is deprecated on npm.
