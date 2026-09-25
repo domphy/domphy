@@ -1,9 +1,9 @@
 name: Publish
 
 # After CI passes on main, publish every public package whose package.json
-# version is not on npm yet. Auth is npm trusted publishing (OIDC): no token,
-# no OTP. Each package lists this repo + "publish.yml" as its Trusted Publisher
-# on npmjs.com. Releasing = bump the version, push to main.
+# version is not on npm yet. Auth: the NPM_TOKEN secret, or npm trusted
+# publishing (OIDC) for a package that lists this repo + "publish.yml" as its
+# Trusted Publisher. Releasing = bump the version, push to main.
 
 on:
   workflow_run:
@@ -44,7 +44,10 @@ jobs:
 
       # pnpm pack rewrites workspace: ranges to real versions; npm publishes
       # the tarball through OIDC.
+      # NPM_TOKEN (granular, bypass-2FA, @domphy read+write) when set; else OIDC.
       - name: Publish unpublished versions
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           for dir in packages/*/; do
             name=$(node -p "require('./${dir}package.json').name")
