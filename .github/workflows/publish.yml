@@ -1,0 +1,60 @@
+name: Publish
+
+# After CI passes on main, publish every public package whose package.json
+# version is not on npm yet. Auth is npm trusted publishing (OIDC): no token,
+# no OTP. Each package lists this repo + "publish.yml" as its Trusted Publisher
+# on npmjs.com. Releasing = bump the version, push to main.
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.24.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: pnpm
+
+      # Trusted publishing needs npm CLI >= 11.5.1 (docs.npmjs.com/trusted-publishers).
+      - run: npm install -g npm@latest
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm -r build
+
+      # pnpm pack rewrites workspace: ranges to real versions; npm publishes
+      # the tarball through OIDC.
+      - name: Publish unpublished versions
+        run: |
+          for dir in packages/*/; do
+            name=$(node -p "require('./${dir}package.json').name")
+            version=$(node -p "require('./${dir}package.json').version")
+            private=$(node -p "!!require('./${dir}package.json').private")
+            [ "$private" = "true" ] && continue
+            if npm view "$name@$version" version >/dev/null 2>&1; then
+              echo "skip $name@$version (already on npm)"
+              continue
+            fi
+            echo "publish $name@$version"
+            (cd "$dir" && rm -f *.tgz && pnpm pack && npm publish ./*.tgz --access public --provenance)
+          done
