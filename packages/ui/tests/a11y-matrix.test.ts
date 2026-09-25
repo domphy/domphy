@@ -601,4 +601,79 @@ describe("a11y matrix — interactive @domphy/ui patches", () => {
     // Listed in output for harness grep.
     console.log(`a11y-matrix ok ${name}`);
   }, 20_000);
+
+  // Truth: the CSS parser's own reading of the declared rule text (CSS
+  // Cascade: within one block the later declaration wins, so `border: …;
+  // border-top: 0` keeps the top border off). The client never inserts that
+  // text as-is — it inserts it, then activates every reactive value through
+  // setProperty() — so the live rule must still read the same as the text
+  // generateCSS() would ship. A shorthand re-written through setProperty
+  // resets its longhands and broke this (the inputCheckbox tick drew as a box).
+  it.each(
+    INTERACTIVE_NAMES,
+  )("live CSSOM equals parsed declared CSS (CSS Cascade source order): %s", (name) => {
+    const app = {
+      div: [fixture(name)],
+      dataTheme: "light",
+      dataTone: "shift-0",
+    } as DomphyElement;
+    render(app);
+    flushSync();
+    const declared = new ElementNode(app).generateCSS();
+    // Parsed by the same engine, in its own sheet, then removed before the
+    // live sheets are read.
+    const style = document.createElement("style");
+    style.textContent = declared;
+    document.head.appendChild(style);
+
+    const collect = (
+      rules: CSSRuleList,
+      prefix: string,
+      out: Map<string, string>,
+    ) => {
+      for (const rule of Array.from(rules)) {
+        if (rule instanceof CSSStyleRule) {
+          const styleRule = rule as CSSStyleRule;
+          out.set(
+            prefix + styleRule.selectorText,
+            Array.from(styleRule.style)
+              .map(
+                (property) =>
+                  `${property}: ${styleRule.style.getPropertyValue(property)}`,
+              )
+              .sort()
+              .join("; "),
+          );
+        } else if ("cssRules" in rule) {
+          const head = rule.cssText.slice(0, rule.cssText.indexOf("{"));
+          collect((rule as CSSGroupingRule).cssRules, `${prefix}${head}|`, out);
+        }
+      }
+    };
+    const expected = new Map<string, string>();
+    collect(style.sheet!.cssRules, "", expected);
+    style.remove();
+    const live = new Map<string, string>();
+    for (const sheet of Array.from(document.styleSheets)) {
+      collect(sheet.cssRules, "", live);
+    }
+    const shared = [...expected.keys()].filter((selector) =>
+      live.has(selector),
+    );
+    expect(
+      shared.length,
+      `${name}: no declared rule found live`,
+    ).toBeGreaterThan(0);
+    const drift = [...expected]
+      .filter(
+        ([selector, text]) => live.has(selector) && live.get(selector) !== text,
+      )
+      .map(
+        ([selector, text]) =>
+          `${selector}\n  declared: ${text}\n  live:     ${live.get(selector)}`,
+      );
+    expect(drift, `${name}: live CSSOM drifted from its declared CSS`).toEqual(
+      [],
+    );
+  });
 });

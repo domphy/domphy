@@ -99,13 +99,32 @@ export class StyleProperty {
 
     if (domRule && (domRule as CSSStyleRule).style) {
       const style: CSSStyleDeclaration = (domRule as CSSStyleRule).style;
-      style.setProperty(this.cssName, String(this.value));
+      this._write(style);
+      // setProperty() on a shorthand resets every longhand it covers, whatever
+      // order the rule declared them in: re-writing `border` after
+      // `border-top: 0` brought the top border back (the inputCheckbox tick
+      // drew as a full rotated box). Re-write every declaration that follows
+      // this one so the live rule keeps the source order's cascade.
+      this._rewriteFollowing(style);
+    }
+  }
 
-      if (PrefixCSS[this.name]) {
-        PrefixCSS[this.name].forEach((prefix) => {
-          style.setProperty(`-${prefix}-${this.cssName}`, String(this.value));
-        });
-      }
+  private _rewriteFollowing(style: CSSStyleDeclaration): void {
+    const block = this.parentRule?.styleBlock;
+    if (!block) return;
+    let after = false;
+    for (const prop of Object.values(block)) {
+      if (after) prop._write(style);
+      else if (prop === this) after = true;
+    }
+  }
+
+  _write(style: CSSStyleDeclaration): void {
+    style.setProperty(this.cssName, String(this.value));
+    if (PrefixCSS[this.name]) {
+      PrefixCSS[this.name].forEach((prefix) => {
+        style.setProperty(`-${prefix}-${this.cssName}`, String(this.value));
+      });
     }
   }
   _dispose(): void {
@@ -208,6 +227,9 @@ export class StyleProperty {
           domStyle.removeProperty(`-${prefix}-${this.cssName}`);
         });
       }
+      // Removing a shorthand clears its longhands too — restore the ones the
+      // rule still declares after it, same reason as _domUpdate.
+      if (domStyle) this._rewriteFollowing(domStyle);
     }
     delete this.parentRule.styleBlock![this.name];
     this._dispose();

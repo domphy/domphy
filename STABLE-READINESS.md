@@ -15,7 +15,7 @@ Enterprise gate for the first **official stable** public cut of every publishabl
 
 | Package | Version | React / ecosystem peers | P0 | P1 | P2 | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| `@domphy/core` | 0.22.0 | React / Solid (runtime model) | none | SSR edge cases vs React 19 streaming | Docs deep-dives | SSR + hydration + behavior() shipped; tests cover reconcile/lifecycle. |
+| `@domphy/core` | 0.22.1 | React / Solid (runtime model) | none | SSR edge cases vs React 19 streaming | Docs deep-dives | SSR + hydration + behavior() shipped; tests cover reconcile/lifecycle. |
 | `@domphy/theme` | 0.23.1 | CSS vars / design tokens (no React peer) | none | Dark-mode OS sync docs | Token export helpers | solid-role ramps distinct (warning≠primary, error≠danger). |
 | `@domphy/ui` | 0.22.1 | Radix UI / shadcn/ui | none | Storybook-class docs; SR manual smoke each release | — | Interactive-patch axe matrix (critical/serious) + keyboard contracts (dialog/menu/tabs/selectBox Enter-open/combobox); dialog focus trap/restore. |
 | `@domphy/floating` | 0.18.5 | Floating UI | none | — | Size middleware parity | Zero-dep vendored positioning. |

@@ -1,5 +1,9 @@
 # @domphy/core Changelog
 
+## 0.22.1
+
+**Fix: a reactive shorthand no longer wipes the longhands declared after it.** When a mounted node activated a reactive value (or a state changed it), `StyleProperty` wrote it through `CSSStyleDeclaration.setProperty()`, and setting a shorthand resets every longhand it covers regardless of source order. `inputCheckbox`'s tick (`border: <reactive>; border-top: 0; border-inline-start: 0`) therefore drew all four borders — a rotated box instead of a check — on every client-rendered checkbox since reactive values started activating after insert (0.21.x). The live rule now re-writes every declaration that follows the one it changed (and after a removal), so the CSSOM keeps the cascade the declared text states. `@domphy/ui`'s a11y matrix now asserts, for every interactive patch, that the live CSSOM equals the parsed `generateCSS()` text.
+
 ## 0.22.0
 
 **Custom elements / web components are first-class.** A tag key that is a [valid custom element name](https://html.spec.whatwg.org/multipage/custom-elements.html#valid-custom-element-name) renders as that element — no registration with Domphy needed. The tag key must be the FIRST key of the descriptor and may not be in the `data-*`/`aria-*` namespaces (both match the valid-custom-element-name production and would otherwise render the wrong element).
