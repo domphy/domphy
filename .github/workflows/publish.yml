@@ -43,7 +43,7 @@ jobs:
       - run: pnpm -r build
 
       # pnpm pack rewrites workspace: ranges to real versions; npm publishes
-      # the tarball through OIDC.
+      # the tarball.
       # NPM_TOKEN (granular, bypass-2FA, @domphy read+write) when set; else OIDC.
       - name: Publish unpublished versions
         env:
