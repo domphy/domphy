@@ -1,5 +1,9 @@
 # @domphy/press Changelog
 
+## 0.24.3
+
+- fix(layout): a sidebar group that holds the page being viewed renders open even when it is declared `collapsed: true`, and the runtime no longer re-collapses it from the reader's stored toggle state — a reader landing on a page inside a collapsed group used to see no trace of where the page sits.
+
 ## 0.24.2
 
 - fix(layout): the page aside (the default "On this page" TOC or a custom `aside` slot) hides at ≤1200px, where the shell grid drops the aside column. It used to stay mounted and wrap into a new grid row below the whole page — measured on a 480px phone at 70 007px down a docs page.

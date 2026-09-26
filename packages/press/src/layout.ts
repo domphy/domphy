@@ -815,6 +815,14 @@ function pageLinkWithBadge(
   } as DomphyElement;
 }
 
+// A group holding the page being viewed renders open whatever its `collapsed`
+// default says — a reader landing on a page must see where it sits.
+function holdsRoute(item: SidebarItem, route: string): boolean {
+  const bare = route.replace(/\/$/, "");
+  if (item.link === route || item.link === bare) return true;
+  return (item.items ?? []).some((child) => holdsRoute(child, route));
+}
+
 function sidebarGroup(group: SidebarItem, base: string): DomphyElement {
   const children: DomphyElement[] = [];
   const isCollapsible = group.items && group.items.length > 0;
@@ -958,7 +966,12 @@ function sidebar(ctx: LayoutContext): DomphyElement {
   return {
     nav: [
       ...(siteNav ? [siteNav] : []),
-      ...groups.map((group) => sidebarGroup(group, ctx.config.base)),
+      ...groups.map((group) =>
+        sidebarGroup(
+          holdsRoute(group, ctx.route) ? { ...group, collapsed: false } : group,
+          ctx.config.base,
+        ),
+      ),
     ],
     ariaLabel: "Documentation", // used as stable selector in pressCSS mobile-open rule
     id: "dp-sidebar-nav",
