@@ -434,6 +434,7 @@ export class ElementList {
               child.render(domNode);
             }
           }
+          item._applyDeferredAttributes();
           item._hooks.Mount && item._hooks.Mount(item);
         }
       }

@@ -315,9 +315,32 @@ export class ElementNode {
     }
 
     if (this.attributes) {
-      Object.values(this.attributes.items!).forEach((attr) => attr.render());
+      for (const attr of Object.values(this.attributes.items!)) {
+        if (this._deferredAttribute(attr.name)) continue;
+        attr.render();
+      }
     }
     return node;
+  }
+
+  // Whether `name` must wait until this node's own children exist before its
+  // DOM property assignment (ElementAttribute.render()'s mutateAttrs branch)
+  // can take effect. Only "value" on <select> qualifies: unlike
+  // checked/selected, HTMLSelectElement has no content attribute backing
+  // `.value` at all, so the property setter works only by matching an
+  // existing <option> — assigning it in _createDOMNode(), before any
+  // <option>/<optgroup> child has been created, is a no-op the browser
+  // silently drops, and the select is stuck showing its first option.
+  _deferredAttribute(name: string): boolean {
+    return this.tagName === "select" && name === "value";
+  }
+
+  // Apply the attribute(s) _createDOMNode() skipped, now that this node's
+  // children — built depth-first by the caller just before this runs, so
+  // even a nested <optgroup>'s <option>s already exist — are in the DOM.
+  _applyDeferredAttributes(): void {
+    const attr = this.attributes?.items?.value;
+    if (attr && this._deferredAttribute(attr.name)) attr.render();
   }
 
   // Map an `onX` descriptor key to the DOM event name to listen for.
@@ -1096,6 +1119,12 @@ export class ElementNode {
       });
     }
 
+    // A <select>'s server-rendered markup cannot encode `value` at all (see
+    // _deferredAttribute) — the client's resolved value is the only source of
+    // truth, so it is applied here too, now that hydration has bound every
+    // <option>.
+    this._applyDeferredAttributes();
+
     // Attach reactive style declarations to the server-rendered stylesheet so
     // post-hydration updates mutate the existing CSSOM rules instead of being
     // silently dropped (StyleProperty._domUpdate needs a bound domRule). Done
@@ -1220,6 +1249,7 @@ export class ElementNode {
         child.render(newNode);
       }
     }
+    this._applyDeferredAttributes();
     // Mount fires bottom-up — children first, then this node — the same order
     // the hydration path (mount()) has always used, and the order every peer
     // (React/Vue/Svelte) fires its mounted callback in. Firing it before the
