@@ -40,7 +40,7 @@ function inputSwitch(
       appearance: "none",
       position: "relative",
       display: "inline-flex",
-      width: themeSpacing(9),
+      width: themeSpacing(12),
       height: themeSpacing(6),
       cursor: "pointer",
       margin: `0`,

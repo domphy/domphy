@@ -1,5 +1,9 @@
 # @domphy/ui Changelog
 
+## 0.22.4
+
+- change(inputSwitch): the track is 12 x 6 spacing (48 x 24px at 16px text), up from 9 x 6, so the knob travels further and the ON/OFF position reads at a glance.
+
 ## 0.22.3
 
 - fix(inputSwitch): the visible track was only 4 spacing high (16px at 16px text) inside a 6-spacing box, because the host carried `paddingBlock` and the track filled only the content box. The padding is gone, so the track fills the host (9 x 6 spacing, 36 x 24px at 16px text), and the knob grows from 3 to 5 spacing — the same size as `buttonSwitch`'s thumb. The host box, and so row layout, is unchanged.

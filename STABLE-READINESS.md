@@ -17,7 +17,7 @@ Enterprise gate for the first **official stable** public cut of every publishabl
 | --- | --- | --- | --- | --- | --- | --- |
 | `@domphy/core` | 0.22.2 | React / Solid (runtime model) | none | SSR edge cases vs React 19 streaming | Docs deep-dives | SSR + hydration + behavior() shipped; tests cover reconcile/lifecycle. |
 | `@domphy/theme` | 0.23.1 | CSS vars / design tokens (no React peer) | none | Dark-mode OS sync docs | Token export helpers | solid-role ramps distinct (warning≠primary, error≠danger). |
-| `@domphy/ui` | 0.22.3 | Radix UI / shadcn/ui | none | Storybook-class docs; SR manual smoke each release | — | Interactive-patch axe matrix (critical/serious) + keyboard contracts (dialog/menu/tabs/selectBox Enter-open/combobox); dialog focus trap/restore. |
+| `@domphy/ui` | 0.22.4 | Radix UI / shadcn/ui | none | Storybook-class docs; SR manual smoke each release | — | Interactive-patch axe matrix (critical/serious) + keyboard contracts (dialog/menu/tabs/selectBox Enter-open/combobox); dialog focus trap/restore. |
 | `@domphy/floating` | 0.18.5 | Floating UI | none | — | Size middleware parity | Zero-dep vendored positioning. |
 | `@domphy/doctor` | 0.20.1 | eslint-plugin-jsx-a11y / Stylelint | none | Optional htmlhint/stylelint peers docs | Custom rule marketplace | diagnose/validate/fix API + tests. |
 | `@domphy/query` | 0.19.1 | TanStack Query | none | Devtools adapter; createQueries helper | Persist plugin | Core + `/domphy` adapter; `throwOnError` throws on reactive reads. |
