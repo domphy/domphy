@@ -1,5 +1,9 @@
 # @domphy/ui Changelog
 
+## 0.22.3
+
+- fix(inputSwitch): the visible track was only 4 spacing high (16px at 16px text) inside a 6-spacing box, because the host carried `paddingBlock` and the track filled only the content box. The padding is gone, so the track fills the host (9 x 6 spacing, 36 x 24px at 16px text), and the knob grows from 3 to 5 spacing — the same size as `buttonSwitch`'s thumb. The host box, and so row layout, is unchanged.
+
 ## 0.22.2
 
 - fix(inputSwitch): the switch drew two pills. The host `<input>` painted its tone fill across its whole (taller, padded) box while the `::before` track painted a second fill inside it, so a larger grey pill showed behind the track. The host is now transparent; `::before` is the one track. Layout box, knob position and focus ring are unchanged.

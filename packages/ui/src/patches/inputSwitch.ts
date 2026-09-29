@@ -33,9 +33,8 @@ function inputSwitch(
     },
     style: {
       fontSize: (listener) => themeSize(listener, "inherit"),
-      // The track is `::before` alone. The host keeps its taller box for the
-      // row's layout and knob centring, so painting it too showed a second,
-      // larger pill behind the track.
+      // The track is `::before` alone, filling the whole host box; painting
+      // the host too would draw a second pill behind it.
       backgroundColor: "transparent",
       color: (listener) => themeColor(listener, "text"),
       appearance: "none",
@@ -45,7 +44,6 @@ function inputSwitch(
       height: themeSpacing(6),
       cursor: "pointer",
       margin: `0`,
-      paddingBlock: themeSpacing(1),
       transition: "box-shadow 140ms ease",
       borderRadius: themeSpacing(999),
       "&:focus-visible": {
@@ -57,15 +55,16 @@ function inputSwitch(
             themeColor(listener, "increase-3", accentColor.get(listener)),
         },
         "&::after": {
-          insetInlineStart: `calc(100% - ${themeSpacing(3.5)})`,
+          insetInlineStart: `calc(100% - ${themeSpacing(5.5)})`,
         },
       },
       "&::after": {
         content: `""`,
         aspectRatio: `1/1`,
         position: "absolute",
-        width: themeSpacing(3),
-        height: themeSpacing(3),
+        // INHERITED: buttonSwitch's thumb (themeSpacing(5)), inset 0.5 in a 6-high track.
+        width: themeSpacing(5),
+        height: themeSpacing(5),
         borderRadius: themeSpacing(999),
         insetInlineStart: themeSpacing(0.5),
         top: "50%",
