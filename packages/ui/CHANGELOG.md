@@ -1,5 +1,9 @@
 # @domphy/ui Changelog
 
+## 0.22.2
+
+- fix(inputSwitch): the switch drew two pills. The host `<input>` painted its tone fill across its whole (taller, padded) box while the `::before` track painted a second fill inside it, so a larger grey pill showed behind the track. The host is now transparent; `::before` is the one track. Layout box, knob position and focus ring are unchanged.
+
 ## 0.22.1
 
 - Republish of 0.22.0 with no code change: the 0.22.0 tarball was published with raw `workspace:` dependency specifiers (published with `npm publish` instead of `pnpm publish`), so it could not be installed outside this monorepo. 0.22.0 is deprecated on npm.

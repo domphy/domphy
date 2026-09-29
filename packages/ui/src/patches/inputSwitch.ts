@@ -33,8 +33,10 @@ function inputSwitch(
     },
     style: {
       fontSize: (listener) => themeSize(listener, "inherit"),
-      // Surface contract: dataTone is set; paint track via inherit + text color.
-      backgroundColor: (listener) => themeColor(listener, "inherit"),
+      // The track is `::before` alone. The host keeps its taller box for the
+      // row's layout and knob centring, so painting it too showed a second,
+      // larger pill behind the track.
+      backgroundColor: "transparent",
       color: (listener) => themeColor(listener, "text"),
       appearance: "none",
       position: "relative",
