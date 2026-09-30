@@ -40,8 +40,13 @@ function code(
       color: (listener) => themeColor(listener, "text", color.get(listener)),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
+      // A chip inside running text keeps its own compact line box: an inherited
+      // line-height (1.8, say) would otherwise overflow the fixed height.
+      lineHeight: "normal",
       // Bare themeSpacing(U) at snapshot time; n = U / 1.5 (light.densities[2]).
-      height: (listener) => themeSpacing(themeDensity(listener) * (6 / 1.5)),
+      // minHeight, not height: at a small density the chip must still grow to
+      // its own line box rather than clip the text.
+      minHeight: (listener) => themeSpacing(themeDensity(listener) * (6 / 1.5)),
       paddingInline: (listener) =>
         themeSpacing(themeDensity(listener) * (1.5 / 1.5)),
       borderRadius: (listener) =>

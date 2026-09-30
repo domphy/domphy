@@ -21,7 +21,8 @@ const xSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="
 // Compact-chip chrome was bare `themeSpacing(U)` (catalog snapshots). Default
 // density is 1.5 (`light.densities[2]`, density.ts origin index 2). n = U / 1.5
 // keeps those pixels at default while dataDensity still scales. Height 6U must
-// stay below selectBox/combobox minHeight `(6 + 2d)U` or the chip fills the trigger.
+// stay below a selectBox/combobox field (its own line box plus 2 x paddingBlock
+// `d * 1`U — 1.5em vs 1.95em at default density) or the chip drives the trigger.
 const DEFAULT_DENSITY = 1.5;
 const TAG_HEIGHT = 6 / DEFAULT_DENSITY;
 const TAG_PAD_INLINE = 2.5 / DEFAULT_DENSITY;
@@ -128,7 +129,13 @@ function tag(
       alignItems: "center",
       whiteSpace: "nowrap",
       userSelect: "none",
-      height: (listener) => themeSpacing(themeDensity(listener) * TAG_HEIGHT),
+      // A chip inside running text keeps its own compact line box: an inherited
+      // line-height (1.8, say) would otherwise overflow the fixed height.
+      lineHeight: "normal",
+      // minHeight, not height: at a small density the chip must still grow to
+      // its own line box rather than clip the label.
+      minHeight: (listener) =>
+        themeSpacing(themeDensity(listener) * TAG_HEIGHT),
       paddingBlock: 0,
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 999),
       paddingInlineStart: (listener) =>

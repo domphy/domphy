@@ -59,9 +59,10 @@ function select(
         `${isRTL(l.elementNode?.domElement) ? "left" : "right"} ${themeSpacing(2)} center`,
       backgroundSize: `${themeSpacing(2.5)} ${themeSpacing(1.5)}`,
       transition: "outline-color 140ms ease, box-shadow 140ms ease",
-      "&:not([multiple])": {
-        height: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
-      },
+      // No height floor: a form control is sized by its line box plus its own
+      // paddingBlock, the shape inputText/inputNumber/inputSearch and every
+      // button use, so a select standing in a toolbar row is exactly as tall as
+      // its neighbours. A floor here made it 1U taller than all of them.
       "&:hover:not([disabled]):not([aria-busy=true])": {
         outline: (listener) =>
           `1px solid ${themeColor(listener, "shift-5", accentColor)}`,

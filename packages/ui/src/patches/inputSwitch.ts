@@ -16,6 +16,19 @@ import { focusRing } from "../utils/focusRing.js";
  * @param props.accentColor - Optional theme color tone for the checked track (`ValueOrState<ThemeColor>`). Defaults to `"primary"`.
  * @example { input: null, type: "checkbox", $: [inputSwitch()] }
  */
+/** Track, knob and end inset, in spacing units. INHERITED: buttonSwitch's 12x6 track and 5U thumb. */
+const TRACK = 12;
+const KNOB = 5;
+const INSET = 0.5;
+/**
+ * DERIVED from the three above: the knob travels TRACK - KNOB - 2*INSET, and a
+ * PERCENTAGE of the track is the only way to say that without an em length —
+ * an em offset recomputes when the host font-size changes, which re-ran this
+ * transition and swung the knob past the track's end for 300 ms. Resolving the
+ * travel here is what keeps it true if the track or knob size ever changes.
+ */
+const TRAVEL = `${((TRACK - KNOB - 2 * INSET) / TRACK) * 100}%`;
+
 function inputSwitch(
   props: { accentColor?: ValueOrState<ThemeColor> } = {},
 ): PartialElement {
@@ -40,7 +53,14 @@ function inputSwitch(
       appearance: "none",
       position: "relative",
       display: "inline-flex",
-      width: themeSpacing(12),
+      // An empty inline-flex box's baseline is synthesized from its first flex
+      // item, and the track (::before) fills the host, so the baseline landed on
+      // the box's bottom edge — 1U lower than inputCheckbox / inputRadio, whose
+      // 4U indicator is centred in a 6U box ((6-4)/2 = 1U above the bottom).
+      // Dropping the box by that 1U makes the three controls sit alike beside
+      // text in an ordinary (non-flex) label.
+      verticalAlign: `calc(${themeSpacing(1)} * -1)`,
+      width: themeSpacing(TRACK),
       height: themeSpacing(6),
       cursor: "pointer",
       margin: `0`,
@@ -55,21 +75,21 @@ function inputSwitch(
             themeColor(listener, "increase-3", accentColor.get(listener)),
         },
         "&::after": {
-          insetInlineStart: `calc(100% - ${themeSpacing(5.5)})`,
+          marginInlineStart: TRAVEL,
         },
       },
       "&::after": {
         content: `""`,
         aspectRatio: `1/1`,
         position: "absolute",
-        // INHERITED: buttonSwitch's thumb (themeSpacing(5)), inset 0.5 in a 6-high track.
-        width: themeSpacing(5),
-        height: themeSpacing(5),
+        width: themeSpacing(KNOB),
+        height: themeSpacing(KNOB),
         borderRadius: themeSpacing(999),
-        insetInlineStart: themeSpacing(0.5),
+        insetInlineStart: themeSpacing(INSET),
+        marginInlineStart: 0,
         top: "50%",
         transform: "translateY(-50%)",
-        transition: "inset-inline-start 0.3s",
+        transition: "margin-inline-start 0.3s",
         backgroundColor: (listener) => themeColor(listener, "decrease-3"),
         // The knob is near-white on a near-white OFF track, so its own
         // boundary is what makes the ON/OFF position identifiable

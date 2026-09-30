@@ -53,8 +53,13 @@ function inputDateTime(
         `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
-      height: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
+      // Line box + paddingBlock, no height floor — the one shape every form
+      // control in the row shares (inputText).
+      paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
       transition: "outline-color 140ms ease, box-shadow 140ms ease",
+      // Chrome's UA sheet pads the inner date editor by 1px top and bottom, so
+      // the field stood 2px taller than every other control in a form row.
+      "&::-webkit-datetime-edit": { paddingBlock: 0 },
       "&::-webkit-calendar-picker-indicator": {
         cursor: "pointer",
         opacity: 0.85,

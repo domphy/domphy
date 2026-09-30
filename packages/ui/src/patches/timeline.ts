@@ -34,6 +34,10 @@ function timeline(): PartialElement {
  * @param props.accentColor - Active dot color tone. `ThemeColor`, defaults to `"primary"`.
  * @example { li: [{ b: "2024" }, { p: "Event" }], $: [timelineItem({ active: true })] }
  */
+/** Dot size, and its offset from the row top that lines it up with the first text line. */
+const DOT_SIZE = "0.75rem";
+const DOT_OFFSET = themeSpacing(1);
+
 function timelineItem(
   props: {
     active?: ValueOrState<boolean>;
@@ -56,15 +60,20 @@ function timelineItem(
         last ? "0" : themeSpacing(themeDensity(listener) * 4),
       position: "relative",
 
+      // Column 1 is the dot's gutter: without this the second child and every
+      // one after it auto-places into it (row 2 column 1) and its text spills
+      // out of the item to the left.
+      "& > *": { gridColumn: 2 },
+
       // Dot
       "&::before": {
         content: '""',
         display: "block",
-        width: "0.75rem",
-        height: "0.75rem",
+        width: DOT_SIZE,
+        height: DOT_SIZE,
         borderRadius: "50%",
         justifySelf: "center",
-        marginTop: themeSpacing(1),
+        marginTop: DOT_OFFSET,
         transition: "background-color 200ms ease, opacity 200ms ease",
         backgroundColor: (listener) =>
           themeColor(
@@ -79,12 +88,15 @@ function timelineItem(
       ...(last
         ? {}
         : {
+            // Runs from this item's dot to the next one: both ends are the dot
+            // geometry above, never the item's padding (that overshot the next
+            // dot by a whole paddingBottom and grew with density).
             "&::after": {
               content: '""',
               position: "absolute",
               insetInlineStart: "calc(1rem - 1px)",
-              top: "1.25rem",
-              bottom: (listener) => themeSpacing(themeDensity(listener) * -4),
+              top: `calc(${DOT_OFFSET} + ${DOT_SIZE})`,
+              bottom: `calc(-1 * ${DOT_OFFSET})`,
               width: "2px",
               backgroundColor: (listener) =>
                 themeColor(listener, "shift-3", color),

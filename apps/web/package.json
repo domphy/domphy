@@ -23,6 +23,7 @@
     "visual:responsive": "playwright test -c visual/responsive.config.ts",
     "visual:blocks-responsive": "playwright test -c visual/blocks-responsive.config.ts",
     "visual:ui-overlays": "playwright test -c visual/ui-overlays.config.ts",
+    "visual:ui-geometry": "playwright test -c visual/ui-geometry.config.ts",
     "visual:three": "playwright test -c visual/three.config.ts",
     "visual:chart": "playwright test -c visual/chart.config.ts",
     "postinstall": "puppeteer browsers install chrome-headless-shell",

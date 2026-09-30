@@ -1,5 +1,20 @@
 # @domphy/ui Changelog
 
+## 0.22.6
+
+Geometry sweep of every patch with the new real-Chrome lane (`pnpm --filter domphy-web visual:ui-geometry`: 6 font sizes x root/host x 3 line-heights x light/dark x 5 densities; label centred, no overflow, line box fits, indicator aligned, siblings consistent). Zero findings after these fixes.
+
+- fix(toggleGroup, segmented, tabs, menu, command, selectItem, pagination, select, inputDateTime, inputFile, details): a fixed `height` became `minHeight` (same value, same size at the base font) so an inherited larger line-height grows the control instead of spilling the label out of it; tabs and pagination items centre their label by flex.
+- fix(tabs): the tab list wraps instead of overflowing its container at large fonts and dense settings.
+- fix(code, mark, tag): an inline chip owns `line-height: normal`, so running text with a tall line-height no longer stretches it past its height.
+- fix(combobox, selectBox): the host is a flex row with centred content and the inner input grows with the line-height; an empty selectBox keeps one line box; both now share the text-field height with the controls beside them.
+- fix(select, inputDateTime, inputFile, selectBox, combobox): the extra `minHeight` floor that made them taller than a text field or button in the same row is gone; the date field drops Chrome's inner 1px padding.
+- fix(inputSwitch): the knob travels on a percentage derived from the track size, so a host font change no longer leaves it short or overflowing; the switch sits on the same baseline as checkbox and radio.
+- fix(timeline): item content is pinned to the content column and the connector is derived from the dot geometry.
+- fix(splitter): panels shrink to give the handle its space instead of overflowing.
+- fix(details, accordion): no `overflow: hidden` on the root, so the summary's focus ring is no longer clipped; accordion rounds its end bands itself.
+- fix(pagination): the ellipsis cell has the page buttons' height, so the glyph lines up with the digits.
+
 ## 0.22.5
 
 - fix(toggleGroup, segmented): an item's label is centred by flex inside its fixed 6-spacing height. With block padding and no flex, a host font larger than the base size made the label's line box overflow the content box downward, so labels sat low.

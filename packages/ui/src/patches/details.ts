@@ -44,7 +44,9 @@ function details(
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
 
-      overflow: "hidden",
+      // No `overflow: hidden` here: the collapsing body clips itself (below) and
+      // the root has no radius to clip to, so all it did was cut the summary's
+      // focus ring, which focusRing() draws 4px outside the band.
       "& > summary": {
         backgroundColor: (listener) =>
           themeColor(listener, "shift-2", color.get(listener)),
@@ -63,7 +65,9 @@ function details(
         userSelect: "none",
         fontWeight: themeWeight("medium"),
         paddingInline: (listener) => themeSpacing(themeDensity(listener) * 4),
-        height: themeSpacing(10),
+        // minHeight, not height: an inherited line-height taller than 10U has
+        // to grow the band, not spill its own label out of it.
+        minHeight: themeSpacing(10),
       },
       "& > summary::-webkit-details-marker": {
         display: "none",

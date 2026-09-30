@@ -154,7 +154,10 @@ function menu(
           gap: themeSpacing(2),
           width: "100%",
           fontSize: (l: Listener) => themeSize(l, "inherit"),
-          height: (l: Listener) => themeSpacing(6 + themeDensity(l) * 2),
+          // minHeight, not height: a host line-height taller than the row
+          // (1.8 on a 12px base = 21.6px vs a 22.5px row minus the UA button
+          // padding) would otherwise push the label out of the content box.
+          minHeight: (l: Listener) => themeSpacing(6 + themeDensity(l) * 2),
           paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
           border: "none",
           outline: "none",

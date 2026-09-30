@@ -83,7 +83,11 @@ function pagination(props: {
     alignItems: "center",
     justifyContent: "center",
     minWidth: (listener: any) => themeSpacing(6 + themeDensity(listener) * 2),
-    height: (listener: any) => themeSpacing(6 + themeDensity(listener) * 2),
+    // Square at the canonical height, but padding-driven so a taller inherited
+    // line-height grows the box instead of overflowing a fixed height.
+    minHeight: (listener: any) => themeSpacing(6 + themeDensity(listener) * 2),
+    lineHeight: "inherit",
+    paddingBlock: (listener: any) => themeSpacing(themeDensity(listener) * 1),
     paddingInline: (listener: any) => themeSpacing(themeDensity(listener) * 2),
     borderRadius: (listener: any) => themeSpacing(themeDensity(listener) * 1.5),
     border: "none",
@@ -161,6 +165,10 @@ function pagination(props: {
                 style: {
                   display: "inline-flex",
                   alignItems: "center",
+                  // The same cell height as the page buttons it sits between,
+                  // or the glyph reads low against their digits.
+                  minHeight: (listener: any) =>
+                    themeSpacing(6 + themeDensity(listener) * 2),
                   paddingInline: (listener: any) =>
                     themeSpacing(themeDensity(listener) * 2),
                   color: (listener: any) =>

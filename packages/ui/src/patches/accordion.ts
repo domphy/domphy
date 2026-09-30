@@ -1,4 +1,9 @@
-import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
+import {
+  type Listener,
+  type PartialElement,
+  toState,
+  type ValueOrState,
+} from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
@@ -6,6 +11,9 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { focusRing } from "../utils/focusRing.js";
+
+const radius = (listener: Listener) =>
+  themeSpacing(themeDensity(listener) * 1.5);
 
 /**
  * Container patch that groups `<details>` elements into a bordered accordion.
@@ -87,18 +95,32 @@ function accordion(
     style: {
       display: "flex",
       flexDirection: "column",
-      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
+      borderRadius: radius,
       outline: (listener) =>
         `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
       outlineOffset: "-1px",
       color: (listener) => themeColor(listener, "text", color.get(listener)),
-      overflow: "hidden",
+      // No `overflow: hidden`: it rounded the end bands by clipping them, and
+      // clipped the summary's focus ring with them (focusRing() draws 4px
+      // outside the band). <summary> is the only child that paints a fill, so
+      // the end bands round themselves instead.
       "& > details": {
         borderBottom: (listener) =>
           `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
       },
+      "& > details:first-child > summary": {
+        borderTopLeftRadius: radius,
+        borderTopRightRadius: radius,
+      },
+      // Open, the band is no longer the bottom edge — the body below it is.
+      "& > details:last-child:not([open]) > summary": {
+        borderBottomLeftRadius: radius,
+        borderBottomRightRadius: radius,
+      },
       "& > details:last-child": {
         borderBottom: "none",
+        borderBottomLeftRadius: radius,
+        borderBottomRightRadius: radius,
       },
       "& > details > summary:focus-visible": {
         boxShadow: (listener) => focusRing(listener, accentColor.get(listener)),

@@ -71,7 +71,9 @@ function selectItem(
       display: "flex",
       alignItems: "center",
       fontSize: (listener) => themeSize(listener, "inherit"),
-      height: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
+      // minHeight, not height: an inherited line-height taller than the row
+      // must grow it rather than overflow the content box (see menu.ts).
+      minHeight: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
       border: "none",
       outline: "none",

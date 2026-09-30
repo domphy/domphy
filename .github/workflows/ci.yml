@@ -53,12 +53,13 @@ jobs:
       # apps/web/mermaid's render path. Do not enable the flag here without
       # also provisioning chrome-headless-shell.
       #
-      # Note: the 7 Playwright visual lanes (visual, visual:responsive,
-      # visual:blocks-responsive, visual:ui-overlays, visual:editor,
-      # visual:chart, visual:three — see apps/web/package.json) are
-      # deliberately NOT run here: their screenshot baselines are
+      # Note: the 8 Playwright visual lanes (visual, visual:responsive,
+      # visual:blocks-responsive, visual:ui-overlays, visual:ui-geometry,
+      # visual:editor, visual:chart, visual:three — see apps/web/package.json)
+      # are deliberately NOT run here: their screenshot baselines are
       # Windows-specific (*-win32.png) and would not match ubuntu-latest
-      # font rendering. Run them locally after UI/blocks changes — see
+      # font rendering (visual:ui-geometry has no baselines but measures real
+      # system-font metrics, so it is local-only for the same reason). Run them locally after UI/blocks changes — see
       # apps/web/visual/README.md.
       #
       # Note: @domphy/blocks Playwright e2e (`pnpm --filter @domphy/blocks

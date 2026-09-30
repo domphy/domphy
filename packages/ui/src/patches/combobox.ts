@@ -103,7 +103,14 @@ function combobox(props: {
     padding: 0,
     margin: 0,
     flex: 1,
-    height: themeSpacing(6),
+    // No height floor: the field is its line box, and the host div's own
+    // paddingBlock makes up the rest — the inputText shape, so a combobox and a
+    // selectBox in one form row are the same height at any line-height.
+    // An input's automatic minimum size is its ~20-character UA intrinsic
+    // width, which pushed the (empty) field onto a second flex line as soon as
+    // two chips were selected. 8U is still a typable field.
+    minWidth: themeSpacing(8),
+    lineHeight: "inherit",
     marginInlineStart: themeSpacing(2),
     fontSize: (listener: any) => themeSize(listener, "inherit"),
     // Without an explicit rule the placeholder falls back to the UA default
@@ -267,7 +274,12 @@ function combobox(props: {
     style: {
       display: "flex",
       flexWrap: "wrap",
+      alignItems: "center",
       gap: themeSpacing(1),
+      // The host is a flex container (see below), so the wrap has to claim the
+      // row; without this the field collapsed to the width of its chips.
+      flex: 1,
+      minWidth: 0,
     },
   });
 
@@ -313,6 +325,10 @@ function combobox(props: {
       input: props.input,
     }),
     style: {
+      // Flex + centre, like selectBox: a block host left the chips sitting on
+      // the first line of a taller field instead of on its centre line.
+      display: "flex",
+      alignItems: "center",
       minWidth: themeSpacing(32),
       outlineOffset: "-1px",
       outline: (listener) =>

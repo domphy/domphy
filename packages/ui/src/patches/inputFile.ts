@@ -49,7 +49,9 @@ function inputFile(
       outline: (listener) =>
         `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
-      height: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
+      // Line box + paddingBlock, no height floor — the one shape every form
+      // control in the row shares (inputText).
+      paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 1),
       transition: "outline-color 140ms ease, box-shadow 140ms ease",
       "&::-webkit-file-upload-button": {
@@ -57,7 +59,7 @@ function inputFile(
         fontSize: "inherit",
         border: "none",
         borderRadius: themeSpacing(1),
-        height: themeSpacing(6),
+        minHeight: themeSpacing(6),
         paddingInline: themeSpacing(2),
         cursor: "pointer",
         color: (listener) =>

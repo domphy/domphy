@@ -145,13 +145,13 @@ function buildToggleButtons(
       style: {
         cursor: "pointer",
         fontSize: (l: Listener) => themeSize(l, "inherit"),
-        // Fixed height, label centred by flex: with a fixed height and block
-        // padding the inherited line box overflowed the content box downward
-        // whenever the host font was larger than the base size.
+        // Floor height, label centred by flex: a FIXED height clipped the
+        // inherited line box whenever the host font size or line-height made
+        // it taller than the control (e.g. line-height 1.8 at 24px = 43.2px).
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
-        height: themeSpacing(6),
+        minHeight: themeSpacing(6),
         paddingBlock: 0,
         paddingInline: themeSpacing(2),
         border: "none",

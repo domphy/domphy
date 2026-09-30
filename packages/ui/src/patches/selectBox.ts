@@ -341,7 +341,13 @@ function selectBox(props: {
       cursor: "pointer",
       display: "flex",
       alignItems: "center",
-      minHeight: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
+      // Line box + paddingBlock, no height floor: the fake field is exactly as
+      // tall as the real one (inputText) it stands beside. A real <input> keeps
+      // a line box when it is empty; this div holds only chips, so with nothing
+      // selected it had none and collapsed to its padding — a zero-width space
+      // is the strut that gives it the one line every text field has.
+      paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
+      "&::before": { content: '"\\200b"', width: 0, overflow: "hidden" },
       minWidth: themeSpacing(32),
       outlineOffset: "-1px",
       outline: (listener) =>

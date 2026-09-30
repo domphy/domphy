@@ -91,7 +91,10 @@ function splitterPanel(): PartialElement {
         el.style[prop] = `${isFirstSplitterPanel(node) ? size : 100 - size}%`;
       };
       apply(ctx.size.get());
-      el.style.flexShrink = "0";
+      // The two percentages already sum to 100%, so the handle's own width made
+      // the row wider than the splitter and the far panel was cut off by its
+      // `overflow: hidden`. Let the panels give the handle its space back.
+      el.style.flexShrink = "1";
       el.style.overflow = "auto";
 
       const release = ctx.size.addListener(apply);

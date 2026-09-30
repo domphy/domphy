@@ -105,7 +105,13 @@ function buildTabsChildren(
       style: {
         cursor: "pointer",
         fontSize: (l: Listener) => themeSize(l, "inherit"),
-        height: (l: Listener) => themeSpacing(6 + themeDensity(l) * 2),
+        // Floor height, label centred by flex: a FIXED height clipped the
+        // inherited line box whenever the host line-height made it taller
+        // than the control (line-height 1.8 at density decrease-2).
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        minHeight: (l: Listener) => themeSpacing(6 + themeDensity(l) * 2),
         paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 4),
         border: "none",
         outline: "none",
@@ -143,7 +149,10 @@ function buildTabsChildren(
     _key: "tablist",
     role: "tablist",
     ariaOrientation: "horizontal",
-    style: { display: "flex" },
+    // Wraps instead of overflowing: at a large density/font the row grew past
+    // its container and painted over the panel below it. Not a scroll
+    // container — that would clip every tab's focus ring.
+    style: { display: "flex", flexWrap: "wrap" },
   } as DomphyElement<"div">;
 
   const panels: DomphyElement<"div">[] = items.map((item, index) => {
