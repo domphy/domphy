@@ -1,5 +1,9 @@
 # @domphy/ui Changelog
 
+## 0.22.5
+
+- fix(toggleGroup, segmented): an item's label is centred by flex inside its fixed 6-spacing height. With block padding and no flex, a host font larger than the base size made the label's line box overflow the content box downward, so labels sat low.
+
 ## 0.22.4
 
 - change(inputSwitch): the track is 12 x 6 spacing (48 x 24px at 16px text), up from 9 x 6, so the knob travels further and the ON/OFF position reads at a glance.

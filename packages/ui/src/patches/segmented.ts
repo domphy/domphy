@@ -118,8 +118,14 @@ function buildSegmentButtons(
       style: {
         cursor: "pointer",
         fontSize: (l: Listener) => themeSize(l, "inherit"),
+        // Fixed height, label centred by flex: with a fixed height and block
+        // padding the inherited line box overflowed the content box downward
+        // whenever the host font was larger than the base size.
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
         height: themeSpacing(6),
-        paddingBlock: themeSpacing(1),
+        paddingBlock: 0,
         paddingInline: themeSpacing(3),
         border: "none",
         borderRadius: themeSpacing(10),
