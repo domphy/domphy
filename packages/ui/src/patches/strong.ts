@@ -31,7 +31,6 @@ function strong(
       fontWeight: themeWeight("bold"),
       color: (listener) =>
         themeColor(listener, "shift-11", color.get(listener)),
-      backgroundColor: (listener) => themeColor(listener),
     },
   };
 }
