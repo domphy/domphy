@@ -83,6 +83,23 @@ describe("floating panel dismissal", () => {
     expect(panel()).toBeNull();
   });
 
+  it("a click that detaches its own target inside the panel keeps the panel open (Floating UI useDismiss isEventTargetWithin tests event.composedPath(), not node.contains(target))", () => {
+    vi.useFakeTimers();
+    const { pick, settle, open, panel } = mount();
+
+    open();
+    const inside = document.querySelector(".inside") as HTMLElement;
+    inside.addEventListener("click", () => inside.remove());
+    inside.click();
+    settle();
+    expect(inside.isConnected).toBe(false);
+    expect(panel()).not.toBeNull();
+
+    (pick(".elsewhere") as HTMLElement).click();
+    settle();
+    expect(panel()).toBeNull();
+  });
+
   it("Escape from inside the panel returns focus to the trigger (WAI-ARIA APG: Escape dismisses the popup and returns focus to the element that opened it)", () => {
     vi.useFakeTimers();
     const { pick, settle, open, panel } = mount();

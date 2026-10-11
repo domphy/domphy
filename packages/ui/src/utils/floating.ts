@@ -388,8 +388,12 @@ function attachFloating(
 
   const handleOutside = (event: MouseEvent) => {
     if (!openState.get() || !reference || !floating) return;
-    const target = event.target as Node;
-    if (!reference.contains(target) && !floating.contains(target)) hide();
+    // composedPath is fixed when dispatch starts, so a click that swaps the
+    // panel's content (target detached before this root listener runs) still
+    // counts as inside. Floating UI useDismiss (isEventTargetWithin) does the
+    // same; Radix decides on pointerdown instead.
+    const path = event.composedPath();
+    if (!path.includes(reference) && !path.includes(floating)) hide();
   };
   rootNode.domElement?.addEventListener("click", handleOutside);
 
