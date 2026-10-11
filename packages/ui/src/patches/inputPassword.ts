@@ -43,6 +43,10 @@ const HOST_FIELD_KEYS = [
   "onInput",
   "disabled",
   "required",
+  "autofocus",
+  "minlength",
+  "maxlength",
+  "placeholder",
 ] as const;
 
 type HostFieldKey = (typeof HOST_FIELD_KEYS)[number];
@@ -53,6 +57,10 @@ type HostFields = {
   onInput?: (event: Event) => void;
   disabled?: unknown;
   required?: boolean;
+  autofocus?: boolean;
+  minlength?: number;
+  maxlength?: number;
+  placeholder?: string;
 };
 
 function bindReadable<T>(
@@ -70,8 +78,9 @@ function bindReadable<T>(
  * Password input wrapper: a styled `<div>` that inserts an `<input type="password">`
  * and a show/hide toggle button. The outer div carries the focus-ring outline via
  * `:focus-within`. Apply to an empty `<div>`. Host `value`/`name`/`onInput`/
- * `disabled`/`required` are forwarded onto the real input so the field
- * participates in FormData.
+ * `disabled`/`required`/`autofocus`/`minlength`/`maxlength`/`placeholder` are
+ * forwarded onto the real input so the field participates in FormData and
+ * constraint validation.
  *
  * @hostTag div
  * @param props.color - Base color tone for border/background/text. Defaults to `"neutral"`.
@@ -145,6 +154,10 @@ function inputPassword(
         ...(onInput != null ? { onInput } : {}),
         ...(disabled != null ? { disabled } : {}),
         ...(required != null ? { required } : {}),
+        ...(hostFields.autofocus != null ? { autofocus: hostFields.autofocus } : {}),
+        ...(hostFields.minlength != null ? { minlength: hostFields.minlength } : {}),
+        ...(hostFields.maxlength != null ? { maxlength: hostFields.maxlength } : {}),
+        ...(hostFields.placeholder != null ? { placeholder: hostFields.placeholder } : {}),
         style: {
           flex: 1,
           minWidth: 0,

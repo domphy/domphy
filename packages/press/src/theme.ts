@@ -121,6 +121,7 @@ main a:focus:not(:focus-visible){
 
 /* ------- sidebar collapsed state (JS toggles 'collapsed' class on group) ------- */
 .dp-sidebar-group.collapsed .dp-sidebar-items{display:none}
+.dp-sidebar-group.collapsed [data-sidebar-toggle] svg{transform:rotate(-90deg)}
 
 /* ------- sidebar open state on mobile (JS sets html[data-sidebar="open"]) ------ */
 /* Closed off-canvas nav: visibility:hidden drops it from the tab order so

@@ -55,6 +55,9 @@ const ICON_MORE =
 const ICON_CHEVRONS_UPDOWN =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><path d="M7 15l5 5 5-5M7 9l5-5 5 5"/></svg>';
 
+const ICON_CHEVRON_LEFT =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><path d="M15 6l-6 6 6 6"/></svg>';
+
 const ICON_CHEVRON_RIGHT =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="1em" height="1em"><path d="M9 6l6 6-6 6"/></svg>';
 
@@ -111,6 +114,7 @@ export {
   ICON_PANEL_TOGGLE,
   ICON_MORE,
   ICON_CHEVRONS_UPDOWN,
+  ICON_CHEVRON_LEFT,
   ICON_CHEVRON_RIGHT,
   ICON_FOLDER,
   ICON_GRID,

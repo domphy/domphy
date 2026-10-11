@@ -823,6 +823,10 @@ function holdsRoute(item: SidebarItem, route: string): boolean {
   return (item.items ?? []).some((child) => holdsRoute(child, route));
 }
 
+// 1em down-chevron (stroke currentColor): the "‹ ›" glyphs it replaces render at a third of the em box.
+const SIDEBAR_CHEVRON =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:block;transition:transform 140ms ease"><path d="M6 9l6 6l6 -6"/></svg>';
+
 function sidebarGroup(group: SidebarItem, base: string): DomphyElement {
   const children: DomphyElement[] = [];
   const isCollapsible = group.items && group.items.length > 0;
@@ -836,7 +840,8 @@ function sidebarGroup(group: SidebarItem, base: string): DomphyElement {
     if (group.badge) titleChildren.push(badgeEl(group.badge));
     if (isCollapsible) {
       titleChildren.push({
-        button: group.collapsed ? "›" : "‹",
+        // One down-chevron; theme.ts turns it right while the group is collapsed.
+        button: rawHtml(SIDEBAR_CHEVRON),
         type: "button",
         ariaLabel: group.collapsed ? "Expand" : "Collapse",
         // Disclosure state for the group's link list — RUNTIME_SCRIPT keeps

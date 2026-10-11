@@ -37,6 +37,7 @@ import {
 import { interactiveFill } from "../../shared/interactiveFill.js";
 import {
   glyphChild,
+  ICON_CHEVRON_LEFT,
   ICON_CHEVRON_RIGHT,
   ICON_CHEVRONS_UPDOWN,
   ICON_MARK,
@@ -988,7 +989,7 @@ function inlineMonthCalendar(
   const header: DomphyElement<"div"> = {
     div: [
       {
-        button: "‹",
+        button: rawHtml(ICON_CHEVRON_LEFT),
         type: "button",
         ariaLabel: "Previous month",
         onClick: () => viewMonth.set(addMonths(viewMonth.get(), -1)),
@@ -1001,7 +1002,7 @@ function inlineMonthCalendar(
         $: [strong({ color: "neutral" })],
       } as unknown as DomphyElement,
       {
-        button: "›",
+        button: rawHtml(ICON_CHEVRON_RIGHT),
         type: "button",
         ariaLabel: "Next month",
         onClick: () => viewMonth.set(addMonths(viewMonth.get(), 1)),

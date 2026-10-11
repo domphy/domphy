@@ -19,6 +19,7 @@ import { sidebarIcon } from "./sidebar05-08-shared.js";
 
 export {
   ICON_BAR_CHART,
+  ICON_CHEVRON_LEFT,
   ICON_CHEVRON_RIGHT,
   ICON_CHEVRONS_UPDOWN,
   ICON_FOLDER,

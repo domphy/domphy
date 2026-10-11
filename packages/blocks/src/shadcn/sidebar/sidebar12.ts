@@ -22,6 +22,7 @@ import {
 } from "@domphy/ui";
 import { interactiveFill } from "../../shared/interactiveFill.js";
 import {
+  ICON_CHEVRON_LEFT,
   ICON_CHEVRON_RIGHT,
   ICON_CHEVRONS_UPDOWN,
   ICON_PANEL_TOGGLE,
@@ -345,7 +346,7 @@ function monthDatePicker(
   const header: DomphyElement<"div"> = {
     div: [
       {
-        button: "‹",
+        button: rawHtml(ICON_CHEVRON_LEFT),
         type: "button",
         ariaLabel: "Previous month",
         onClick: () => viewMonth.set(addMonths(viewMonth.get(), -1)),
@@ -361,7 +362,7 @@ function monthDatePicker(
         },
       } as unknown as DomphyElement,
       {
-        button: "›",
+        button: rawHtml(ICON_CHEVRON_RIGHT),
         type: "button",
         ariaLabel: "Next month",
         onClick: () => viewMonth.set(addMonths(viewMonth.get(), 1)),
@@ -825,14 +826,14 @@ function sidebar12(props: Sidebar12Props = {}): DomphyElement<"div"> {
             style: todayButtonStyle(),
           } as unknown as DomphyElement,
           {
-            button: "‹",
+            button: rawHtml(ICON_CHEVRON_LEFT),
             type: "button",
             ariaLabel: "Previous period",
             onClick: () => viewMonth.set(addMonths(viewMonth.get(), -1)),
             style: navButtonStyle(),
           } as unknown as DomphyElement,
           {
-            button: "›",
+            button: rawHtml(ICON_CHEVRON_RIGHT),
             type: "button",
             ariaLabel: "Next period",
             onClick: () => viewMonth.set(addMonths(viewMonth.get(), 1)),
