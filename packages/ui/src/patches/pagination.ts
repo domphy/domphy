@@ -4,6 +4,7 @@ import {
   type ElementNode,
   isState,
   type PartialElement,
+  rawHtml,
   type State,
   toState,
   type ValueOrState,
@@ -16,6 +17,7 @@ import {
   themeSpacing,
   themeWeight,
 } from "@domphy/theme";
+import { chevron } from "../utils/chevron.js";
 import { focusRing } from "../utils/focusRing.js";
 
 function getPages(current: number, total: number): (number | "...")[] {
@@ -143,7 +145,7 @@ function pagination(props: {
 
           // Prev button
           items.push({
-            button: "‹",
+            button: rawHtml(chevron("left")),
             _key: "prev",
             type: "button",
             ariaLabel: "Previous page",
@@ -197,7 +199,7 @@ function pagination(props: {
 
           // Next button
           items.push({
-            button: "›",
+            button: rawHtml(chevron("right")),
             _key: "next",
             type: "button",
             ariaLabel: "Next page",

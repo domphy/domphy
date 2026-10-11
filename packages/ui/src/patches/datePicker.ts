@@ -6,6 +6,7 @@ import {
   type Listener,
   merge,
   type PartialElement,
+  rawHtml,
   type State,
   toState,
   type ValueOrState,
@@ -20,6 +21,7 @@ import {
   themeSpacing,
   themeWeight,
 } from "@domphy/theme";
+import { chevron } from "../utils/chevron.js";
 import { elevation } from "../utils/elevation.js";
 import { createFloating, floatingPanelId } from "../utils/floating.js";
 import { focusRing } from "../utils/focusRing.js";
@@ -433,7 +435,7 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
   function buildCalendar(): DomphyElement<"div"> {
     const navButton = (label: string, ariaLabel: string, onClick: () => void) =>
       ({
-        button: label,
+        button: rawHtml(label),
         type: "button",
         ariaLabel,
         onClick,
@@ -442,8 +444,8 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
 
     const header: DomphyElement<"div"> = {
       div: [
-        navButton("«", "Previous year", () => shiftYear(-1)),
-        navButton("‹", "Previous month", () => shiftMonth(-1)),
+        navButton(chevron("left", true), "Previous year", () => shiftYear(-1)),
+        navButton(chevron("left"), "Previous month", () => shiftMonth(-1)),
         {
           div: (listener) =>
             monthFormatter.format(
@@ -457,8 +459,8 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
             fontSize: (listener) => themeSize(listener),
           },
         },
-        navButton("›", "Next month", () => shiftMonth(1)),
-        navButton("»", "Next year", () => shiftYear(1)),
+        navButton(chevron("right"), "Next month", () => shiftMonth(1)),
+        navButton(chevron("right", true), "Next year", () => shiftYear(1)),
       ],
       style: {
         display: "flex",
