@@ -22,6 +22,7 @@ import {
   themeWeight,
 } from "@domphy/theme";
 import { chevron } from "../utils/chevron.js";
+import { edge } from "../utils/edge.js";
 import { elevation } from "../utils/elevation.js";
 import { createFloating, floatingPanelId } from "../utils/floating.js";
 import { focusRing } from "../utils/focusRing.js";
@@ -521,10 +522,11 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
         borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
         backgroundColor: (listener) => themeColor(listener, "inherit"),
         color: (listener) => themeColor(listener, "text"),
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "border-strong")}`,
-        outlineOffset: "-1px",
-        boxShadow: elevation("medium"),
+        // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+        // Outside, so a child flush with the popup edge cannot paint over it.
+        outline: "none",
+        boxShadow: (listener) =>
+          `${edge(themeColor(listener, "border-strong"), "1px", "outside")}, ${elevation("medium")}`,
       },
     };
   }
@@ -600,11 +602,12 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
             : within
               ? themeColor(l, textToneOn(2))
               : themeColor(l, "text"),
-        outline: isToday
-          ? (l: Listener) =>
-              `1px solid ${themeColor(l, "shift-6", accentColor.get(l))}`
+        // Today ring: was an outline at -2px (a 1px line, 1px in from the
+        // edge); drawn as the inside edge, 1px closer to the rim.
+        outline: "none",
+        boxShadow: isToday
+          ? (l: Listener) => edge(themeColor(l, "shift-6", accentColor.get(l)))
           : "none",
-        outlineOffset: "-2px",
         "&:hover:not([disabled])": {
           backgroundColor: (l: Listener) =>
             selected
@@ -618,7 +621,10 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
         },
         transition: "background-color 140ms ease, box-shadow 140ms ease",
         "&:focus-visible": {
-          boxShadow: (l: Listener) => focusRing(l, accentColor.get(l)),
+          boxShadow: (l: Listener) =>
+            isToday
+              ? `${focusRing(l, accentColor.get(l))}, ${edge(themeColor(l, "shift-6", accentColor.get(l)))}`
+              : focusRing(l, accentColor.get(l)),
         },
       },
       _key: isoOf(date),
@@ -781,10 +787,11 @@ function timeSelectStyle() {
     fontSize: (l: Listener) => themeSize(l),
     padding: themeSpacing(1),
     borderRadius: themeSpacing(1),
-    // outline, not border — bounded control, keep the geometry formula exact.
+    // Edge, not border — bounded control, keep the geometry formula exact.
+    // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
     border: "none",
-    outlineOffset: "-1px",
-    outline: (l: Listener) => `1px solid ${themeColor(l, "border-strong")}`,
+    outline: "none",
+    boxShadow: (l: Listener) => edge(themeColor(l, "border-strong")),
     backgroundColor: (l: Listener) => themeColor(l, "inherit"),
     color: (l: Listener) => themeColor(l, "text"),
   };

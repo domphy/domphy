@@ -10,6 +10,7 @@ import {
   themeDensity,
   themeSpacing,
 } from "@domphy/theme";
+import { edge } from "../utils/edge.js";
 import { focusRing } from "../utils/focusRing.js";
 
 const radius = (listener: Listener) =>
@@ -96,9 +97,15 @@ function accordion(
       display: "flex",
       flexDirection: "column",
       borderRadius: radius,
-      outline: (listener) =>
-        `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
-      outlineOffset: "-1px",
+      // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+      // Outside, so the summary bands flush with the container edge cannot paint over it.
+      outline: "none",
+      boxShadow: (listener) =>
+        edge(
+          themeColor(listener, "border-strong", color.get(listener)),
+          "1px",
+          "outside",
+        ),
       color: (listener) => themeColor(listener, "text", color.get(listener)),
       // No `overflow: hidden`: it rounded the end bands by clipping them, and
       // clipped the summary's focus ring with them (focusRing() draws 4px

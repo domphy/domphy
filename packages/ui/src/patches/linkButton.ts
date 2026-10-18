@@ -8,6 +8,7 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { BUTTON_SIZE_FONT, type ButtonSize } from "../utils/buttonSize.js";
+import { edge } from "../utils/edge.js";
 import { focusRing } from "../utils/focusRing.js";
 import type { ButtonVariant } from "./button.js";
 
@@ -146,12 +147,12 @@ function linkButton(
       cursor: "pointer",
       lineHeight: "inherit",
       border: "none",
-      outlineOffset: "-1px",
-      outlineWidth: "1px",
-      outline: isSolid
+      // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+      outline: "none",
+      boxShadow: isSolid
         ? "none"
         : (listener) =>
-            `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
+            edge(themeColor(listener, "border-strong", color.get(listener))),
       // Solid: deep brand (shift-13) + light-end text (not mid-ramp ~2.2:1).
       // Outline: shift-13 for ≥4.5:1 on light bg.
       color: (listener) =>
@@ -182,7 +183,10 @@ function linkButton(
             : themeColor(listener, "increase-2", color.get(listener)),
       },
       "&:focus-visible": {
-        boxShadow: (listener) => focusRing(listener, color.get(listener)),
+        boxShadow: (listener) =>
+          isSolid
+            ? focusRing(listener, color.get(listener))
+            : `${focusRing(listener, color.get(listener))}, ${edge(themeColor(listener, "border-strong", color.get(listener)))}`,
       },
       "&[aria-disabled=true]": {
         opacity: 0.7,
@@ -190,9 +194,14 @@ function linkButton(
         pointerEvents: "none",
         backgroundColor: (listener) =>
           themeColor(listener, "shift-2", "neutral"),
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "border-strong", "neutral")}`,
+        boxShadow: (listener) =>
+          edge(themeColor(listener, "border-strong", "neutral")),
         color: (listener) => themeColor(listener, "muted", "neutral"),
+      },
+      // A disabled link stays focusable: keep its ring on top of the neutral edge.
+      "&[aria-disabled=true]:focus-visible": {
+        boxShadow: (listener) =>
+          `${focusRing(listener, color.get(listener))}, ${edge(themeColor(listener, "border-strong", "neutral"))}`,
       },
     },
   };

@@ -1,5 +1,15 @@
 # @domphy/ui Changelog
 
+## 0.22.11
+
+Every drawn control edge is a `box-shadow`, no longer an `outline`. Before Chrome 94 an outline ignores `border-radius`, so each rounded control and panel drew a square frame in the embedded web views Domphy ships in (SketchUp 2022-2024 = Chrome 88); a box-shadow follows the radius in every engine and, like the outline, takes no layout space.
+
+- feat: new public helper `edge(color, width?, placement?)` (`"inside"` = the old `outline` + `outlineOffset: -1px`; `"outside"` for panels whose children reach the edge, since an inset shadow paints under them).
+- fix(button, linkButton, buttonSwitch, inputText, inputNumber, inputSearch, inputFile, inputDateTime, inputPassword, inputColor, textarea, select, inputCheckbox, inputRadio, inputSwitch, tag, keyboard, toggleGroup, combobox, selectBox, datePicker): inside edge; every state that showed the outline next to the focus ring now carries both in one `box-shadow` (hover + focus, error / warning / invalid + focus).
+- fix(card, popover, menu, accordion, combobox / selectBox dropdowns, datePicker popup): outside edge next to the elevation shadow.
+- datePicker's today ring moved 1px outward (an outline at -2px had a 1px gap no single shadow reproduces).
+- Caller note: a `boxShadow` you set on a patched control now replaces its edge; compose it with `edge()` in the same value.
+
 ## 0.22.6
 
 Geometry sweep of every patch with the new real-Chrome lane (`pnpm --filter domphy-web visual:ui-geometry`: 6 font sizes x root/host x 3 line-heights x light/dark x 5 densities; label centred, no overflow, line box fits, indicator aligned, siblings consistent). Zero findings after these fixes.

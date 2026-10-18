@@ -6,6 +6,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { edge } from "../utils/edge.js";
 import { focusRing } from "../utils/focusRing.js";
 
 /**
@@ -54,13 +55,14 @@ function buttonSwitch(
       alignItems: "center",
       fontSize: (listener) => themeSize(listener),
       border: "none",
-      outlineWidth: "1px",
+      outline: "none",
       // WCAG 2.1 SC 1.4.11 Non-text Contrast: the OFF track is tone-inherited
       // and sits at ~1.4:1 against the page, so the boundary has to carry the
       // 3:1. "border" (shift-3) measured 1.64:1 in Chromium; shift-7 measures
       // 3.32:1 (light) / 3.50:1 (dark).
-      outline: (listener) =>
-        `1px solid ${themeColor(listener, "shift-7", color.get(listener))}`,
+      // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+      boxShadow: (listener) =>
+        edge(themeColor(listener, "shift-7", color.get(listener))),
       minWidth: themeSpacing(12),
       minHeight: themeSpacing(6),
       // A switch is a fixed-size track, never a full-width bar. Measured in
@@ -78,8 +80,10 @@ function buttonSwitch(
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
       color: (listener) => themeColor(listener, "text", color.get(listener)),
+      // A later boxShadow replaces an earlier one whole: the ring keeps the edge.
       "&:focus-visible": {
-        boxShadow: (listener) => focusRing(listener, accentColor.get(listener)),
+        boxShadow: (listener) =>
+          `${focusRing(listener, accentColor.get(listener))}, ${edge(themeColor(listener, "shift-7", color.get(listener)))}`,
       },
       "& > :first-child": {
         content: '""',
@@ -99,14 +103,13 @@ function buttonSwitch(
         // The thumb is tone-inherited too — same 1.4:1 problem as the track.
         // Its own boundary makes the ON/OFF position identifiable on either
         // track colour (SC 1.4.11), the way Radix rings its switch thumb.
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "shift-7", color.get(listener))}`,
-        outlineOffset: "-1px",
+        boxShadow: (listener) =>
+          edge(themeColor(listener, "shift-7", color.get(listener))),
       },
       "&[aria-checked=true]": {
         backgroundColor: (listener) =>
           themeColor(listener, "increase-3", accentColor.get(listener)),
-        outline: "none",
+        boxShadow: "none",
         // Host label tracks the ON fill (+3 off this element's own shift-2
         // anchor). `decrease-2` pinned it to the light end of the ramp and
         // measured 2.48:1 (light) / 1.87:1 (dark) on that fill.
@@ -114,6 +117,10 @@ function buttonSwitch(
           themeColor(listener, textToneOn(3), accentColor.get(listener)),
         paddingInlineStart: themeSpacing(2),
         paddingInlineEnd: themeSpacing(7),
+      },
+      // ON has no edge, so its focus ring stands alone (beats the rules above by specificity).
+      "&[aria-checked=true]:focus-visible": {
+        boxShadow: (listener) => focusRing(listener, accentColor.get(listener)),
       },
       "&[aria-checked=true] > :first-child": {
         insetInlineStart: `calc(100% - ${themeSpacing(5.5)})`,

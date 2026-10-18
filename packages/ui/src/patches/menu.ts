@@ -17,6 +17,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { edge } from "../utils/edge.js";
 import { elevation } from "../utils/elevation.js";
 import { focusRing } from "../utils/focusRing.js";
 
@@ -255,10 +256,11 @@ function menu(
       backgroundColor: (l: Listener) => themeColor(l, "inherit", color),
       color: (l: Listener) => themeColor(l, "text", color),
       borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 2),
-      outline: (l: Listener) =>
-        `1px solid ${themeColor(l, "border-strong", color)}`,
-      outlineOffset: "-1px",
-      boxShadow: elevation("medium"),
+      // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+      // Outside, so a highlighted row flush with the panel edge cannot paint over it.
+      outline: "none",
+      boxShadow: (l: Listener) =>
+        `${edge(themeColor(l, "border-strong", color), "1px", "outside")}, ${elevation("medium")}`,
     },
   };
 }

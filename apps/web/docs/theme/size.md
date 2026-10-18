@@ -235,7 +235,7 @@ gap: themeSpacing(3)   // >= w=2 paddingBlock
 
 ## Recommendation
 
-Use `outline` or `box-shadow` instead of `border` when the sizing formula matters.
+Use the `edge()` box-shadow of `@domphy/ui` instead of `border` when the sizing formula matters (a border adds its width twice to the size); not `outline` either, which ignores `border-radius` before Chrome 94.
 
 At `w = 1`, `d = 1.5`:
 

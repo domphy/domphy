@@ -1,4 +1,9 @@
-import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
+import {
+  type Listener,
+  type PartialElement,
+  toState,
+  type ValueOrState,
+} from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
@@ -6,6 +11,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { edge } from "../utils/edge.js";
 import { focusRing } from "../utils/focusRing.js";
 
 type InputDateTimeMode = "date" | "time" | "week" | "month" | "datetime-local";
@@ -31,6 +37,18 @@ function inputDateTime(
   const { mode = "datetime-local" } = props;
   const color = toState(props.color ?? "neutral", "color");
   const accentColor = toState(props.accentColor ?? "primary", "accentColor");
+  // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+  // A later rule's box-shadow replaces an earlier one whole, so every edge rule
+  // that can meet a focused field has a `:focus-visible` twin (one more class of
+  // specificity, same relative order) carrying `focusRing, edge`.
+  const baseEdge = (l: Listener) =>
+    edge(themeColor(l, "border-strong", color.get(l)));
+  const hoverEdge = (l: Listener) =>
+    edge(themeColor(l, "shift-5", accentColor.get(l)));
+  const errorEdge = (l: Listener) =>
+    edge(themeColor(l, "shift-6", "error"), themeSpacing(0.5));
+  const focused = (l: Listener, edgeValue: string) =>
+    `${focusRing(l, accentColor.get(l))}, ${edgeValue}`;
 
   return {
     // Declared like any other attribute — the native element still wins over
@@ -48,15 +66,14 @@ function inputDateTime(
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
       border: "none",
-      outlineOffset: "-1px",
-      outline: (listener) =>
-        `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
+      outline: "none",
+      boxShadow: baseEdge,
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
       // Line box + paddingBlock, no height floor — the one shape every form
       // control in the row shares (inputText).
       paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
-      transition: "outline-color 140ms ease, box-shadow 140ms ease",
+      transition: "box-shadow 140ms ease",
       // Chrome's UA sheet pads the inner date editor by 1px top and bottom, so
       // the field stood 2px taller than every other control in a form row.
       "&::-webkit-datetime-edit": { paddingBlock: 0 },
@@ -65,11 +82,13 @@ function inputDateTime(
         opacity: 0.85,
       },
       "&:hover:not([disabled]):not([aria-busy=true])": {
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "shift-5", accentColor.get(listener))}`,
+        boxShadow: hoverEdge,
       },
       "&:focus-visible": {
-        boxShadow: (listener) => focusRing(listener, accentColor.get(listener)),
+        boxShadow: (l) => focused(l, baseEdge(l)),
+      },
+      "&:hover:not([disabled]):not([aria-busy=true]):focus-visible": {
+        boxShadow: (l) => focused(l, hoverEdge(l)),
       },
       "&[disabled]": {
         opacity: 0.7,
@@ -77,12 +96,14 @@ function inputDateTime(
         color: (listener) => themeColor(listener, "muted", "neutral"),
         backgroundColor: (listener) =>
           themeColor(listener, "shift-2", "neutral"),
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "border-strong", "neutral")}`,
+        boxShadow: (listener) =>
+          edge(themeColor(listener, "border-strong", "neutral")),
       },
       "&:invalid": {
-        outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", "error")}`,
+        boxShadow: errorEdge,
+      },
+      "&:invalid:focus-visible": {
+        boxShadow: (l) => focused(l, errorEdge(l)),
       },
     },
   };

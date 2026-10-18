@@ -8,6 +8,7 @@ import {
 } from "@domphy/core";
 import type { Placement } from "@domphy/floating";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
+import { edge } from "../utils/edge.js";
 import { elevation } from "../utils/elevation.js";
 import { createFloating, floatingPanelId } from "../utils/floating.js";
 
@@ -103,9 +104,11 @@ function popover(props: {
       backgroundColor: (l: Listener) => themeColor(l, "inherit"),
       color: (l: Listener) => themeColor(l, "text"),
       borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 2),
-      outline: (l: Listener) => `1px solid ${themeColor(l, "border-strong")}`,
-      outlineOffset: "-1px",
-      boxShadow: elevation("medium"),
+      // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+      // Outside, so content flush with the panel edge cannot paint over it.
+      outline: "none",
+      boxShadow: (l: Listener) =>
+        `${edge(themeColor(l, "border-strong"), "1px", "outside")}, ${elevation("medium")}`,
     },
   };
 

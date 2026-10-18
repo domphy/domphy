@@ -5,6 +5,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { edge } from "../utils/edge.js";
 import { focusRing } from "../utils/focusRing.js";
 
 /**
@@ -94,8 +95,8 @@ function inputSwitch(
         // The knob is near-white on a near-white OFF track, so its own
         // boundary is what makes the ON/OFF position identifiable
         // (WCAG 2.1 SC 1.4.11) — same treatment as buttonSwitch's thumb.
-        outline: (listener) => `1px solid ${themeColor(listener, "shift-7")}`,
-        outlineOffset: "-1px",
+        // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+        boxShadow: (listener) => edge(themeColor(listener, "shift-7")),
       },
       "&::before": {
         content: '""',
@@ -112,8 +113,7 @@ function inputSwitch(
         // ON state — every peer (Radix, shadcn, MUI) keeps the off-track at
         // the muted surface and only the on-track takes the accent.
         backgroundColor: (listener) => themeColor(listener, "inherit"),
-        outline: (listener) => `1px solid ${themeColor(listener, "shift-7")}`,
-        outlineOffset: "-1px",
+        boxShadow: (listener) => edge(themeColor(listener, "shift-7")),
       },
       "&[disabled]": {
         opacity: 0.7,

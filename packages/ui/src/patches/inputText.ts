@@ -1,4 +1,9 @@
-import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
+import {
+  type Listener,
+  type PartialElement,
+  toState,
+  type ValueOrState,
+} from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
@@ -6,6 +11,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { edge } from "../utils/edge.js";
 import { fieldTextStyle } from "../utils/fieldText.js";
 import { focusRing } from "../utils/focusRing.js";
 
@@ -31,6 +37,20 @@ function inputText(
   const { type = "text" } = props;
   const color = toState(props.color ?? "neutral", "color");
   const accentColor = toState(props.accentColor ?? "primary", "accentColor");
+  // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+  // A later rule's box-shadow replaces an earlier one whole, so every edge rule
+  // that can meet a focused field has a `:focus-visible` twin (one more class of
+  // specificity, same relative order) carrying `focusRing, edge`.
+  const baseEdge = (l: Listener) =>
+    edge(themeColor(l, "border-strong", color.get(l)));
+  const hoverEdge = (l: Listener) =>
+    edge(themeColor(l, "shift-5", accentColor.get(l)));
+  const errorEdge = (l: Listener) =>
+    edge(themeColor(l, "shift-6", "error"), themeSpacing(0.5));
+  const warningEdge = (l: Listener) =>
+    edge(themeColor(l, "shift-6", "warning"), themeSpacing(0.5));
+  const focused = (l: Listener, edgeValue: string) =>
+    `${focusRing(l, accentColor.get(l))}, ${edgeValue}`;
 
   return {
     // Declared like any other attribute — the native element still wins over
@@ -51,27 +71,28 @@ function inputText(
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
       fontSize: (listener) => themeSize(listener, "inherit"),
       border: "none",
-      outlineOffset: "-1px",
-      outline: (listener) =>
-        `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
+      outline: "none",
+      boxShadow: baseEdge,
       ...fieldTextStyle(color),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
-      transition: "outline-color 140ms ease, box-shadow 140ms ease",
+      transition: "box-shadow 140ms ease",
       "&:hover:not([disabled]):not([aria-busy=true])": {
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "shift-5", accentColor.get(listener))}`,
+        boxShadow: hoverEdge,
       },
       "&:focus-visible": {
-        boxShadow: (listener) => focusRing(listener, accentColor.get(listener)),
+        boxShadow: (l) => focused(l, baseEdge(l)),
+      },
+      "&:hover:not([disabled]):not([aria-busy=true]):focus-visible": {
+        boxShadow: (l) => focused(l, hoverEdge(l)),
       },
       "&[disabled]": {
         opacity: 0.7,
         cursor: "not-allowed",
         backgroundColor: (listener) =>
           themeColor(listener, "shift-2", "neutral"),
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "border-strong", "neutral")}`,
+        boxShadow: (listener) =>
+          edge(themeColor(listener, "border-strong", "neutral")),
         color: (listener) => themeColor(listener, "muted", "neutral"),
       },
       // `[placeholder]` is load-bearing: `:placeholder-shown` only matches an
@@ -80,16 +101,22 @@ function inputText(
       // `required` field painted itself red before the user typed a character.
       // Fields with no placeholder opt into the error look via `data-status`.
       "&[placeholder]:invalid:not(:placeholder-shown)": {
-        outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", "error")}`,
+        boxShadow: errorEdge,
+      },
+      "&[placeholder]:invalid:not(:placeholder-shown):focus-visible": {
+        boxShadow: (l) => focused(l, errorEdge(l)),
       },
       "&[data-status=error]": {
-        outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", "error")}`,
+        boxShadow: errorEdge,
+      },
+      "&[data-status=error]:focus-visible": {
+        boxShadow: (l) => focused(l, errorEdge(l)),
       },
       "&[data-status=warning]": {
-        outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", "warning")}`,
+        boxShadow: warningEdge,
+      },
+      "&[data-status=warning]:focus-visible": {
+        boxShadow: (l) => focused(l, warningEdge(l)),
       },
     },
   };

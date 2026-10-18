@@ -271,8 +271,13 @@ describe("card", () => {
       $: [card()],
     } as DomphyElement);
     const css = node.generateCSS();
-    expect(css).toContain("box-shadow");
-    expect(css).toContain("outline");
+    // The border is the first (outside, non-inset) shadow, ahead of the
+    // elevation; no drawn outline (it draws square corners before Chrome 94).
+    // border-strong = shift-4 (theme tone.ts), neutral card -> var(--neutral-4).
+    expect(css).toMatch(
+      /box-shadow:\s*0 0 0 1px var\(--neutral-4\), 0 1px 2px/,
+    );
+    expect(css).not.toMatch(/outline:\s*1px/);
   });
 });
 

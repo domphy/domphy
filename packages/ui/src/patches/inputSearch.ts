@@ -1,4 +1,9 @@
-import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
+import {
+  type Listener,
+  type PartialElement,
+  toState,
+  type ValueOrState,
+} from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
@@ -6,6 +11,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { edge } from "../utils/edge.js";
 import { fieldTextStyle } from "../utils/fieldText.js";
 import { focusRing } from "../utils/focusRing.js";
 
@@ -27,6 +33,16 @@ function inputSearch(
 ): PartialElement {
   const color = toState(props.color ?? "neutral", "color");
   const accentColor = toState(props.accentColor ?? "primary", "accentColor");
+  // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+  // A later rule's box-shadow replaces an earlier one whole, so every edge rule
+  // that can meet a focused field has a `:focus-visible` twin (one more class of
+  // specificity, same relative order) carrying `focusRing, edge`.
+  const baseEdge = (l: Listener) =>
+    edge(themeColor(l, "border-strong", color.get(l)));
+  const hoverEdge = (l: Listener) =>
+    edge(themeColor(l, "shift-5", accentColor.get(l)));
+  const focused = (l: Listener, edgeValue: string) =>
+    `${focusRing(l, accentColor.get(l))}, ${edgeValue}`;
 
   return {
     // Declared like any other attribute — the native element still wins over
@@ -44,14 +60,13 @@ function inputSearch(
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
       border: "none",
-      outlineOffset: "-1px",
-      outline: (listener) =>
-        `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
+      outline: "none",
+      boxShadow: baseEdge,
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
       minWidth: themeSpacing(32),
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
       paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
-      transition: "outline-color 140ms ease, box-shadow 140ms ease",
+      transition: "box-shadow 140ms ease",
       "&::-webkit-search-decoration": {
         display: "none",
       },
@@ -59,11 +74,13 @@ function inputSearch(
         cursor: "pointer",
       },
       "&:hover:not([disabled]):not([aria-busy=true])": {
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "shift-5", accentColor.get(listener))}`,
+        boxShadow: hoverEdge,
       },
       "&:focus-visible": {
-        boxShadow: (listener) => focusRing(listener, accentColor.get(listener)),
+        boxShadow: (l) => focused(l, baseEdge(l)),
+      },
+      "&:hover:not([disabled]):not([aria-busy=true]):focus-visible": {
+        boxShadow: (l) => focused(l, hoverEdge(l)),
       },
       "&[disabled]": {
         opacity: 0.7,
@@ -71,8 +88,8 @@ function inputSearch(
         color: (listener) => themeColor(listener, "muted", "neutral"),
         backgroundColor: (listener) =>
           themeColor(listener, "shift-2", "neutral"),
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "border-strong", "neutral")}`,
+        boxShadow: (listener) =>
+          edge(themeColor(listener, "border-strong", "neutral")),
       },
     },
   };

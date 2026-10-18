@@ -7,6 +7,7 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { BUTTON_SIZE_FONT, type ButtonSize } from "../utils/buttonSize.js";
+import { edge } from "../utils/edge.js";
 import { focusRing } from "../utils/focusRing.js";
 import { buttonGhost } from "./buttonGhost.js";
 
@@ -88,12 +89,12 @@ function button(
       cursor: "pointer",
       lineHeight: "inherit",
       border: "none",
-      outlineOffset: "-1px",
-      outlineWidth: "1px",
-      outline: isSolid
+      // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+      outline: "none",
+      boxShadow: isSolid
         ? "none"
         : (listener) =>
-            `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
+            edge(themeColor(listener, "border-strong", color.get(listener))),
       color: (listener) =>
         isSolid
           ? themeColor(listener, "shift-0", "neutral")
@@ -122,15 +123,18 @@ function button(
             : themeColor(listener, "increase-2", color.get(listener)),
       },
       "&:focus-visible": {
-        boxShadow: (listener) => focusRing(listener, color.get(listener)),
+        boxShadow: (listener) =>
+          isSolid
+            ? focusRing(listener, color.get(listener))
+            : `${focusRing(listener, color.get(listener))}, ${edge(themeColor(listener, "border-strong", color.get(listener)))}`,
       },
       "&[disabled]": {
         opacity: 0.7,
         cursor: "not-allowed",
         backgroundColor: (listener) =>
           themeColor(listener, "shift-2", "neutral"),
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "border-strong", "neutral")}`,
+        boxShadow: (listener) =>
+          edge(themeColor(listener, "border-strong", "neutral")),
         color: (listener) => themeColor(listener, "muted", "neutral"),
       },
       "&[aria-busy=true]": {

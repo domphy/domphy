@@ -5,6 +5,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { edge } from "../utils/edge.js";
 import { focusRing } from "../utils/focusRing.js";
 
 /**
@@ -43,7 +44,7 @@ function inputCheckbox(
       height: themeSpacing(6),
       justifyContent: "center",
       alignItems: "center",
-      transition: "background-color 300ms, outline-color 300ms",
+      transition: "background-color 300ms, box-shadow 300ms",
       margin: 0,
       padding: 0,
       "&::before": {
@@ -53,9 +54,9 @@ function inputCheckbox(
         lineHeight: 1,
         cursor: "pointer",
         border: "none",
-        outlineOffset: "-1px",
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
+        // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+        boxShadow: (listener) =>
+          edge(themeColor(listener, "border-strong", color.get(listener))),
         color: (listener) => themeColor(listener, "text", color.get(listener)),
         width: themeSpacing(4),
         height: themeSpacing(4),
@@ -65,8 +66,8 @@ function inputCheckbox(
           themeColor(listener, "hover", color.get(listener)),
       },
       "&:checked::before": {
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
+        boxShadow: (listener) =>
+          edge(themeColor(listener, "shift-6", accentColor.get(listener))),
         backgroundColor: (listener) =>
           themeColor(listener, "shift-8", accentColor.get(listener)),
       },
@@ -89,8 +90,8 @@ function inputCheckbox(
         transform: "rotate(45deg)",
       },
       "&:indeterminate::before": {
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
+        boxShadow: (listener) =>
+          edge(themeColor(listener, "shift-6", accentColor.get(listener))),
         backgroundColor: (listener) =>
           themeColor(listener, "shift-3", accentColor.get(listener)),
       },
@@ -120,8 +121,8 @@ function inputCheckbox(
       // unchecked box, and indistinguishable from the disabled checked one.
       "&[disabled]::before": {
         pointerEvents: "none",
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "border-strong", "neutral")}`,
+        boxShadow: (listener) =>
+          edge(themeColor(listener, "border-strong", "neutral")),
         backgroundColor: (listener) =>
           themeColor(listener, "inherit", "neutral"),
       },

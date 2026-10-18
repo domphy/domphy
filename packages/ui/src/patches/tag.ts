@@ -14,6 +14,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { edge } from "../utils/edge.js";
 import { focusRing } from "../utils/focusRing.js";
 
 const xSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6.707 5.293l5.293 5.292l5.293 -5.292a1 1 0 0 1 1.414 1.414l-5.292 5.293l5.292 5.293a1 1 0 0 1 -1.414 1.414l-5.293 -5.292l-5.293 5.292a1 1 0 1 1 -1.414 -1.414l5.292 -5.293l-5.292 -5.293a1 1 0 0 1 1.414 -1.414" /></svg>`;
@@ -151,9 +152,10 @@ function tag(
         themeColor(listener, "inherit", color.get(listener)),
       color: (listener) => themeColor(listener, "text", color.get(listener)),
       border: "none",
-      outlineOffset: "-1px",
-      outline: (listener) =>
-        `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
+      // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+      outline: "none",
+      boxShadow: (listener) =>
+        edge(themeColor(listener, "border-strong", color.get(listener))),
     },
   };
 }

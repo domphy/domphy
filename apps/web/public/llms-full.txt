@@ -167,10 +167,10 @@ paddingInline: (l) => themeSpacing(themeDensity(l) * 3),
 borderRadius: (l) => themeSpacing(themeDensity(l) * 1.5),
 // height = (6 + 2d) * U — at d=1.5 → 9U = 36px (canonical button height)
 ```
-Use `outline` not `border` — a 1px border on both sides adds 2px to height and deviates from the formula.
+Draw a control's edge with `edge()` (an inset `box-shadow`), not `border` and not `outline` — a 1px border on both sides adds 2px to height and deviates from the formula, and before Chrome 94 an `outline` ignores `border-radius` (square frames around rounded controls in SketchUp 2022-2024's Chrome 88). A later rule's `boxShadow` replaces the earlier one whole, so a state that also shows the focus ring or an elevation composes them in one value: `${focusRing(l)}, ${edge(color)}`. Panels whose children reach the edge (card, popover, menu) use `edge(color, "1px", "outside")`, since an inset shadow paints under the children.
 
 ### Elevation and focus ring
-- **Elevation**: floating/raised surfaces (popover, menu, dialog, drawer, toast, tooltip, combobox/selectBox dropdown, datePicker popup, fab) use the shared `elevation(level)` helper (public export of `@domphy/ui`) — 3 levels (`"low" | "medium" | "high"`), layered black-alpha box-shadows that read correctly on both themes. Combined with a `border-strong` outline for the "shadow + border" look on panel-style surfaces (popover, menu, combobox/selectBox dropdown, datePicker); shadow-only (no outline) on dialog/drawer/toast/tooltip.
+- **Elevation**: floating/raised surfaces (popover, menu, dialog, drawer, toast, tooltip, combobox/selectBox dropdown, datePicker popup, fab) use the shared `elevation(level)` helper (public export of `@domphy/ui`) — 3 levels (`"low" | "medium" | "high"`), layered black-alpha box-shadows that read correctly on both themes. Combined with a `border-strong` `edge()` (outside placement) for the "shadow + border" look on panel-style surfaces (popover, menu, combobox/selectBox dropdown, datePicker); shadow-only (no outline) on dialog/drawer/toast/tooltip.
 - **Focus ring**: interactive patches (button, buttonGhost, linkButton, link, listItemButton, inputs, select, selectItem, textarea, segmented, tabs, toggleGroup, rating, pagination, menu items, command items, datePicker cells, accordion/details summary, splitter handle, breadcrumbEllipsis, fab) unify on the shared `focusRing(listener, color)` helper (public export of `@domphy/ui`) — ring-offset pattern via layered `box-shadow` on `:focus-visible` (`0 0 0 2px surface, 0 0 0 4px accent@shift-9`), matching Radix/shadcn. Never hand-roll a flush `0 0 0 2px` pastel ring.
 - **Press `:active`**: primary CTA controls (button outline/solid, buttonGhost, linkButton, fab, listItemButton) apply the design-system interactive delta — hover `±1`, pressed `±2` (solid uses `decrease-N` on the dark edge surface).
 
@@ -7037,7 +7037,7 @@ gap: themeSpacing(3)   // >= w=2 paddingBlock
 
 ## Recommendation
 
-Use `outline` or `box-shadow` instead of `border` when the sizing formula matters.
+Use the `edge()` box-shadow of `@domphy/ui` instead of `border` when the sizing formula matters (a border adds its width twice to the size); not `outline` either, which ignores `border-radius` before Chrome 94.
 
 At `w = 1`, `d = 1.5`:
 
@@ -7423,7 +7423,7 @@ From that base tone, the common visual roles are derived as follows:
 - **Text:** the tone plus or minus `K`
 - **Stroke:** the tone plus or minus `K / 3`
 
-Here, `stroke` means the structural edge role, such as `outline`, `border`, or a separator line.
+Here, `stroke` means the structural edge role, such as an `edge()` box-shadow, a `border`, or a separator line.
 
 With the current Domphy light ramp:
 
@@ -7488,7 +7488,7 @@ Basic example:
 ```ts
 backgroundColor: (l) => themeColor(l, "shift-0", "primary")
 color: (l) => themeColor(l, "shift-9", "primary")
-outline: (l) => `1px solid ${themeColor(l, "shift-3", "primary")}`
+boxShadow: (l) => edge(themeColor(l, "shift-3", "primary"))
 ```
 
 ## Semantic Aliases
@@ -7500,7 +7500,7 @@ Raw `shift-N` indices work, but they force every caller to remember the numeric 
 | `surface` | `shift-1` | subtle raised background |
 | `hover` | `shift-2` | hover/active background |
 | `border` | `shift-3` | default hairline divider (the `K/3` stroke role) |
-| `border-strong` | `shift-4` | control outline (button/input/card boundary) |
+| `border-strong` | `shift-4` | control edge (button/input/card boundary) |
 | `muted` | `shift-8` | secondary/disabled text — **de-emphasis only, see below** |
 | `text` | `shift-9` | default/primary text (the `K` text role) |
 
@@ -7509,7 +7509,7 @@ Raw `shift-N` indices work, but they force every caller to remember the numeric 
 ```ts
 backgroundColor: (l) => themeColor(l, "inherit", "primary")
 color: (l) => themeColor(l, "text", "primary")
-outline: (l) => `1px solid ${themeColor(l, "border-strong", "primary")}`
+boxShadow: (l) => edge(themeColor(l, "border-strong", "primary"))
 ```
 
 This is identical to writing `themeColor(l, "shift-9", "primary")` and `themeColor(l, "shift-4", "primary")` — the alias is just sugar.
@@ -7526,12 +7526,14 @@ const button = {
     borderRadius: (l) => themeSpacing(themeDensity(l) * 1.5),
     backgroundColor: (l) => themeColor(l, "inherit", "primary"),
     color: (l) => themeColor(l, "shift-9", "primary"),
-    outline: (l) => `1px solid ${themeColor(l, "shift-3", "primary")}`,
+    outline: "none",
+    boxShadow: (l) => edge(themeColor(l, "shift-3", "primary")),
     "&:hover": {
       backgroundColor: (l) => themeColor(l, "increase-1", "primary"),
     },
     "&:focus-visible": {
-      boxShadow: (l) => `0 0 0 2px ${themeColor(l, "shift-6", "primary")}`,
+      // One boxShadow value per state: the ring and the edge together.
+      boxShadow: (l) => `${focusRing(l, "primary")}, ${edge(themeColor(l, "shift-3", "primary"))}`,
     },
   },
 }
@@ -36728,14 +36730,23 @@ export { abbreviation };
 ### accordion
 
 ```ts
-import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
+import {
+  type Listener,
+  type PartialElement,
+  toState,
+  type ValueOrState,
+} from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
   themeDensity,
   themeSpacing,
 } from "@domphy/theme";
+import { edge } from "../utils/edge.js";
 import { focusRing } from "../utils/focusRing.js";
+
+const radius = (listener: Listener) =>
+  themeSpacing(themeDensity(listener) * 1.5);
 
 /**
  * Container patch that groups `<details>` elements into a bordered accordion.
@@ -36817,18 +36828,38 @@ function accordion(
     style: {
       display: "flex",
       flexDirection: "column",
-      borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
-      outline: (listener) =>
-        `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
-      outlineOffset: "-1px",
+      borderRadius: radius,
+      // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+      // Outside, so the summary bands flush with the container edge cannot paint over it.
+      outline: "none",
+      boxShadow: (listener) =>
+        edge(
+          themeColor(listener, "border-strong", color.get(listener)),
+          "1px",
+          "outside",
+        ),
       color: (listener) => themeColor(listener, "text", color.get(listener)),
-      overflow: "hidden",
+      // No `overflow: hidden`: it rounded the end bands by clipping them, and
+      // clipped the summary's focus ring with them (focusRing() draws 4px
+      // outside the band). <summary> is the only child that paints a fill, so
+      // the end bands round themselves instead.
       "& > details": {
         borderBottom: (listener) =>
           `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
       },
+      "& > details:first-child > summary": {
+        borderTopLeftRadius: radius,
+        borderTopRightRadius: radius,
+      },
+      // Open, the band is no longer the bottom edge — the body below it is.
+      "& > details:last-child:not([open]) > summary": {
+        borderBottomLeftRadius: radius,
+        borderBottomRightRadius: radius,
+      },
       "& > details:last-child": {
         borderBottom: "none",
+        borderBottomLeftRadius: radius,
+        borderBottomRightRadius: radius,
       },
       "& > details > summary:focus-visible": {
         boxShadow: (listener) => focusRing(listener, accentColor.get(listener)),
@@ -37241,6 +37272,7 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { BUTTON_SIZE_FONT, type ButtonSize } from "../utils/buttonSize.js";
+import { edge } from "../utils/edge.js";
 import { focusRing } from "../utils/focusRing.js";
 import { buttonGhost } from "./buttonGhost.js";
 
@@ -37322,12 +37354,12 @@ function button(
       cursor: "pointer",
       lineHeight: "inherit",
       border: "none",
-      outlineOffset: "-1px",
-      outlineWidth: "1px",
-      outline: isSolid
+      // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+      outline: "none",
+      boxShadow: isSolid
         ? "none"
         : (listener) =>
-            `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
+            edge(themeColor(listener, "border-strong", color.get(listener))),
       color: (listener) =>
         isSolid
           ? themeColor(listener, "shift-0", "neutral")
@@ -37356,15 +37388,18 @@ function button(
             : themeColor(listener, "increase-2", color.get(listener)),
       },
       "&:focus-visible": {
-        boxShadow: (listener) => focusRing(listener, color.get(listener)),
+        boxShadow: (listener) =>
+          isSolid
+            ? focusRing(listener, color.get(listener))
+            : `${focusRing(listener, color.get(listener))}, ${edge(themeColor(listener, "border-strong", color.get(listener)))}`,
       },
       "&[disabled]": {
         opacity: 0.7,
         cursor: "not-allowed",
         backgroundColor: (listener) =>
           themeColor(listener, "shift-2", "neutral"),
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "border-strong", "neutral")}`,
+        boxShadow: (listener) =>
+          edge(themeColor(listener, "border-strong", "neutral")),
         color: (listener) => themeColor(listener, "muted", "neutral"),
       },
       "&[aria-busy=true]": {
@@ -37506,6 +37541,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { edge } from "../utils/edge.js";
 import { focusRing } from "../utils/focusRing.js";
 
 /**
@@ -37554,13 +37590,14 @@ function buttonSwitch(
       alignItems: "center",
       fontSize: (listener) => themeSize(listener),
       border: "none",
-      outlineWidth: "1px",
+      outline: "none",
       // WCAG 2.1 SC 1.4.11 Non-text Contrast: the OFF track is tone-inherited
       // and sits at ~1.4:1 against the page, so the boundary has to carry the
       // 3:1. "border" (shift-3) measured 1.64:1 in Chromium; shift-7 measures
       // 3.32:1 (light) / 3.50:1 (dark).
-      outline: (listener) =>
-        `1px solid ${themeColor(listener, "shift-7", color.get(listener))}`,
+      // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+      boxShadow: (listener) =>
+        edge(themeColor(listener, "shift-7", color.get(listener))),
       minWidth: themeSpacing(12),
       minHeight: themeSpacing(6),
       // A switch is a fixed-size track, never a full-width bar. Measured in
@@ -37578,8 +37615,10 @@ function buttonSwitch(
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
       color: (listener) => themeColor(listener, "text", color.get(listener)),
+      // A later boxShadow replaces an earlier one whole: the ring keeps the edge.
       "&:focus-visible": {
-        boxShadow: (listener) => focusRing(listener, accentColor.get(listener)),
+        boxShadow: (listener) =>
+          `${focusRing(listener, accentColor.get(listener))}, ${edge(themeColor(listener, "shift-7", color.get(listener)))}`,
       },
       "& > :first-child": {
         content: '""',
@@ -37599,14 +37638,13 @@ function buttonSwitch(
         // The thumb is tone-inherited too — same 1.4:1 problem as the track.
         // Its own boundary makes the ON/OFF position identifiable on either
         // track colour (SC 1.4.11), the way Radix rings its switch thumb.
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "shift-7", color.get(listener))}`,
-        outlineOffset: "-1px",
+        boxShadow: (listener) =>
+          edge(themeColor(listener, "shift-7", color.get(listener))),
       },
       "&[aria-checked=true]": {
         backgroundColor: (listener) =>
           themeColor(listener, "increase-3", accentColor.get(listener)),
-        outline: "none",
+        boxShadow: "none",
         // Host label tracks the ON fill (+3 off this element's own shift-2
         // anchor). `decrease-2` pinned it to the light end of the ramp and
         // measured 2.48:1 (light) / 1.87:1 (dark) on that fill.
@@ -37614,6 +37652,10 @@ function buttonSwitch(
           themeColor(listener, textToneOn(3), accentColor.get(listener)),
         paddingInlineStart: themeSpacing(2),
         paddingInlineEnd: themeSpacing(7),
+      },
+      // ON has no edge, so its focus ring stands alone (beats the rules above by specificity).
+      "&[aria-checked=true]:focus-visible": {
+        boxShadow: (listener) => focusRing(listener, accentColor.get(listener)),
       },
       "&[aria-checked=true] > :first-child": {
         insetInlineStart: `calc(100% - ${themeSpacing(5.5)})`,
@@ -37640,6 +37682,7 @@ import {
   themeSpacing,
   themeWeight,
 } from "@domphy/theme";
+import { edge } from "../utils/edge.js";
 import { elevation } from "../utils/elevation.js";
 
 /**
@@ -37666,11 +37709,12 @@ function card(
         themeColor(listener, "inherit", color.get(listener)),
       color: (listener) =>
         themeColor(listener, "shift-10", color.get(listener)),
-      outline: (listener) =>
-        `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
-      outlineOffset: "-1px",
+      // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+      // Outside, so the `& > img` flush with the edge cannot paint over it.
+      outline: "none",
       // Soft lift so cards separate from the page without looking like dialogs.
-      boxShadow: elevation("low"),
+      boxShadow: (listener) =>
+        `${edge(themeColor(listener, "border-strong", color.get(listener)), "1px", "outside")}, ${elevation("low")}`,
       overflow: "hidden",
       "& > img": {
         gridArea: "image",
@@ -37771,8 +37815,13 @@ function code(
       color: (listener) => themeColor(listener, "text", color.get(listener)),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
+      // A chip inside running text keeps its own compact line box: an inherited
+      // line-height (1.8, say) would otherwise overflow the fixed height.
+      lineHeight: "normal",
       // Bare themeSpacing(U) at snapshot time; n = U / 1.5 (light.densities[2]).
-      height: (listener) => themeSpacing(themeDensity(listener) * (6 / 1.5)),
+      // minHeight, not height: at a small density the chip must still grow to
+      // its own line box rather than clip the text.
+      minHeight: (listener) => themeSpacing(themeDensity(listener) * (6 / 1.5)),
       paddingInline: (listener) =>
         themeSpacing(themeDensity(listener) * (1.5 / 1.5)),
       borderRadius: (listener) =>
@@ -37807,6 +37856,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { edge } from "../utils/edge.js";
 import { elevation } from "../utils/elevation.js";
 import { fieldTextStyle } from "../utils/fieldText.js";
 import { createFloating, floatingPanelId } from "../utils/floating.js";
@@ -37877,10 +37927,11 @@ function combobox(props: {
       // (same as menu/selectList/dialog), not the inverted tooltip surface.
       color: (listener) => themeColor(listener, "text"),
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
-      outline: (listener) =>
-        `1px solid ${themeColor(listener, "border-strong")}`,
-      outlineOffset: "-1px",
-      boxShadow: elevation("medium"),
+      // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+      // Outside, so options flush with the panel edge cannot paint over it.
+      outline: "none",
+      boxShadow: (listener) =>
+        `${edge(themeColor(listener, "border-strong"), "1px", "outside")}, ${elevation("medium")}`,
     },
   };
 
@@ -37892,7 +37943,14 @@ function combobox(props: {
     padding: 0,
     margin: 0,
     flex: 1,
-    height: themeSpacing(6),
+    // No height floor: the field is its line box, and the host div's own
+    // paddingBlock makes up the rest — the inputText shape, so a combobox and a
+    // selectBox in one form row are the same height at any line-height.
+    // An input's automatic minimum size is its ~20-character UA intrinsic
+    // width, which pushed the (empty) field onto a second flex line as soon as
+    // two chips were selected. 8U is still a typable field.
+    minWidth: themeSpacing(8),
+    lineHeight: "inherit",
     marginInlineStart: themeSpacing(2),
     fontSize: (listener: any) => themeSize(listener, "inherit"),
     // Without an explicit rule the placeholder falls back to the UA default
@@ -38056,7 +38114,12 @@ function combobox(props: {
     style: {
       display: "flex",
       flexWrap: "wrap",
+      alignItems: "center",
       gap: themeSpacing(1),
+      // The host is a flex container (see below), so the wrap has to claim the
+      // row; without this the field collapsed to the width of its chips.
+      flex: 1,
+      minWidth: 0,
     },
   });
 
@@ -38102,20 +38165,25 @@ function combobox(props: {
       input: props.input,
     }),
     style: {
+      // Flex + centre, like selectBox: a block host left the chips sitting on
+      // the first line of a taller field instead of on its centre line.
+      display: "flex",
+      alignItems: "center",
       minWidth: themeSpacing(32),
-      outlineOffset: "-1px",
-      outline: (listener) =>
-        `1px solid ${themeColor(listener, "border-strong", "neutral")}`,
+      // The field's edge is a box-shadow too (inside, like the old outline offset -1px).
+      outline: "none",
+      boxShadow: (listener) =>
+        edge(themeColor(listener, "border-strong", "neutral")),
       paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 1),
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
       fontSize: (listener) => themeSize(listener, "inherit"),
       color: (listener) => themeColor(listener, "text", color),
       backgroundColor: (listener) => themeColor(listener, "inherit", color),
-      transition:
-        "background-color 140ms ease, outline-color 140ms ease, box-shadow 140ms ease",
+      transition: "background-color 140ms ease, box-shadow 140ms ease",
       "&:focus-within": {
-        boxShadow: (listener) => focusRing(listener, color),
+        boxShadow: (listener) =>
+          `${focusRing(listener, color)}, ${edge(themeColor(listener, "border-strong", "neutral"))}`,
       },
     },
   };
@@ -38325,7 +38393,9 @@ function commandItem(
       alignItems: "center",
       width: "100%",
       fontSize: (listener) => themeSize(listener, "inherit"),
-      height: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
+      // minHeight, not height: an inherited line-height taller than the row
+      // must grow it rather than overflow the content box (see menu.ts).
+      minHeight: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
       border: "none",
       outline: "none",
@@ -38358,6 +38428,7 @@ import {
   type Listener,
   merge,
   type PartialElement,
+  rawHtml,
   type State,
   toState,
   type ValueOrState,
@@ -38372,6 +38443,8 @@ import {
   themeSpacing,
   themeWeight,
 } from "@domphy/theme";
+import { chevron } from "../utils/chevron.js";
+import { edge } from "../utils/edge.js";
 import { elevation } from "../utils/elevation.js";
 import { createFloating, floatingPanelId } from "../utils/floating.js";
 import { focusRing } from "../utils/focusRing.js";
@@ -38785,7 +38858,7 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
   function buildCalendar(): DomphyElement<"div"> {
     const navButton = (label: string, ariaLabel: string, onClick: () => void) =>
       ({
-        button: label,
+        button: rawHtml(label),
         type: "button",
         ariaLabel,
         onClick,
@@ -38794,8 +38867,8 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
 
     const header: DomphyElement<"div"> = {
       div: [
-        navButton("«", "Previous year", () => shiftYear(-1)),
-        navButton("‹", "Previous month", () => shiftMonth(-1)),
+        navButton(chevron("left", true), "Previous year", () => shiftYear(-1)),
+        navButton(chevron("left"), "Previous month", () => shiftMonth(-1)),
         {
           div: (listener) =>
             monthFormatter.format(
@@ -38809,8 +38882,8 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
             fontSize: (listener) => themeSize(listener),
           },
         },
-        navButton("›", "Next month", () => shiftMonth(1)),
-        navButton("»", "Next year", () => shiftYear(1)),
+        navButton(chevron("right"), "Next month", () => shiftMonth(1)),
+        navButton(chevron("right", true), "Next year", () => shiftYear(1)),
       ],
       style: {
         display: "flex",
@@ -38871,10 +38944,11 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
         borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
         backgroundColor: (listener) => themeColor(listener, "inherit"),
         color: (listener) => themeColor(listener, "text"),
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "border-strong")}`,
-        outlineOffset: "-1px",
-        boxShadow: elevation("medium"),
+        // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+        // Outside, so a child flush with the popup edge cannot paint over it.
+        outline: "none",
+        boxShadow: (listener) =>
+          `${edge(themeColor(listener, "border-strong"), "1px", "outside")}, ${elevation("medium")}`,
       },
     };
   }
@@ -38950,11 +39024,12 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
             : within
               ? themeColor(l, textToneOn(2))
               : themeColor(l, "text"),
-        outline: isToday
-          ? (l: Listener) =>
-              `1px solid ${themeColor(l, "shift-6", accentColor.get(l))}`
+        // Today ring: was an outline at -2px (a 1px line, 1px in from the
+        // edge); drawn as the inside edge, 1px closer to the rim.
+        outline: "none",
+        boxShadow: isToday
+          ? (l: Listener) => edge(themeColor(l, "shift-6", accentColor.get(l)))
           : "none",
-        outlineOffset: "-2px",
         "&:hover:not([disabled])": {
           backgroundColor: (l: Listener) =>
             selected
@@ -38968,7 +39043,10 @@ function datePicker(props: DatePickerProps = {}): PartialElement {
         },
         transition: "background-color 140ms ease, box-shadow 140ms ease",
         "&:focus-visible": {
-          boxShadow: (l: Listener) => focusRing(l, accentColor.get(l)),
+          boxShadow: (l: Listener) =>
+            isToday
+              ? `${focusRing(l, accentColor.get(l))}, ${edge(themeColor(l, "shift-6", accentColor.get(l)))}`
+              : focusRing(l, accentColor.get(l)),
         },
       },
       _key: isoOf(date),
@@ -39131,10 +39209,11 @@ function timeSelectStyle() {
     fontSize: (l: Listener) => themeSize(l),
     padding: themeSpacing(1),
     borderRadius: themeSpacing(1),
-    // outline, not border — bounded control, keep the geometry formula exact.
+    // Edge, not border — bounded control, keep the geometry formula exact.
+    // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
     border: "none",
-    outlineOffset: "-1px",
-    outline: (l: Listener) => `1px solid ${themeColor(l, "border-strong")}`,
+    outline: "none",
+    boxShadow: (l: Listener) => edge(themeColor(l, "border-strong")),
     backgroundColor: (l: Listener) => themeColor(l, "inherit"),
     color: (l: Listener) => themeColor(l, "text"),
   };
@@ -39248,7 +39327,9 @@ function details(
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
 
-      overflow: "hidden",
+      // No `overflow: hidden` here: the collapsing body clips itself (below) and
+      // the root has no radius to clip to, so all it did was cut the summary's
+      // focus ring, which focusRing() draws 4px outside the band.
       "& > summary": {
         backgroundColor: (listener) =>
           themeColor(listener, "shift-2", color.get(listener)),
@@ -39267,7 +39348,9 @@ function details(
         userSelect: "none",
         fontWeight: themeWeight("medium"),
         paddingInline: (listener) => themeSpacing(themeDensity(listener) * 4),
-        height: themeSpacing(10),
+        // minHeight, not height: an inherited line-height taller than 10U has
+        // to grow the band, not spill its own label out of it.
+        minHeight: themeSpacing(10),
       },
       "& > summary::-webkit-details-marker": {
         display: "none",
@@ -40704,6 +40787,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { edge } from "../utils/edge.js";
 import { focusRing } from "../utils/focusRing.js";
 
 /**
@@ -40742,7 +40826,7 @@ function inputCheckbox(
       height: themeSpacing(6),
       justifyContent: "center",
       alignItems: "center",
-      transition: "background-color 300ms, outline-color 300ms",
+      transition: "background-color 300ms, box-shadow 300ms",
       margin: 0,
       padding: 0,
       "&::before": {
@@ -40752,9 +40836,9 @@ function inputCheckbox(
         lineHeight: 1,
         cursor: "pointer",
         border: "none",
-        outlineOffset: "-1px",
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
+        // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+        boxShadow: (listener) =>
+          edge(themeColor(listener, "border-strong", color.get(listener))),
         color: (listener) => themeColor(listener, "text", color.get(listener)),
         width: themeSpacing(4),
         height: themeSpacing(4),
@@ -40764,8 +40848,8 @@ function inputCheckbox(
           themeColor(listener, "hover", color.get(listener)),
       },
       "&:checked::before": {
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
+        boxShadow: (listener) =>
+          edge(themeColor(listener, "shift-6", accentColor.get(listener))),
         backgroundColor: (listener) =>
           themeColor(listener, "shift-8", accentColor.get(listener)),
       },
@@ -40788,8 +40872,8 @@ function inputCheckbox(
         transform: "rotate(45deg)",
       },
       "&:indeterminate::before": {
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
+        boxShadow: (listener) =>
+          edge(themeColor(listener, "shift-6", accentColor.get(listener))),
         backgroundColor: (listener) =>
           themeColor(listener, "shift-3", accentColor.get(listener)),
       },
@@ -40819,8 +40903,8 @@ function inputCheckbox(
       // unchecked box, and indistinguishable from the disabled checked one.
       "&[disabled]::before": {
         pointerEvents: "none",
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "border-strong", "neutral")}`,
+        boxShadow: (listener) =>
+          edge(themeColor(listener, "border-strong", "neutral")),
         backgroundColor: (listener) =>
           themeColor(listener, "inherit", "neutral"),
       },
@@ -40863,6 +40947,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { edge } from "../utils/edge.js";
 import { focusRing } from "../utils/focusRing.js";
 
 /**
@@ -40914,13 +40999,14 @@ function inputColor(
       "&::-webkit-color-swatch": {
         borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
       },
+      // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
       "&[disabled]": {
         opacity: 0.7,
         cursor: "not-allowed",
         backgroundColor: (listener) =>
           themeColor(listener, "shift-2", "neutral"),
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "border-strong", "neutral")}`,
+        boxShadow: (listener) =>
+          edge(themeColor(listener, "border-strong", "neutral")),
       },
     },
   };
@@ -40932,7 +41018,12 @@ export { inputColor };
 ### inputDateTime
 
 ```ts
-import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
+import {
+  type Listener,
+  type PartialElement,
+  toState,
+  type ValueOrState,
+} from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
@@ -40940,6 +41031,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { edge } from "../utils/edge.js";
 import { focusRing } from "../utils/focusRing.js";
 
 type InputDateTimeMode = "date" | "time" | "week" | "month" | "datetime-local";
@@ -40965,6 +41057,18 @@ function inputDateTime(
   const { mode = "datetime-local" } = props;
   const color = toState(props.color ?? "neutral", "color");
   const accentColor = toState(props.accentColor ?? "primary", "accentColor");
+  // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+  // A later rule's box-shadow replaces an earlier one whole, so every edge rule
+  // that can meet a focused field has a `:focus-visible` twin (one more class of
+  // specificity, same relative order) carrying `focusRing, edge`.
+  const baseEdge = (l: Listener) =>
+    edge(themeColor(l, "border-strong", color.get(l)));
+  const hoverEdge = (l: Listener) =>
+    edge(themeColor(l, "shift-5", accentColor.get(l)));
+  const errorEdge = (l: Listener) =>
+    edge(themeColor(l, "shift-6", "error"), themeSpacing(0.5));
+  const focused = (l: Listener, edgeValue: string) =>
+    `${focusRing(l, accentColor.get(l))}, ${edgeValue}`;
 
   return {
     // Declared like any other attribute — the native element still wins over
@@ -40982,23 +41086,29 @@ function inputDateTime(
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
       border: "none",
-      outlineOffset: "-1px",
-      outline: (listener) =>
-        `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
+      outline: "none",
+      boxShadow: baseEdge,
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
-      height: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
-      transition: "outline-color 140ms ease, box-shadow 140ms ease",
+      // Line box + paddingBlock, no height floor — the one shape every form
+      // control in the row shares (inputText).
+      paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
+      transition: "box-shadow 140ms ease",
+      // Chrome's UA sheet pads the inner date editor by 1px top and bottom, so
+      // the field stood 2px taller than every other control in a form row.
+      "&::-webkit-datetime-edit": { paddingBlock: 0 },
       "&::-webkit-calendar-picker-indicator": {
         cursor: "pointer",
         opacity: 0.85,
       },
       "&:hover:not([disabled]):not([aria-busy=true])": {
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "shift-5", accentColor.get(listener))}`,
+        boxShadow: hoverEdge,
       },
       "&:focus-visible": {
-        boxShadow: (listener) => focusRing(listener, accentColor.get(listener)),
+        boxShadow: (l) => focused(l, baseEdge(l)),
+      },
+      "&:hover:not([disabled]):not([aria-busy=true]):focus-visible": {
+        boxShadow: (l) => focused(l, hoverEdge(l)),
       },
       "&[disabled]": {
         opacity: 0.7,
@@ -41006,12 +41116,14 @@ function inputDateTime(
         color: (listener) => themeColor(listener, "muted", "neutral"),
         backgroundColor: (listener) =>
           themeColor(listener, "shift-2", "neutral"),
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "border-strong", "neutral")}`,
+        boxShadow: (listener) =>
+          edge(themeColor(listener, "border-strong", "neutral")),
       },
       "&:invalid": {
-        outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", "error")}`,
+        boxShadow: errorEdge,
+      },
+      "&:invalid:focus-visible": {
+        boxShadow: (l) => focused(l, errorEdge(l)),
       },
     },
   };
@@ -41023,7 +41135,12 @@ export { inputDateTime };
 ### inputFile
 
 ```ts
-import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
+import {
+  type Listener,
+  type PartialElement,
+  toState,
+  type ValueOrState,
+} from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
@@ -41031,6 +41148,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { edge } from "../utils/edge.js";
 import { focusRing } from "../utils/focusRing.js";
 
 /**
@@ -41051,6 +41169,16 @@ function inputFile(
 ): PartialElement {
   const color = toState(props.color ?? "neutral", "color");
   const accentColor = toState(props.accentColor ?? "primary", "accentColor");
+  // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+  // A later rule's box-shadow replaces an earlier one whole, so every edge rule
+  // that can meet a focused field has a `:focus-visible` twin (one more class of
+  // specificity, same relative order) carrying `focusRing, edge`.
+  const baseEdge = (l: Listener) =>
+    edge(themeColor(l, "border-strong", color.get(l)));
+  const hoverEdge = (l: Listener) =>
+    edge(themeColor(l, "shift-5", accentColor.get(l)));
+  const focused = (l: Listener, edgeValue: string) =>
+    `${focusRing(l, accentColor.get(l))}, ${edgeValue}`;
 
   return {
     // Declared like any other attribute — the native element still wins over
@@ -41070,19 +41198,20 @@ function inputFile(
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
       border: "none",
-      outlineOffset: "-1px",
-      outline: (listener) =>
-        `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
+      outline: "none",
+      boxShadow: baseEdge,
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
-      height: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
+      // Line box + paddingBlock, no height floor — the one shape every form
+      // control in the row shares (inputText).
+      paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 1),
-      transition: "outline-color 140ms ease, box-shadow 140ms ease",
+      transition: "box-shadow 140ms ease",
       "&::-webkit-file-upload-button": {
         marginTop: (listener) => themeSpacing(themeDensity(listener)),
         fontSize: "inherit",
         border: "none",
         borderRadius: themeSpacing(1),
-        height: themeSpacing(6),
+        minHeight: themeSpacing(6),
         paddingInline: themeSpacing(2),
         cursor: "pointer",
         color: (listener) =>
@@ -41091,18 +41220,20 @@ function inputFile(
           themeColor(listener, "surface", color.get(listener)),
       },
       "&:hover:not([disabled]):not([aria-busy=true])": {
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "shift-5", accentColor.get(listener))}`,
+        boxShadow: hoverEdge,
       },
       "&:focus-visible": {
-        boxShadow: (listener) => focusRing(listener, accentColor.get(listener)),
+        boxShadow: (l) => focused(l, baseEdge(l)),
+      },
+      "&:hover:not([disabled]):not([aria-busy=true]):focus-visible": {
+        boxShadow: (l) => focused(l, hoverEdge(l)),
       },
       "&[disabled]": {
         opacity: 0.8,
         cursor: "not-allowed",
         color: (listener) => themeColor(listener, "muted", "neutral"),
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "border-strong", "neutral")}`,
+        boxShadow: (listener) =>
+          edge(themeColor(listener, "border-strong", "neutral")),
         backgroundColor: (listener) =>
           themeColor(listener, "surface", "neutral"),
       },
@@ -41122,7 +41253,12 @@ export { inputFile };
 ### inputNumber
 
 ```ts
-import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
+import {
+  type Listener,
+  type PartialElement,
+  toState,
+  type ValueOrState,
+} from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
@@ -41130,6 +41266,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { edge } from "../utils/edge.js";
 import { fieldTextStyle } from "../utils/fieldText.js";
 import { focusRing } from "../utils/focusRing.js";
 
@@ -41151,6 +41288,16 @@ function inputNumber(
 ): PartialElement {
   const color = toState(props.color ?? "neutral", "color");
   const accentColor = toState(props.accentColor ?? "primary", "accentColor");
+  // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+  // A later rule's box-shadow replaces an earlier one whole, so every edge rule
+  // that can meet a focused field has a `:focus-visible` twin (one more class of
+  // specificity, same relative order) carrying `focusRing, edge`.
+  const baseEdge = (l: Listener) =>
+    edge(themeColor(l, "border-strong", color.get(l)));
+  const hoverEdge = (l: Listener) =>
+    edge(themeColor(l, "shift-5", accentColor.get(l)));
+  const focused = (l: Listener, edgeValue: string) =>
+    `${focusRing(l, accentColor.get(l))}, ${edgeValue}`;
 
   return {
     // Declared like any other attribute — the native element still wins over
@@ -41172,30 +41319,31 @@ function inputNumber(
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
       fontSize: (listener) => themeSize(listener, "inherit"),
       border: "none",
-      outlineOffset: "-1px",
-      outline: (listener) =>
-        `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
+      outline: "none",
+      boxShadow: baseEdge,
       ...fieldTextStyle(color),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
-      transition: "outline-color 140ms ease, box-shadow 140ms ease",
+      transition: "box-shadow 140ms ease",
       "&::-webkit-inner-spin-button, &::-webkit-outer-spin-button": {
         opacity: 1,
       },
       "&:hover:not([disabled]):not([aria-busy=true])": {
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "shift-5", accentColor.get(listener))}`,
+        boxShadow: hoverEdge,
       },
       "&:focus-visible": {
-        boxShadow: (listener) => focusRing(listener, accentColor.get(listener)),
+        boxShadow: (l) => focused(l, baseEdge(l)),
+      },
+      "&:hover:not([disabled]):not([aria-busy=true]):focus-visible": {
+        boxShadow: (l) => focused(l, hoverEdge(l)),
       },
       "&[disabled]": {
         opacity: 0.7,
         cursor: "not-allowed",
         backgroundColor: (listener) =>
           themeColor(listener, "shift-2", "neutral"),
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "border-strong", "neutral")}`,
+        boxShadow: (listener) =>
+          edge(themeColor(listener, "border-strong", "neutral")),
         color: (listener) => themeColor(listener, "muted", "neutral"),
       },
     },
@@ -41329,6 +41477,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { edge } from "../utils/edge.js";
 import { VALUE_TONE } from "../utils/fieldText.js";
 import { focusRing } from "../utils/focusRing.js";
 
@@ -41360,6 +41509,10 @@ const HOST_FIELD_KEYS = [
   "onInput",
   "disabled",
   "required",
+  "autofocus",
+  "minlength",
+  "maxlength",
+  "placeholder",
 ] as const;
 
 type HostFieldKey = (typeof HOST_FIELD_KEYS)[number];
@@ -41370,6 +41523,10 @@ type HostFields = {
   onInput?: (event: Event) => void;
   disabled?: unknown;
   required?: boolean;
+  autofocus?: boolean;
+  minlength?: number;
+  maxlength?: number;
+  placeholder?: string;
 };
 
 function bindReadable<T>(
@@ -41387,8 +41544,9 @@ function bindReadable<T>(
  * Password input wrapper: a styled `<div>` that inserts an `<input type="password">`
  * and a show/hide toggle button. The outer div carries the focus-ring outline via
  * `:focus-within`. Apply to an empty `<div>`. Host `value`/`name`/`onInput`/
- * `disabled`/`required` are forwarded onto the real input so the field
- * participates in FormData.
+ * `disabled`/`required`/`autofocus`/`minlength`/`maxlength`/`placeholder` are
+ * forwarded onto the real input so the field participates in FormData and
+ * constraint validation.
  *
  * @hostTag div
  * @param props.color - Base color tone for border/background/text. Defaults to `"neutral"`.
@@ -41418,6 +41576,8 @@ function inputPassword(
   const colorState = toState(props.color ?? "neutral", "color");
   const accentState = toState(props.accentColor ?? "primary", "accentColor");
   const visibleState = toState(false);
+  const baseEdge = (l: Listener) =>
+    edge(themeColor(l, "border-strong", colorState.get(l)));
   const hostFields: HostFields = {};
 
   return {
@@ -41462,6 +41622,18 @@ function inputPassword(
         ...(onInput != null ? { onInput } : {}),
         ...(disabled != null ? { disabled } : {}),
         ...(required != null ? { required } : {}),
+        ...(hostFields.autofocus != null
+          ? { autofocus: hostFields.autofocus }
+          : {}),
+        ...(hostFields.minlength != null
+          ? { minlength: hostFields.minlength }
+          : {}),
+        ...(hostFields.maxlength != null
+          ? { maxlength: hostFields.maxlength }
+          : {}),
+        ...(hostFields.placeholder != null
+          ? { placeholder: hostFields.placeholder }
+          : {}),
         style: {
           flex: 1,
           minWidth: 0,
@@ -41518,22 +41690,22 @@ function inputPassword(
       paddingInline: (l) => themeSpacing(themeDensity(l) * 3),
       borderRadius: (l) => themeSpacing(themeDensity(l) * 1.5),
       border: "none",
-      outlineOffset: "-1px",
-      outline: (l) =>
-        `1px solid ${themeColor(l, "border-strong", colorState.get(l))}`,
+      // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+      outline: "none",
+      boxShadow: baseEdge,
       // Same tone as every other field's typed value; the inner <input>
       // inherits it. No `::placeholder` rule: this patch builds its own input
       // and never gives it a placeholder attribute, so there is nothing to paint.
       color: (l) => themeColor(l, VALUE_TONE, colorState.get(l)),
       backgroundColor: (l) => themeColor(l, "inherit", colorState.get(l)),
       fontSize: (l) => themeSize(l, "inherit"),
-      transition: "outline-color 140ms ease, box-shadow 140ms ease",
+      transition: "box-shadow 140ms ease",
+      // Hover excludes `:focus-within`, so the two rules never meet.
       "&:hover:not(:has([disabled])):not(:focus-within)": {
-        outline: (l) =>
-          `1px solid ${themeColor(l, "shift-5", accentState.get(l))}`,
+        boxShadow: (l) => edge(themeColor(l, "shift-5", accentState.get(l))),
       },
       "&:focus-within": {
-        boxShadow: (l) => focusRing(l, accentState.get(l)),
+        boxShadow: (l) => `${focusRing(l, accentState.get(l))}, ${baseEdge(l)}`,
       },
     } as StyleObject,
   };
@@ -41552,6 +41724,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { edge } from "../utils/edge.js";
 import { focusRing } from "../utils/focusRing.js";
 
 /**
@@ -41593,7 +41766,7 @@ function inputRadio(
       height: themeSpacing(6),
       justifyContent: "center",
       alignItems: "center",
-      transition: "background-color 300ms, outline-color 300ms",
+      transition: "background-color 300ms, box-shadow 300ms",
       margin: 0,
       padding: 0,
       "&::before": {
@@ -41603,9 +41776,9 @@ function inputRadio(
         lineHeight: 1,
         cursor: "pointer",
         border: "none",
-        outlineOffset: "-1px",
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
+        // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+        boxShadow: (listener) =>
+          edge(themeColor(listener, "border-strong", color.get(listener))),
         color: (listener) => themeColor(listener, "text", color.get(listener)),
         width: themeSpacing(4),
         height: themeSpacing(4),
@@ -41615,8 +41788,8 @@ function inputRadio(
           themeColor(listener, "hover", color.get(listener)),
       },
       "&:checked::before": {
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "shift-6", accentColor.get(listener))}`,
+        boxShadow: (listener) =>
+          edge(themeColor(listener, "shift-6", accentColor.get(listener))),
       },
       "&:checked::after": {
         content: `""`,
@@ -41643,8 +41816,8 @@ function inputRadio(
       // solid dot-less disc that read as selected (observed in Chromium).
       "&[disabled]::before": {
         pointerEvents: "none",
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "border-strong", "neutral")}`,
+        boxShadow: (listener) =>
+          edge(themeColor(listener, "border-strong", "neutral")),
         backgroundColor: (listener) =>
           themeColor(listener, "inherit", "neutral"),
       },
@@ -41771,7 +41944,12 @@ export { inputRange };
 ### inputSearch
 
 ```ts
-import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
+import {
+  type Listener,
+  type PartialElement,
+  toState,
+  type ValueOrState,
+} from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
@@ -41779,6 +41957,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { edge } from "../utils/edge.js";
 import { fieldTextStyle } from "../utils/fieldText.js";
 import { focusRing } from "../utils/focusRing.js";
 
@@ -41800,6 +41979,16 @@ function inputSearch(
 ): PartialElement {
   const color = toState(props.color ?? "neutral", "color");
   const accentColor = toState(props.accentColor ?? "primary", "accentColor");
+  // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+  // A later rule's box-shadow replaces an earlier one whole, so every edge rule
+  // that can meet a focused field has a `:focus-visible` twin (one more class of
+  // specificity, same relative order) carrying `focusRing, edge`.
+  const baseEdge = (l: Listener) =>
+    edge(themeColor(l, "border-strong", color.get(l)));
+  const hoverEdge = (l: Listener) =>
+    edge(themeColor(l, "shift-5", accentColor.get(l)));
+  const focused = (l: Listener, edgeValue: string) =>
+    `${focusRing(l, accentColor.get(l))}, ${edgeValue}`;
 
   return {
     // Declared like any other attribute — the native element still wins over
@@ -41817,14 +42006,13 @@ function inputSearch(
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
       border: "none",
-      outlineOffset: "-1px",
-      outline: (listener) =>
-        `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
+      outline: "none",
+      boxShadow: baseEdge,
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
       minWidth: themeSpacing(32),
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
       paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
-      transition: "outline-color 140ms ease, box-shadow 140ms ease",
+      transition: "box-shadow 140ms ease",
       "&::-webkit-search-decoration": {
         display: "none",
       },
@@ -41832,11 +42020,13 @@ function inputSearch(
         cursor: "pointer",
       },
       "&:hover:not([disabled]):not([aria-busy=true])": {
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "shift-5", accentColor.get(listener))}`,
+        boxShadow: hoverEdge,
       },
       "&:focus-visible": {
-        boxShadow: (listener) => focusRing(listener, accentColor.get(listener)),
+        boxShadow: (l) => focused(l, baseEdge(l)),
+      },
+      "&:hover:not([disabled]):not([aria-busy=true]):focus-visible": {
+        boxShadow: (l) => focused(l, hoverEdge(l)),
       },
       "&[disabled]": {
         opacity: 0.7,
@@ -41844,8 +42034,8 @@ function inputSearch(
         color: (listener) => themeColor(listener, "muted", "neutral"),
         backgroundColor: (listener) =>
           themeColor(listener, "shift-2", "neutral"),
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "border-strong", "neutral")}`,
+        boxShadow: (listener) =>
+          edge(themeColor(listener, "border-strong", "neutral")),
       },
     },
   };
@@ -41864,6 +42054,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { edge } from "../utils/edge.js";
 import { focusRing } from "../utils/focusRing.js";
 
 /**
@@ -41875,6 +42066,19 @@ import { focusRing } from "../utils/focusRing.js";
  * @param props.accentColor - Optional theme color tone for the checked track (`ValueOrState<ThemeColor>`). Defaults to `"primary"`.
  * @example { input: null, type: "checkbox", $: [inputSwitch()] }
  */
+/** Track, knob and end inset, in spacing units. INHERITED: buttonSwitch's 12x6 track and 5U thumb. */
+const TRACK = 12;
+const KNOB = 5;
+const INSET = 0.5;
+/**
+ * DERIVED from the three above: the knob travels TRACK - KNOB - 2*INSET, and a
+ * PERCENTAGE of the track is the only way to say that without an em length —
+ * an em offset recomputes when the host font-size changes, which re-ran this
+ * transition and swung the knob past the track's end for 300 ms. Resolving the
+ * travel here is what keeps it true if the track or knob size ever changes.
+ */
+const TRAVEL = `${((TRACK - KNOB - 2 * INSET) / TRACK) * 100}%`;
+
 function inputSwitch(
   props: { accentColor?: ValueOrState<ThemeColor> } = {},
 ): PartialElement {
@@ -41892,17 +42096,24 @@ function inputSwitch(
     },
     style: {
       fontSize: (listener) => themeSize(listener, "inherit"),
-      // Surface contract: dataTone is set; paint track via inherit + text color.
-      backgroundColor: (listener) => themeColor(listener, "inherit"),
+      // The track is `::before` alone, filling the whole host box; painting
+      // the host too would draw a second pill behind it.
+      backgroundColor: "transparent",
       color: (listener) => themeColor(listener, "text"),
       appearance: "none",
       position: "relative",
       display: "inline-flex",
-      width: themeSpacing(9),
+      // An empty inline-flex box's baseline is synthesized from its first flex
+      // item, and the track (::before) fills the host, so the baseline landed on
+      // the box's bottom edge — 1U lower than inputCheckbox / inputRadio, whose
+      // 4U indicator is centred in a 6U box ((6-4)/2 = 1U above the bottom).
+      // Dropping the box by that 1U makes the three controls sit alike beside
+      // text in an ordinary (non-flex) label.
+      verticalAlign: `calc(${themeSpacing(1)} * -1)`,
+      width: themeSpacing(TRACK),
       height: themeSpacing(6),
       cursor: "pointer",
       margin: `0`,
-      paddingBlock: themeSpacing(1),
       transition: "box-shadow 140ms ease",
       borderRadius: themeSpacing(999),
       "&:focus-visible": {
@@ -41914,26 +42125,27 @@ function inputSwitch(
             themeColor(listener, "increase-3", accentColor.get(listener)),
         },
         "&::after": {
-          insetInlineStart: `calc(100% - ${themeSpacing(3.5)})`,
+          marginInlineStart: TRAVEL,
         },
       },
       "&::after": {
         content: `""`,
         aspectRatio: `1/1`,
         position: "absolute",
-        width: themeSpacing(3),
-        height: themeSpacing(3),
+        width: themeSpacing(KNOB),
+        height: themeSpacing(KNOB),
         borderRadius: themeSpacing(999),
-        insetInlineStart: themeSpacing(0.5),
+        insetInlineStart: themeSpacing(INSET),
+        marginInlineStart: 0,
         top: "50%",
         transform: "translateY(-50%)",
-        transition: "inset-inline-start 0.3s",
+        transition: "margin-inline-start 0.3s",
         backgroundColor: (listener) => themeColor(listener, "decrease-3"),
         // The knob is near-white on a near-white OFF track, so its own
         // boundary is what makes the ON/OFF position identifiable
         // (WCAG 2.1 SC 1.4.11) — same treatment as buttonSwitch's thumb.
-        outline: (listener) => `1px solid ${themeColor(listener, "shift-7")}`,
-        outlineOffset: "-1px",
+        // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+        boxShadow: (listener) => edge(themeColor(listener, "shift-7")),
       },
       "&::before": {
         content: '""',
@@ -41950,8 +42162,7 @@ function inputSwitch(
         // ON state — every peer (Radix, shadcn, MUI) keeps the off-track at
         // the muted surface and only the on-track takes the accent.
         backgroundColor: (listener) => themeColor(listener, "inherit"),
-        outline: (listener) => `1px solid ${themeColor(listener, "shift-7")}`,
-        outlineOffset: "-1px",
+        boxShadow: (listener) => edge(themeColor(listener, "shift-7")),
       },
       "&[disabled]": {
         opacity: 0.7,
@@ -41967,7 +42178,12 @@ export { inputSwitch };
 ### inputText
 
 ```ts
-import { type PartialElement, toState, type ValueOrState } from "@domphy/core";
+import {
+  type Listener,
+  type PartialElement,
+  toState,
+  type ValueOrState,
+} from "@domphy/core";
 import {
   type ThemeColor,
   themeColor,
@@ -41975,6 +42191,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { edge } from "../utils/edge.js";
 import { fieldTextStyle } from "../utils/fieldText.js";
 import { focusRing } from "../utils/focusRing.js";
 
@@ -42000,6 +42217,20 @@ function inputText(
   const { type = "text" } = props;
   const color = toState(props.color ?? "neutral", "color");
   const accentColor = toState(props.accentColor ?? "primary", "accentColor");
+  // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+  // A later rule's box-shadow replaces an earlier one whole, so every edge rule
+  // that can meet a focused field has a `:focus-visible` twin (one more class of
+  // specificity, same relative order) carrying `focusRing, edge`.
+  const baseEdge = (l: Listener) =>
+    edge(themeColor(l, "border-strong", color.get(l)));
+  const hoverEdge = (l: Listener) =>
+    edge(themeColor(l, "shift-5", accentColor.get(l)));
+  const errorEdge = (l: Listener) =>
+    edge(themeColor(l, "shift-6", "error"), themeSpacing(0.5));
+  const warningEdge = (l: Listener) =>
+    edge(themeColor(l, "shift-6", "warning"), themeSpacing(0.5));
+  const focused = (l: Listener, edgeValue: string) =>
+    `${focusRing(l, accentColor.get(l))}, ${edgeValue}`;
 
   return {
     // Declared like any other attribute — the native element still wins over
@@ -42020,27 +42251,28 @@ function inputText(
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
       fontSize: (listener) => themeSize(listener, "inherit"),
       border: "none",
-      outlineOffset: "-1px",
-      outline: (listener) =>
-        `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
+      outline: "none",
+      boxShadow: baseEdge,
       ...fieldTextStyle(color),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
-      transition: "outline-color 140ms ease, box-shadow 140ms ease",
+      transition: "box-shadow 140ms ease",
       "&:hover:not([disabled]):not([aria-busy=true])": {
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "shift-5", accentColor.get(listener))}`,
+        boxShadow: hoverEdge,
       },
       "&:focus-visible": {
-        boxShadow: (listener) => focusRing(listener, accentColor.get(listener)),
+        boxShadow: (l) => focused(l, baseEdge(l)),
+      },
+      "&:hover:not([disabled]):not([aria-busy=true]):focus-visible": {
+        boxShadow: (l) => focused(l, hoverEdge(l)),
       },
       "&[disabled]": {
         opacity: 0.7,
         cursor: "not-allowed",
         backgroundColor: (listener) =>
           themeColor(listener, "shift-2", "neutral"),
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "border-strong", "neutral")}`,
+        boxShadow: (listener) =>
+          edge(themeColor(listener, "border-strong", "neutral")),
         color: (listener) => themeColor(listener, "muted", "neutral"),
       },
       // `[placeholder]` is load-bearing: `:placeholder-shown` only matches an
@@ -42049,16 +42281,22 @@ function inputText(
       // `required` field painted itself red before the user typed a character.
       // Fields with no placeholder opt into the error look via `data-status`.
       "&[placeholder]:invalid:not(:placeholder-shown)": {
-        outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", "error")}`,
+        boxShadow: errorEdge,
+      },
+      "&[placeholder]:invalid:not(:placeholder-shown):focus-visible": {
+        boxShadow: (l) => focused(l, errorEdge(l)),
       },
       "&[data-status=error]": {
-        outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", "error")}`,
+        boxShadow: errorEdge,
+      },
+      "&[data-status=error]:focus-visible": {
+        boxShadow: (l) => focused(l, errorEdge(l)),
       },
       "&[data-status=warning]": {
-        outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", "warning")}`,
+        boxShadow: warningEdge,
+      },
+      "&[data-status=warning]:focus-visible": {
+        boxShadow: (l) => focused(l, warningEdge(l)),
       },
     },
   };
@@ -42079,6 +42317,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { edge } from "../utils/edge.js";
 
 /**
  * Renders keyboard-key styling (the theme's monospace stack, themed background,
@@ -42116,8 +42355,15 @@ function keyboard(
         themeSpacing(themeDensity(listener) * (1.5 / 1.5)),
       borderRadius: (listener) =>
         themeSpacing(themeDensity(listener) * (1 / 1.5)),
-      outline: (listener) =>
-        `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
+      // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+      // It sat outside the key (outline-offset 0), so it stays outside.
+      outline: "none",
+      boxShadow: (listener) =>
+        edge(
+          themeColor(listener, "border-strong", color.get(listener)),
+          "1px",
+          "outside",
+        ),
     },
   };
 }
@@ -42324,6 +42570,7 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { BUTTON_SIZE_FONT, type ButtonSize } from "../utils/buttonSize.js";
+import { edge } from "../utils/edge.js";
 import { focusRing } from "../utils/focusRing.js";
 import type { ButtonVariant } from "./button.js";
 
@@ -42462,12 +42709,12 @@ function linkButton(
       cursor: "pointer",
       lineHeight: "inherit",
       border: "none",
-      outlineOffset: "-1px",
-      outlineWidth: "1px",
-      outline: isSolid
+      // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+      outline: "none",
+      boxShadow: isSolid
         ? "none"
         : (listener) =>
-            `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
+            edge(themeColor(listener, "border-strong", color.get(listener))),
       // Solid: deep brand (shift-13) + light-end text (not mid-ramp ~2.2:1).
       // Outline: shift-13 for ≥4.5:1 on light bg.
       color: (listener) =>
@@ -42498,7 +42745,10 @@ function linkButton(
             : themeColor(listener, "increase-2", color.get(listener)),
       },
       "&:focus-visible": {
-        boxShadow: (listener) => focusRing(listener, color.get(listener)),
+        boxShadow: (listener) =>
+          isSolid
+            ? focusRing(listener, color.get(listener))
+            : `${focusRing(listener, color.get(listener))}, ${edge(themeColor(listener, "border-strong", color.get(listener)))}`,
       },
       "&[aria-disabled=true]": {
         opacity: 0.7,
@@ -42506,9 +42756,14 @@ function linkButton(
         pointerEvents: "none",
         backgroundColor: (listener) =>
           themeColor(listener, "shift-2", "neutral"),
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "border-strong", "neutral")}`,
+        boxShadow: (listener) =>
+          edge(themeColor(listener, "border-strong", "neutral")),
         color: (listener) => themeColor(listener, "muted", "neutral"),
+      },
+      // A disabled link stays focusable: keep its ring on top of the neutral edge.
+      "&[aria-disabled=true]:focus-visible": {
+        boxShadow: (listener) =>
+          `${focusRing(listener, color.get(listener))}, ${edge(themeColor(listener, "border-strong", "neutral"))}`,
       },
     },
   };
@@ -42689,8 +42944,13 @@ function mark(
         themeColor(listener, "text", accentColor.get(listener)),
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", accentColor.get(listener)),
+      // A chip inside running text keeps its own compact line box: an inherited
+      // line-height (1.8, say) would otherwise overflow the fixed height.
+      lineHeight: "normal",
       // Bare themeSpacing(U) at snapshot time; n = U / 1.5 (light.densities[2]).
-      height: (listener) => themeSpacing(themeDensity(listener) * (6 / 1.5)),
+      // minHeight, not height: at a small density the chip must still grow to
+      // its own line box rather than clip the text.
+      minHeight: (listener) => themeSpacing(themeDensity(listener) * (6 / 1.5)),
       borderRadius: (listener) =>
         themeSpacing(themeDensity(listener) * (1 / 1.5)),
       paddingInline: (listener) =>
@@ -42724,6 +42984,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { edge } from "../utils/edge.js";
 import { elevation } from "../utils/elevation.js";
 import { focusRing } from "../utils/focusRing.js";
 
@@ -42861,7 +43122,10 @@ function menu(
           gap: themeSpacing(2),
           width: "100%",
           fontSize: (l: Listener) => themeSize(l, "inherit"),
-          height: (l: Listener) => themeSpacing(6 + themeDensity(l) * 2),
+          // minHeight, not height: a host line-height taller than the row
+          // (1.8 on a 12px base = 21.6px vs a 22.5px row minus the UA button
+          // padding) would otherwise push the label out of the content box.
+          minHeight: (l: Listener) => themeSpacing(6 + themeDensity(l) * 2),
           paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 3),
           border: "none",
           outline: "none",
@@ -42959,10 +43223,11 @@ function menu(
       backgroundColor: (l: Listener) => themeColor(l, "inherit", color),
       color: (l: Listener) => themeColor(l, "text", color),
       borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 2),
-      outline: (l: Listener) =>
-        `1px solid ${themeColor(l, "border-strong", color)}`,
-      outlineOffset: "-1px",
-      boxShadow: elevation("medium"),
+      // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+      // Outside, so a highlighted row flush with the panel edge cannot paint over it.
+      outline: "none",
+      boxShadow: (l: Listener) =>
+        `${edge(themeColor(l, "border-strong", color), "1px", "outside")}, ${elevation("medium")}`,
     },
   };
 }
@@ -43206,7 +43471,6 @@ function orderedList(
     },
     style: {
       fontSize: (listener) => themeSize(listener, "inherit"),
-      backgroundColor: (listener) => themeColor(listener),
       color: (listener) => themeColor(listener, "text", color.get(listener)),
       marginTop: 0,
       marginBottom: 0,
@@ -43229,6 +43493,7 @@ import {
   type ElementNode,
   isState,
   type PartialElement,
+  rawHtml,
   type State,
   toState,
   type ValueOrState,
@@ -43241,6 +43506,7 @@ import {
   themeSpacing,
   themeWeight,
 } from "@domphy/theme";
+import { chevron } from "../utils/chevron.js";
 import { focusRing } from "../utils/focusRing.js";
 
 function getPages(current: number, total: number): (number | "...")[] {
@@ -43308,7 +43574,11 @@ function pagination(props: {
     alignItems: "center",
     justifyContent: "center",
     minWidth: (listener: any) => themeSpacing(6 + themeDensity(listener) * 2),
-    height: (listener: any) => themeSpacing(6 + themeDensity(listener) * 2),
+    // Square at the canonical height, but padding-driven so a taller inherited
+    // line-height grows the box instead of overflowing a fixed height.
+    minHeight: (listener: any) => themeSpacing(6 + themeDensity(listener) * 2),
+    lineHeight: "inherit",
+    paddingBlock: (listener: any) => themeSpacing(themeDensity(listener) * 1),
     paddingInline: (listener: any) => themeSpacing(themeDensity(listener) * 2),
     borderRadius: (listener: any) => themeSpacing(themeDensity(listener) * 1.5),
     border: "none",
@@ -43364,7 +43634,7 @@ function pagination(props: {
 
           // Prev button
           items.push({
-            button: "‹",
+            button: rawHtml(chevron("left")),
             _key: "prev",
             type: "button",
             ariaLabel: "Previous page",
@@ -43386,6 +43656,10 @@ function pagination(props: {
                 style: {
                   display: "inline-flex",
                   alignItems: "center",
+                  // The same cell height as the page buttons it sits between,
+                  // or the glyph reads low against their digits.
+                  minHeight: (listener: any) =>
+                    themeSpacing(6 + themeDensity(listener) * 2),
                   paddingInline: (listener: any) =>
                     themeSpacing(themeDensity(listener) * 2),
                   color: (listener: any) =>
@@ -43414,7 +43688,7 @@ function pagination(props: {
 
           // Next button
           items.push({
-            button: "›",
+            button: rawHtml(chevron("right")),
             _key: "next",
             type: "button",
             ariaLabel: "Next page",
@@ -43564,6 +43838,7 @@ import {
 } from "@domphy/core";
 import type { Placement } from "@domphy/floating";
 import { themeColor, themeDensity, themeSpacing } from "@domphy/theme";
+import { edge } from "../utils/edge.js";
 import { elevation } from "../utils/elevation.js";
 import { createFloating, floatingPanelId } from "../utils/floating.js";
 
@@ -43659,9 +43934,11 @@ function popover(props: {
       backgroundColor: (l: Listener) => themeColor(l, "inherit"),
       color: (l: Listener) => themeColor(l, "text"),
       borderRadius: (l: Listener) => themeSpacing(themeDensity(l) * 2),
-      outline: (l: Listener) => `1px solid ${themeColor(l, "border-strong")}`,
-      outlineOffset: "-1px",
-      boxShadow: elevation("medium"),
+      // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+      // Outside, so content flush with the panel edge cannot paint over it.
+      outline: "none",
+      boxShadow: (l: Listener) =>
+        `${edge(themeColor(l, "border-strong"), "1px", "outside")}, ${elevation("medium")}`,
     },
   };
 
@@ -44580,8 +44857,14 @@ function buildSegmentButtons(
       style: {
         cursor: "pointer",
         fontSize: (l: Listener) => themeSize(l, "inherit"),
-        height: themeSpacing(6),
-        paddingBlock: themeSpacing(1),
+        // Floor height, label centred by flex: a FIXED height clipped the
+        // inherited line box whenever the host font size or line-height made
+        // it taller than the control (e.g. line-height 1.8 at 24px = 43.2px).
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        minHeight: themeSpacing(6),
+        paddingBlock: 0,
         paddingInline: themeSpacing(3),
         border: "none",
         borderRadius: themeSpacing(10),
@@ -44726,6 +45009,7 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { isRTL } from "../utils/direction.js";
+import { edge } from "../utils/edge.js";
 import { focusRing } from "../utils/focusRing.js";
 
 /**
@@ -44742,6 +45026,14 @@ function select(
   props: { color?: ThemeColor; accentColor?: ThemeColor } = {},
 ): PartialElement {
   const { color = "neutral", accentColor = "primary" } = props;
+  // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+  // Hover's selector outranks `:focus-visible`, so a hovered focused select needs
+  // its own `focusRing, edge` rule or the hover edge would erase the ring.
+  const baseEdge = (l: Listener) => edge(themeColor(l, "border-strong", color));
+  const hoverEdge = (l: Listener) =>
+    edge(themeColor(l, "shift-5", accentColor));
+  const focused = (l: Listener, edgeValue: string) =>
+    `${focusRing(l, accentColor)}, ${edgeValue}`;
 
   return {
     _onInsert: (node) => {
@@ -44756,9 +45048,8 @@ function select(
       color: (listener) => themeColor(listener, "text", color),
       backgroundColor: (listener) => themeColor(listener, "inherit", color),
       border: "none",
-      outlineOffset: "-1px",
-      outline: (listener) =>
-        `1px solid ${themeColor(listener, "border-strong", color)}`,
+      outline: "none",
+      boxShadow: baseEdge,
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
       paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
       paddingInlineStart: (listener) =>
@@ -44776,16 +45067,19 @@ function select(
       backgroundPosition: (l: Listener) =>
         `${isRTL(l.elementNode?.domElement) ? "left" : "right"} ${themeSpacing(2)} center`,
       backgroundSize: `${themeSpacing(2.5)} ${themeSpacing(1.5)}`,
-      transition: "outline-color 140ms ease, box-shadow 140ms ease",
-      "&:not([multiple])": {
-        height: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
-      },
+      transition: "box-shadow 140ms ease",
+      // No height floor: a form control is sized by its line box plus its own
+      // paddingBlock, the shape inputText/inputNumber/inputSearch and every
+      // button use, so a select standing in a toolbar row is exactly as tall as
+      // its neighbours. A floor here made it 1U taller than all of them.
       "&:hover:not([disabled]):not([aria-busy=true])": {
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "shift-5", accentColor)}`,
+        boxShadow: hoverEdge,
       },
       "&:focus-visible": {
-        boxShadow: (listener) => focusRing(listener, accentColor),
+        boxShadow: (l) => focused(l, baseEdge(l)),
+      },
+      "&:hover:not([disabled]):not([aria-busy=true]):focus-visible": {
+        boxShadow: (l) => focused(l, hoverEdge(l)),
       },
       "& optgroup": {
         color: (listener) => themeColor(listener, "shift-11", color),
@@ -44797,8 +45091,8 @@ function select(
         opacity: 0.7,
         cursor: "not-allowed",
         color: (listener) => themeColor(listener, "muted", "neutral"),
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "border-strong", "neutral")}`,
+        boxShadow: (listener) =>
+          edge(themeColor(listener, "border-strong", "neutral")),
         backgroundColor: (listener) =>
           themeColor(listener, "shift-2", "neutral"),
       },
@@ -44832,6 +45126,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { edge } from "../utils/edge.js";
 import { elevation } from "../utils/elevation.js";
 import { createFloating, floatingPanelId } from "../utils/floating.js";
 import { focusRing } from "../utils/focusRing.js";
@@ -44938,10 +45233,11 @@ function selectBox(props: {
       // (same as menu/selectList/dialog), not the inverted tooltip surface.
       color: (listener) => themeColor(listener, "text"),
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
-      outline: (listener) =>
-        `1px solid ${themeColor(listener, "border-strong")}`,
-      outlineOffset: "-1px",
-      boxShadow: elevation("medium"),
+      // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+      // Outside, so options flush with the panel edge cannot paint over it.
+      outline: "none",
+      boxShadow: (listener) =>
+        `${edge(themeColor(listener, "border-strong"), "1px", "outside")}, ${elevation("medium")}`,
     },
   };
 
@@ -45155,20 +45451,27 @@ function selectBox(props: {
       cursor: "pointer",
       display: "flex",
       alignItems: "center",
-      minHeight: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
+      // Line box + paddingBlock, no height floor: the fake field is exactly as
+      // tall as the real one (inputText) it stands beside. A real <input> keeps
+      // a line box when it is empty; this div holds only chips, so with nothing
+      // selected it had none and collapsed to its padding — a zero-width space
+      // is the strut that gives it the one line every text field has.
+      paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
+      "&::before": { content: '"\\200b"', width: 0, overflow: "hidden" },
       minWidth: themeSpacing(32),
-      outlineOffset: "-1px",
-      outline: (listener) =>
-        `1px solid ${themeColor(listener, "border-strong", "neutral")}`,
+      // The field's edge is a box-shadow too (inside, like the old outline offset -1px).
+      outline: "none",
+      boxShadow: (listener) =>
+        edge(themeColor(listener, "border-strong", "neutral")),
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 2),
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
       fontSize: (listener) => themeSize(listener, "inherit"),
       color: (listener) => themeColor(listener, "text", color),
       backgroundColor: (listener) => themeColor(listener, "inherit", color),
-      transition:
-        "background-color 140ms ease, outline-color 140ms ease, box-shadow 140ms ease",
+      transition: "background-color 140ms ease, box-shadow 140ms ease",
       "&:focus-visible": {
-        boxShadow: (listener) => focusRing(listener, color),
+        boxShadow: (listener) =>
+          `${focusRing(listener, color)}, ${edge(themeColor(listener, "border-strong", "neutral"))}`,
       },
     },
   };
@@ -45256,7 +45559,9 @@ function selectItem(
       display: "flex",
       alignItems: "center",
       fontSize: (listener) => themeSize(listener, "inherit"),
-      height: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
+      // minHeight, not height: an inherited line-height taller than the row
+      // must grow it rather than overflow the content box (see menu.ts).
+      minHeight: (listener) => themeSpacing(6 + themeDensity(listener) * 2),
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 3),
       border: "none",
       outline: "none",
@@ -45711,7 +46016,10 @@ function splitterPanel(): PartialElement {
         el.style[prop] = `${isFirstSplitterPanel(node) ? size : 100 - size}%`;
       };
       apply(ctx.size.get());
-      el.style.flexShrink = "0";
+      // The two percentages already sum to 100%, so the handle's own width made
+      // the row wider than the splitter and the far panel was cut off by its
+      // `overflow: hidden`. Let the panels give the handle its space back.
+      el.style.flexShrink = "1";
       el.style.overflow = "auto";
 
       const release = ctx.size.addListener(apply);
@@ -46258,7 +46566,6 @@ function strong(
       fontWeight: themeWeight("bold"),
       color: (listener) =>
         themeColor(listener, "shift-11", color.get(listener)),
-      backgroundColor: (listener) => themeColor(listener),
     },
   };
 }
@@ -46542,7 +46849,13 @@ function buildTabsChildren(
       style: {
         cursor: "pointer",
         fontSize: (l: Listener) => themeSize(l, "inherit"),
-        height: (l: Listener) => themeSpacing(6 + themeDensity(l) * 2),
+        // Floor height, label centred by flex: a FIXED height clipped the
+        // inherited line box whenever the host line-height made it taller
+        // than the control (line-height 1.8 at density decrease-2).
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        minHeight: (l: Listener) => themeSpacing(6 + themeDensity(l) * 2),
         paddingInline: (l: Listener) => themeSpacing(themeDensity(l) * 4),
         border: "none",
         outline: "none",
@@ -46580,7 +46893,10 @@ function buildTabsChildren(
     _key: "tablist",
     role: "tablist",
     ariaOrientation: "horizontal",
-    style: { display: "flex" },
+    // Wraps instead of overflowing: at a large density/font the row grew past
+    // its container and painted over the panel below it. Not a scroll
+    // container — that would clip every tab's focus ring.
+    style: { display: "flex", flexWrap: "wrap" },
   } as DomphyElement<"div">;
 
   const panels: DomphyElement<"div">[] = items.map((item, index) => {
@@ -46703,6 +47019,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { edge } from "../utils/edge.js";
 import { focusRing } from "../utils/focusRing.js";
 
 const xSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M6.707 5.293l5.293 5.292l5.293 -5.292a1 1 0 0 1 1.414 1.414l-5.292 5.293l5.292 5.293a1 1 0 0 1 -1.414 1.414l-5.293 -5.292l-5.293 5.292a1 1 0 1 1 -1.414 -1.414l5.292 -5.293l-5.292 -5.293a1 1 0 0 1 1.414 -1.414" /></svg>`;
@@ -46710,7 +47027,8 @@ const xSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="
 // Compact-chip chrome was bare `themeSpacing(U)` (catalog snapshots). Default
 // density is 1.5 (`light.densities[2]`, density.ts origin index 2). n = U / 1.5
 // keeps those pixels at default while dataDensity still scales. Height 6U must
-// stay below selectBox/combobox minHeight `(6 + 2d)U` or the chip fills the trigger.
+// stay below a selectBox/combobox field (its own line box plus 2 x paddingBlock
+// `d * 1`U — 1.5em vs 1.95em at default density) or the chip drives the trigger.
 const DEFAULT_DENSITY = 1.5;
 const TAG_HEIGHT = 6 / DEFAULT_DENSITY;
 const TAG_PAD_INLINE = 2.5 / DEFAULT_DENSITY;
@@ -46817,7 +47135,13 @@ function tag(
       alignItems: "center",
       whiteSpace: "nowrap",
       userSelect: "none",
-      height: (listener) => themeSpacing(themeDensity(listener) * TAG_HEIGHT),
+      // A chip inside running text keeps its own compact line box: an inherited
+      // line-height (1.8, say) would otherwise overflow the fixed height.
+      lineHeight: "normal",
+      // minHeight, not height: at a small density the chip must still grow to
+      // its own line box rather than clip the label.
+      minHeight: (listener) =>
+        themeSpacing(themeDensity(listener) * TAG_HEIGHT),
       paddingBlock: 0,
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 999),
       paddingInlineStart: (listener) =>
@@ -46833,9 +47157,10 @@ function tag(
         themeColor(listener, "inherit", color.get(listener)),
       color: (listener) => themeColor(listener, "text", color.get(listener)),
       border: "none",
-      outlineOffset: "-1px",
-      outline: (listener) =>
-        `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
+      // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+      outline: "none",
+      boxShadow: (listener) =>
+        edge(themeColor(listener, "border-strong", color.get(listener))),
     },
   };
 }
@@ -46849,6 +47174,7 @@ export { tag };
 import {
   type BehaviorInstance,
   behavior,
+  type Listener,
   type PartialElement,
   toState,
   type ValueOrState,
@@ -46860,6 +47186,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { edge } from "../utils/edge.js";
 import { fieldTextStyle } from "../utils/fieldText.js";
 import { focusRing } from "../utils/focusRing.js";
 
@@ -46883,6 +47210,22 @@ function textarea(
   const color = toState(props.color ?? "neutral", "color");
   const accentColor = toState(props.accentColor ?? "primary", "accentColor");
   const { autoResize = false } = props;
+  // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+  // A later rule's box-shadow replaces an earlier one whole, so every edge rule
+  // that can meet a focused field has a `:focus-visible` twin (one more class of
+  // specificity, same relative order) carrying `focusRing, edge`.
+  const baseEdge = (l: Listener) =>
+    edge(themeColor(l, "border-strong", color.get(l)));
+  const hoverEdge = (l: Listener) =>
+    edge(themeColor(l, "shift-5", accentColor.get(l)));
+  const invalidEdge = (l: Listener) =>
+    edge(themeColor(l, "shift-5", "error"), themeSpacing(0.5));
+  const errorEdge = (l: Listener) =>
+    edge(themeColor(l, "shift-6", "error"), themeSpacing(0.5));
+  const warningEdge = (l: Listener) =>
+    edge(themeColor(l, "shift-6", "warning"), themeSpacing(0.5));
+  const focused = (l: Listener, edgeValue: string) =>
+    `${focusRing(l, accentColor.get(l))}, ${edgeValue}`;
 
   return {
     _onInsert: (node) => {
@@ -46978,42 +47321,49 @@ function textarea(
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
       fontSize: (listener) => themeSize(listener, "inherit"),
       ...fieldTextStyle(color),
-      outlineOffset: "-1px",
-      outline: (listener) =>
-        `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
+      outline: "none",
+      boxShadow: baseEdge,
       backgroundColor: (listener) =>
         themeColor(listener, "inherit", color.get(listener)),
-      transition: "outline-color 140ms ease, box-shadow 140ms ease",
+      transition: "box-shadow 140ms ease",
       "&:hover:not([disabled]):not([aria-busy=true])": {
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "shift-5", accentColor.get(listener))}`,
+        boxShadow: hoverEdge,
       },
       "&:focus-visible": {
-        boxShadow: (listener) => focusRing(listener, accentColor.get(listener)),
+        boxShadow: (l) => focused(l, baseEdge(l)),
+      },
+      "&:hover:not([disabled]):not([aria-busy=true]):focus-visible": {
+        boxShadow: (l) => focused(l, hoverEdge(l)),
       },
       // Same gate as inputText: a bare `:invalid` painted a pristine untouched
       // `required` textarea red on first paint. `[placeholder]` +
       // `:not(:placeholder-shown)` means "the user left content behind that is
       // invalid"; a textarea with no placeholder uses `data-status` instead.
       "&[placeholder]:invalid:not(:placeholder-shown)": {
-        outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-5", "error")}`,
+        boxShadow: invalidEdge,
+      },
+      "&[placeholder]:invalid:not(:placeholder-shown):focus-visible": {
+        boxShadow: (l) => focused(l, invalidEdge(l)),
       },
       // Explicit validation state, mirroring inputText's contract.
       "&[data-status=error]": {
-        outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", "error")}`,
+        boxShadow: errorEdge,
+      },
+      "&[data-status=error]:focus-visible": {
+        boxShadow: (l) => focused(l, errorEdge(l)),
       },
       "&[data-status=warning]": {
-        outline: (listener) =>
-          `${themeSpacing(0.5)} solid ${themeColor(listener, "shift-6", "warning")}`,
+        boxShadow: warningEdge,
+      },
+      "&[data-status=warning]:focus-visible": {
+        boxShadow: (l) => focused(l, warningEdge(l)),
       },
       "&[disabled]": {
         opacity: 0.7,
         cursor: "not-allowed",
         color: (listener) => themeColor(listener, "muted", "neutral"),
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "border-strong", "neutral")}`,
+        boxShadow: (listener) =>
+          edge(themeColor(listener, "border-strong", "neutral")),
         backgroundColor: (listener) =>
           themeColor(listener, "shift-2", "neutral"),
       },
@@ -47063,6 +47413,10 @@ function timeline(): PartialElement {
  * @param props.accentColor - Active dot color tone. `ThemeColor`, defaults to `"primary"`.
  * @example { li: [{ b: "2024" }, { p: "Event" }], $: [timelineItem({ active: true })] }
  */
+/** Dot size, and its offset from the row top that lines it up with the first text line. */
+const DOT_SIZE = "0.75rem";
+const DOT_OFFSET = themeSpacing(1);
+
 function timelineItem(
   props: {
     active?: ValueOrState<boolean>;
@@ -47085,15 +47439,20 @@ function timelineItem(
         last ? "0" : themeSpacing(themeDensity(listener) * 4),
       position: "relative",
 
+      // Column 1 is the dot's gutter: without this the second child and every
+      // one after it auto-places into it (row 2 column 1) and its text spills
+      // out of the item to the left.
+      "& > *": { gridColumn: 2 },
+
       // Dot
       "&::before": {
         content: '""',
         display: "block",
-        width: "0.75rem",
-        height: "0.75rem",
+        width: DOT_SIZE,
+        height: DOT_SIZE,
         borderRadius: "50%",
         justifySelf: "center",
-        marginTop: themeSpacing(1),
+        marginTop: DOT_OFFSET,
         transition: "background-color 200ms ease, opacity 200ms ease",
         backgroundColor: (listener) =>
           themeColor(
@@ -47108,12 +47467,15 @@ function timelineItem(
       ...(last
         ? {}
         : {
+            // Runs from this item's dot to the next one: both ends are the dot
+            // geometry above, never the item's padding (that overshot the next
+            // dot by a whole paddingBottom and grew with density).
             "&::after": {
               content: '""',
               position: "absolute",
               insetInlineStart: "calc(1rem - 1px)",
-              top: "1.25rem",
-              bottom: (listener) => themeSpacing(themeDensity(listener) * -4),
+              top: `calc(${DOT_OFFSET} + ${DOT_SIZE})`,
+              bottom: `calc(-1 * ${DOT_OFFSET})`,
               width: "2px",
               backgroundColor: (listener) =>
                 themeColor(listener, "shift-3", color),
@@ -47448,6 +47810,7 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { horizontalArrowStep } from "../utils/direction.js";
+import { edge } from "../utils/edge.js";
 import { focusRing } from "../utils/focusRing.js";
 
 /** One item inside a toggle group. */
@@ -47577,8 +47940,14 @@ function buildToggleButtons(
       style: {
         cursor: "pointer",
         fontSize: (l: Listener) => themeSize(l, "inherit"),
-        height: themeSpacing(6),
-        paddingBlock: themeSpacing(1),
+        // Floor height, label centred by flex: a FIXED height clipped the
+        // inherited line box whenever the host font size or line-height made
+        // it taller than the control (e.g. line-height 1.8 at 24px = 43.2px).
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        minHeight: themeSpacing(6),
+        paddingBlock: 0,
         paddingInline: themeSpacing(2),
         border: "none",
         borderRadius: themeSpacing(1.5),
@@ -47712,8 +48081,9 @@ function toggleGroup(
       fontSize: (l: Listener) => themeSize(l, "inherit"),
       backgroundColor: (l: Listener) => themeColor(l, "inherit", color),
       color: (l: Listener) => themeColor(l, "text", color),
-      outline: (l: Listener) => `1px solid ${themeColor(l, "border", color)}`,
-      outlineOffset: "-1px",
+      // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+      outline: "none",
+      boxShadow: (l: Listener) => edge(themeColor(l, "border", color)),
     },
   };
 }
@@ -48061,7 +48431,6 @@ function unorderedList(
     },
     style: {
       fontSize: (listener) => themeSize(listener, "inherit"),
-      backgroundColor: (listener) => themeColor(listener),
       color: (listener) => themeColor(listener, "text", color.get(listener)),
       marginTop: 0,
       marginBottom: 0,

@@ -7,6 +7,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { edge } from "../utils/edge.js";
 import { focusRing } from "../utils/focusRing.js";
 
 /**
@@ -58,13 +59,14 @@ function inputColor(
       "&::-webkit-color-swatch": {
         borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
       },
+      // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
       "&[disabled]": {
         opacity: 0.7,
         cursor: "not-allowed",
         backgroundColor: (listener) =>
           themeColor(listener, "shift-2", "neutral"),
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "border-strong", "neutral")}`,
+        boxShadow: (listener) =>
+          edge(themeColor(listener, "border-strong", "neutral")),
       },
     },
   };

@@ -8,6 +8,7 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { isRTL } from "../utils/direction.js";
+import { edge } from "../utils/edge.js";
 import { focusRing } from "../utils/focusRing.js";
 
 /**
@@ -24,6 +25,14 @@ function select(
   props: { color?: ThemeColor; accentColor?: ThemeColor } = {},
 ): PartialElement {
   const { color = "neutral", accentColor = "primary" } = props;
+  // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+  // Hover's selector outranks `:focus-visible`, so a hovered focused select needs
+  // its own `focusRing, edge` rule or the hover edge would erase the ring.
+  const baseEdge = (l: Listener) => edge(themeColor(l, "border-strong", color));
+  const hoverEdge = (l: Listener) =>
+    edge(themeColor(l, "shift-5", accentColor));
+  const focused = (l: Listener, edgeValue: string) =>
+    `${focusRing(l, accentColor)}, ${edgeValue}`;
 
   return {
     _onInsert: (node) => {
@@ -38,9 +47,8 @@ function select(
       color: (listener) => themeColor(listener, "text", color),
       backgroundColor: (listener) => themeColor(listener, "inherit", color),
       border: "none",
-      outlineOffset: "-1px",
-      outline: (listener) =>
-        `1px solid ${themeColor(listener, "border-strong", color)}`,
+      outline: "none",
+      boxShadow: baseEdge,
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
       paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
       paddingInlineStart: (listener) =>
@@ -58,17 +66,19 @@ function select(
       backgroundPosition: (l: Listener) =>
         `${isRTL(l.elementNode?.domElement) ? "left" : "right"} ${themeSpacing(2)} center`,
       backgroundSize: `${themeSpacing(2.5)} ${themeSpacing(1.5)}`,
-      transition: "outline-color 140ms ease, box-shadow 140ms ease",
+      transition: "box-shadow 140ms ease",
       // No height floor: a form control is sized by its line box plus its own
       // paddingBlock, the shape inputText/inputNumber/inputSearch and every
       // button use, so a select standing in a toolbar row is exactly as tall as
       // its neighbours. A floor here made it 1U taller than all of them.
       "&:hover:not([disabled]):not([aria-busy=true])": {
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "shift-5", accentColor)}`,
+        boxShadow: hoverEdge,
       },
       "&:focus-visible": {
-        boxShadow: (listener) => focusRing(listener, accentColor),
+        boxShadow: (l) => focused(l, baseEdge(l)),
+      },
+      "&:hover:not([disabled]):not([aria-busy=true]):focus-visible": {
+        boxShadow: (l) => focused(l, hoverEdge(l)),
       },
       "& optgroup": {
         color: (listener) => themeColor(listener, "shift-11", color),
@@ -80,8 +90,8 @@ function select(
         opacity: 0.7,
         cursor: "not-allowed",
         color: (listener) => themeColor(listener, "muted", "neutral"),
-        outline: (listener) =>
-          `1px solid ${themeColor(listener, "border-strong", "neutral")}`,
+        boxShadow: (listener) =>
+          edge(themeColor(listener, "border-strong", "neutral")),
         backgroundColor: (listener) =>
           themeColor(listener, "shift-2", "neutral"),
       },

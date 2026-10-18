@@ -12,6 +12,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { edge } from "../utils/edge.js";
 import { VALUE_TONE } from "../utils/fieldText.js";
 import { focusRing } from "../utils/focusRing.js";
 
@@ -110,6 +111,8 @@ function inputPassword(
   const colorState = toState(props.color ?? "neutral", "color");
   const accentState = toState(props.accentColor ?? "primary", "accentColor");
   const visibleState = toState(false);
+  const baseEdge = (l: Listener) =>
+    edge(themeColor(l, "border-strong", colorState.get(l)));
   const hostFields: HostFields = {};
 
   return {
@@ -154,10 +157,18 @@ function inputPassword(
         ...(onInput != null ? { onInput } : {}),
         ...(disabled != null ? { disabled } : {}),
         ...(required != null ? { required } : {}),
-        ...(hostFields.autofocus != null ? { autofocus: hostFields.autofocus } : {}),
-        ...(hostFields.minlength != null ? { minlength: hostFields.minlength } : {}),
-        ...(hostFields.maxlength != null ? { maxlength: hostFields.maxlength } : {}),
-        ...(hostFields.placeholder != null ? { placeholder: hostFields.placeholder } : {}),
+        ...(hostFields.autofocus != null
+          ? { autofocus: hostFields.autofocus }
+          : {}),
+        ...(hostFields.minlength != null
+          ? { minlength: hostFields.minlength }
+          : {}),
+        ...(hostFields.maxlength != null
+          ? { maxlength: hostFields.maxlength }
+          : {}),
+        ...(hostFields.placeholder != null
+          ? { placeholder: hostFields.placeholder }
+          : {}),
         style: {
           flex: 1,
           minWidth: 0,
@@ -214,22 +225,22 @@ function inputPassword(
       paddingInline: (l) => themeSpacing(themeDensity(l) * 3),
       borderRadius: (l) => themeSpacing(themeDensity(l) * 1.5),
       border: "none",
-      outlineOffset: "-1px",
-      outline: (l) =>
-        `1px solid ${themeColor(l, "border-strong", colorState.get(l))}`,
+      // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+      outline: "none",
+      boxShadow: baseEdge,
       // Same tone as every other field's typed value; the inner <input>
       // inherits it. No `::placeholder` rule: this patch builds its own input
       // and never gives it a placeholder attribute, so there is nothing to paint.
       color: (l) => themeColor(l, VALUE_TONE, colorState.get(l)),
       backgroundColor: (l) => themeColor(l, "inherit", colorState.get(l)),
       fontSize: (l) => themeSize(l, "inherit"),
-      transition: "outline-color 140ms ease, box-shadow 140ms ease",
+      transition: "box-shadow 140ms ease",
+      // Hover excludes `:focus-within`, so the two rules never meet.
       "&:hover:not(:has([disabled])):not(:focus-within)": {
-        outline: (l) =>
-          `1px solid ${themeColor(l, "shift-5", accentState.get(l))}`,
+        boxShadow: (l) => edge(themeColor(l, "shift-5", accentState.get(l))),
       },
       "&:focus-within": {
-        boxShadow: (l) => focusRing(l, accentState.get(l)),
+        boxShadow: (l) => `${focusRing(l, accentState.get(l))}, ${baseEdge(l)}`,
       },
     } as StyleObject,
   };

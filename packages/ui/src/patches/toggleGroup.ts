@@ -16,6 +16,7 @@ import {
   themeSpacing,
 } from "@domphy/theme";
 import { horizontalArrowStep } from "../utils/direction.js";
+import { edge } from "../utils/edge.js";
 import { focusRing } from "../utils/focusRing.js";
 
 /** One item inside a toggle group. */
@@ -286,8 +287,9 @@ function toggleGroup(
       fontSize: (l: Listener) => themeSize(l, "inherit"),
       backgroundColor: (l: Listener) => themeColor(l, "inherit", color),
       color: (l: Listener) => themeColor(l, "text", color),
-      outline: (l: Listener) => `1px solid ${themeColor(l, "border", color)}`,
-      outlineOffset: "-1px",
+      // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+      outline: "none",
+      boxShadow: (l: Listener) => edge(themeColor(l, "border", color)),
     },
   };
 }

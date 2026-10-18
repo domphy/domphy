@@ -171,7 +171,7 @@ From that base tone, the common visual roles are derived as follows:
 - **Text:** the tone plus or minus `K`
 - **Stroke:** the tone plus or minus `K / 3`
 
-Here, `stroke` means the structural edge role, such as `outline`, `border`, or a separator line.
+Here, `stroke` means the structural edge role, such as an `edge()` box-shadow, a `border`, or a separator line.
 
 With the current Domphy light ramp:
 
@@ -236,7 +236,7 @@ Basic example:
 ```ts
 backgroundColor: (l) => themeColor(l, "shift-0", "primary")
 color: (l) => themeColor(l, "shift-9", "primary")
-outline: (l) => `1px solid ${themeColor(l, "shift-3", "primary")}`
+boxShadow: (l) => edge(themeColor(l, "shift-3", "primary"))
 ```
 
 ## Semantic Aliases
@@ -248,7 +248,7 @@ Raw `shift-N` indices work, but they force every caller to remember the numeric 
 | `surface` | `shift-1` | subtle raised background |
 | `hover` | `shift-2` | hover/active background |
 | `border` | `shift-3` | default hairline divider (the `K/3` stroke role) |
-| `border-strong` | `shift-4` | control outline (button/input/card boundary) |
+| `border-strong` | `shift-4` | control edge (button/input/card boundary) |
 | `muted` | `shift-8` | secondary/disabled text — **de-emphasis only, see below** |
 | `text` | `shift-9` | default/primary text (the `K` text role) |
 
@@ -257,7 +257,7 @@ Raw `shift-N` indices work, but they force every caller to remember the numeric 
 ```ts
 backgroundColor: (l) => themeColor(l, "inherit", "primary")
 color: (l) => themeColor(l, "text", "primary")
-outline: (l) => `1px solid ${themeColor(l, "border-strong", "primary")}`
+boxShadow: (l) => edge(themeColor(l, "border-strong", "primary"))
 ```
 
 This is identical to writing `themeColor(l, "shift-9", "primary")` and `themeColor(l, "shift-4", "primary")` — the alias is just sugar.
@@ -274,12 +274,14 @@ const button = {
     borderRadius: (l) => themeSpacing(themeDensity(l) * 1.5),
     backgroundColor: (l) => themeColor(l, "inherit", "primary"),
     color: (l) => themeColor(l, "shift-9", "primary"),
-    outline: (l) => `1px solid ${themeColor(l, "shift-3", "primary")}`,
+    outline: "none",
+    boxShadow: (l) => edge(themeColor(l, "shift-3", "primary")),
     "&:hover": {
       backgroundColor: (l) => themeColor(l, "increase-1", "primary"),
     },
     "&:focus-visible": {
-      boxShadow: (l) => `0 0 0 2px ${themeColor(l, "shift-6", "primary")}`,
+      // One boxShadow value per state: the ring and the edge together.
+      boxShadow: (l) => `${focusRing(l, "primary")}, ${edge(themeColor(l, "shift-3", "primary"))}`,
     },
   },
 }

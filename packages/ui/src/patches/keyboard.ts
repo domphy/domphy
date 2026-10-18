@@ -7,6 +7,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { edge } from "../utils/edge.js";
 
 /**
  * Renders keyboard-key styling (the theme's monospace stack, themed background,
@@ -44,8 +45,15 @@ function keyboard(
         themeSpacing(themeDensity(listener) * (1.5 / 1.5)),
       borderRadius: (listener) =>
         themeSpacing(themeDensity(listener) * (1 / 1.5)),
-      outline: (listener) =>
-        `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
+      // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+      // It sat outside the key (outline-offset 0), so it stays outside.
+      outline: "none",
+      boxShadow: (listener) =>
+        edge(
+          themeColor(listener, "border-strong", color.get(listener)),
+          "1px",
+          "outside",
+        ),
     },
   };
 }

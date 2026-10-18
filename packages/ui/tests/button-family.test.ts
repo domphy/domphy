@@ -98,8 +98,9 @@ describe("button", () => {
       $: [button()],
     } as DomphyElement);
     const css = node.generateCSS();
-    expect(css).toContain("outline: 1px solid");
-    expect(css).not.toContain("outline: none");
+    // The edge is a box-shadow: an outline draws square corners before Chrome 94.
+    expect(css).toContain("box-shadow: inset 0 0 0 1px");
+    expect(css).not.toContain("outline: 1px");
   });
 
   it("solid variant fills the background and removes the outline", () => {
@@ -109,6 +110,7 @@ describe("button", () => {
     } as DomphyElement);
     const css = node.generateCSS();
     expect(css).toContain("outline: none");
+    expect(css).toContain("box-shadow: none");
   });
 
   it("solid uses deep brand fill + light text tokens (catalog contrast bar)", () => {
@@ -188,7 +190,8 @@ describe("linkButton", () => {
       $: [linkButton()],
     } as DomphyElement);
     const css = node.generateCSS();
-    expect(css).toContain("outline: 1px solid");
+    expect(css).toContain("box-shadow: inset 0 0 0 1px");
+    expect(css).not.toContain("outline: 1px");
     expect(css).toContain("focus-visible");
     expect(css).toContain("140ms");
   });
@@ -201,6 +204,7 @@ describe("linkButton", () => {
     } as DomphyElement);
     const css = node.generateCSS();
     expect(css).toContain("outline: none");
+    expect(css).toContain("box-shadow: none");
     // Not the old dataTone-17 black solid — fill is absolute mid-ramp.
     expect(host.querySelector("a")?.getAttribute("data-tone")).toBeNull();
     expect(css).toMatch(/shift-8|primary/);

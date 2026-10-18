@@ -106,7 +106,7 @@ export const HOST: Record<string, string> = {
 
 // Function exports that are NOT patch factories (shared style helpers) —
 // excluded from the every-export-is-a-patch gate below.
-export const UTILITY_EXPORTS = new Set(["focusRing", "elevation"]);
+export const UTILITY_EXPORTS = new Set(["focusRing", "elevation", "edge"]);
 
 export const PATCH_ARGS: Record<string, unknown> = {
   command: { items: [{ value: "a", label: "A" }] },

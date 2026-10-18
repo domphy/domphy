@@ -18,6 +18,7 @@ import {
   themeSize,
   themeSpacing,
 } from "@domphy/theme";
+import { edge } from "../utils/edge.js";
 import { elevation } from "../utils/elevation.js";
 import { createFloating, floatingPanelId } from "../utils/floating.js";
 import { focusRing } from "../utils/focusRing.js";
@@ -124,10 +125,11 @@ function selectBox(props: {
       // (same as menu/selectList/dialog), not the inverted tooltip surface.
       color: (listener) => themeColor(listener, "text"),
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 2),
-      outline: (listener) =>
-        `1px solid ${themeColor(listener, "border-strong")}`,
-      outlineOffset: "-1px",
-      boxShadow: elevation("medium"),
+      // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+      // Outside, so options flush with the panel edge cannot paint over it.
+      outline: "none",
+      boxShadow: (listener) =>
+        `${edge(themeColor(listener, "border-strong"), "1px", "outside")}, ${elevation("medium")}`,
     },
   };
 
@@ -349,18 +351,19 @@ function selectBox(props: {
       paddingBlock: (listener) => themeSpacing(themeDensity(listener) * 1),
       "&::before": { content: '"\\200b"', width: 0, overflow: "hidden" },
       minWidth: themeSpacing(32),
-      outlineOffset: "-1px",
-      outline: (listener) =>
-        `1px solid ${themeColor(listener, "border-strong", "neutral")}`,
+      // The field's edge is a box-shadow too (inside, like the old outline offset -1px).
+      outline: "none",
+      boxShadow: (listener) =>
+        edge(themeColor(listener, "border-strong", "neutral")),
       paddingInline: (listener) => themeSpacing(themeDensity(listener) * 2),
       borderRadius: (listener) => themeSpacing(themeDensity(listener) * 1.5),
       fontSize: (listener) => themeSize(listener, "inherit"),
       color: (listener) => themeColor(listener, "text", color),
       backgroundColor: (listener) => themeColor(listener, "inherit", color),
-      transition:
-        "background-color 140ms ease, outline-color 140ms ease, box-shadow 140ms ease",
+      transition: "background-color 140ms ease, box-shadow 140ms ease",
       "&:focus-visible": {
-        boxShadow: (listener) => focusRing(listener, color),
+        boxShadow: (listener) =>
+          `${focusRing(listener, color)}, ${edge(themeColor(listener, "border-strong", "neutral"))}`,
       },
     },
   };

@@ -6,6 +6,7 @@ import {
   themeSpacing,
   themeWeight,
 } from "@domphy/theme";
+import { edge } from "../utils/edge.js";
 import { elevation } from "../utils/elevation.js";
 
 /**
@@ -32,11 +33,12 @@ function card(
         themeColor(listener, "inherit", color.get(listener)),
       color: (listener) =>
         themeColor(listener, "shift-10", color.get(listener)),
-      outline: (listener) =>
-        `1px solid ${themeColor(listener, "border-strong", color.get(listener))}`,
-      outlineOffset: "-1px",
+      // The edge is a box-shadow (`edge()`): an outline draws square corners before Chrome 94.
+      // Outside, so the `& > img` flush with the edge cannot paint over it.
+      outline: "none",
       // Soft lift so cards separate from the page without looking like dialogs.
-      boxShadow: elevation("low"),
+      boxShadow: (listener) =>
+        `${edge(themeColor(listener, "border-strong", color.get(listener)), "1px", "outside")}, ${elevation("low")}`,
       overflow: "hidden",
       "& > img": {
         gridArea: "image",
