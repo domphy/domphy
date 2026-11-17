@@ -254,7 +254,9 @@ test("contact sheets: one per patch at 14px and 20px, light and dark", async ({
   await openPage(page);
   const sheets = await page.evaluate(() =>
     Array.from(
-      document.querySelectorAll("[data-geo-section='default'] [data-geo-sheet]"),
+      document.querySelectorAll(
+        "[data-geo-section='default'] [data-geo-sheet]",
+      ),
     ).map((g) => g.getAttribute("data-geo-sheet") as string),
   );
   await page.addStyleTag({
@@ -270,9 +272,7 @@ test("contact sheets: one per patch at 14px and 20px, light and dark", async ({
       });
       for (const patch of sheets) {
         await page
-          .locator(
-            `[data-geo-section='default'] [data-geo-sheet="${patch}"]`,
-          )
+          .locator(`[data-geo-section='default'] [data-geo-sheet="${patch}"]`)
           .screenshot({
             path: join(
               dir,
